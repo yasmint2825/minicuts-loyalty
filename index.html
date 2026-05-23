@@ -469,7 +469,7 @@ async function archiveCycle(customerId,stamps,firstStampDate,expiryDate,endedBy)
           </div>
           <!-- Tab: Waiting -->
           <div id="tab-waiting" class="tab-pane">
-            <div style="font-size:12px;color:var(--muted);margin-bottom:12px;padding:8px 12px;background:var(--bl);border-radius:8px;">⏳ Nudge sent — watching for return within 2 weeks. Progress bar shows time elapsed.</div>
+            <div style="font-size:12px;color:var(--muted);margin-bottom:12px;padding:8px 12px;background:var(--bl);border-radius:8px;">⏳ Nudge sent — watching for return within 2 weeks. If a customer replies asking to stop messages, tap <strong>🔕 DND</strong> to remove them from all future outreach.</div>
             <div id="MY_WAITING"></div>
           </div>
           <!-- Tab: Returned -->
@@ -1295,12 +1295,8 @@ async function renderMissYou(){
           <div style="font-size:13.5px;font-weight:700;">${c.name}</div>
           <div style="font-size:11.5px;color:var(--muted);">${c.mobile}${extraInfo?' · '+extraInfo:''}</div>
         </div>
-        <div style="display:flex;gap:6px;flex-shrink:0;">
-          <button class="btn bsm" style="background:#25D366;color:#fff;border:none;padding:7px 12px;white-space:nowrap;"
-            onclick="sendWANudge('${c.id}','${c.mobile}','${c.gender}','${c.name}',${c.stamps||0},${paidNeeded()},'${msgType}')">💬 Send</button>
-          <button class="btn bg2 bsm" title="Mark as Do Not Disturb" style="padding:7px 9px;"
-            onclick="toggleDND('${c.id}',true,'${c.name}')">🔕</button>
-        </div>
+        <button class="btn bsm" style="background:#25D366;color:#fff;border:none;padding:7px 12px;white-space:nowrap;flex-shrink:0;"
+          onclick="sendWANudge('${c.id}','${c.mobile}','${c.gender}','${c.name}',${c.stamps||0},${paidNeeded()},'${msgType}')">💬 Send</button>
       </div>`;
     }
 
@@ -1333,10 +1329,16 @@ async function renderMissYou(){
         <div class="hic" style="background:var(--bl);font-size:14px;flex-shrink:0;">⏳</div>
         <div style="flex:1;min-width:0;margin:0 10px;">
           <div style="font-size:13.5px;font-weight:700;">${c.name}</div>
-          <div style="font-size:11.5px;color:var(--muted);">${c.mobile} · nudged ${daysAgo}d ago · ${daysLeft}d left</div>
+          <div style="font-size:11.5px;color:var(--muted);">${c.mobile} · nudged ${daysAgo}d ago · ${daysLeft}d left to return</div>
           <div style="width:100%;height:4px;background:var(--border);border-radius:99px;margin-top:5px;">
             <div style="width:${pct}%;height:100%;background:var(--b);border-radius:99px;transition:width .5s;"></div>
           </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:5px;flex-shrink:0;margin-left:8px;">
+          <button class="btn bg2 bsm" style="font-size:11px;padding:5px 8px;white-space:nowrap;border-color:var(--err);color:var(--err);"
+            onclick="markDNDFromWaiting('${c.id}','${c.name}')" title="Customer asked to stop messages">🔕 DND</button>
+          <button class="btn bg2 bsm" style="font-size:11px;padding:5px 8px;white-space:nowrap;"
+            onclick="sendWA('${c.id}','${c.mobile}','${c.gender}','${c.name}',${c.stamps||0},${paidNeeded()})">💬 Re-send</button>
         </div>
       </div>`;}).join('')
       :'<div style="text-align:center;padding:24px;color:var(--muted);">No one waiting — start nudging!</div>';
@@ -1391,6 +1393,35 @@ async function sendWANudge(id,mobile,gender,name,stamps,paid,msgType='lapsed'){
         <button class="btn bg2 bsm" onclick="cancelNudge('${id}')">✗ Not sent</button>
       </div>`;
   }
+}
+
+async function markDNDFromWaiting(id,name){
+  // Show inline confirmation before marking DND
+  const overlay=document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:2000;display:flex;align-items:center;justify-content:center;padding:16px;';
+  const box=document.createElement('div');
+  box.style.cssText='background:#fff;border-radius:16px;padding:24px;max-width:380px;width:100%;';
+  box.innerHTML=`
+    <div style="font-size:40px;text-align:center;margin-bottom:12px;">🔕</div>
+    <div style="font-family:var(--fh);font-size:18px;font-weight:800;text-align:center;margin-bottom:8px;">Mark as Do Not Disturb?</div>
+    <div style="font-size:13.5px;color:var(--muted);text-align:center;margin-bottom:20px;line-height:1.6;">
+      <strong>${name}</strong> asked to stop receiving messages.<br>
+      They will be removed from all outreach lists.
+    </div>
+    <div style="display:flex;gap:10px;">
+      <button id="dnd-cancel" style="flex:1;padding:11px;border:1.5px solid var(--border);border-radius:8px;background:transparent;cursor:pointer;font-weight:700;font-family:var(--fb);">Cancel</button>
+      <button id="dnd-confirm" style="flex:1;padding:11px;border:none;border-radius:8px;background:var(--err);color:#fff;cursor:pointer;font-weight:700;font-family:var(--fb);">Yes, mark DND</button>
+    </div>`;
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+  document.getElementById('dnd-cancel').addEventListener('click',()=>document.body.removeChild(overlay));
+  overlay.addEventListener('click',(e)=>{if(e.target===overlay) document.body.removeChild(overlay);});
+  document.getElementById('dnd-confirm').addEventListener('click',async()=>{
+    document.getElementById('dnd-confirm').textContent='Saving...';
+    document.getElementById('dnd-confirm').disabled=true;
+    await toggleDND(id,true,name);
+    document.body.removeChild(overlay);
+  });
 }
 
 async function toggleDND(id,dnd,name){
