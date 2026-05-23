@@ -149,13 +149,56 @@ tbody td{padding:12px 15px;font-size:13.5px;color:var(--text)}
 <body>
 <script>
 const SB_URL='https://wtapyfgtwkjyjrjdnhkb.supabase.co';
+/* Run this SQL in Supabase if not already done:
+   alter table customers add column if not exists dob date;
+   alter table customers add column if not exists last_visit_date timestamptz;
+*/
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind0YXB5Zmd0d2tqeWpyamRuaGtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0NDc3ODEsImV4cCI6MjA5NTAyMzc4MX0.y_-iPfb8Pcg9zh42h6RGVBsUVZm80LcA9sPlz_Gl_fA';
-const DC={stampsNeeded:6,boyMonths:12,girlMonths:15,user:'admin',pass:'minicuts123',resetCode:'MINICUTS2025'};
+const DC={
+  stampsNeeded:6,
+  boyMonths:12, girlMonths:15,
+  // Lapsed detection (weeks since last visit)
+  boyLapsedWeeks:8, girlLapsedWeeks:12,
+  // Expiry warning (days before expiry to warn)
+  boyExpiryWarnDays:30, girlExpiryWarnDays:45,
+  // WhatsApp message templates (use {name} placeholder)
+  boyWAExpiry:'Hi! 🐼 Just a reminder that {name}\'s MiniCuts loyalty passport is expiring soon. Don\'t let those stamps go to waste! Book a haircut today 💈',
+  girlWAExpiry:'Hi! 🐼 {name}\'s MiniCuts loyalty passport expires soon. She\'s earned those stamps — book before they expire! 💇‍♀️',
+  boyWALapsed:'Hey! 🐼 We miss {name} at MiniCuts! It\'s been a while since his last visit. Pop in for a fresh cut — his stamps are waiting! ✂️',
+  girlWALapsed:'Hey! 🐼 We miss {name} at MiniCuts! It\'s been a while since her last visit. Book a visit — her stamps are waiting! 💇‍♀️',
+  boyWAReady:'🎉 Great news! {name} has earned a FREE haircut at MiniCuts! Bring him in anytime to redeem. See you soon! 🐼✂️',
+  girlWAReady:'🎉 Great news! {name} has earned a FREE haircut at MiniCuts! Bring her in anytime to redeem. See you soon! 🐼💇‍♀️',
+  boyWABirthday:'🎂 Happy Birthday to {name}! Wishing him a wonderful day from all of us at MiniCuts 🐼 Come in for a special birthday haircut!',
+  girlWABirthday:'🎂 Happy Birthday to {name}! Wishing her a wonderful day from all of us at MiniCuts 🐼 Come in for a special birthday haircut!',
+  user:'admin', pass:'minicuts123', resetCode:'MINICUTS2025'
+};
 let CFG=loadCfg();
 function loadCfg(){try{return Object.assign({},DC,JSON.parse(localStorage.getItem('mc_cfg')||'{}'));}catch(e){return{...DC};}}
 function saveCfg(){localStorage.setItem('mc_cfg',JSON.stringify(CFG));}
 // Paid stamps needed = total - 1 (last visit is always free)
 function paidNeeded(){return Math.max(1,CFG.stampsNeeded-1);}
+function lapsedWeeks(c){return c.gender==='girl'?(CFG.girlLapsedWeeks||12):(CFG.boyLapsedWeeks||8);}
+function expiryWarnDays(c){return c.gender==='girl'?(CFG.girlExpiryWarnDays||45):(CFG.boyExpiryWarnDays||30);}
+function isLapsed(c){
+  if(!c.last_visit_date) return false;
+  const weeks=lapsedWeeks(c);
+  return (new Date()-new Date(c.last_visit_date))/(1000*60*60*24*7)>weeks;
+}
+function isExpiringSoon(c){
+  if(!c.expiry_date||isExp(c)) return false;
+  return dLeft(c)<=expiryWarnDays(c);
+}
+function getWAMsg(c,type){
+  const g=c.gender==='girl'?'girl':'boy';
+  const key=g+(type==='expiry'?'WAExpiry':type==='lapsed'?'WALapsed':type==='ready'?'WAReady':'WABirthday');
+  const tmpl=CFG[key]||'Hi! Your MiniCuts loyalty passport needs attention.';
+  return tmpl.replace(/{name}/g,c.name);
+}
+function openWA(mobile,msg){
+  const num=mobile.replace(/\D/g,'');
+  const wa='https://wa.me/971'+num.replace(/^0/,'')+'?text='+encodeURIComponent(msg);
+  window.open(wa,'_blank');
+}
 
 async function sb(path,method='GET',body=null,params=''){
   const url=SB_URL+'/rest/v1/'+path+(params?'?'+params:'');
@@ -186,9 +229,9 @@ function isExp(c){if(!c.expiry_date||!c.first_stamp_date)return false;return new
 function dLeft(c){if(!c.expiry_date)return null;return Math.ceil((new Date(c.expiry_date)-new Date())/864e5);}
 function getStatus(c){
   if(isExp(c))return{label:'Expired',cls:'bg-err'};
-  const d=dLeft(c);
   if((c.stamps||0)>=paidNeeded())return{label:'Free Cut Ready 🎁',cls:'bg-y'};
-  if(d!==null&&d<=30)return{label:'Expiring Soon',cls:'bg-warn'};
+  if(isExpiringSoon(c))return{label:'Expiring Soon ⏰',cls:'bg-warn'};
+  if(isLapsed(c))return{label:'Lapsed 😴',cls:'bg-warn'};
   return{label:'Active',cls:'bg-ok'};
 }
 function toast(msg,type='success'){
@@ -312,9 +355,14 @@ async function archiveCycle(customerId,stamps,firstStampDate,expiryDate,endedBy)
           </div>
         </div>
         <div class="sr" id="SR"></div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:22px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-bottom:22px;">
           <div class="card"><div style="font-family:var(--fh);font-size:16px;font-weight:800;margin-bottom:14px;">Recent Visits ✂️</div><div id="RV"></div></div>
           <div class="card"><div style="font-family:var(--fh);font-size:16px;font-weight:800;margin-bottom:14px;">Rewards Ready 🎁</div><div id="RL"></div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:22px;">
+          <div class="card"><div style="font-family:var(--fh);font-size:16px;font-weight:800;margin-bottom:14px;">😴 Lapsed Customers</div><div id="DA_LAPSED"></div></div>
+          <div class="card"><div style="font-family:var(--fh);font-size:16px;font-weight:800;margin-bottom:14px;">⏰ Expiring Soon</div><div id="DA_EXPIRING"></div></div>
+          <div class="card"><div style="font-family:var(--fh);font-size:16px;font-weight:800;margin-bottom:14px;">🎂 Birthdays This Month</div><div id="DA_BDAY"></div></div>
         </div>
       </div>
 
@@ -363,7 +411,10 @@ async function archiveCycle(customerId,stamps,firstStampDate,expiryDate,endedBy)
             <div class="gt"><button class="gb boy active" id="NCB" onclick="setG('boy')">👦 Boy</button><button class="gb girl" id="NCG" onclick="setG('girl')">👧 Girl</button></div>
           </div>
           <div class="fg"><label class="fl">Starting Stamps (if transferring)</label><input class="fi" type="number" id="NC4" placeholder="0" min="0" max="5" value="0"></div>
-          <div class="fg"><label class="fl">Notes (optional)</label><input class="fi" type="text" id="NC5" placeholder="e.g. Special needs, preferred stylist"></div>
+          <div class="fr">
+            <div class="fg"><label class="fl">Date of Birth (optional)</label><input class="fi" type="date" id="NC6"></div>
+            <div class="fg"><label class="fl">Notes (optional)</label><input class="fi" type="text" id="NC5" placeholder="e.g. Special needs, preferred stylist"></div>
+          </div>
           <div style="display:flex;gap:9px;margin-top:6px;">
             <button class="btn bp" onclick="createC()">Create Passport 🐼</button>
             <button class="btn bg2" onclick="clearNC()">Clear</button>
@@ -419,6 +470,42 @@ async function archiveCycle(customerId,stamps,firstStampDate,expiryDate,endedBy)
           <div class="cr"><div><div style="font-size:13.5px;font-weight:700;">Master reset code</div><div style="font-size:12px;color:var(--muted);">Used to recover forgotten password</div></div><input class="ci" type="text" id="CFRC" value="MINICUTS2025" style="width:130px;text-transform:uppercase;" oninput="this.value=this.value.toUpperCase()"></div>
           <button class="btn bp" style="margin-top:14px;" onclick="saveConfig()">Save Settings</button>
         </div>
+        <div class="card" style="max-width:640px;margin-bottom:18px;">
+          <div style="font-family:var(--fh);font-size:16px;font-weight:800;margin-bottom:4px;">Retention Settings</div>
+          <div style="font-size:13px;color:var(--muted);margin-bottom:14px;">Configure urgency triggers — different for boys and girls</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:14px;">
+            <div><div style="font-size:12px;font-weight:700;color:var(--b);margin-bottom:8px;">👦 Boys</div>
+              <div class="cr"><div><div style="font-size:13px;font-weight:700;">Lapsed after (weeks)</div><div style="font-size:11px;color:var(--muted);">No visit = lapsed</div></div><input class="ci" type="number" id="CFB_LW" min="1" max="52" value="8"></div>
+              <div class="cr"><div><div style="font-size:13px;font-weight:700;">Expiry warning (days)</div><div style="font-size:11px;color:var(--muted);">Days before expiry</div></div><input class="ci" type="number" id="CFB_EW" min="1" max="180" value="30"></div>
+            </div>
+            <div><div style="font-size:12px;font-weight:700;color:var(--pink);margin-bottom:8px;">👧 Girls</div>
+              <div class="cr"><div><div style="font-size:13px;font-weight:700;">Lapsed after (weeks)</div><div style="font-size:11px;color:var(--muted);">No visit = lapsed</div></div><input class="ci" type="number" id="CFG_LW" min="1" max="52" value="12"></div>
+              <div class="cr"><div><div style="font-size:13px;font-weight:700;">Expiry warning (days)</div><div style="font-size:11px;color:var(--muted);">Days before expiry</div></div><input class="ci" type="number" id="CFG_EW" min="1" max="180" value="45"></div>
+            </div>
+          </div>
+          <button class="btn bp" onclick="saveConfig()">Save Retention Settings</button>
+        </div>
+        <div class="card" style="max-width:640px;margin-bottom:18px;">
+          <div style="font-family:var(--fh);font-size:16px;font-weight:800;margin-bottom:4px;">WhatsApp Message Templates</div>
+          <div style="font-size:13px;color:var(--muted);margin-bottom:14px;">Use {name} as placeholder for child's name</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+            <div>
+              <div style="font-size:12px;font-weight:700;color:var(--b);margin-bottom:8px;">👦 Boys</div>
+              <div class="fg"><label class="fl">Free cut ready</label><textarea class="fi" id="CFB_WR" rows="2" style="resize:vertical;"></textarea></div>
+              <div class="fg"><label class="fl">Expiry reminder</label><textarea class="fi" id="CFB_WE" rows="2" style="resize:vertical;"></textarea></div>
+              <div class="fg"><label class="fl">Win-back (lapsed)</label><textarea class="fi" id="CFB_WL" rows="2" style="resize:vertical;"></textarea></div>
+              <div class="fg"><label class="fl">Birthday</label><textarea class="fi" id="CFB_WB" rows="2" style="resize:vertical;"></textarea></div>
+            </div>
+            <div>
+              <div style="font-size:12px;font-weight:700;color:var(--pink);margin-bottom:8px;">👧 Girls</div>
+              <div class="fg"><label class="fl">Free cut ready</label><textarea class="fi" id="CFG_WR" rows="2" style="resize:vertical;"></textarea></div>
+              <div class="fg"><label class="fl">Expiry reminder</label><textarea class="fi" id="CFG_WE" rows="2" style="resize:vertical;"></textarea></div>
+              <div class="fg"><label class="fl">Win-back (lapsed)</label><textarea class="fi" id="CFG_WL" rows="2" style="resize:vertical;"></textarea></div>
+              <div class="fg"><label class="fl">Birthday</label><textarea class="fi" id="CFG_WB" rows="2" style="resize:vertical;"></textarea></div>
+            </div>
+          </div>
+          <button class="btn bp" style="margin-top:8px;" onclick="saveConfig()">Save Templates</button>
+        </div>
         <div class="card" style="max-width:540px;">
           <div style="font-family:var(--fh);font-size:16px;font-weight:800;margin-bottom:12px;">Data — Supabase Cloud ☁️</div>
           <div style="font-size:13px;color:var(--muted);margin-bottom:14px;">All customer data is stored securely in your Supabase database. Works across all devices.</div>
@@ -444,6 +531,7 @@ async function archiveCycle(customerId,stamps,firstStampDate,expiryDate,endedBy)
       <div class="gt"><button class="gb boy active" id="EGB" onclick="setEG('boy')">👦 Boy</button><button class="gb girl" id="EGG" onclick="setEG('girl')">👧 Girl</button></div>
     </div>
     <div class="fg"><label class="fl">Current Stamps</label><input class="fi" type="number" id="EST" min="0" max="10"></div>
+    <div class="fg"><label class="fl">Date of Birth</label><input class="fi" type="date" id="EDOB"></div>
     <div class="fg"><label class="fl">Notes</label><input class="fi" type="text" id="ENO"></div>
     <div class="mf">
       <button class="btn bg2" onclick="closeM('EM')">Cancel</button>
@@ -552,6 +640,20 @@ function syncCfgInputs(){
   document.getElementById('CFU').value=CFG.user;
   document.getElementById('CFP').value=CFG.pass;
   document.getElementById('CFRC').value=CFG.resetCode||'MINICUTS2025';
+  // Retention
+  document.getElementById('CFB_LW').value=CFG.boyLapsedWeeks||8;
+  document.getElementById('CFG_LW').value=CFG.girlLapsedWeeks||12;
+  document.getElementById('CFB_EW').value=CFG.boyExpiryWarnDays||30;
+  document.getElementById('CFG_EW').value=CFG.girlExpiryWarnDays||45;
+  // WA templates
+  document.getElementById('CFB_WR').value=CFG.boyWAReady||DC.boyWAReady;
+  document.getElementById('CFG_WR').value=CFG.girlWAReady||DC.girlWAReady;
+  document.getElementById('CFB_WE').value=CFG.boyWAExpiry||DC.boyWAExpiry;
+  document.getElementById('CFG_WE').value=CFG.girlWAExpiry||DC.girlWAExpiry;
+  document.getElementById('CFB_WL').value=CFG.boyWALapsed||DC.boyWALapsed;
+  document.getElementById('CFG_WL').value=CFG.girlWALapsed||DC.girlWALapsed;
+  document.getElementById('CFB_WB').value=CFG.boyWABirthday||DC.boyWABirthday;
+  document.getElementById('CFG_WB').value=CFG.girlWABirthday||DC.girlWABirthday;
 }
 
 // ══ AUTH ══
@@ -729,7 +831,7 @@ function renderProfile(c,visits,cycles){
     <div style="display:flex;align-items:center;gap:18px;margin-bottom:22px;flex-wrap:wrap;">
       <div style="width:68px;height:68px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:800;font-family:var(--fh);background:${c.gender==='girl'?'var(--pinkl)':'var(--bl)'};color:${c.gender==='girl'?'var(--pink)':'var(--b)'};">${c.name.charAt(0).toUpperCase()}</div>
       <div><h2 style="font-family:var(--fh);font-size:22px;font-weight:800;">${c.name}</h2>
-      <p style="color:var(--muted);font-size:13.5px;">${c.mobile} · ${c.gender==='girl'?'👧 Girl':'👦 Boy'}${c.parent?' · '+c.parent:''}</p>
+      <p style="color:var(--muted);font-size:13.5px;">${c.mobile} · ${c.gender==='girl'?'👧 Girl':'👦 Boy'}${c.parent?' · '+c.parent:''}${c.dob?' · 🎂 '+new Date(c.dob).toLocaleDateString('en-GB',{day:'numeric',month:'short'}):''}</p>
       ${c.notes?`<p style="font-size:12.5px;color:var(--warn);margin-top:3px;">📝 ${c.notes}</p>`:''}</div>
       <div style="margin-left:auto;display:flex;gap:7px;flex-wrap:wrap;">
         <button class="btn bg2 bsm" onclick="openEditM('${c.id}')">✏️ Edit</button>
@@ -842,7 +944,7 @@ async function addStamp(id){
     const months=c.gender==='girl'?CFG.girlMonths:CFG.boyMonths;
     const firstStamp=c.first_stamp_date||now;
     const expiry=c.expiry_date||addMonths(firstStamp,months);
-    await sb('customers','PATCH',{stamps:ns,first_stamp_date:firstStamp,expiry_date:expiry},'id=eq.'+id);
+    await sb('customers','PATCH',{stamps:ns,first_stamp_date:firstStamp,expiry_date:expiry,last_visit_date:now},'id=eq.'+id);
     await sb('visits','POST',{customer_id:id,type:'paid',stamp_count_after:ns,cycle_expiry:expiry});
     toast('Stamp added! '+ns+'/'+paid+' for '+c.name+(ns>=paid?' 🎁 FREE haircut ready!':''));
     if(curPID===id) viewProfile(id);
@@ -895,6 +997,7 @@ async function createC(){
   const phone=document.getElementById('NC2').value.trim();
   const parent=document.getElementById('NC3').value.trim();
   const notes=document.getElementById('NC5').value.trim();
+  const dob=document.getElementById('NC6').value||null;
   const stamps=parseInt(document.getElementById('NC4').value)||0;
   if(!name||!phone){toast('Name and mobile required.','error');return;}
   try{
@@ -902,7 +1005,7 @@ async function createC(){
     if(ex.length){toast('This child already has a passport. Search by mobile to find them.','error');return;}
     const now=new Date().toISOString();
     const months=ncG==='girl'?CFG.girlMonths:CFG.boyMonths;
-    await sb('customers','POST',{name,mobile:phone,parent,notes,gender:ncG,stamps,redemptions:0,
+    await sb('customers','POST',{name,mobile:phone,parent,notes,dob,gender:ncG,stamps,redemptions:0,
       first_stamp_date:stamps>0?now:null,expiry_date:stamps>0?addMonths(now,months):null});
     toast(`🐼 Passport created for ${name}!`);
     clearNC();showPage('customers',null);loadCustomers();
@@ -918,6 +1021,7 @@ async function openEditM(id){
   document.getElementById('EN').value=c.name;
   document.getElementById('EP').value=c.mobile;
   document.getElementById('EPR').value=c.parent||'';
+  document.getElementById('EDOB').value=c.dob||'';
   document.getElementById('ENO').value=c.notes||'';
   document.getElementById('EST').value=c.stamps||0;
   egG=c.gender;setEG(c.gender);openM('EM');
@@ -925,7 +1029,7 @@ async function openEditM(id){
 function setEG(g){egG=g;document.getElementById('EGB').classList.toggle('active',g==='boy');document.getElementById('EGG').classList.toggle('active',g==='girl');}
 async function saveEdit(){
   const id=document.getElementById('EID').value;
-  const u={name:document.getElementById('EN').value.trim(),mobile:document.getElementById('EP').value.trim(),parent:document.getElementById('EPR').value.trim(),notes:document.getElementById('ENO').value.trim(),gender:egG,stamps:parseInt(document.getElementById('EST').value)||0};
+  const u={name:document.getElementById('EN').value.trim(),mobile:document.getElementById('EP').value.trim(),parent:document.getElementById('EPR').value.trim(),notes:document.getElementById('ENO').value.trim(),dob:document.getElementById('EDOB').value||null,gender:egG,stamps:parseInt(document.getElementById('EST').value)||0};
   try{
     await sb('customers','PATCH',u,'id=eq.'+id);
     closeM('EM');toast('Customer updated!');
@@ -935,6 +1039,33 @@ async function saveEdit(){
 }
 
 // ══ QR ══
+function sendWA(id,mobile,gender,name,stamps,paid){
+  // Determine message type based on status
+  const c={id,mobile,gender,name,stamps,gender};
+  let type='lapsed';
+  if(stamps>=paid) type='ready';
+  else if(gender==='girl'&&CFG.girlExpiryWarnDays||gender==='boy'&&CFG.boyExpiryWarnDays) type='expiry';
+  // Open WhatsApp message chooser
+  const msgs={
+    ready:getWAMsg({name,gender},'ready'),
+    expiry:getWAMsg({name,gender},'expiry'),
+    lapsed:getWAMsg({name,gender},'lapsed'),
+    birthday:getWAMsg({name,gender},'birthday')
+  };
+  const modal=document.createElement('div');
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:2000;display:flex;align-items:center;justify-content:center;padding:16px;';
+  modal.innerHTML=`<div style="background:#fff;border-radius:16px;padding:24px;max-width:480px;width:100%;max-height:90vh;overflow-y:auto;">
+    <div style="font-family:var(--fh);font-size:18px;font-weight:800;margin-bottom:16px;">💬 Send WhatsApp to ${name}</div>
+    ${Object.entries(msgs).map(([t,msg])=>`
+      <div style="border:1.5px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px;cursor:pointer;" onclick="openWA('${mobile}','${msg.replace(/'/g,"\'")}');document.body.removeChild(this.closest('[style*=fixed]'))">
+        <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:4px;">${t==='ready'?'🎁 Free Haircut Ready':t==='expiry'?'⏰ Expiry Reminder':t==='lapsed'?'😴 Win-back':t==='birthday'?'🎂 Birthday':t}</div>
+        <div style="font-size:13px;color:var(--text);line-height:1.5;">${msg}</div>
+        <div style="margin-top:8px;color:#25D366;font-size:12px;font-weight:700;">Tap to send via WhatsApp →</div>
+      </div>`).join('')}
+    <button onclick="document.body.removeChild(this.closest('[style*=fixed]'))" style="width:100%;padding:10px;border:1.5px solid var(--border);border-radius:8px;background:transparent;cursor:pointer;font-weight:700;margin-top:4px;">Cancel</button>
+  </div>`;
+  document.body.appendChild(modal);
+}
 async function openQR(id){
   const c=(await sb('customers','GET',null,'select=*&id=eq.'+id))[0];
   const el=document.getElementById('QMC');el.innerHTML='';
@@ -1198,12 +1329,24 @@ async function commitUp(btn,rows){
 
 // ══ CONFIG ══
 function saveConfig(){
-  CFG.stampsNeeded=parseInt(document.getElementById('CFS').value)||5;
+  CFG.stampsNeeded=parseInt(document.getElementById('CFS').value)||6;
   CFG.boyMonths=parseInt(document.getElementById('CFB').value)||12;
   CFG.girlMonths=parseInt(document.getElementById('CFG2').value)||15;
   CFG.user=document.getElementById('CFU').value.trim()||'admin';
   CFG.pass=document.getElementById('CFP').value||'minicuts123';
   CFG.resetCode=document.getElementById('CFRC').value.trim()||'MINICUTS2025';
+  CFG.boyLapsedWeeks=parseInt(document.getElementById('CFB_LW').value)||8;
+  CFG.girlLapsedWeeks=parseInt(document.getElementById('CFG_LW').value)||12;
+  CFG.boyExpiryWarnDays=parseInt(document.getElementById('CFB_EW').value)||30;
+  CFG.girlExpiryWarnDays=parseInt(document.getElementById('CFG_EW').value)||45;
+  CFG.boyWAReady=document.getElementById('CFB_WR').value||DC.boyWAReady;
+  CFG.girlWAReady=document.getElementById('CFG_WR').value||DC.girlWAReady;
+  CFG.boyWAExpiry=document.getElementById('CFB_WE').value||DC.boyWAExpiry;
+  CFG.girlWAExpiry=document.getElementById('CFG_WE').value||DC.girlWAExpiry;
+  CFG.boyWALapsed=document.getElementById('CFB_WL').value||DC.boyWALapsed;
+  CFG.girlWALapsed=document.getElementById('CFG_WL').value||DC.girlWALapsed;
+  CFG.boyWABirthday=document.getElementById('CFB_WB').value||DC.boyWABirthday;
+  CFG.girlWABirthday=document.getElementById('CFG_WB').value||DC.girlWABirthday;
   saveCfg();toast('Settings saved!');
 }
 async function exportCSV(){
