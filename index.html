@@ -158,8 +158,12 @@ const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZ
 const DC={
   stampsNeeded:6,
   boyMonths:12, girlMonths:15,
-  // Lapsed detection (weeks since last visit)
-  boyLapsedWeeks:8, girlLapsedWeeks:12,
+  // Lapsed = customer who did not return (bucket definition)
+  boyLapsedWeeks:12,   // Boys: 3 months = ~12 weeks
+  girlLapsedWeeks:26,  // Girls: 6 months = ~26 weeks
+  // Nudge = customer to proactively contact (earlier than lapsed)
+  boyNudgeWeeks:8,     // Boys: nudge at 8 weeks
+  girlNudgeWeeks:15,   // Girls: nudge at 15 weeks
   // Expiry warning (days before expiry to warn)
   boyExpiryWarnDays:30, girlExpiryWarnDays:45,
   // WhatsApp message templates (use {name} placeholder)
@@ -178,14 +182,25 @@ function loadCfg(){try{return Object.assign({},DC,JSON.parse(localStorage.getIte
 function saveCfg(){localStorage.setItem('mc_cfg',JSON.stringify(CFG));}
 // Paid stamps needed = total - 1 (last visit is always free)
 function paidNeeded(){return Math.max(1,CFG.stampsNeeded-1);}
-function lapsedWeeks(c){return c.gender==='girl'?(CFG.girlLapsedWeeks||12):(CFG.boyLapsedWeeks||8);}
+// Lapsed = truly lost customer (boys 3mo / girls 6mo by default)
+function lapsedWeeks(c){return c.gender==='girl'?(CFG.girlLapsedWeeks||26):(CFG.boyLapsedWeeks||12);}
+// Nudge = proactive contact before they lapse (boys 8wk / girls 15wk)
+function nudgeWeeks(c){return c.gender==='girl'?(CFG.girlNudgeWeeks||15):(CFG.boyNudgeWeeks||8);}
 function expiryWarnDays(c){return c.gender==='girl'?(CFG.girlExpiryWarnDays||45):(CFG.boyExpiryWarnDays||30);}
-function isLapsed(c){
-  // Use last_visit_date first, fall back to first_stamp_date
+function weeksSinceVisit(c){
   const lastVisit=c.last_visit_date||c.first_stamp_date;
-  if(!lastVisit) return false;
-  const weeks=lapsedWeeks(c);
-  return (new Date()-new Date(lastVisit))/(1000*60*60*24*7)>weeks;
+  if(!lastVisit) return null;
+  return (new Date()-new Date(lastVisit))/(1000*60*60*24*7);
+}
+function isLapsed(c){
+  const w=weeksSinceVisit(c);
+  if(w===null) return false;
+  return w>lapsedWeeks(c);
+}
+function needsNudge(c){
+  const w=weeksSinceVisit(c);
+  if(w===null) return false;
+  return w>=nudgeWeeks(c)&&!isLapsed(c); // between nudge threshold and lapsed threshold
 }
 function isExpiringSoon(c){
   if(!c.expiry_date||isExp(c)) return false;
@@ -418,7 +433,10 @@ async function archiveCycle(customerId,stamps,firstStampDate,expiryDate,endedBy)
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-bottom:22px;">
           <div class="card">
             <div style="font-family:var(--fh);font-size:16px;font-weight:800;margin-bottom:4px;">😴 Need a Nudge</div>
-            <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">Boys ≥ <span id="MY_boyWeeks"></span> weeks · Girls ≥ <span id="MY_girlWeeks"></span> weeks since last visit</div>
+            <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">
+            🔔 Nudge: Boys ≥ <span id="MY_boyNudge"></span>wks · Girls ≥ <span id="MY_girlNudge"></span>wks &nbsp;|&nbsp;
+            😴 Lapsed: Boys ≥ <span id="MY_boyLapsed"></span>wks · Girls ≥ <span id="MY_girlLapsed"></span>wks
+          </div>
             <div id="MY_LAPSED"></div>
           </div>
           <div class="card">
@@ -541,13 +559,17 @@ async function archiveCycle(customerId,stamps,firstStampDate,expiryDate,endedBy)
           <div style="font-family:var(--fh);font-size:16px;font-weight:800;margin-bottom:4px;">Retention Settings</div>
           <div style="font-size:13px;color:var(--muted);margin-bottom:14px;">Configure urgency triggers — different for boys and girls</div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:14px;">
-            <div><div style="font-size:12px;font-weight:700;color:var(--b);margin-bottom:8px;">👦 Boys</div>
-              <div class="cr"><div><div style="font-size:13px;font-weight:700;">Lapsed after (weeks)</div><div style="font-size:11px;color:var(--muted);">No visit = lapsed</div></div><input class="ci" type="number" id="CFB_LW" min="1" max="52" value="8"></div>
-              <div class="cr"><div><div style="font-size:13px;font-weight:700;">Expiry warning (days)</div><div style="font-size:11px;color:var(--muted);">Days before expiry</div></div><input class="ci" type="number" id="CFB_EW" min="1" max="180" value="30"></div>
+            <div>
+              <div style="font-size:12px;font-weight:700;color:var(--b);margin-bottom:8px;">👦 Boys</div>
+              <div class="cr"><div><div style="font-size:13px;font-weight:700;">🔔 Nudge at (weeks)</div><div style="font-size:11px;color:var(--muted);">Proactive contact — not yet lapsed</div></div><input class="ci" type="number" id="CFB_NW" min="1" max="52" value="8"></div>
+              <div class="cr"><div><div style="font-size:13px;font-weight:700;">😴 Lapsed after (weeks)</div><div style="font-size:11px;color:var(--muted);">Truly lost — ~3 months = 12 wks</div></div><input class="ci" type="number" id="CFB_LW" min="1" max="104" value="12"></div>
+              <div class="cr"><div><div style="font-size:13px;font-weight:700;">⏰ Expiry warning (days)</div><div style="font-size:11px;color:var(--muted);">Days before passport expiry</div></div><input class="ci" type="number" id="CFB_EW" min="1" max="180" value="30"></div>
             </div>
-            <div><div style="font-size:12px;font-weight:700;color:var(--pink);margin-bottom:8px;">👧 Girls</div>
-              <div class="cr"><div><div style="font-size:13px;font-weight:700;">Lapsed after (weeks)</div><div style="font-size:11px;color:var(--muted);">No visit = lapsed</div></div><input class="ci" type="number" id="CFG_LW" min="1" max="52" value="12"></div>
-              <div class="cr"><div><div style="font-size:13px;font-weight:700;">Expiry warning (days)</div><div style="font-size:11px;color:var(--muted);">Days before expiry</div></div><input class="ci" type="number" id="CFG_EW" min="1" max="180" value="45"></div>
+            <div>
+              <div style="font-size:12px;font-weight:700;color:var(--pink);margin-bottom:8px;">👧 Girls</div>
+              <div class="cr"><div><div style="font-size:13px;font-weight:700;">🔔 Nudge at (weeks)</div><div style="font-size:11px;color:var(--muted);">Proactive contact — not yet lapsed</div></div><input class="ci" type="number" id="CFG_NW" min="1" max="52" value="15"></div>
+              <div class="cr"><div><div style="font-size:13px;font-weight:700;">😴 Lapsed after (weeks)</div><div style="font-size:11px;color:var(--muted);">Truly lost — ~6 months = 26 wks</div></div><input class="ci" type="number" id="CFG_LW" min="1" max="104" value="26"></div>
+              <div class="cr"><div><div style="font-size:13px;font-weight:700;">⏰ Expiry warning (days)</div><div style="font-size:11px;color:var(--muted);">Days before passport expiry</div></div><input class="ci" type="number" id="CFG_EW" min="1" max="180" value="45"></div>
             </div>
           </div>
           <button class="btn bp" onclick="saveConfig()">Save Retention Settings</button>
@@ -716,8 +738,10 @@ function syncCfgInputs(){
   document.getElementById('CFP').value=CFG.pass;
   document.getElementById('CFRC').value=CFG.resetCode||'MINICUTS2025';
   // Retention
-  document.getElementById('CFB_LW').value=CFG.boyLapsedWeeks||8;
-  document.getElementById('CFG_LW').value=CFG.girlLapsedWeeks||12;
+  document.getElementById('CFB_NW').value=CFG.boyNudgeWeeks||8;
+  document.getElementById('CFG_NW').value=CFG.girlNudgeWeeks||15;
+  document.getElementById('CFB_LW').value=CFG.boyLapsedWeeks||12;
+  document.getElementById('CFG_LW').value=CFG.girlLapsedWeeks||26;
   document.getElementById('CFB_EW').value=CFG.boyExpiryWarnDays||30;
   document.getElementById('CFG_EW').value=CFG.girlExpiryWarnDays||45;
   // WA templates
@@ -1181,13 +1205,16 @@ async function saveEdit(){
 
 // ══ QR ══
 async function renderMissYou(){
-  document.getElementById('MY_boyWeeks').textContent=CFG.boyLapsedWeeks||8;
-  document.getElementById('MY_girlWeeks').textContent=CFG.girlLapsedWeeks||12;
+  document.getElementById('MY_boyNudge').textContent=CFG.boyNudgeWeeks||8;
+  document.getElementById('MY_girlNudge').textContent=CFG.girlNudgeWeeks||15;
+  document.getElementById('MY_boyLapsed').textContent=CFG.boyLapsedWeeks||12;
+  document.getElementById('MY_girlLapsed').textContent=CFG.girlLapsedWeeks||26;
   document.getElementById('MY_LAPSED').innerHTML='<div class="load"><div class="spin"></div></div>';
   document.getElementById('MY_RETURNED').innerHTML='<div class="load"><div class="spin"></div></div>';
   try{
     const custs=await sb('customers','GET',null,'select=*&order=name.asc');
-    const lapsed=custs.filter(c=>!isExp(c)&&isLapsed(c));
+    const toNudge=custs.filter(c=>!isExp(c)&&needsNudge(c));
+    const allAtRisk=[...toNudge,...lapsed].sort((a,b)=>(weeksSinceVisit(b)||0)-(weeksSinceVisit(a)||0));
     const nudgeSent=custs.filter(c=>c.nudge_sent_at);
     const returned=custs.filter(c=>c.nudge_sent_at&&c.last_visit_date&&
       new Date(c.last_visit_date)>new Date(c.nudge_sent_at)&&
@@ -1198,6 +1225,7 @@ async function renderMissYou(){
     const rate=nudgeSent.length?Math.round((returned.length/nudgeSent.length)*100):0;
     document.getElementById('MY_STATS').innerHTML=`
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;">
+        <div class="sc"><div class="si" style="background:#FAEEDA;">🔔</div><div><div class="sl">Nudge Now</div><div class="sv">${toNudge.length}</div></div></div>
         <div class="sc"><div class="si" style="background:#FEE2E2;">😴</div><div><div class="sl">Lapsed</div><div class="sv">${lapsed.length}</div></div></div>
         <div class="sc"><div class="si" style="background:#EFF6FF;">💬</div><div><div class="sl">Nudged</div><div class="sv">${nudgeSent.length}</div></div></div>
         <div class="sc"><div class="si" style="background:#F0FDF4;">✅</div><div><div class="sl">Returned</div><div class="sv">${returned.length}</div></div></div>
@@ -1205,7 +1233,7 @@ async function renderMissYou(){
       </div>`;
 
     // Lapsed needing nudge
-    document.getElementById('MY_LAPSED').innerHTML=lapsed.length?lapsed.map(c=>{
+    document.getElementById('MY_LAPSED').innerHTML=allAtRisk.length?allAtRisk.map(c=>{
       const weeksAgo=c.last_visit_date||c.first_stamp_date?Math.round((new Date()-new Date(c.last_visit_date||c.first_stamp_date))/(1000*60*60*24*7)):null;
       const alreadyNudged=c.nudge_sent_at&&new Date(c.nudge_sent_at)>new Date(Date.now()-14*24*60*60*1000);
       return`<div class="hi">
@@ -1216,7 +1244,7 @@ async function renderMissYou(){
         </div>
         <button class="btn bsm" style="background:#25D366;color:#fff;border:none;padding:6px 10px;flex-shrink:0;" onclick="sendWANudge('${c.id}','${c.mobile}','${c.gender}','${c.name.replace(/'/g,"\'")}',${c.stamps||0},${paidNeeded()})">💬 Nudge</button>
       </div>`;}).join('')
-      :'<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px;">No lapsed customers 🎉</div>';
+      :'<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px;">No at-risk customers 🎉</div>';
 
     // Returned
     document.getElementById('MY_RETURNED').innerHTML=returned.length?returned.map(c=>`
@@ -1249,31 +1277,49 @@ async function sendWANudge(id,mobile,gender,name,stamps,paid){
 }
 
 function sendWA(id,mobile,gender,name,stamps,paid){
-  // Determine message type based on status
-  const c={id,mobile,gender,name,stamps,gender};
-  let type='lapsed';
-  if(stamps>=paid) type='ready';
-  else if(gender==='girl'&&CFG.girlExpiryWarnDays||gender==='boy'&&CFG.boyExpiryWarnDays) type='expiry';
-  // Open WhatsApp message chooser
+  // Store msgs in closure-safe variables
   const msgs={
-    ready:getWAMsg({name,gender},'ready'),
-    expiry:getWAMsg({name,gender},'expiry'),
-    lapsed:getWAMsg({name,gender},'lapsed'),
-    birthday:getWAMsg({name,gender},'birthday')
+    '🎁 Free Haircut Ready': getWAMsg({name,gender},'ready'),
+    '⏰ Expiry Reminder':    getWAMsg({name,gender},'expiry'),
+    '😴 Win-back':           getWAMsg({name,gender},'lapsed'),
+    '🎂 Birthday':           getWAMsg({name,gender},'birthday')
   };
-  const modal=document.createElement('div');
-  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:2000;display:flex;align-items:center;justify-content:center;padding:16px;';
-  modal.innerHTML=`<div style="background:#fff;border-radius:16px;padding:24px;max-width:480px;width:100%;max-height:90vh;overflow-y:auto;">
-    <div style="font-family:var(--fh);font-size:18px;font-weight:800;margin-bottom:16px;">💬 Send WhatsApp to ${name}</div>
-    ${Object.entries(msgs).map(([t,msg])=>`
-      <div style="border:1.5px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px;cursor:pointer;" onclick="openWA('${mobile}','${msg.replace(/'/g,"\'")}');document.body.removeChild(this.closest('[style*=fixed]'))">
-        <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:4px;">${t==='ready'?'🎁 Free Haircut Ready':t==='expiry'?'⏰ Expiry Reminder':t==='lapsed'?'😴 Win-back':t==='birthday'?'🎂 Birthday':t}</div>
-        <div style="font-size:13px;color:var(--text);line-height:1.5;">${msg}</div>
-        <div style="margin-top:8px;color:#25D366;font-size:12px;font-weight:700;">Tap to send via WhatsApp →</div>
-      </div>`).join('')}
-    <button onclick="document.body.removeChild(this.closest('[style*=fixed]'))" style="width:100%;padding:10px;border:1.5px solid var(--border);border-radius:8px;background:transparent;cursor:pointer;font-weight:700;margin-top:4px;">Cancel</button>
-  </div>`;
-  document.body.appendChild(modal);
+  // Create modal
+  const overlay=document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:2000;display:flex;align-items:center;justify-content:center;padding:16px;';
+  const box=document.createElement('div');
+  box.style.cssText='background:#fff;border-radius:16px;padding:24px;max-width:480px;width:100%;max-height:90vh;overflow-y:auto;';
+  box.innerHTML=`<div style="font-family:var(--fh);font-size:18px;font-weight:800;margin-bottom:4px;">💬 Send WhatsApp</div>
+    <div style="font-size:13px;color:#6B7280;margin-bottom:16px;">Choose message for ${name}</div>
+    <div id="_wa_list"></div>
+    <button id="_wa_cancel" style="width:100%;padding:10px;border:1.5px solid #E5E7EB;border-radius:8px;background:transparent;cursor:pointer;font-weight:700;margin-top:4px;">Cancel</button>`;
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+  // Add message items using DOM (avoids quote issues)
+  const list=document.getElementById('_wa_list');
+  Object.entries(msgs).forEach(([label,msg])=>{
+    const item=document.createElement('div');
+    item.style.cssText='border:1.5px solid #E5E7EB;border-radius:10px;padding:12px;margin-bottom:10px;cursor:pointer;';
+    const lbl=document.createElement('div');
+    lbl.style.cssText='font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;margin-bottom:4px;';
+    lbl.textContent=label;
+    const txt=document.createElement('div');
+    txt.style.cssText='font-size:13px;color:#1A1A2E;line-height:1.6;';
+    txt.textContent=msg;
+    const cta=document.createElement('div');
+    cta.style.cssText='margin-top:8px;color:#25D366;font-size:12px;font-weight:700;';
+    cta.textContent='✓ Tap to open WhatsApp →';
+    item.appendChild(lbl);item.appendChild(txt);item.appendChild(cta);
+    item.addEventListener('click',()=>{
+      openWA(mobile,msg);
+      document.body.removeChild(overlay);
+    });
+    item.addEventListener('mouseover',()=>item.style.borderColor='#25D366');
+    item.addEventListener('mouseout',()=>item.style.borderColor='#E5E7EB');
+    list.appendChild(item);
+  });
+  document.getElementById('_wa_cancel').addEventListener('click',()=>document.body.removeChild(overlay));
+  overlay.addEventListener('click',(e)=>{if(e.target===overlay) document.body.removeChild(overlay);});
 }
 async function openQR(id){
   const c=(await sb('customers','GET',null,'select=*&id=eq.'+id))[0];
@@ -1544,8 +1590,10 @@ function saveConfig(){
   CFG.user=document.getElementById('CFU').value.trim()||'admin';
   CFG.pass=document.getElementById('CFP').value||'minicuts123';
   CFG.resetCode=document.getElementById('CFRC').value.trim()||'MINICUTS2025';
-  CFG.boyLapsedWeeks=parseInt(document.getElementById('CFB_LW').value)||8;
-  CFG.girlLapsedWeeks=parseInt(document.getElementById('CFG_LW').value)||12;
+  CFG.boyNudgeWeeks=parseInt(document.getElementById('CFB_NW').value)||8;
+  CFG.girlNudgeWeeks=parseInt(document.getElementById('CFG_NW').value)||15;
+  CFG.boyLapsedWeeks=parseInt(document.getElementById('CFB_LW').value)||12;
+  CFG.girlLapsedWeeks=parseInt(document.getElementById('CFG_LW').value)||26;
   CFG.boyExpiryWarnDays=parseInt(document.getElementById('CFB_EW').value)||30;
   CFG.girlExpiryWarnDays=parseInt(document.getElementById('CFG_EW').value)||45;
   CFG.boyWAReady=document.getElementById('CFB_WR').value||DC.boyWAReady;
