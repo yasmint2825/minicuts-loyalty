@@ -1,0 +1,1218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MiniCuts Loyalty Passport</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Baloo+2:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{--y:#FFD600;--yl:#FFF9D6;--yd:#F0C000;--b:#1565C0;--bl:#E3F0FF;--bm:#1976D2;--bd:#0D47A1;--bg:#F0F4FF;--card:#fff;--text:#1A1A2E;--muted:#6B7280;--border:#E5E7EB;--ok:#16A34A;--okl:#DCFCE7;--err:#DC2626;--errl:#FEE2E2;--warn:#D97706;--warnl:#FEF3C7;--pink:#EC4899;--pinkl:#FCE7F3;--r:16px;--rs:10px;--sh:0 4px 24px rgba(21,101,192,.10);--shl:0 8px 40px rgba(21,101,192,.18);--fh:'Baloo 2',cursive;--fb:'Nunito',sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}html{font-size:16px}body{font-family:var(--fb);background:var(--bg);color:var(--text);min-height:100vh}
+.app{display:flex;min-height:100vh}
+.sb{width:240px;background:var(--bd);flex-shrink:0;display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:100;transition:transform .3s}
+.sb-logo{padding:22px 18px 14px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(255,255,255,.1)}
+.sb-icon{width:42px;height:42px;background:var(--y);border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:21px;flex-shrink:0}
+.sb-txt{color:#fff;font-family:var(--fh);font-weight:800;font-size:15px;line-height:1.2}
+.sb-sub{color:rgba(255,255,255,.5);font-size:10px;font-weight:700;letter-spacing:.5px}
+.nav{padding:14px 10px;flex:1;display:flex;flex-direction:column;gap:3px;overflow-y:auto}
+.nav-s{font-size:10px;letter-spacing:1px;color:rgba(255,255,255,.3);font-weight:700;padding:10px 12px 3px;text-transform:uppercase}
+.ni{display:flex;align-items:center;gap:9px;padding:10px 13px;border-radius:9px;cursor:pointer;color:rgba(255,255,255,.7);font-size:13.5px;font-weight:700;transition:all .2s;border:none;background:transparent;width:100%;text-align:left}
+.ni:hover{background:rgba(255,255,255,.1);color:#fff}
+.ni.active{background:var(--y);color:var(--bd)}
+.ni svg{width:17px;height:17px;flex-shrink:0}
+.sb-foot{padding:14px;border-top:1px solid rgba(255,255,255,.1)}
+.sav{width:30px;height:30px;border-radius:50%;background:var(--y);color:var(--bd);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px}
+.sb-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99}
+.sb-overlay.open{display:block}
+.main{margin-left:240px;flex:1}
+.topbar{background:#fff;border-bottom:1px solid var(--border);padding:0 28px;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+.topbar-t{font-family:var(--fh);font-size:19px;font-weight:800;color:var(--text)}
+.content{padding:28px}
+.page{display:none}.page.active{display:block}
+.btn{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;border-radius:var(--rs);font-family:var(--fb);font-weight:700;font-size:13.5px;cursor:pointer;border:none;transition:all .2s;line-height:1}
+.bp{background:var(--b);color:#fff}.bp:hover{background:var(--bd);transform:translateY(-1px);box-shadow:0 4px 12px rgba(21,101,192,.3)}
+.by{background:var(--y);color:var(--bd)}.by:hover{background:var(--yd)}
+.bs{background:var(--ok);color:#fff}.bs:hover{background:#15803d}
+.bd2{background:var(--err);color:#fff}.bd2:hover{background:#b91c1c}
+.bg2{background:transparent;color:var(--b);border:1.5px solid var(--b)}.bg2:hover{background:var(--bl)}
+.bsm{padding:6px 13px;font-size:12.5px;border-radius:7px}
+.bi{padding:7px;border-radius:7px;background:var(--bl);color:var(--b);border:none;cursor:pointer;display:inline-flex;align-items:center}
+.bi:hover{background:var(--b);color:#fff}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none!important}
+.card{background:var(--card);border-radius:var(--r);box-shadow:var(--sh);padding:22px}
+.sr{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}
+.sc{background:#fff;border-radius:var(--r);padding:18px;box-shadow:var(--sh);display:flex;align-items:center;gap:12px}
+.si{width:46px;height:46px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:21px;flex-shrink:0}
+.sl{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.sv{font-family:var(--fh);font-size:26px;font-weight:800;color:var(--text);line-height:1.1}
+.fg{margin-bottom:14px}
+.fl{font-size:12.5px;font-weight:700;color:var(--text);display:block;margin-bottom:5px}
+.fi{width:100%;padding:10px 13px;border:1.5px solid var(--border);border-radius:var(--rs);font-family:var(--fb);font-size:14px;color:var(--text);background:#fff;transition:border-color .2s;outline:none}
+.fi:focus{border-color:var(--b);box-shadow:0 0 0 3px rgba(21,101,192,.1)}
+.fr{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.sw{flex:1;position:relative}
+.sw svg{position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--muted);width:17px;height:17px}
+.si2{width:100%;padding:11px 13px 11px 40px;border:1.5px solid var(--border);border-radius:var(--rs);font-family:var(--fb);font-size:14px;outline:none;transition:border-color .2s}
+.si2:focus{border-color:var(--b)}
+.tw{overflow-x:auto;border-radius:var(--r);box-shadow:var(--sh)}
+table{width:100%;border-collapse:collapse;background:#fff}
+thead{background:var(--bd)}
+thead th{color:#fff;font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:13px 15px;text-align:left;white-space:nowrap}
+tbody tr{border-bottom:1px solid var(--border);transition:background .15s}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:var(--bl)}
+tbody td{padding:12px 15px;font-size:13.5px;color:var(--text)}
+.badge{display:inline-flex;align-items:center;gap:3px;padding:3px 9px;border-radius:99px;font-size:11px;font-weight:700}
+.bg-ok{background:var(--okl);color:var(--ok)}.bg-warn{background:var(--warnl);color:var(--warn)}.bg-err{background:var(--errl);color:var(--err)}.bg-b{background:var(--bl);color:var(--b)}.bg-y{background:var(--yl);color:#92400E}.bg-p{background:var(--pinkl);color:var(--pink)}
+.passport{background:linear-gradient(135deg,var(--bd) 0%,var(--bm) 100%);border-radius:20px;padding:22px;color:#fff;position:relative;overflow:hidden}
+.passport::before{content:'';position:absolute;top:-40px;right:-40px;width:150px;height:150px;background:rgba(255,214,0,.12);border-radius:50%}
+.passport::after{content:'';position:absolute;bottom:-30px;left:-30px;width:110px;height:110px;background:rgba(255,255,255,.05);border-radius:50%}
+.ph{display:flex;align-items:center;gap:11px;margin-bottom:18px}
+.pl{width:44px;height:44px;background:var(--y);border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:22px}
+.pname{font-family:var(--fh);font-size:17px;font-weight:800}
+.psub{font-size:11.5px;opacity:.7}
+.pinfo{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:18px}
+.pf{background:rgba(255,255,255,.1);border-radius:9px;padding:9px 13px}
+.pfl{font-size:9.5px;text-transform:uppercase;letter-spacing:.5px;opacity:.65;margin-bottom:2px}
+.pfv{font-size:13.5px;font-weight:700}
+.stamps-row{display:flex;gap:5px;align-items:center;flex-wrap:nowrap;margin:12px 0;overflow-x:auto;padding-bottom:4px}
+.sc2{width:44px;height:44px;border-radius:50%;border:2.5px dashed rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;font-size:19px;background:rgba(255,255,255,.07);flex-shrink:0;transition:all .3s}
+.sc2.on{background:var(--y);border:2.5px solid var(--y);animation:si .4s cubic-bezier(.175,.885,.32,1.275)}
+.sc2.free{background:linear-gradient(135deg,#FFD600,#FF8C00);border:2.5px solid #FFD600;width:48px;height:48px;font-size:18px;box-shadow:0 4px 16px rgba(255,214,0,.5)}
+@keyframes si{0%{transform:scale(0);opacity:0}100%{transform:scale(1);opacity:1}}
+.pb{height:7px;background:rgba(255,255,255,.15);border-radius:99px;overflow:hidden}
+.pf2{height:100%;background:linear-gradient(90deg,var(--y),#FF8C00);border-radius:99px;transition:width .5s}
+.pt{display:flex;justify-content:space-between;margin-top:5px;font-size:11.5px;opacity:.8}
+.rb{background:linear-gradient(135deg,#FFD600,#FF8C00);border-radius:11px;padding:11px 15px;display:flex;align-items:center;gap:9px;margin-top:11px}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;display:flex;align-items:center;justify-content:center;padding:16px;opacity:0;pointer-events:none;transition:opacity .2s}
+.modal-bg.open{opacity:1;pointer-events:all}
+.modal{background:#fff;border-radius:var(--r);padding:26px;width:100%;max-width:480px;box-shadow:var(--shl);transform:scale(.95);transition:transform .2s;max-height:90vh;overflow-y:auto}
+.modal-bg.open .modal{transform:scale(1)}
+.mt{font-family:var(--fh);font-size:19px;font-weight:800;margin-bottom:18px;display:flex;align-items:center;gap:7px}
+.mf{display:flex;gap:9px;margin-top:18px;justify-content:flex-end}
+.ls{position:fixed;inset:0;background:linear-gradient(135deg,var(--bd) 0%,var(--bm) 100%);display:flex;align-items:center;justify-content:center;z-index:999;padding:20px}
+.lb{background:#fff;border-radius:22px;padding:36px;width:100%;max-width:380px;box-shadow:0 24px 60px rgba(0,0,0,.3)}
+.le{background:var(--errl);color:var(--err);padding:9px 13px;border-radius:var(--rs);font-size:13px;font-weight:700;margin-bottom:14px;display:none}
+.gt{display:flex;gap:0;border:1.5px solid var(--border);border-radius:var(--rs);overflow:hidden}
+.gb{flex:1;padding:10px;text-align:center;cursor:pointer;font-weight:700;font-size:13.5px;background:#fff;border:none;transition:all .2s}
+.gb.active.boy{background:var(--b);color:#fff}
+.gb.active.girl{background:var(--pink);color:#fff}
+.tc{position:fixed;bottom:22px;right:22px;z-index:9999;display:flex;flex-direction:column;gap:7px}
+.toast{background:#fff;border-radius:var(--rs);padding:13px 18px;box-shadow:0 8px 32px rgba(0,0,0,.15);display:flex;align-items:center;gap:9px;font-size:13.5px;font-weight:700;min-width:240px;animation:tsi .3s ease}
+@keyframes tsi{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+.toast.success{border-left:4px solid var(--ok)}.toast.error{border-left:4px solid var(--err)}.toast.info{border-left:4px solid var(--b)}
+.uz{border:2.5px dashed var(--border);border-radius:var(--r);padding:36px;text-align:center;cursor:pointer;transition:all .2s;background:#fff}
+.uz:hover{border-color:var(--b);background:var(--bl)}
+.cr{display:flex;align-items:center;justify-content:space-between;padding:13px 0;border-bottom:1px solid var(--border)}
+.cr:last-child{border-bottom:none}
+.ci{width:80px;padding:7px 11px;border:1.5px solid var(--border);border-radius:7px;font-family:var(--fb);font-size:13.5px;font-weight:700;text-align:center;outline:none}
+.ci:focus{border-color:var(--b)}
+.spin{width:22px;height:22px;border:3px solid var(--border);border-top-color:var(--b);border-radius:50%;animation:sp .7s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.load{display:flex;align-items:center;justify-content:center;padding:40px;gap:10px;color:var(--muted);font-size:14px}
+.hi{display:flex;align-items:center;gap:11px;padding:11px 0;border-bottom:1px solid var(--border)}
+.hi:last-child{border-bottom:none}
+.hic{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.hic.paid{background:var(--bl)}.hic.free{background:var(--yl)}.hic.expired{background:var(--errl)}.hic.reset{background:var(--warnl)}
+/* CYCLE HISTORY */
+.cycle-card{border:1.5px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px;position:relative;overflow:hidden}
+.cycle-card.redeemed{border-color:#86EFAC;background:#F0FDF4}
+.cycle-card.expired{border-color:#FCA5A5;background:#FFF5F5}
+.cycle-card.reset{border-color:#FCD34D;background:#FFFBEB}
+.cycle-card.active{border-color:var(--b);background:var(--bl)}
+.cycle-badge{position:absolute;top:12px;right:12px}
+.cycle-title{font-weight:800;font-size:13.5px;margin-bottom:6px}
+.cycle-meta{font-size:12px;color:var(--muted);line-height:1.8}
+.cycle-stamps{display:flex;gap:5px;margin-top:8px;flex-wrap:wrap}
+.csd{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;border:1.5px dashed var(--border);background:var(--bg)}
+.csd.on{background:var(--y);border-color:var(--y)}
+/* CUSTOMER PAGE */
+.cp{min-height:100vh;background:linear-gradient(160deg,#EEF4FF 0%,#FFF9D0 100%);padding:20px 16px;font-family:var(--fb)}
+.cw{max-width:420px;margin:0 auto}
+.ccard{background:linear-gradient(135deg,var(--bd),var(--bm));border-radius:22px;padding:26px;color:#fff;box-shadow:0 12px 40px rgba(21,101,192,.35);position:relative;overflow:hidden}
+.ccard::before{content:'';position:absolute;top:-50px;right:-50px;width:180px;height:180px;background:rgba(255,214,0,.1);border-radius:50%}
+.cs3{width:54px;height:54px;border-radius:50%;border:2.5px dashed rgba(255,255,255,.28);display:flex;align-items:center;justify-content:center;font-size:25px;background:rgba(255,255,255,.07)}
+.cs3.on{background:var(--y);border-color:var(--y)}
+.cs3.free{width:62px;height:62px;font-size:21px;background:linear-gradient(135deg,#FFD600,#FF8C00);border-color:#FFD600;box-shadow:0 4px 18px rgba(255,214,0,.5)}
+.cbox{background:#fff;border-radius:18px;padding:22px;margin-top:14px;box-shadow:0 4px 20px rgba(0,0,0,.08)}
+/* TABS */
+.tab-bar{display:flex;border-bottom:2px solid var(--border);margin-bottom:18px;overflow-x:auto}
+.tab-btn{padding:9px 18px;font-family:var(--fb);font-size:13.5px;font-weight:700;color:var(--muted);background:transparent;border:none;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;white-space:nowrap;transition:all .2s}
+.tab-btn.active{color:var(--b);border-bottom-color:var(--b)}
+.tab-pane{display:none}.tab-pane.active{display:block}
+@media(max-width:900px){.sb{transform:translateX(-100%)}.sb.open{transform:translateX(0)}.main{margin-left:0}.sr{grid-template-columns:1fr 1fr}.fr{grid-template-columns:1fr}}
+@media(max-width:600px){.sr{grid-template-columns:1fr}.content{padding:14px}.topbar{padding:0 14px}}
+</style>
+</head>
+<body>
+<script>
+const SB_URL='https://wtapyfgtwkjyjrjdnhkb.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind0YXB5Zmd0d2tqeWpyamRuaGtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0NDc3ODEsImV4cCI6MjA5NTAyMzc4MX0.y_-iPfb8Pcg9zh42h6RGVBsUVZm80LcA9sPlz_Gl_fA';
+const DC={stampsNeeded:6,boyMonths:12,girlMonths:15,user:'admin',pass:'minicuts123',resetCode:'MINICUTS2025'};
+let CFG=loadCfg();
+function loadCfg(){try{return Object.assign({},DC,JSON.parse(localStorage.getItem('mc_cfg')||'{}'));}catch(e){return{...DC};}}
+function saveCfg(){localStorage.setItem('mc_cfg',JSON.stringify(CFG));}
+// Paid stamps needed = total - 1 (last visit is always free)
+function paidNeeded(){return Math.max(1,CFG.stampsNeeded-1);}
+
+async function sb(path,method='GET',body=null,params=''){
+  const url=SB_URL+'/rest/v1/'+path+(params?'?'+params:'');
+  const h={'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Prefer':'return=representation'};
+  if(method==='PATCH'||method==='DELETE') h['Prefer']='return=minimal';
+  const o={method,headers:h};
+  if(body) o.body=JSON.stringify(body);
+  const r=await fetch(url,o);
+  if(!r.ok){const e=await r.text();throw new Error(e);}
+  const t=await r.text();
+  return t?JSON.parse(t):[];
+}
+
+// Cache-busting GET — always fetches fresh data from Supabase
+async function sbFresh(path,params=''){
+  const url=SB_URL+'/rest/v1/'+path+(params?'?'+params:'');
+  const h={'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Cache-Control':'no-cache','Pragma':'no-cache'};
+  const r=await fetch(url,{method:'GET',headers:h,cache:'no-store'});
+  if(!r.ok){const e=await r.text();throw new Error(e);}
+  const t=await r.text();
+  return t?JSON.parse(t):[];
+}
+
+function fmtDate(iso){if(!iso)return '—';return new Date(iso).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});}
+function fmtDateTime(iso){if(!iso)return '—';return new Date(iso).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});}
+function addMonths(d,m){const x=new Date(d);x.setMonth(x.getMonth()+m);return x.toISOString();}
+function isExp(c){if(!c.expiry_date||!c.first_stamp_date)return false;return new Date()>new Date(c.expiry_date);}
+function dLeft(c){if(!c.expiry_date)return null;return Math.ceil((new Date(c.expiry_date)-new Date())/864e5);}
+function getStatus(c){
+  if(isExp(c))return{label:'Expired',cls:'bg-err'};
+  const d=dLeft(c);
+  if((c.stamps||0)>=paidNeeded())return{label:'Free Cut Ready 🎁',cls:'bg-y'};
+  if(d!==null&&d<=30)return{label:'Expiring Soon',cls:'bg-warn'};
+  return{label:'Active',cls:'bg-ok'};
+}
+function toast(msg,type='success'){
+  const t=document.createElement('div');t.className='toast '+type;
+  t.innerHTML=(type==='success'?'✅':type==='error'?'❌':'ℹ️')+' '+msg;
+  document.getElementById('TC').appendChild(t);setTimeout(()=>t.remove(),3500);
+}
+function openM(id){document.getElementById(id).classList.add('open');}
+function closeM(id){document.getElementById(id).classList.remove('open');}
+
+// Archive current cycle before reset
+async function archiveCycle(customerId,stamps,firstStampDate,expiryDate,endedBy){
+  if(!firstStampDate&&stamps===0) return; // nothing to archive
+  try{
+    await sb('cycles','POST',{
+      customer_id:customerId,
+      stamps_earned:stamps||0,
+      first_stamp_date:firstStampDate||null,
+      expiry_date:expiryDate||null,
+      ended_by:endedBy,
+      ended_at:new Date().toISOString()
+    });
+  }catch(e){console.warn('Cycle archive failed:',e.message);}
+}
+</script>
+
+<!-- CUSTOMER PAGE -->
+<div id="CP" style="display:none;">
+  <div class="cp"><div class="cw">
+    <div style="text-align:center;margin-bottom:22px;">
+      <div style="font-size:50px;">🐼</div>
+      <div style="font-family:'Baloo 2',cursive;font-size:25px;font-weight:800;color:#0D47A1;">MiniCuts</div>
+      <div style="color:#6B7280;font-size:13px;">Kids &amp; Teens Salon · Dubai Silicon Oasis</div>
+    </div>
+    <div id="CPA"></div>
+  </div></div>
+</div>
+
+<!-- LOGIN -->
+<div class="ls" id="LS">
+  <div class="lb">
+    <div style="text-align:center;margin-bottom:26px;">
+      <div style="font-size:52px;">🐼</div>
+      <div style="font-family:'Baloo 2',cursive;font-size:26px;font-weight:800;color:#0D47A1;">MiniCuts</div>
+      <div style="color:#6B7280;font-size:13px;">Loyalty Passport · Staff Panel</div>
+    </div>
+    <div class="le" id="LE">Incorrect credentials. Try again.</div>
+    <div class="fg"><label class="fl">Username</label><input class="fi" type="text" id="LU" placeholder="Username" autocomplete="username"></div>
+    <div class="fg"><label class="fl">Password</label><input class="fi" type="password" id="LP" placeholder="Password" autocomplete="current-password"></div>
+    <button class="btn bp" style="width:100%;justify-content:center;padding:13px;" onclick="doLogin()">Login to Staff Panel</button>
+    <div style="text-align:center;margin-top:12px;">
+      <a href="javascript:void(0)" onclick="showForgot()" style="color:#6B7280;font-size:12px;text-decoration:none;">Forgot password?</a>
+    </div>
+    <div id="forgotBox" style="display:none;margin-top:14px;padding:14px;background:#F0F4FF;border-radius:10px;">
+      <div style="font-size:13px;font-weight:700;color:#1A1A2E;margin-bottom:8px;">🔑 Enter master reset code</div>
+      <div style="font-size:12px;color:#6B7280;margin-bottom:10px;">Enter your reset code from Settings, or use the emergency code</div>
+      <input class="fi" type="text" id="resetCode" placeholder="Enter reset code" style="margin-bottom:8px;text-transform:uppercase;" oninput="this.value=this.value.toUpperCase()">
+      <button class="btn bp" style="width:100%;justify-content:center;" onclick="doReset()">Reset Password</button>
+    </div>
+    <div id="resetMsg" style="display:none;margin-top:10px;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:700;"></div>
+    <div style="text-align:center;margin-top:14px;padding-top:14px;border-top:1px solid #E5E7EB;">
+      <a href="?customer=1" style="color:#1565C0;font-size:13px;font-weight:700;text-decoration:none;">→ Customer Portal (no login needed)</a>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div class="app" id="MA" style="display:none;">
+  <div class="sb-overlay" id="SBO" onclick="closeSidebar()"></div>
+  <div class="sb" id="SB">
+    <div class="sb-logo"><div class="sb-icon">🐼</div><div><div class="sb-txt">MiniCuts</div><div class="sb-sub">Loyalty Passport</div></div></div>
+    <nav class="nav">
+      <div class="nav-s">Main</div>
+      <button class="ni active" onclick="showPage('dashboard',this);closeSidebar()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Dashboard</button>
+      <button class="ni" onclick="showPage('customers',this);closeSidebar()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Customers</button>
+      <button class="ni" onclick="showPage('newcustomer',this);closeSidebar()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>New Customer</button>
+      <div class="nav-s">Tools</div>
+      <button class="ni" onclick="showPage('upload',this);closeSidebar()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>Import CSV/Excel</button>
+      <button class="ni" onclick="showPage('qrpage',this);closeSidebar()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h7v7H14z"/></svg>Salon QR Code</button>
+      <button class="ni" onclick="showPage('config',this);closeSidebar()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M12 2v2m0 16v2m7.07 2.07l-1.41-1.41M4.93 19.07l1.41-1.41M2 12h2m16 0h2"/></svg>Settings</button>
+      <div class="nav-s">Customer</div>
+      <button class="ni" onclick="window.open('?customer=1','_blank');closeSidebar()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Customer Portal ↗</button>
+    </nav>
+    <div class="sb-foot">
+      <div style="display:flex;align-items:center;gap:8px;color:rgba(255,255,255,.8);font-size:13px;">
+        <div class="sav" id="SAV">A</div>
+        <div><div style="font-weight:700;font-size:13px;" id="SN">Admin</div><div style="font-size:11px;opacity:.6;">Staff</div></div>
+        <button onclick="doLogout()" style="margin-left:auto;background:rgba(255,255,255,.1);border:none;color:rgba(255,255,255,.7);padding:6px;border-radius:7px;cursor:pointer;font-size:14px;">⇥</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="topbar">
+      <div style="display:flex;align-items:center;gap:11px;">
+        <button class="bi" id="MB" onclick="toggleSidebar()" style="display:none;">☰</button>
+        <div class="topbar-t" id="TT">Dashboard</div>
+      </div>
+      <button class="btn by bsm" onclick="showPage('newcustomer',null)">+ New Customer</button>
+    </div>
+    <div class="content">
+
+      <!-- DASHBOARD -->
+      <div class="page active" id="page-dashboard">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:18px;">
+          <div><div style="font-family:var(--fh);font-size:21px;font-weight:800;">Welcome back! 🐼</div><div style="color:var(--muted);font-size:13.5px;">Loyalty overview — click any widget to filter customers</div></div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <label style="font-size:12px;font-weight:700;color:var(--muted);">From</label>
+            <input type="date" id="dash-from" class="fi" style="width:138px;padding:7px 10px;font-size:13px;" onchange="renderDash()">
+            <label style="font-size:12px;font-weight:700;color:var(--muted);">To</label>
+            <input type="date" id="dash-to" class="fi" style="width:138px;padding:7px 10px;font-size:13px;" onchange="renderDash()">
+            <script>
+              (function(){
+                const now=new Date(),from=new Date(now);
+                from.setMonth(from.getMonth()-3);
+                document.getElementById('dash-from').value=from.toISOString().split('T')[0];
+                document.getElementById('dash-to').value=now.toISOString().split('T')[0];
+              })();
+            </script>
+            <button class="btn bg2 bsm" onclick="resetDashDates()">Reset</button>
+          </div>
+        </div>
+        <div class="sr" id="SR"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:22px;">
+          <div class="card"><div style="font-family:var(--fh);font-size:16px;font-weight:800;margin-bottom:14px;">Recent Visits ✂️</div><div id="RV"></div></div>
+          <div class="card"><div style="font-family:var(--fh);font-size:16px;font-weight:800;margin-bottom:14px;">Rewards Ready 🎁</div><div id="RL"></div></div>
+        </div>
+      </div>
+
+      <!-- CUSTOMERS -->
+      <div class="page" id="page-customers">
+        <div style="font-family:var(--fh);font-size:21px;font-weight:800;margin-bottom:5px;">Customers</div>
+        <div style="color:var(--muted);font-size:13.5px;margin-bottom:12px;">Search and manage all loyalty passports</div>
+        <div id="cust-filter-banner" style="display:none;background:var(--bl);border-radius:10px;padding:10px 16px;margin-bottom:12px;align-items:center;justify-content:space-between;">
+          <div style="font-size:13px;font-weight:700;color:var(--b);" id="cust-filter-label">Filtered view</div>
+          <button class="btn bg2 bsm" onclick="clearCustFilter()">x Clear filter</button>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+          <div class="sw" style="flex:2;min-width:160px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg><input class="si2" type="text" id="CS" placeholder="Search name or mobile..." oninput="searchC()"></div>
+          <select class="fi fsel" id="CGF" style="width:130px;" onchange="searchC()">
+            <option value="">All genders</option>
+            <option value="boy">Boys only</option>
+            <option value="girl">Girls only</option>
+          </select>
+          <select class="fi fsel" id="CSF" style="width:150px;" onchange="searchC()">
+            <option value="name">Sort: Name A-Z</option>
+            <option value="expiry">Sort: Expiry soonest</option>
+            <option value="stamps">Sort: Most stamps</option>
+            <option value="status">Sort: Status</option>
+          </select>
+        </div>
+        <div id="CT"></div>
+      </div>
+
+      <!-- PROFILE -->
+      <div class="page" id="page-profile">
+        <button class="btn bg2 bsm" onclick="showPage('customers',null)" style="margin-bottom:18px;">← Back</button>
+        <div id="PC"></div>
+      </div>
+
+      <!-- NEW CUSTOMER -->
+      <div class="page" id="page-newcustomer">
+        <div style="font-family:var(--fh);font-size:21px;font-weight:800;margin-bottom:5px;">New Customer</div>
+        <div style="color:var(--muted);font-size:13.5px;margin-bottom:22px;">Create a new loyalty passport</div>
+        <div class="card" style="max-width:540px;">
+          <div class="fr">
+            <div class="fg"><label class="fl">Child's Name *</label><input class="fi" type="text" id="NC1" placeholder="e.g. Zara"></div>
+            <div class="fg"><label class="fl">Mobile Number *</label><input class="fi" type="tel" id="NC2" placeholder="e.g. 0501234567"></div>
+          </div>
+          <div class="fg"><label class="fl">Parent / Guardian Name</label><input class="fi" type="text" id="NC3" placeholder="e.g. Sara Ahmed"></div>
+          <div class="fg"><label class="fl">Gender *</label>
+            <div class="gt"><button class="gb boy active" id="NCB" onclick="setG('boy')">👦 Boy</button><button class="gb girl" id="NCG" onclick="setG('girl')">👧 Girl</button></div>
+          </div>
+          <div class="fg"><label class="fl">Starting Stamps (if transferring)</label><input class="fi" type="number" id="NC4" placeholder="0" min="0" max="5" value="0"></div>
+          <div class="fg"><label class="fl">Notes (optional)</label><input class="fi" type="text" id="NC5" placeholder="e.g. Special needs, preferred stylist"></div>
+          <div style="display:flex;gap:9px;margin-top:6px;">
+            <button class="btn bp" onclick="createC()">Create Passport 🐼</button>
+            <button class="btn bg2" onclick="clearNC()">Clear</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- UPLOAD -->
+      <div class="page" id="page-upload">
+        <div style="font-family:var(--fh);font-size:21px;font-weight:800;margin-bottom:5px;">Import Customers</div>
+        <div style="color:var(--muted);font-size:13.5px;margin-bottom:22px;">Upload existing customers via CSV or Excel</div>
+        <div class="card" style="max-width:620px;margin-bottom:18px;">
+          <div class="uz" onclick="document.getElementById('FI').click()">
+            <div style="font-size:44px;margin-bottom:10px;">📂</div>
+            <div style="font-family:var(--fh);font-size:17px;font-weight:800;margin-bottom:5px;">Drop CSV or Excel file here</div>
+            <div style="color:var(--muted);font-size:13.5px;">or click to browse · .csv · .xlsx · .xls</div>
+          </div>
+          <input type="file" id="FI" accept=".csv,.xlsx,.xls" style="display:none;" onchange="handleUpload(this)">
+          <div style="margin-top:14px;padding:14px;background:var(--bl);border-radius:var(--rs);font-size:12px;color:var(--muted);line-height:1.9;">
+            <strong style="color:var(--b);">Required:</strong> name · mobile · gender (boy/girl) · stamps (0–5)<br>
+            <strong style="color:var(--b);">Optional:</strong> parent · notes · lastVisit · expiryDate · redemptions
+          </div>
+        </div>
+        <div id="UP"></div>
+      </div>
+
+      <!-- QR PAGE -->
+      <div class="page" id="page-qrpage">
+        <div style="font-family:var(--fh);font-size:21px;font-weight:800;margin-bottom:5px;">Salon QR Code</div>
+        <div style="color:var(--muted);font-size:13.5px;margin-bottom:22px;">Print and place at the counter — customers scan to register or check stamps</div>
+        <div class="card" style="max-width:420px;text-align:center;">
+          <div style="font-size:40px;margin-bottom:8px;">🐼</div>
+          <div style="font-family:var(--fh);font-size:18px;font-weight:800;margin-bottom:4px;">MiniCuts Loyalty Passport</div>
+          <div style="color:var(--muted);font-size:13px;margin-bottom:18px;">Scan to register &amp; earn stamps for a FREE haircut!</div>
+          <div id="SalonQR" style="display:flex;justify-content:center;margin-bottom:14px;"></div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:16px;">📱 Scan with your phone camera · No app download needed<br>✂️ ${paidNeeded()} paid haircuts = 1 FREE haircut · 🌟 4.9 ⭐ DSO's favourite kids salon</div>
+          <button class="btn bp" onclick="window.print()">🖨 Print QR Card</button>
+          <button class="btn bg2" style="margin-left:8px;" onclick="window.open('?customer=1','_blank')">👁 Preview Customer Page</button>
+        </div>
+      </div>
+
+      <!-- SETTINGS -->
+      <div class="page" id="page-config">
+        <div style="font-family:var(--fh);font-size:21px;font-weight:800;margin-bottom:5px;">Settings</div>
+        <div style="color:var(--muted);font-size:13.5px;margin-bottom:22px;">Configure loyalty rules and credentials</div>
+        <div class="card" style="max-width:540px;margin-bottom:18px;">
+          <div style="font-family:var(--fh);font-size:16px;font-weight:800;margin-bottom:14px;">Loyalty Rules</div>
+          <div class="cr"><div><div style="font-size:13.5px;font-weight:700;">Total visits for free haircut</div><div style="font-size:12px;color:var(--muted);">e.g. 6 = 5 paid + 6th FREE · 8 = 7 paid + 8th FREE</div></div><input class="ci" type="number" id="CFS" min="1" max="20" value="5"></div>
+          <div class="cr"><div><div style="font-size:13.5px;font-weight:700;">Boy passport validity (months)</div><div style="font-size:12px;color:var(--muted);">From first stamp in cycle</div></div><input class="ci" type="number" id="CFB" min="1" max="36" value="12"></div>
+          <div class="cr"><div><div style="font-size:13.5px;font-weight:700;">Girl passport validity (months)</div><div style="font-size:12px;color:var(--muted);">From first stamp in cycle</div></div><input class="ci" type="number" id="CFG2" min="1" max="36" value="15"></div>
+          <div class="cr"><div><div style="font-size:13.5px;font-weight:700;">Staff username</div></div><input class="ci" type="text" id="CFU" value="admin" style="width:130px;"></div>
+          <div class="cr"><div><div style="font-size:13.5px;font-weight:700;">Staff password</div></div><input class="ci" type="password" id="CFP" value="minicuts123" style="width:130px;"></div>
+          <div class="cr"><div><div style="font-size:13.5px;font-weight:700;">Master reset code</div><div style="font-size:12px;color:var(--muted);">Used to recover forgotten password</div></div><input class="ci" type="text" id="CFRC" value="MINICUTS2025" style="width:130px;text-transform:uppercase;" oninput="this.value=this.value.toUpperCase()"></div>
+          <button class="btn bp" style="margin-top:14px;" onclick="saveConfig()">Save Settings</button>
+        </div>
+        <div class="card" style="max-width:540px;">
+          <div style="font-family:var(--fh);font-size:16px;font-weight:800;margin-bottom:12px;">Data — Supabase Cloud ☁️</div>
+          <div style="font-size:13px;color:var(--muted);margin-bottom:14px;">All customer data is stored securely in your Supabase database. Works across all devices.</div>
+          <button class="btn bg2 bsm" onclick="exportCSV()">⬇ Export All Customers</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- EDIT MODAL -->
+<div class="modal-bg" id="EM">
+  <div class="modal">
+    <div class="mt">✏️ Edit Customer</div>
+    <input type="hidden" id="EID">
+    <div class="fr">
+      <div class="fg"><label class="fl">Child's Name</label><input class="fi" type="text" id="EN"></div>
+      <div class="fg"><label class="fl">Mobile</label><input class="fi" type="tel" id="EP"></div>
+    </div>
+    <div class="fg"><label class="fl">Parent Name</label><input class="fi" type="text" id="EPR"></div>
+    <div class="fg"><label class="fl">Gender</label>
+      <div class="gt"><button class="gb boy active" id="EGB" onclick="setEG('boy')">👦 Boy</button><button class="gb girl" id="EGG" onclick="setEG('girl')">👧 Girl</button></div>
+    </div>
+    <div class="fg"><label class="fl">Current Stamps</label><input class="fi" type="number" id="EST" min="0" max="10"></div>
+    <div class="fg"><label class="fl">Notes</label><input class="fi" type="text" id="ENO"></div>
+    <div class="mf">
+      <button class="btn bg2" onclick="closeM('EM')">Cancel</button>
+      <button class="btn bp" onclick="saveEdit()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- QR MODAL -->
+<div class="modal-bg" id="QM">
+  <div class="modal" style="max-width:340px;text-align:center;">
+    <div class="mt" style="justify-content:center;">📱 Customer QR Code</div>
+    <div style="font-size:13.5px;color:var(--muted);margin-bottom:14px;" id="QMS"></div>
+    <div id="QMC" style="display:flex;justify-content:center;margin-bottom:11px;"></div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">Customer scans with phone camera to view their passport</div>
+    <button class="btn bg2" onclick="closeM('QM')">Close</button>
+  </div>
+</div>
+
+<div class="tc" id="TC"></div>
+
+<script>
+// ══ INIT ══
+(function(){
+  const p=new URLSearchParams(location.search);
+  if(p.get('customer')==='1'||p.get('lookup')){
+    document.getElementById('LS').style.display='none';
+    document.getElementById('CP').style.display='block';
+    // Remember mobile for returning customers
+    const savedMobile=localStorage.getItem('mc_cust_mobile')||'';
+    const lookupMobile=p.get('lookup')||'';
+    if(lookupMobile) localStorage.setItem('mc_cust_mobile',lookupMobile);
+    // No gender passed — always show all children under mobile
+    renderCP(lookupMobile||savedMobile);
+    return;
+  }
+  if(window.innerWidth<=900) document.getElementById('MB').style.display='flex';
+  syncCfgInputs();
+  // ── Auto-restore staff session ──
+  try{
+    const sess=JSON.parse(localStorage.getItem('mc_session')||'null');
+    // Session valid for 7 days
+    if(sess&&sess.user&&(Date.now()-sess.ts)<7*24*60*60*1000){
+      // Re-validate against current config
+      if(sess.user===CFG.user){
+        showStaffPanel(sess.user);
+        return;
+      }
+    }
+    localStorage.removeItem('mc_session');
+  }catch(e){}
+})();
+
+function showForgot(){
+  const box=document.getElementById('forgotBox');
+  box.style.display=box.style.display==='none'?'block':'none';
+  document.getElementById('resetCode').value='';
+  document.getElementById('resetMsg').style.display='none';
+}
+// Emergency code is always fixed — never stored in localStorage
+// This is your permanent fallback if you forget everything
+const EMERGENCY_CODE='PANDA@MINICUTS';
+
+function doReset(){
+  const code=document.getElementById('resetCode').value.trim().toUpperCase();
+  const msg=document.getElementById('resetMsg');
+  const validCode=code===(CFG.resetCode||'').toUpperCase()||code===EMERGENCY_CODE;
+  if(validCode){
+    CFG.user='admin';CFG.pass='minicuts123';
+    saveCfg();
+    localStorage.removeItem('mc_session');
+    // Hide forgot box first
+    document.getElementById('forgotBox').style.display='none';
+    // Show success message prominently
+    msg.style.display='block';
+    msg.style.background='#DCFCE7';
+    msg.style.color='#16A34A';
+    msg.style.border='1px solid #86EFAC';
+    msg.innerHTML='✅ <strong>Password reset successfully!</strong><br>Username: <strong>admin</strong> · Password: <strong>minicuts123</strong>';
+    // Pre-fill login fields
+    document.getElementById('LU').value='admin';
+    document.getElementById('LP').value='minicuts123';
+    document.getElementById('LE').style.display='none';
+  } else {
+    msg.style.display='block';
+    msg.style.background='#FEE2E2';
+    msg.style.color='#DC2626';
+    msg.style.border='1px solid #FCA5A5';
+    msg.innerHTML='❌ <strong>Incorrect code.</strong> Try your custom reset code or the emergency code <strong>PANDA@MINICUTS</strong>';
+  }
+}
+function toggleSidebar(){
+  const s=document.getElementById('SB'),o=document.getElementById('SBO');
+  const open=s.classList.contains('open');
+  s.classList.toggle('open',!open);o.classList.toggle('open',!open);
+}
+function closeSidebar(){
+  document.getElementById('SB').classList.remove('open');
+  document.getElementById('SBO').classList.remove('open');
+}
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&document.getElementById('LS').style.display!=='none') doLogin();});
+function syncCfgInputs(){
+  document.getElementById('CFS').value=CFG.stampsNeeded;
+  document.getElementById('CFB').value=CFG.boyMonths;
+  document.getElementById('CFG2').value=CFG.girlMonths;
+  document.getElementById('CFU').value=CFG.user;
+  document.getElementById('CFP').value=CFG.pass;
+  document.getElementById('CFRC').value=CFG.resetCode||'MINICUTS2025';
+}
+
+// ══ AUTH ══
+function doLogin(){
+  const u=document.getElementById('LU').value.trim(),p=document.getElementById('LP').value;
+  if(u===CFG.user&&p===CFG.pass){
+    localStorage.setItem('mc_session',JSON.stringify({user:u,ts:Date.now()}));
+    showStaffPanel(u);
+    document.getElementById('LE').style.display='none';
+  } else {document.getElementById('LE').style.display='block';}
+}
+function showStaffPanel(u){
+  document.getElementById('LS').style.display='none';
+  document.getElementById('MA').style.display='flex';
+  document.getElementById('SN').textContent=u.charAt(0).toUpperCase()+u.slice(1);
+  document.getElementById('SAV').textContent=u.charAt(0).toUpperCase();
+  renderDash();
+}
+
+
+function doLogout(){
+  localStorage.removeItem('mc_session');
+  localStorage.removeItem('mc_cust_mobile');
+  document.getElementById('MA').style.display='none';
+  document.getElementById('LS').style.display='flex';
+  document.getElementById('LU').value='';document.getElementById('LP').value='';
+}
+
+// ══ NAV ══
+function showPage(id,btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.ni').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  if(btn) btn.classList.add('active');
+  const titles={dashboard:'Dashboard',customers:'Customers',profile:'Customer Profile',newcustomer:'New Customer',upload:'Import Customers',qrpage:'Salon QR Code',config:'Settings'};
+  document.getElementById('TT').textContent=titles[id]||'';
+  if(id==='dashboard') renderDash();
+  if(id==='customers') loadCustomers();
+  if(id==='qrpage') renderSalonQR();
+  if(id==='config') syncCfgInputs();
+}
+
+// ══ DASHBOARD ══
+function filterCustomersByWidget(type){
+  dashFilter=type;
+  const btn=document.querySelector('.ni[onclick*="customers"]');
+  showPage('customers',btn);
+}
+async function renderDash(){
+  document.getElementById('SR').innerHTML='<div class="load"><div class="spin"></div></div>';
+  try{
+    const custs=await sb('customers','GET',null,'select=*&order=created_at.desc');
+    const visits=await sb('visits','GET',null,'select=*,customers(name,mobile)&order=created_at.desc&limit=8');
+    const total=custs.length,active=custs.filter(c=>!isExp(c)).length;
+    const ready=custs.filter(c=>(c.stamps||0)>=paidNeeded()&&!isExp(c)).length;
+    const redeemed=custs.reduce((a,c)=>a+(c.redemptions||0),0);
+    document.getElementById('SR').innerHTML=`
+      <div class="sc"><div class="si" style="background:#EFF6FF;">👨‍👩‍👧</div><div><div class="sl">Total Customers</div><div class="sv">${total}</div></div></div>
+      <div class="sc"><div class="si" style="background:#F0FDF4;">✅</div><div><div class="sl">Active Passports</div><div class="sv">${active}</div></div></div>
+      <div class="sc"><div class="si" style="background:#FEFCE8;">🎁</div><div><div class="sl">Rewards Ready</div><div class="sv">${ready}</div></div></div>
+      <div class="sc"><div class="si" style="background:#FFF7ED;">✂️</div><div><div class="sl">Free Cuts Given</div><div class="sv">${redeemed}</div></div></div>`;
+    document.getElementById('RV').innerHTML=visits.length?visits.map(v=>`
+      <div class="hi"><div class="hic ${v.type}">${v.type==='free'?'🎁':v.type==='expired'?'⏰':'✂️'}</div>
+      <div style="flex:1;"><div style="font-size:13.5px;font-weight:700;">${v.customers?.name||'—'}</div><div style="font-size:11.5px;color:var(--muted);">${fmtDate(v.created_at)} · ${v.customers?.mobile||''}</div></div>
+      <span class="badge ${v.type==='free'?'bg-y':'bg-b'}">${v.type==='free'?'Free':'Paid'}</span></div>`).join('')
+      :'<div style="text-align:center;padding:20px;color:var(--muted);font-size:13.5px;">No visits yet ✂️</div>';
+    const rewards=custs.filter(c=>(c.stamps||0)>=paidNeeded()&&!isExp(c));
+    document.getElementById('RL').innerHTML=rewards.length?rewards.map(c=>`
+      <div class="hi"><div class="hic free">🎁</div>
+      <div style="flex:1;"><div style="font-size:13.5px;font-weight:700;">${c.name}</div><div style="font-size:11.5px;color:var(--muted);">${c.mobile}</div></div>
+      <button class="btn bs bsm" onclick="redeemFree('${c.id}')">🎁 Give FREE Cut</button></div>`).join('')
+      :'<div style="text-align:center;padding:20px;color:var(--muted);font-size:13.5px;">No rewards ready 🐼</div>';
+  }catch(e){document.getElementById('SR').innerHTML='<div style="color:var(--err);padding:20px;font-size:13px;">⚠ Error: '+e.message+'</div>';}
+}
+
+// ══ CUSTOMERS ══
+let dashFilter=null;
+let allC=[];
+async function loadCustomers(){
+  document.getElementById('CT').innerHTML='<div class="load"><div class="spin"></div></div>';
+  try{
+    allC=await sb('customers','GET',null,'select=*&order=name.asc');
+    if(dashFilter){
+      const banner=document.getElementById('cust-filter-banner');
+      banner.style.display='flex';
+      const labels={total:'All customers',active:'Active passports only',rewards:'Rewards ready — free haircut due'};
+      document.getElementById('cust-filter-label').textContent=labels[dashFilter]||'';
+    } else {
+      document.getElementById('cust-filter-banner').style.display='none';
+    }
+    searchC();
+  }catch(e){document.getElementById('CT').innerHTML='<div style="color:var(--err);padding:20px;">Error: '+e.message+'</div>';}
+}
+function clearCustFilter(){
+  dashFilter=null;
+  document.getElementById('cust-filter-banner').style.display='none';
+  searchC();
+}
+function renderCT(data){
+  if(!data.length){document.getElementById('CT').innerHTML='<div style="text-align:center;padding:48px 20px;"><div style="font-size:52px;">🐼</div><div style="font-family:var(--fh);font-size:19px;font-weight:800;margin:10px 0 5px;">No customers yet</div><div style="color:var(--muted);">Add your first customer to get started</div></div>';return;}
+  const rows=data.map(c=>{
+    const s=getStatus(c);const st=c.stamps||0;
+    const dots=Array.from({length:paidNeeded()},(_,i)=>`<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${i<st?'var(--b)':'var(--border)'};margin-right:2px;" title="Stamp ${i+1}"></span>`).join('')
+      +'<span style="display:inline-block;font-size:11px;margin-left:3px;" title="6th = FREE">→🎁</span>';
+    return`<tr>
+      <td><strong>${c.name}</strong><div style="font-size:11.5px;color:var(--muted);">${c.parent||''}</div></td>
+      <td>${c.mobile}</td>
+      <td><span class="badge ${c.gender==='girl'?'bg-p':'bg-b'}">${c.gender==='girl'?'👧 Girl':'👦 Boy'}</span></td>
+      <td>${dots} <span style="font-size:11px;color:var(--muted);margin-left:2px;">${st}/${paidNeeded()}</span></td>
+      <td><span class="badge ${s.cls}">${s.label}</span></td>
+      <td style="font-size:12.5px;">${fmtDate(c.expiry_date)}</td>
+      <td><div style="display:flex;gap:5px;flex-wrap:wrap;">
+        <button class="btn bp bsm" onclick="viewProfile('${c.id}')">View</button>
+        <button class="btn bg2 bsm" onclick="openEditM('${c.id}')" title="Edit">✏️</button>
+        ${st>=paidNeeded()&&!getStatus(c).label.includes('Expired')?
+          `<button class="btn bs bsm" onclick="redeemFree('${c.id}')">🎁 FREE</button>`:
+          `<button class="btn by bsm" id="sb-${c.id}" onclick="addStampQ('${c.id}')">+Stamp</button>`}
+        <button class="btn bg2 bsm" onclick="openQR('${c.id}')">QR</button>
+      </div></td></tr>`;
+  }).join('');
+  document.getElementById('CT').innerHTML=`<div class="tw"><table><thead><tr><th>Name</th><th>Mobile</th><th>Gender</th><th>Stamps</th><th>Status</th><th>Expiry</th><th>Actions</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+function searchC(){
+  const q=(document.getElementById('CS')?.value||'').trim().toLowerCase();
+  const gf=document.getElementById('CGF')?.value||'';
+  const sf=document.getElementById('CSF')?.value||'name';
+  let data=[...allC];
+  if(q) data=data.filter(c=>c.mobile.includes(q)||c.name.toLowerCase().includes(q)||(c.parent||'').toLowerCase().includes(q));
+  if(gf) data=data.filter(c=>c.gender===gf);
+  if(dashFilter==='active') data=data.filter(c=>!isExp(c));
+  else if(dashFilter==='rewards') data=data.filter(c=>(c.stamps||0)>=paidNeeded()&&!isExp(c));
+  if(sf==='expiry') data.sort((a,b)=>{if(!a.expiry_date)return 1;if(!b.expiry_date)return -1;return new Date(a.expiry_date)-new Date(b.expiry_date);});
+  else if(sf==='stamps') data.sort((a,b)=>(b.stamps||0)-(a.stamps||0));
+  else if(sf==='status') data.sort((a,b)=>getStatus(a).label.localeCompare(getStatus(b).label));
+  else data.sort((a,b)=>a.name.localeCompare(b.name));
+  renderCT(data);
+}
+
+// ══ PROFILE with TABS ══
+let curPID=null;
+async function viewProfile(id){
+  curPID=id;showPage('profile',null);
+  document.getElementById('PC').innerHTML='<div class="load"><div class="spin"></div></div>';
+  try{
+    const cRows=await sbFresh('customers','select=*&id=eq.'+id);
+    const c=cRows[0];
+    const visits=await sbFresh('visits','select=*&customer_id=eq.'+id+'&order=created_at.desc&limit=50');
+    const cycles=await sbFresh('cycles','select=*&customer_id=eq.'+id+'&order=ended_at.desc');
+    renderProfile(c,visits,cycles);
+  }catch(e){document.getElementById('PC').innerHTML='<div style="color:var(--err);">Error: '+e.message+'</div>';}
+}
+
+function renderProfile(c,visits,cycles){
+  const st=parseInt(c.stamps)||0;const exp=isExp(c);const d=dLeft(c);
+  const paid=paidNeeded();const pct=Math.min(Math.round((st/paid)*100),100);
+  let sc='';for(let i=0;i<paid;i++) sc+=`<div class="sc2 ${i<st?'on':''}">${i<st?'🐼':'✦'}</div>`;
+
+  // Visit history tab
+  const visitHtml=visits.length?visits.map(v=>{
+    const icon=v.type==='free'?'🎁':v.type==='expired'?'⏰':'✂️';
+    const cls=v.type==='free'?'free':v.type==='expired'?'expired':'paid';
+    const label=v.type==='free'?'Free Haircut Redeemed':v.type==='expired'?'Cycle Expired':'Paid Haircut';
+    const stampInfo=v.stamp_count_after!=null?` · Stamp ${v.stamp_count_after}/${paidNeeded()}`:'';
+    const expiryInfo=v.cycle_expiry?` · Cycle expires ${fmtDate(v.cycle_expiry)}`:'';
+    return`<div class="hi"><div class="hic ${cls}">${icon}</div>
+      <div style="flex:1;"><div style="font-size:13.5px;font-weight:700;">${label}</div>
+      <div style="font-size:11.5px;color:var(--muted);">${fmtDateTime(v.created_at)}${stampInfo}${expiryInfo}</div></div>
+      <span class="badge ${v.type==='free'?'bg-y':v.type==='expired'?'bg-err':'bg-b'}">${v.type==='free'?'Free':v.type==='expired'?'Expired':'Paid'}</span></div>`;
+  }).join(''):'<div style="padding:16px;text-align:center;color:var(--muted);font-size:13.5px;">No visits yet</div>';
+
+  // Cycle history tab
+  const cycleHtml=buildCycleHistory(cycles,st,c);
+
+  document.getElementById('PC').innerHTML=`
+    <div style="display:flex;align-items:center;gap:18px;margin-bottom:22px;flex-wrap:wrap;">
+      <div style="width:68px;height:68px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:800;font-family:var(--fh);background:${c.gender==='girl'?'var(--pinkl)':'var(--bl)'};color:${c.gender==='girl'?'var(--pink)':'var(--b)'};">${c.name.charAt(0).toUpperCase()}</div>
+      <div><h2 style="font-family:var(--fh);font-size:22px;font-weight:800;">${c.name}</h2>
+      <p style="color:var(--muted);font-size:13.5px;">${c.mobile} · ${c.gender==='girl'?'👧 Girl':'👦 Boy'}${c.parent?' · '+c.parent:''}</p>
+      ${c.notes?`<p style="font-size:12.5px;color:var(--warn);margin-top:3px;">📝 ${c.notes}</p>`:''}</div>
+      <div style="margin-left:auto;display:flex;gap:7px;flex-wrap:wrap;">
+        <button class="btn bg2 bsm" onclick="openEditM('${c.id}')">✏️ Edit</button>
+        <button class="btn bg2 bsm" onclick="openQR('${c.id}')">📱 QR</button>
+        ${st>=paid&&!exp?`<button class="btn bs bsm" onclick="redeemFree('${c.id}')">🎁 Give FREE Haircut</button>`:''}
+        ${!exp&&st<paid?`<button class="btn by bsm" onclick="addStamp('${c.id}')">✂️ Add Stamp</button>`:(!exp&&st>=paid?'':'')}
+        ${exp?`<button class="btn bp bsm" onclick="renewCard('${c.id}')">♻️ Renew Card</button>`:''}
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:22px;">
+      <div>
+        <div class="passport">
+          <div class="ph"><div class="pl">🐼</div><div><div class="pname">${c.name}</div><div class="psub">MiniCuts Loyalty Passport</div></div></div>
+          <div class="pinfo">
+            <div class="pf"><div class="pfl">Mobile</div><div class="pfv">${c.mobile}</div></div>
+            <div class="pf"><div class="pfl">Gender</div><div class="pfv">${c.gender==='girl'?'👧 Girl':'👦 Boy'}</div></div>
+            <div class="pf"><div class="pfl">Valid Until</div><div class="pfv">${c.expiry_date?fmtDate(c.expiry_date):'—'}</div></div>
+            <div class="pf"><div class="pfl">Free Cuts Given</div><div class="pfv">${c.redemptions||0}</div></div>
+          </div>
+          <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;opacity:.65;margin-bottom:8px;">Stamp Passport — ${st}/${paid} paid · visit ${CFG.stampsNeeded} = FREE haircut</div>
+          <div class="stamps-row">${sc}
+            <span style="opacity:.4;font-size:13px;margin:0 3px;">→</span>
+            <div class="sc2 free" style="${st>=paid?'animation:si .4s cubic-bezier(.175,.885,.32,1.275);box-shadow:0 0 20px rgba(255,214,0,.7);':'opacity:.5;border-style:dashed;'}" title="Visit ${CFG.stampsNeeded} = FREE haircut">🎁</div>
+          </div>
+          <div style="display:flex;gap:7px;align-items:center;margin-top:4px;">
+            ${Array.from({length:paid},(_,i)=>`<div style="width:50px;text-align:center;font-size:9.5px;color:rgba(255,255,255,${i<st?'.85':'.35'});">${i<st?'Paid':''}</div>`).join('')}
+            <span style="width:16px;"></span>
+            <div style="width:58px;text-align:center;font-size:9.5px;font-weight:700;color:rgba(255,255,255,${st>=paid?'.95':'.5'});">FREE CUT</div>
+          </div>
+          <div class="pb"><div class="pf2" style="width:${pct}%"></div></div>
+          <div class="pt"><span>${st}/${paid} paid stamps</span><span>${paid-st>0?(paid-st)+' more → visit ${CFG.stampsNeeded} is FREE!':'🎉 Give FREE haircut now!'}</span></div>
+          ${st>=paid&&!exp?`<div class="rb"><div style="font-size:22px;">🎁</div><div><div style="color:var(--bd);font-weight:800;font-size:13.5px;">Click 🎁 Give FREE Haircut button above!</div><div style="color:var(--bd);font-size:11.5px;opacity:.8;">Card resets after redemption</div></div></div>`:''}
+          ${exp?`<div style="background:rgba(220,38,38,.2);border-radius:9px;padding:9px 13px;margin-top:11px;font-size:12.5px;font-weight:700;color:#FCA5A5;">⚠ Passport expired · ${fmtDate(c.expiry_date)}</div>`:(d!==null&&d<=30?`<div style="background:rgba(217,119,6,.2);border-radius:9px;padding:9px 13px;margin-top:11px;font-size:12.5px;font-weight:700;color:#FCD34D;">⏰ Expiring in ${d} days</div>`:'')}
+        </div>
+      </div>
+      <div class="card" style="padding:18px;">
+        <div class="tab-bar">
+          <button class="tab-btn active" onclick="switchTab(this,'tVisits')">Visit History</button>
+          <button class="tab-btn" onclick="switchTab(this,'tCycles')">Cycle Audit Trail 🔍</button>
+        </div>
+        <div class="tab-pane active" id="tVisits">${visitHtml}</div>
+        <div class="tab-pane" id="tCycles">${cycleHtml}</div>
+      </div>
+    </div>`;
+}
+
+function switchTab(btn,paneId){
+  btn.closest('.card').querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  btn.closest('.card').querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById(paneId).classList.add('active');
+}
+
+function buildCycleHistory(cycles,currentStamps,c){
+  const rows=[];
+  // Current active cycle
+  if(c.first_stamp_date||currentStamps>0){
+    let dots='';
+    for(let i=0;i<paidNeeded();i++) dots+=`<div class="csd ${i<currentStamps?'on':''}">${i<currentStamps?'🐼':'✦'}</div>`;
+    const exp=isExp(c);
+    rows.push(`<div class="cycle-card active">
+      <span class="cycle-badge"><span class="badge bg-b">${exp?'Expired':'Current Cycle'}</span></span>
+      <div class="cycle-title">🔄 Current Cycle</div>
+      <div class="cycle-meta">
+        Started: ${fmtDate(c.first_stamp_date)||'—'}<br>
+        Expires: ${fmtDate(c.expiry_date)||'—'}<br>
+        Stamps earned: <strong>${currentStamps}/${paidNeeded()}</strong>
+      </div>
+      <div class="cycle-stamps">${dots}</div>
+    </div>`);
+  }
+  // Past cycles
+  if(cycles.length){
+    rows.push(...cycles.map((cy,i)=>{
+      const cls=cy.ended_by==='redeemed'?'redeemed':cy.ended_by==='expired'?'expired':'reset';
+      const icon=cy.ended_by==='redeemed'?'🎁':cy.ended_by==='expired'?'⏰':'🔄';
+      const label=cy.ended_by==='redeemed'?'Free Haircut Redeemed':cy.ended_by==='expired'?'Cycle Expired':'Manual Reset';
+      const badgeCls=cy.ended_by==='redeemed'?'bg-ok':cy.ended_by==='expired'?'bg-err':'bg-warn';
+      let dots='';
+      for(let j=0;j<paidNeeded();j++) dots+=`<div class="csd ${j<cy.stamps_earned?'on':''}">${j<cy.stamps_earned?'🐼':'✦'}</div>`;
+      return`<div class="cycle-card ${cls}">
+        <span class="cycle-badge"><span class="badge ${badgeCls}">${label}</span></span>
+        <div class="cycle-title">${icon} Cycle ${cycles.length-i}</div>
+        <div class="cycle-meta">
+          Started: ${fmtDate(cy.first_stamp_date)||'—'}<br>
+          Expired/Ended: ${fmtDate(cy.expiry_date)||'—'}<br>
+          Ended on: ${fmtDateTime(cy.ended_at)}<br>
+          Stamps earned: <strong>${cy.stamps_earned}/${paidNeeded()}</strong>
+        </div>
+        <div class="cycle-stamps">${dots}</div>
+      </div>`;
+    }));
+  }
+  if(!rows.length) return'<div style="padding:16px;text-align:center;color:var(--muted);font-size:13.5px;">No cycle history yet</div>';
+  return`<div style="font-size:12px;color:var(--muted);margin-bottom:12px;padding:8px 12px;background:var(--bl);border-radius:8px;">🔍 Full audit trail — every cycle archived with exact dates for dispute resolution</div>`+rows.join('');
+}
+
+// ══ STAMP ACTIONS ══
+async function addStamp(id){
+  try{
+    const rows=await sbFresh('customers','select=*&id=eq.'+id);
+    if(!rows||!rows.length){toast('Customer not found.','error');return;}
+    const c=rows[0];
+    if(isExp(c)){toast('Passport expired. Please renew first.','error');return;}
+    const currentStamps=parseInt(c.stamps)||0;
+    const paid=paidNeeded();
+    if(currentStamps>=paid){toast('All '+paid+' stamps collected — use Give FREE Haircut button!','error');return;}
+    const ns=currentStamps+1;
+    const now=new Date().toISOString();
+    const months=c.gender==='girl'?CFG.girlMonths:CFG.boyMonths;
+    const firstStamp=c.first_stamp_date||now;
+    const expiry=c.expiry_date||addMonths(firstStamp,months);
+    await sb('customers','PATCH',{stamps:ns,first_stamp_date:firstStamp,expiry_date:expiry},'id=eq.'+id);
+    await sb('visits','POST',{customer_id:id,type:'paid',stamp_count_after:ns,cycle_expiry:expiry});
+    toast('Stamp added! '+ns+'/'+paid+' for '+c.name+(ns>=paid?' 🎁 FREE haircut ready!':''));
+    if(curPID===id) viewProfile(id);
+    renderDash();
+  }catch(e){toast('Error adding stamp: '+e.message,'error');}
+}
+async function addStampQ(id){
+  const btn=document.getElementById('sb-'+id);
+  if(btn){btn.disabled=true;btn.innerHTML='...';}
+  await addStamp(id);
+  setTimeout(()=>{
+    if(document.getElementById('page-customers').classList.contains('active')) loadCustomers();
+  },400);
+}
+
+async function redeemFree(id){
+  try{
+    const rows=await sbFresh('customers','select=*&id=eq.'+id);
+    if(!rows||!rows.length){toast('Customer not found.','error');return;}
+    const c=rows[0];
+    const paid=paidNeeded();
+    if((c.stamps||0)<paid){toast('Not enough stamps yet! Need '+paid+' stamps.','error');return;}
+    await archiveCycle(id,c.stamps,c.first_stamp_date,c.expiry_date,'redeemed');
+    await sb('customers','PATCH',{stamps:0,first_stamp_date:null,expiry_date:null,redemptions:(c.redemptions||0)+1},'id=eq.'+id);
+    await sb('visits','POST',{customer_id:id,type:'free',stamp_count_after:0,cycle_expiry:c.expiry_date});
+    toast('🎉 FREE haircut given to '+c.name+'! Card reset to 0.');
+    if(curPID===id) viewProfile(id);
+    renderDash();
+    if(document.getElementById('page-customers').classList.contains('active')) setTimeout(loadCustomers,300);
+  }catch(e){toast('Error: '+e.message,'error');}
+}
+
+async function renewCard(id){
+  try{
+    const c=(await sb('customers','GET',null,'select=*&id=eq.'+id))[0];
+    // Archive expired cycle
+    await archiveCycle(id,c.stamps,c.first_stamp_date,c.expiry_date,'expired');
+    await sb('customers','PATCH',{stamps:0,first_stamp_date:null,expiry_date:null},'id=eq.'+id);
+    await sb('visits','POST',{customer_id:id,type:'expired',stamp_count_after:0,cycle_expiry:c.expiry_date});
+    toast('Card renewed. Old cycle archived.');
+    if(curPID===id) viewProfile(id);
+  }catch(e){toast('Error: '+e.message,'error');}
+}
+
+// ══ CREATE ══
+let ncG='boy';
+function setG(g){ncG=g;document.getElementById('NCB').classList.toggle('active',g==='boy');document.getElementById('NCG').classList.toggle('active',g==='girl');}
+async function createC(){
+  const name=document.getElementById('NC1').value.trim();
+  const phone=document.getElementById('NC2').value.trim();
+  const parent=document.getElementById('NC3').value.trim();
+  const notes=document.getElementById('NC5').value.trim();
+  const stamps=parseInt(document.getElementById('NC4').value)||0;
+  if(!name||!phone){toast('Name and mobile required.','error');return;}
+  try{
+    const ex=await sb('customers','GET',null,'select=id&mobile=eq.'+encodeURIComponent(phone)+'&gender=eq.'+ncG+'&name=eq.'+encodeURIComponent(name));
+    if(ex.length){toast('This child already has a passport. Search by mobile to find them.','error');return;}
+    const now=new Date().toISOString();
+    const months=ncG==='girl'?CFG.girlMonths:CFG.boyMonths;
+    await sb('customers','POST',{name,mobile:phone,parent,notes,gender:ncG,stamps,redemptions:0,
+      first_stamp_date:stamps>0?now:null,expiry_date:stamps>0?addMonths(now,months):null});
+    toast(`🐼 Passport created for ${name}!`);
+    clearNC();showPage('customers',null);loadCustomers();
+  }catch(e){toast('Error: '+e.message,'error');}
+}
+function clearNC(){['NC1','NC2','NC3','NC5'].forEach(id=>document.getElementById(id).value='');document.getElementById('NC4').value='0';setG('boy');}
+
+// ══ EDIT ══
+let egG='boy';
+async function openEditM(id){
+  const c=(await sb('customers','GET',null,'select=*&id=eq.'+id))[0];
+  document.getElementById('EID').value=id;
+  document.getElementById('EN').value=c.name;
+  document.getElementById('EP').value=c.mobile;
+  document.getElementById('EPR').value=c.parent||'';
+  document.getElementById('ENO').value=c.notes||'';
+  document.getElementById('EST').value=c.stamps||0;
+  egG=c.gender;setEG(c.gender);openM('EM');
+}
+function setEG(g){egG=g;document.getElementById('EGB').classList.toggle('active',g==='boy');document.getElementById('EGG').classList.toggle('active',g==='girl');}
+async function saveEdit(){
+  const id=document.getElementById('EID').value;
+  const u={name:document.getElementById('EN').value.trim(),mobile:document.getElementById('EP').value.trim(),parent:document.getElementById('EPR').value.trim(),notes:document.getElementById('ENO').value.trim(),gender:egG,stamps:parseInt(document.getElementById('EST').value)||0};
+  try{
+    await sb('customers','PATCH',u,'id=eq.'+id);
+    closeM('EM');toast('Customer updated!');
+    if(curPID===id) viewProfile(id);
+    if(document.getElementById('page-customers').classList.contains('active')) loadCustomers();
+  }catch(e){toast('Error: '+e.message,'error');}
+}
+
+// ══ QR ══
+async function openQR(id){
+  const c=(await sb('customers','GET',null,'select=*&id=eq.'+id))[0];
+  const el=document.getElementById('QMC');el.innerHTML='';
+  document.getElementById('QMS').textContent='Passport for '+c.name;
+  // No gender in URL — customer page will show ALL children under this mobile
+  const url=location.origin+location.pathname+'?customer=1&lookup='+encodeURIComponent(c.mobile);
+  setTimeout(()=>{if(typeof QRCode!=='undefined') new QRCode(el,{text:url,width:200,height:200,colorDark:'#1565C0',colorLight:'#fff',correctLevel:QRCode.CorrectLevel.M});},100);
+  openM('QM');
+}
+function renderSalonQR(){
+  const el=document.getElementById('SalonQR');el.innerHTML='';
+  const url=location.origin+location.pathname+'?customer=1';
+  setTimeout(()=>{if(typeof QRCode!=='undefined') new QRCode(el,{text:url,width:180,height:180,colorDark:'#1565C0',colorLight:'#fff',correctLevel:QRCode.CorrectLevel.M});},100);
+}
+
+// ══ CUSTOMER PAGE ══
+async function renderCP(prefMobile){
+  const area=document.getElementById('CPA');
+  if(prefMobile){
+    area.innerHTML='<div class="load"><div class="spin"></div></div>';
+    try{
+      // Always fetch ALL children under this mobile — ignore gender filter
+      // This ensures families with multiple kids all see their passports
+      const res=await sb('customers','GET',null,'select=*&mobile=eq.'+encodeURIComponent(prefMobile)+'&order=name.asc');
+      if(res.length){
+        const parts=await Promise.all(res.map(async c=>{
+          const visits=await sb('visits','GET',null,'select=*&customer_id=eq.'+c.id+'&order=created_at.desc');
+          return buildCard(c)+buildCustomerHistory(visits,c);
+        }));
+        area.innerHTML=parts.join('<div style="height:14px;"></div>')+buildLookup('')+buildFooter();
+      } else{area.innerHTML=buildRegister(prefMobile)+buildFooter();}
+    }catch(e){area.innerHTML='<div style="color:red;padding:20px;">Error: '+e.message+'</div>';}
+    return;
+  }
+  area.innerHTML=buildLookup('')+buildFooter();
+}
+
+function buildCard(c){
+  const st=c.stamps||0;const exp=isExp(c);const d=dLeft(c);
+  const pN=paidNeeded();
+  const pct=Math.min(Math.round((st/pN)*100),100);
+  let circles='';
+  for(let i=0;i<pN;i++) circles+=`<div class="cs3 ${i<st?'on':''}">${i<st?'🐼':'✦'}</div>`;
+  const rem=pN-st;
+  const cta=exp?'Passport expired — visit us to renew!':st===0?'Start collecting! Every haircut = 1 stamp 🐼':st>=pN?'🎉 Your FREE haircut is ready! Show this to your stylist.':rem===1?'Just 1 more stamp — visit '+CFG.stampsNeeded+' is FREE! 🎉':rem+' more stamps — visit '+CFG.stampsNeeded+' is FREE!';
+  return`<div class="ccard">
+    <div style="display:flex;align-items:center;gap:11px;margin-bottom:16px;">
+      <div style="width:44px;height:44px;background:var(--y);border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:22px;">🐼</div>
+      <div><div style="font-family:'Baloo 2',cursive;font-size:18px;font-weight:800;">${c.name}</div><div style="font-size:12px;opacity:.7;">MiniCuts Loyalty Passport · ${c.gender==='girl'?'👧 Girl':'👦 Boy'}</div></div>
+    </div>
+    <div style="display:flex;justify-content:center;gap:9px;margin:18px 0;flex-wrap:wrap;align-items:center;">${circles}
+      <div style="color:rgba(255,255,255,.4);font-size:14px;margin:0 2px;">→</div>
+      <div class="cs3 free" style="${st>=pN?'box-shadow:0 0 24px rgba(255,214,0,.9);transform:scale(1.1);':'opacity:.55;border-style:dashed;'}">${st>=CFG.stampsNeeded?'🎁':'🎁'}</div>
+    </div>
+    <div style="display:flex;justify-content:center;gap:0;margin:-8px 0 10px;">
+      ${Array.from({length:pN},(_,i)=>`<div style="font-size:9px;width:54px;text-align:center;color:rgba(255,255,255,${i<st?'.9':'.35'});">${i<st?'✓':''}</div>`).join('')}
+      <div style="width:8px;"></div>
+      <div style="font-size:9px;width:62px;text-align:center;color:rgba(255,255,255,${st>=pN?'.9':'.45'});font-weight:700;">FREE✂️</div>
+    </div>
+    <div style="height:7px;background:rgba(255,255,255,.15);border-radius:99px;overflow:hidden;margin-bottom:9px;"><div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#FFD600,#FF8C00);border-radius:99px;"></div></div>
+    <div style="text-align:center;font-size:14.5px;font-weight:800;margin-bottom:4px;">${cta}</div>
+    ${c.expiry_date&&!exp?`<div style="text-align:center;font-size:11.5px;opacity:.65;">Valid until ${fmtDate(c.expiry_date)}${d!==null&&d<=60?' · '+d+' days left':''}</div>`:''}
+    <div style="background:rgba(255,255,255,.12);border-radius:10px;padding:11px;text-align:center;font-size:12px;opacity:.85;margin-top:14px;">✂️ Every paid haircut = 1 stamp &nbsp;·&nbsp; 🎁 After ${pN} stamps your <strong>visit ${CFG.stampsNeeded} is FREE!</strong></div>
+  </div>`;
+}
+
+function buildCustomerHistory(visits,c){
+  if(!visits||!visits.length) return '';
+  const freeVisits=visits.filter(v=>v.type==='free');
+  const paidVisits=visits.filter(v=>v.type==='paid');
+  const totalStamps=paidVisits.length;
+  const totalFree=freeVisits.length;
+  if(!totalStamps&&!totalFree) return '';
+  const uid='hist_'+c.id;
+  const histRows=visits.map(v=>{
+    const isPaid=v.type==='paid';const isFree=v.type==='free';
+    if(!isPaid&&!isFree) return '';
+    const icon=isFree?'🎁':'✂️';
+    const label=isFree?'Free Haircut Redeemed':'Paid Haircut';
+    const bg=isFree?'#FFF9D6':'#E3F0FF';
+    const col=isFree?'#92400E':'#1565C0';
+    const badge=isFree?'🎁 Free':'✂️ Paid';
+    return `<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #F3F4F6;">
+      <div style="width:32px;height:32px;border-radius:50%;background:${bg};display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;">${icon}</div>
+      <div style="flex:1;"><div style="font-size:13.5px;font-weight:700;color:#1A1A2E;">${label}</div>
+      <div style="font-size:11.5px;color:#6B7280;">${fmtDateTime(v.created_at)}</div></div>
+      <span style="font-size:11px;font-weight:700;padding:3px 9px;border-radius:99px;background:${bg};color:${col};">${badge}</span>
+    </div>`;
+  }).filter(Boolean).join('');
+
+  return `<div class="cbox" style="margin-top:0;border-radius:0 0 18px 18px;padding-top:0;">
+    <div onclick="toggleCustHist('${uid}')" style="padding:14px 0 12px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <div style="font-family:'Baloo 2',cursive;font-size:15px;font-weight:800;color:#1A1A2E;">Your Visit History</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;">
+          <div style="background:#E3F0FF;border-radius:99px;padding:4px 10px;font-size:11px;font-weight:700;color:#1565C0;">✂️ ${totalStamps} paid</div>
+          <div style="background:#FFF9D6;border-radius:99px;padding:4px 10px;font-size:11px;font-weight:700;color:#92400E;">🎁 ${totalFree} free</div>
+        </div>
+      </div>
+      <div id="${uid}_arrow" style="font-size:18px;color:#6B7280;transition:transform .3s;">▾</div>
+    </div>
+    <div id="${uid}" style="display:none;border-top:1px solid #F3F4F6;padding-top:6px;">
+      ${histRows}
+    </div>
+  </div>`;
+}
+
+function toggleCustHist(uid){
+  const el=document.getElementById(uid);
+  const arrow=document.getElementById(uid+'_arrow');
+  const open=el.style.display==='block';
+  el.style.display=open?'none':'block';
+  arrow.style.transform=open?'rotate(0deg)':'rotate(180deg)';
+}
+
+function buildLookup(msg){
+  const saved=localStorage.getItem('mc_cust_mobile')||'';
+  return`<div class="cbox">
+    <div style="font-family:'Baloo 2',cursive;font-size:17px;font-weight:800;margin-bottom:3px;">Check your stamps</div>
+    <div style="font-size:13px;color:#6B7280;margin-bottom:14px;">Enter your mobile number</div>
+    ${msg?`<div style="background:#FEE2E2;color:#DC2626;padding:9px 13px;border-radius:8px;font-size:13px;font-weight:700;margin-bottom:12px;">${msg}</div>`:''}
+    <div style="display:flex;gap:9px;">
+      <input class="fi" type="tel" id="CPP" placeholder="05xxxxxxxx" value="${saved}" style="flex:1;" onkeydown="if(event.key==='Enter') custLookup()">
+      <button class="btn bp" onclick="custLookup()">Check</button>
+    </div>
+    ${saved?`<div style="text-align:center;margin-top:8px;font-size:12px;color:#6B7280;">Remembered from last visit · <a href="javascript:void(0)" onclick="localStorage.removeItem('mc_cust_mobile');document.getElementById('CPP').value=''" style="color:#DC2626;font-weight:700;">Clear</a></div>`:''}
+    <div style="text-align:center;margin-top:10px;font-size:13px;color:#6B7280;">New customer? <a href="javascript:void(0)" onclick="showReg()" style="color:#1565C0;font-weight:700;">Register here →</a></div>
+  </div>`;
+}
+
+function buildRegister(pf=''){
+  return`<div class="cbox">
+    <div style="font-family:'Baloo 2',cursive;font-size:17px;font-weight:800;margin-bottom:3px;">🐼 Join MiniCuts Loyalty!</div>
+    <div style="font-size:13px;color:#6B7280;margin-bottom:14px;">Register to start earning stamps</div>
+    <div class="fg"><label class="fl">Child's Name *</label><input class="fi" type="text" id="CRN" placeholder="e.g. Zara"></div>
+    <div class="fg"><label class="fl">Mobile Number *</label><input class="fi" type="tel" id="CRP" placeholder="e.g. 0501234567" value="${pf}"></div>
+    <div class="fg"><label class="fl">Parent Name (optional)</label><input class="fi" type="text" id="CRPR" placeholder="e.g. Sara Ahmed"></div>
+    <div class="fg"><label class="fl">Gender *</label>
+      <div class="gt"><button class="gb boy active" id="CRB" onclick="setCRG('boy')">👦 Boy</button><button class="gb girl" id="CRG2" onclick="setCRG('girl')">👧 Girl</button></div>
+    </div>
+    <button class="btn bp" style="width:100%;justify-content:center;padding:13px;margin-top:6px;" onclick="custRegister()">Create My Passport 🐼</button>
+    <div style="text-align:center;margin-top:12px;font-size:13px;color:#6B7280;">Already registered? <a href="javascript:void(0)" onclick="showLookup()" style="color:#1565C0;font-weight:700;">Check stamps →</a></div>
+  </div>`;
+}
+
+function buildFooter(){
+  return`<div style="text-align:center;padding:18px 0;font-size:12px;color:#6B7280;">
+    📍 Dubai Silicon Oasis &nbsp;·&nbsp; ⭐ 4.9 Google Rating · 440+ Reviews<br>
+    <a href="https://www.instagram.com/minicutsdso/" target="_blank" style="color:#1565C0;font-weight:700;text-decoration:none;margin-top:4px;display:inline-block;">@minicutsdso ↗</a>
+  </div>`;
+}
+
+let crG='boy';
+function setCRG(g){crG=g;document.getElementById('CRB').classList.toggle('active',g==='boy');document.getElementById('CRG2').classList.toggle('active',g==='girl');}
+function showReg(){document.getElementById('CPA').innerHTML=buildRegister('')+buildFooter();}
+function showLookup(){document.getElementById('CPA').innerHTML=buildLookup('')+buildFooter();}
+
+async function custLookup(){
+  const phone=document.getElementById('CPP').value.trim();
+  if(phone.length<7) return;
+  const area=document.getElementById('CPA');
+  area.innerHTML='<div class="load"><div class="spin"></div></div>';
+  try{
+    localStorage.setItem('mc_cust_mobile',phone);
+    // Fetch ALL children under this mobile number, sorted by name
+    const res=await sb('customers','GET',null,'select=*&mobile=eq.'+encodeURIComponent(phone)+'&order=name.asc');
+    if(res.length){
+      const parts=await Promise.all(res.map(async c=>{
+        const visits=await sb('visits','GET',null,'select=*&customer_id=eq.'+c.id+'&order=created_at.desc');
+        return buildCard(c)+buildCustomerHistory(visits,c);
+      }));
+      area.innerHTML=parts.join('<div style="height:14px;"></div>')+buildLookup('')+buildFooter();
+    } else{area.innerHTML=buildLookup('No passport found for this number.')+buildRegister(phone)+buildFooter();}
+  }catch(e){area.innerHTML=buildLookup('Error: '+e.message)+buildFooter();}
+}
+
+async function custRegister(){
+  const name=document.getElementById('CRN').value.trim();
+  const phone=document.getElementById('CRP').value.trim();
+  const parent=document.getElementById('CRPR').value.trim();
+  if(!name||!phone){alert('Please enter name and mobile.');return;}
+  try{
+    const ex=await sb('customers','GET',null,'select=id&mobile=eq.'+encodeURIComponent(phone)+'&gender=eq.'+crG+'&name=eq.'+encodeURIComponent(name));
+    if(ex.length){
+      const c=(await sb('customers','GET',null,'select=*&mobile=eq.'+encodeURIComponent(phone)+'&gender=eq.'+crG+'&name=eq.'+encodeURIComponent(name)))[0];
+      document.getElementById('CPA').innerHTML=buildCard(c)+buildLookup('')+buildFooter();return;
+    }
+    const res=await sb('customers','POST',{name,mobile:phone,parent,gender:crG,stamps:0,redemptions:0,first_stamp_date:null,expiry_date:null});
+    const c=Array.isArray(res)?res[0]:res;
+    document.getElementById('CPA').innerHTML=
+      `<div style="background:#DCFCE7;border-radius:16px;padding:20px;text-align:center;margin-bottom:14px;">
+        <div style="font-size:36px;margin-bottom:8px;">🎉</div>
+        <div style="font-family:'Baloo 2',cursive;font-size:18px;font-weight:800;color:#16A34A;">Welcome, ${name}!</div>
+        <div style="font-size:13px;color:#16A34A;margin-top:4px;">Your loyalty passport is ready. Visit us for your first stamp!</div>
+      </div>`+buildCard(c)+buildCustomerHistory([],c)+buildLookup('')+buildFooter();
+  }catch(e){alert('Error: '+e.message);}
+}
+
+// ══ UPLOAD ══
+function handleUpload(input){
+  const file=input.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    let rows=[];
+    try{
+      if(file.name.endsWith('.csv')){
+        const lines=e.target.result.split('\n').filter(l=>l.trim());
+        const headers=lines[0].split(',').map(h=>h.trim().toLowerCase().replace(/['"]/g,''));
+        rows=lines.slice(1).map(line=>{const vals=line.split(',').map(v=>v.trim().replace(/['"]/g,''));const o={};headers.forEach((h,i)=>o[h]=vals[i]||'');return o;});
+      } else {
+        const wb=XLSX.read(e.target.result,{type:'array'});
+        const ws=wb.Sheets[wb.SheetNames[0]];
+        rows=XLSX.utils.sheet_to_json(ws,{defval:''});
+        rows=rows.map(r=>{const o={};Object.keys(r).forEach(k=>o[k.toLowerCase().trim()]=String(r[k]).trim());return o;});
+      }
+    }catch(err){toast('Cannot parse file','error');return;}
+    previewUp(rows);
+  };
+  if(file.name.endsWith('.csv')) reader.readAsText(file);
+  else reader.readAsArrayBuffer(file);
+}
+function previewUp(rows){
+  const valid=[];const errs=[];
+  rows.forEach((r,i)=>{
+    const name=(r.name||'').trim();const mobile=(r.mobile||r.phone||'').toString().trim();
+    const gender=((r.gender||'').toString().trim().toLowerCase()).startsWith('g')?'girl':'boy';
+    const stamps=parseInt(r.stamps||0)||0;
+    if(!name||!mobile){errs.push(`Row ${i+2}: missing name or mobile`);return;}
+    const months=gender==='girl'?CFG.girlMonths:CFG.boyMonths;
+    const fs=r.lastvisit||r['last visit']||(stamps>0?new Date().toISOString():null);
+    const exp=r.expirydate||r['expiry date']||(fs?addMonths(fs,months):null);
+    valid.push({name,mobile,gender,stamps,parent:r.parent||'',notes:r.notes||'',redemptions:parseInt(r.redemptions||0)||0,
+      first_stamp_date:fs?new Date(fs).toISOString():null,expiry_date:exp?new Date(exp).toISOString():null});
+  });
+  document.getElementById('UP').innerHTML=`<div class="card" style="max-width:620px;">
+    <div style="font-family:var(--fh);font-size:16px;font-weight:800;margin-bottom:4px;">Preview — ${valid.length} valid rows</div>
+    ${errs.length?`<div style="background:var(--errl);color:var(--err);padding:9px 13px;border-radius:8px;font-size:12.5px;margin-bottom:11px;">${errs.join('<br>')}</div>`:''}
+    <div class="tw" style="margin-bottom:14px;"><table><thead><tr><th>Name</th><th>Mobile</th><th>Gender</th><th>Stamps</th></tr></thead><tbody>
+    ${valid.slice(0,8).map(c=>`<tr><td>${c.name}</td><td>${c.mobile}</td><td>${c.gender==='girl'?'👧 Girl':'👦 Boy'}</td><td>${c.stamps}/${paidNeeded()}</td></tr>`).join('')}
+    ${valid.length>8?`<tr><td colspan="4" style="text-align:center;color:var(--muted);font-size:12.5px;">...and ${valid.length-8} more</td></tr>`:''}
+    </tbody></table></div>
+    <div style="display:flex;gap:9px;">
+      <button class="btn bp" id="IB" onclick="commitUp(this,${JSON.stringify(valid).replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/'/g,'&#39;')})">Import ${valid.length} customers</button>
+      <button class="btn bg2" onclick="document.getElementById('UP').innerHTML='';document.getElementById('FI').value='';">Cancel</button>
+    </div>
+  </div>`;
+}
+async function commitUp(btn,rows){
+  btn.disabled=true;btn.textContent='Importing...';
+  let added=0,skipped=0;
+  for(const r of rows){
+    try{
+      const ex=await sb('customers','GET',null,'select=id&mobile=eq.'+encodeURIComponent(r.mobile)+'&gender=eq.'+r.gender+'&name=eq.'+encodeURIComponent(r.name));
+      if(ex.length){skipped++;continue;}
+      await sb('customers','POST',r);added++;
+    }catch(e){skipped++;}
+  }
+  toast(`✅ Imported ${added}. ${skipped} skipped.`);
+  document.getElementById('UP').innerHTML='';document.getElementById('FI').value='';
+}
+
+// ══ CONFIG ══
+function saveConfig(){
+  CFG.stampsNeeded=parseInt(document.getElementById('CFS').value)||5;
+  CFG.boyMonths=parseInt(document.getElementById('CFB').value)||12;
+  CFG.girlMonths=parseInt(document.getElementById('CFG2').value)||15;
+  CFG.user=document.getElementById('CFU').value.trim()||'admin';
+  CFG.pass=document.getElementById('CFP').value||'minicuts123';
+  CFG.resetCode=document.getElementById('CFRC').value.trim()||'MINICUTS2025';
+  saveCfg();toast('Settings saved!');
+}
+async function exportCSV(){
+  const data=await sb('customers','GET',null,'select=*&order=name.asc');
+  const h=['name','mobile','gender','stamps','parent','notes','redemptions','expiry_date','first_stamp_date'];
+  const rows=data.map(c=>h.map(k=>(c[k]||'')).join(','));
+  const csv=[h.join(','),...rows].join('\n');
+  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='minicuts-customers.csv';a.click();
+}
+</script>
+</body>
+</html>
