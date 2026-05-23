@@ -428,26 +428,40 @@ async function archiveCycle(customerId,stamps,firstStampDate,expiryDate,endedBy)
 
       <!-- MISS YOU -->
       <div class="page" id="page-missyou">
-        <div style="font-family:var(--fh);font-size:21px;font-weight:800;margin-bottom:5px;">Miss You 💌</div>
-        <div style="color:var(--muted);font-size:13.5px;margin-bottom:22px;">Send nudges and track who came back</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-bottom:22px;">
-          <div class="card">
-            <div style="font-family:var(--fh);font-size:16px;font-weight:800;margin-bottom:4px;">😴 Need a Nudge</div>
-            <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">
-            🔔 Nudge: Boys ≥ <span id="MY_boyNudge"></span>wks · Girls ≥ <span id="MY_girlNudge"></span>wks &nbsp;|&nbsp;
-            😴 Lapsed: Boys ≥ <span id="MY_boyLapsed"></span>wks · Girls ≥ <span id="MY_girlLapsed"></span>wks
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:6px;">
+          <div>
+            <div style="font-family:var(--fh);font-size:21px;font-weight:800;">Miss You 💌</div>
+            <div style="color:var(--muted);font-size:13px;">Daily nudge task — send WhatsApp to at-risk customers</div>
           </div>
-            <div id="MY_LAPSED"></div>
+          <button class="btn bg2 bsm" onclick="renderMissYou()">↻ Refresh</button>
+        </div>
+        <!-- Stats bar -->
+        <div id="MY_STATS" style="margin-bottom:18px;"></div>
+        <!-- Thresholds info -->
+        <div style="background:var(--bl);border-radius:10px;padding:10px 16px;margin-bottom:18px;font-size:12px;color:var(--b);display:flex;gap:16px;flex-wrap:wrap;">
+          <span>🔔 Nudge: Boys ≥ <strong id="MY_boyNudge"></strong>wks · Girls ≥ <strong id="MY_girlNudge"></strong>wks</span>
+          <span>😴 Lapsed: Boys ≥ <strong id="MY_boyLapsed"></strong>wks · Girls ≥ <strong id="MY_girlLapsed"></strong>wks</span>
+          <span>✅ Return window: <strong>2 weeks</strong> after nudge</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px;">
+          <!-- Bucket 1: Needs nudge today -->
+          <div class="card" style="border-top:3px solid var(--warn);">
+            <div style="font-family:var(--fh);font-size:15px;font-weight:800;margin-bottom:3px;">🔔 Nudge Today</div>
+            <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">Tap 💬 → message sent → removed from list</div>
+            <div id="MY_TONUDGE"></div>
           </div>
-          <div class="card">
-            <div style="font-family:var(--fh);font-size:16px;font-weight:800;margin-bottom:4px;">✅ Returned After Nudge</div>
-            <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">Visited within 2 weeks of receiving a WhatsApp nudge</div>
+          <!-- Bucket 2: Waiting to return -->
+          <div class="card" style="border-top:3px solid var(--b);">
+            <div style="font-family:var(--fh);font-size:15px;font-weight:800;margin-bottom:3px;">⏳ Waiting to Return</div>
+            <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">Nudged — watching for their next visit</div>
+            <div id="MY_WAITING"></div>
+          </div>
+          <!-- Bucket 3: Returned -->
+          <div class="card" style="border-top:3px solid var(--ok);">
+            <div style="font-family:var(--fh);font-size:15px;font-weight:800;margin-bottom:3px;">✅ Returned!</div>
+            <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">Came back within 2 weeks of nudge</div>
             <div id="MY_RETURNED"></div>
           </div>
-        </div>
-        <div class="card">
-          <div style="font-family:var(--fh);font-size:16px;font-weight:800;margin-bottom:4px;">📊 Nudge Stats</div>
-          <div id="MY_STATS" style="margin-top:12px;"></div>
         </div>
       </div>
 
@@ -1111,7 +1125,12 @@ async function addStamp(id){
     const expiry=c.expiry_date||addMonths(firstStamp,months);
     await sb('customers','PATCH',{stamps:ns,first_stamp_date:firstStamp,expiry_date:expiry,last_visit_date:now},'id=eq.'+id);
     await sb('visits','POST',{customer_id:id,type:'paid',stamp_count_after:ns,cycle_expiry:expiry});
-    toast('Stamp added! '+ns+'/'+paid+' for '+c.name+(ns>=paid?' 🎁 FREE haircut ready!':''));
+    // Detect if this customer returned after a nudge
+    if(c.nudge_sent_at&&(!c.last_visit_date||new Date(c.last_visit_date)<new Date(c.nudge_sent_at))){
+      toast('🎉 '+c.name+' returned after nudge! Stamp '+ns+'/'+paid+' added.'+(ns>=paid?' FREE haircut ready!':''));
+    } else {
+      toast('✅ Stamp '+ns+'/'+paid+' added for '+c.name+(ns>=paid?' 🎁 FREE haircut ready!':''));
+    }
     if(curPID===id) viewProfile(id);
     renderDash();
   }catch(e){toast('Error adding stamp: '+e.message,'error');}
@@ -1209,71 +1228,144 @@ async function renderMissYou(){
   document.getElementById('MY_girlNudge').textContent=CFG.girlNudgeWeeks||15;
   document.getElementById('MY_boyLapsed').textContent=CFG.boyLapsedWeeks||12;
   document.getElementById('MY_girlLapsed').textContent=CFG.girlLapsedWeeks||26;
-  document.getElementById('MY_LAPSED').innerHTML='<div class="load"><div class="spin"></div></div>';
-  document.getElementById('MY_RETURNED').innerHTML='<div class="load"><div class="spin"></div></div>';
+  ['MY_TONUDGE','MY_WAITING','MY_RETURNED','MY_STATS'].forEach(id=>{
+    const el=document.getElementById(id);if(el)el.innerHTML='<div class="load"><div class="spin"></div></div>';
+  });
   try{
     const custs=await sb('customers','GET',null,'select=*&order=name.asc');
-    const toNudge=custs.filter(c=>!isExp(c)&&needsNudge(c));
-    const allAtRisk=[...toNudge,...lapsed].sort((a,b)=>(weeksSinceVisit(b)||0)-(weeksSinceVisit(a)||0));
-    const nudgeSent=custs.filter(c=>c.nudge_sent_at);
-    const returned=custs.filter(c=>c.nudge_sent_at&&c.last_visit_date&&
+    const TWO_WEEKS=14*24*60*60*1000;
+    // BUCKET 1: Needs nudge today
+    const toNudge=custs.filter(c=>{
+      if(isExp(c)) return false;
+      if(!(needsNudge(c)||isLapsed(c))) return false;
+      if(!c.nudge_sent_at) return true;
+      const nudgeAge=new Date()-new Date(c.nudge_sent_at);
+      const returned=c.last_visit_date&&new Date(c.last_visit_date)>new Date(c.nudge_sent_at);
+      if(returned) return false;
+      if(nudgeAge>TWO_WEEKS) return true;
+      return false;
+    }).sort((a,b)=>(weeksSinceVisit(b)||0)-(weeksSinceVisit(a)||0));
+    // BUCKET 2: Waiting to return
+    const waiting=custs.filter(c=>{
+      if(!c.nudge_sent_at) return false;
+      const nudgeAge=new Date()-new Date(c.nudge_sent_at);
+      if(nudgeAge>TWO_WEEKS) return false;
+      const returned=c.last_visit_date&&new Date(c.last_visit_date)>new Date(c.nudge_sent_at);
+      return !returned;
+    }).sort((a,b)=>new Date(b.nudge_sent_at)-new Date(a.nudge_sent_at));
+    // BUCKET 3: Returned after nudge
+    const returned=custs.filter(c=>
+      c.nudge_sent_at&&c.last_visit_date&&
       new Date(c.last_visit_date)>new Date(c.nudge_sent_at)&&
-      (new Date(c.last_visit_date)-new Date(c.nudge_sent_at))<14*24*60*60*1000);
-    const pending=nudgeSent.filter(c=>!(c.last_visit_date&&new Date(c.last_visit_date)>new Date(c.nudge_sent_at)));
-
+      (new Date(c.last_visit_date)-new Date(c.nudge_sent_at))<TWO_WEEKS
+    ).sort((a,b)=>new Date(b.last_visit_date)-new Date(a.last_visit_date));
+    const totalNudged=custs.filter(c=>c.nudge_sent_at).length;
+    const rate=totalNudged?Math.round((returned.length/totalNudged)*100):0;
     // Stats
-    const rate=nudgeSent.length?Math.round((returned.length/nudgeSent.length)*100):0;
     document.getElementById('MY_STATS').innerHTML=`
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;">
-        <div class="sc"><div class="si" style="background:#FAEEDA;">🔔</div><div><div class="sl">Nudge Now</div><div class="sv">${toNudge.length}</div></div></div>
-        <div class="sc"><div class="si" style="background:#FEE2E2;">😴</div><div><div class="sl">Lapsed</div><div class="sv">${lapsed.length}</div></div></div>
-        <div class="sc"><div class="si" style="background:#EFF6FF;">💬</div><div><div class="sl">Nudged</div><div class="sv">${nudgeSent.length}</div></div></div>
-        <div class="sc"><div class="si" style="background:#F0FDF4;">✅</div><div><div class="sl">Returned</div><div class="sv">${returned.length}</div></div></div>
-        <div class="sc"><div class="si" style="background:#FEFCE8;">📈</div><div><div class="sl">Return Rate</div><div class="sv">${rate}%</div></div></div>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:4px;">
+        <div class="sc"><div class="si" style="background:#FEF3C7;font-size:18px;">🔔</div><div><div class="sl">To Nudge</div><div class="sv">${toNudge.length}</div></div></div>
+        <div class="sc"><div class="si" style="background:#EFF6FF;font-size:18px;">⏳</div><div><div class="sl">Waiting</div><div class="sv">${waiting.length}</div></div></div>
+        <div class="sc"><div class="si" style="background:#F0FDF4;font-size:18px;">✅</div><div><div class="sl">Returned</div><div class="sv">${returned.length}</div></div></div>
+        <div class="sc"><div class="si" style="background:#F5F3FF;font-size:18px;">💬</div><div><div class="sl">Total Nudged</div><div class="sv">${totalNudged}</div></div></div>
+        <div class="sc"><div class="si" style="background:#FFF7ED;font-size:18px;">📈</div><div><div class="sl">Return Rate</div><div class="sv">${rate}%</div></div></div>
       </div>`;
-
-    // Lapsed needing nudge
-    document.getElementById('MY_LAPSED').innerHTML=allAtRisk.length?allAtRisk.map(c=>{
-      const weeksAgo=c.last_visit_date||c.first_stamp_date?Math.round((new Date()-new Date(c.last_visit_date||c.first_stamp_date))/(1000*60*60*24*7)):null;
-      const alreadyNudged=c.nudge_sent_at&&new Date(c.nudge_sent_at)>new Date(Date.now()-14*24*60*60*1000);
-      return`<div class="hi">
-        <div class="hic" style="background:var(--warnl);font-size:14px;">${c.gender==='girl'?'👧':'👦'}</div>
+    // Render Bucket 1
+    document.getElementById('MY_TONUDGE').innerHTML=toNudge.length?toNudge.map(c=>{
+      const w=Math.round(weeksSinceVisit(c)||0);
+      const isL=isLapsed(c);
+      return`<div class="hi" id="nudge-row-${c.id}">
+        <div class="hic" style="background:${isL?'var(--errl)':'var(--warnl)'};font-size:14px;">${c.gender==='girl'?'👧':'👦'}</div>
         <div style="flex:1;min-width:0;">
-          <div style="font-size:13.5px;font-weight:700;">${c.name} ${alreadyNudged?'<span class="badge bg-b" style="font-size:10px;">Nudged</span>':''}</div>
-          <div style="font-size:11.5px;color:var(--muted);">${c.mobile}${weeksAgo?' · '+weeksAgo+' weeks ago':''}</div>
+          <div style="font-size:13.5px;font-weight:700;">${c.name} <span class="badge ${isL?'bg-err':'bg-warn'}" style="font-size:10px;">${isL?'Lapsed':'Nudge'}</span></div>
+          <div style="font-size:11.5px;color:var(--muted);">${c.mobile} · ${w}wks since visit</div>
         </div>
-        <button class="btn bsm" style="background:#25D366;color:#fff;border:none;padding:6px 10px;flex-shrink:0;" onclick="sendWANudge('${c.id}','${c.mobile}','${c.gender}','${c.name.replace(/'/g,"\'")}',${c.stamps||0},${paidNeeded()})">💬 Nudge</button>
+        <button class="btn bsm" style="background:#25D366;color:#fff;border:none;padding:6px 10px;flex-shrink:0;"
+          onclick="sendWANudge('${c.id}','${c.mobile}','${c.gender}','${c.name}',${c.stamps||0},${paidNeeded()})">💬 Nudge</button>
       </div>`;}).join('')
-      :'<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px;">No at-risk customers 🎉</div>';
-
-    // Returned
-    document.getElementById('MY_RETURNED').innerHTML=returned.length?returned.map(c=>`
-      <div class="hi">
-        <div class="hic" style="background:var(--okl);">✅</div>
+      :'<div style="text-align:center;padding:20px;color:var(--ok);font-size:13px;font-weight:700;">🎉 All done! No nudges needed today.</div>';
+    // Render Bucket 2
+    document.getElementById('MY_WAITING').innerHTML=waiting.length?waiting.map(c=>{
+      const daysAgo=Math.round((new Date()-new Date(c.nudge_sent_at))/(1000*60*60*24));
+      const daysLeft=14-daysAgo;
+      const pct=Math.round((daysAgo/14)*100);
+      return`<div class="hi">
+        <div class="hic" style="background:var(--bl);font-size:14px;">⏳</div>
         <div style="flex:1;min-width:0;">
           <div style="font-size:13.5px;font-weight:700;">${c.name}</div>
-          <div style="font-size:11.5px;color:var(--muted);">Returned ${Math.round((new Date(c.last_visit_date)-new Date(c.nudge_sent_at))/(1000*60*60*24))} days after nudge · ${c.mobile}</div>
+          <div style="font-size:11.5px;color:var(--muted);">${c.mobile} · nudged ${daysAgo}d ago · ${daysLeft}d left</div>
+          <div style="width:80px;height:4px;background:var(--border);border-radius:99px;margin-top:4px;">
+            <div style="width:${pct}%;height:100%;background:var(--b);border-radius:99px;"></div>
+          </div>
         </div>
-        <span class="badge bg-ok">✅ Back!</span>
-      </div>`).join('')
-      :`<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px;">${pending.length?pending.length+' nudge(s) pending return':'No nudges sent yet — start nudging!'}</div>`;
-
+      </div>`;}).join('')
+      :'<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px;">No one waiting — start nudging!</div>';
+    // Render Bucket 3
+    document.getElementById('MY_RETURNED').innerHTML=returned.length?returned.map(c=>{
+      const days=Math.round((new Date(c.last_visit_date)-new Date(c.nudge_sent_at))/(1000*60*60*24));
+      return`<div class="hi">
+        <div class="hic" style="background:var(--okl);font-size:14px;">✅</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13.5px;font-weight:700;">${c.name} <span class="badge bg-ok" style="font-size:10px;">Back in ${days}d!</span></div>
+          <div style="font-size:11.5px;color:var(--muted);">${c.mobile} · returned ${fmtDate(c.last_visit_date)}</div>
+        </div>
+      </div>`;}).join('')
+      :'<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px;">No returns yet</div>';
   }catch(e){
-    document.getElementById('MY_LAPSED').innerHTML='<div style="color:var(--err);">Error: '+e.message+'</div>';
+    document.getElementById('MY_TONUDGE').innerHTML='<div style="color:var(--err);">Error: '+e.message+'</div>';
   }
 }
 
 async function sendWANudge(id,mobile,gender,name,stamps,paid){
-  // Record nudge timestamp in DB
+  // Step 1: Open WhatsApp chooser
+  sendWA(id,mobile,gender,name,stamps,paid);
+  // Step 2: After WA opens, show confirmation on the row
+  const row=document.getElementById('nudge-row-'+id);
+  if(row){
+    // Replace row content with confirmation prompt
+    row.style.background='#FFFBEB';
+    row.style.borderRadius='10px';
+    row.style.padding='10px';
+    row.style.transition='background .3s';
+    row.innerHTML=`
+      <div style="flex:1;">
+        <div style="font-size:13.5px;font-weight:700;color:#92400E;">💬 Did you send the WhatsApp to <strong>${name}</strong>?</div>
+        <div style="font-size:12px;color:#B45309;margin-top:3px;">Confirm only if message was sent successfully</div>
+      </div>
+      <div style="display:flex;gap:8px;flex-shrink:0;margin-left:10px;">
+        <button class="btn bs bsm" onclick="confirmNudgeSent('${id}','${name}',this)">✅ Yes, sent</button>
+        <button class="btn bg2 bsm" onclick="cancelNudge('${id}')">✗ Not sent</button>
+      </div>`;
+  }
+}
+
+async function confirmNudgeSent(id,name,btn){
+  btn.disabled=true;
+  btn.textContent='Saving...';
   try{
     await sb('customers','PATCH',{nudge_sent_at:new Date().toISOString()},'id=eq.'+id);
-    toast('Nudge recorded for '+name);
-    // Refresh Miss You page if open
-    if(document.getElementById('page-missyou').classList.contains('active')) renderMissYou();
-    renderDash();
+    // Slide row out
+    const row=document.getElementById('nudge-row-'+id);
+    if(row){
+      row.style.transition='opacity .4s,transform .4s,max-height .4s';
+      row.style.opacity='0';
+      row.style.transform='translateX(30px)';
+      row.style.maxHeight='0';
+      setTimeout(()=>row.remove(),400);
+    }
+    toast('✅ Nudge confirmed & recorded for '+name);
+    // Refresh stats
+    setTimeout(()=>{
+      if(document.getElementById('page-missyou').classList.contains('active')) renderMissYou();
+      renderDash();
+    },600);
   }catch(e){toast('Could not record nudge: '+e.message,'error');}
-  // Open WA message chooser
-  sendWA(id,mobile,gender,name,stamps,paid);
+}
+
+function cancelNudge(id){
+  // Restore original row look
+  renderMissYou();
+  toast('Nudge cancelled — row kept in list','info');
 }
 
 function sendWA(id,mobile,gender,name,stamps,paid){
