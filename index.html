@@ -153,6 +153,7 @@ const SB_URL='https://wtapyfgtwkjyjrjdnhkb.supabase.co';
    alter table customers add column if not exists dob date;
    alter table customers add column if not exists last_visit_date timestamptz;
    alter table customers add column if not exists nudge_sent_at timestamptz;
+   alter table customers add column if not exists dnd boolean default false;
 */
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind0YXB5Zmd0d2tqeWpyamRuaGtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0NDc3ODEsImV4cCI6MjA5NTAyMzc4MX0.y_-iPfb8Pcg9zh42h6RGVBsUVZm80LcA9sPlz_Gl_fA';
 const DC={
@@ -438,6 +439,7 @@ async function archiveCycle(customerId,stamps,firstStampDate,expiryDate,endedBy)
           <button class="tab-btn" onclick="switchMissYouTab('tab-freecut',this)">🎁 Free Cut <span id="MY_T_FREE" class="badge bg-y" style="margin-left:4px;"></span></button>
           <button class="tab-btn" onclick="switchMissYouTab('tab-waiting',this)">⏳ Waiting <span id="MY_T_WAITING" class="badge bg-b" style="margin-left:4px;"></span></button>
           <button class="tab-btn" onclick="switchMissYouTab('tab-returned',this)">✅ Returned <span id="MY_T_RET" class="badge bg-ok" style="margin-left:4px;"></span></button>
+          <button class="tab-btn" onclick="switchMissYouTab('tab-dnd',this)">🔕 DND <span id="MY_T_DND" class="badge bg-err" style="margin-left:4px;"></span></button>
         </div>
         <div class="card" style="border-radius:0 var(--r) var(--r) var(--r);margin-top:-1px;">
           <!-- Tab: Nudge -->
@@ -474,6 +476,11 @@ async function archiveCycle(customerId,stamps,firstStampDate,expiryDate,endedBy)
           <div id="tab-returned" class="tab-pane">
             <div style="font-size:12px;color:var(--muted);margin-bottom:12px;padding:8px 12px;background:var(--okl);border-radius:8px;">✅ Came back within 2 weeks of nudge. Great work! 🎉</div>
             <div id="MY_RETURNED"></div>
+          </div>
+          <!-- Tab: DND -->
+          <div id="tab-dnd" class="tab-pane">
+            <div style="font-size:12px;color:var(--muted);margin-bottom:12px;padding:8px 12px;background:#F3F4F6;border-radius:8px;">🔕 These customers asked not to be contacted. Tap ↩ Re-enable to add them back to the nudge list.</div>
+            <div id="MY_DND_LIST"></div>
           </div>
         </div>
       </div>
@@ -906,7 +913,7 @@ function renderCT(data){
       <td>${c.mobile}</td>
       <td><span class="badge ${c.gender==='girl'?'bg-p':'bg-b'}">${c.gender==='girl'?'👧 Girl':'👦 Boy'}</span></td>
       <td>${dots} <span style="font-size:11px;color:var(--muted);margin-left:2px;">${st}/${paidNeeded()}</span></td>
-      <td><span class="badge ${s.cls}">${s.label}</span></td>
+      <td><span class="badge ${s.cls}">${s.label}</span>${c.dnd?' <span class="badge bg-err" style="font-size:10px;">🔕 DND</span>':''}</td>
       <td style="font-size:12.5px;">${fmtDate(c.expiry_date)}</td>
       <td><div style="display:flex;gap:5px;flex-wrap:wrap;">
         <button class="btn bp bsm" onclick="viewProfile('${c.id}')">View</button>
@@ -975,9 +982,14 @@ function renderProfile(c,visits,cycles){
       <div style="width:68px;height:68px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:800;font-family:var(--fh);background:${c.gender==='girl'?'var(--pinkl)':'var(--bl)'};color:${c.gender==='girl'?'var(--pink)':'var(--b)'};">${c.name.charAt(0).toUpperCase()}</div>
       <div><h2 style="font-family:var(--fh);font-size:22px;font-weight:800;">${c.name}</h2>
       <p style="color:var(--muted);font-size:13.5px;">${c.mobile} · ${c.gender==='girl'?'👧 Girl':'👦 Boy'}${c.parent?' · '+c.parent:''}${c.dob?' · 🎂 '+new Date(c.dob).toLocaleDateString('en-GB',{day:'numeric',month:'short'}):''}</p>
-      ${c.notes?`<p style="font-size:12.5px;color:var(--warn);margin-top:3px;">📝 ${c.notes}</p>`:''}</div>
+      ${c.notes?`<p style="font-size:12.5px;color:var(--warn);margin-top:3px;">📝 ${c.notes}</p>`:''}
+      ${c.dnd?`<p style="font-size:12px;margin-top:3px;"><span class="badge bg-err">🔕 Do Not Disturb</span></p>`:''}</div>
       <div style="margin-left:auto;display:flex;gap:7px;flex-wrap:wrap;">
         <button class="btn bg2 bsm" onclick="openEditM('${c.id}')">✏️ Edit</button>
+        ${c.dnd?
+          `<button class="btn bg2 bsm" onclick="toggleDND('${c.id}',false,'${c.name}')" style="border-color:var(--ok);color:var(--ok);">↩ Re-enable Msgs</button>`:
+          `<button class="btn bg2 bsm" onclick="toggleDND('${c.id}',true,'${c.name}')" title="Mark as Do Not Disturb" style="border-color:var(--err);color:var(--err);">🔕 DND</button>`
+        }
         <button class="btn bg2 bsm" onclick="openQR('${c.id}')">📱 QR</button>
         ${st>=paid&&!exp?`<button class="btn bs bsm" onclick="redeemFree('${c.id}')">🎁 Give FREE Haircut</button>`:''}
         ${!exp&&st<paid?`<button class="btn by bsm" onclick="addStamp('${c.id}')">✂️ Add Stamp</button>`:(!exp&&st>=paid?'':'')}
@@ -1199,8 +1211,9 @@ async function renderMissYou(){
     const now2=new Date();
 
     // ── Tab 1: Nudge (needsNudge but not yet nudged / window expired) ──
+    const dndCusts=custs.filter(c=>c.dnd);
     const toNudge=custs.filter(c=>{
-      if(isExp(c)) return false;
+      if(isExp(c)||c.dnd) return false;
       if(!needsNudge(c)) return false;
       if(!c.nudge_sent_at) return true;
       const age=now2-new Date(c.nudge_sent_at);
@@ -1209,23 +1222,23 @@ async function renderMissYou(){
     }).sort((a,b)=>(weeksSinceVisit(b)||0)-(weeksSinceVisit(a)||0));
 
     // ── Tab 2: Lapsed ──
-    const lapsed=custs.filter(c=>!isExp(c)&&isLapsed(c)).sort((a,b)=>(weeksSinceVisit(b)||0)-(weeksSinceVisit(a)||0));
+    const lapsed=custs.filter(c=>!isExp(c)&&!c.dnd&&isLapsed(c)).sort((a,b)=>(weeksSinceVisit(b)||0)-(weeksSinceVisit(a)||0));
 
     // ── Tab 3: Expiring ──
-    const expiring=custs.filter(c=>!isExp(c)&&isExpiringSoon(c)).sort((a,b)=>dLeft(a)-dLeft(b));
+    const expiring=custs.filter(c=>!isExp(c)&&!c.dnd&&isExpiringSoon(c)).sort((a,b)=>dLeft(a)-dLeft(b));
 
     // ── Tab 4: Birthdays this week ──
     const weekStart=new Date(now2);weekStart.setDate(now2.getDate()-now2.getDay());
     const weekEnd=new Date(weekStart);weekEnd.setDate(weekStart.getDate()+6);
     const bdays=custs.filter(c=>{
-      if(!c.dob) return false;
+      if(!c.dob||c.dnd) return false;
       const bd=new Date(c.dob);
       const thisYear=new Date(now2.getFullYear(),bd.getMonth(),bd.getDate());
       return thisYear>=weekStart&&thisYear<=weekEnd;
     });
 
     // ── Tab 5: Free cut ready ──
-    const freeCut=custs.filter(c=>(c.stamps||0)>=paidNeeded()&&!isExp(c));
+    const freeCut=custs.filter(c=>(c.stamps||0)>=paidNeeded()&&!isExp(c)&&!c.dnd);
 
     // ── Tab 6: Waiting ──
     const waiting=custs.filter(c=>{
@@ -1254,6 +1267,7 @@ async function renderMissYou(){
     document.getElementById('MY_T_FREE').textContent=freeCut.length||'';
     document.getElementById('MY_T_WAITING').textContent=waiting.length||'';
     document.getElementById('MY_T_RET').textContent=returned.length||'';
+    document.getElementById('MY_T_DND').textContent=dndCusts.length||'';
 
     // Stats bar
     document.getElementById('MY_STATS').innerHTML=`
@@ -1267,15 +1281,26 @@ async function renderMissYou(){
 
     // Helper to render a nudge row
     function nudgeRow(c,msgType,extraInfo){
-      const w=Math.round(weeksSinceVisit(c)||0);
+      if(c.dnd) return`<div class="hi" style="padding:10px 0;border-bottom:1px solid var(--border);opacity:.5;">
+        <div class="hic" style="background:#F3F4F6;font-size:14px;flex-shrink:0;">🔕</div>
+        <div style="flex:1;min-width:0;margin:0 10px;">
+          <div style="font-size:13.5px;font-weight:700;text-decoration:line-through;">${c.name}</div>
+          <div style="font-size:11.5px;color:var(--muted);">${c.mobile} · Do Not Disturb</div>
+        </div>
+        <button class="btn bg2 bsm" style="font-size:11px;" onclick="toggleDND('${c.id}',false,'${c.name}')">↩ Re-enable</button>
+      </div>`;
       return`<div class="hi" id="nudge-row-${c.id}" style="padding:12px 0;border-bottom:1px solid var(--border);">
         <div class="hic" style="background:${msgType==='lapsed'?'var(--errl)':msgType==='birthday'?'#FEE2E2':msgType==='ready'?'var(--yl)':'var(--warnl)'};font-size:14px;flex-shrink:0;">${c.gender==='girl'?'👧':'👦'}</div>
         <div style="flex:1;min-width:0;margin:0 10px;">
           <div style="font-size:13.5px;font-weight:700;">${c.name}</div>
           <div style="font-size:11.5px;color:var(--muted);">${c.mobile}${extraInfo?' · '+extraInfo:''}</div>
         </div>
-        <button class="btn bsm" style="background:#25D366;color:#fff;border:none;padding:7px 12px;flex-shrink:0;white-space:nowrap;"
-          onclick="sendWANudge('${c.id}','${c.mobile}','${c.gender}','${c.name}',${c.stamps||0},${paidNeeded()},'${msgType}')">💬 Send</button>
+        <div style="display:flex;gap:6px;flex-shrink:0;">
+          <button class="btn bsm" style="background:#25D366;color:#fff;border:none;padding:7px 12px;white-space:nowrap;"
+            onclick="sendWANudge('${c.id}','${c.mobile}','${c.gender}','${c.name}',${c.stamps||0},${paidNeeded()},'${msgType}')">💬 Send</button>
+          <button class="btn bg2 bsm" title="Mark as Do Not Disturb" style="padding:7px 9px;"
+            onclick="toggleDND('${c.id}',true,'${c.name}')">🔕</button>
+        </div>
       </div>`;
     }
 
@@ -1315,6 +1340,18 @@ async function renderMissYou(){
         </div>
       </div>`;}).join('')
       :'<div style="text-align:center;padding:24px;color:var(--muted);">No one waiting — start nudging!</div>';
+
+    // Render DND tab
+    document.getElementById('MY_DND_LIST').innerHTML=dndCusts.length?dndCusts.map(c=>`
+      <div class="hi" style="padding:12px 0;border-bottom:1px solid var(--border);">
+        <div class="hic" style="background:#F3F4F6;font-size:14px;flex-shrink:0;">🔕</div>
+        <div style="flex:1;min-width:0;margin:0 10px;">
+          <div style="font-size:13.5px;font-weight:700;">${c.name}</div>
+          <div style="font-size:11.5px;color:var(--muted);">${c.mobile} · ${c.gender==='girl'?'👧 Girl':'👦 Boy'} · ${c.stamps||0}/${paidNeeded()} stamps</div>
+        </div>
+        <button class="btn bg2 bsm" onclick="toggleDND('${c.id}',false,'${c.name}')">↩ Re-enable</button>
+      </div>`).join('')
+      :'<div style="text-align:center;padding:24px;color:var(--muted);">No customers on DND list 🎉</div>';
 
     document.getElementById('MY_RETURNED').innerHTML=returned.length?returned.map(c=>{
       const days=Math.round((new Date(c.last_visit_date)-new Date(c.nudge_sent_at))/(1000*60*60*24));
@@ -1356,6 +1393,23 @@ async function sendWANudge(id,mobile,gender,name,stamps,paid,msgType='lapsed'){
   }
 }
 
+async function toggleDND(id,dnd,name){
+  try{
+    await sb('customers','PATCH',{dnd:dnd},'id=eq.'+id);
+    if(dnd){
+      // Slide row to show DND state
+      const row=document.getElementById('nudge-row-'+id);
+      if(row){
+        row.style.transition='opacity .3s';
+        row.style.opacity='0.4';
+      }
+      toast('🔕 '+name+' marked as Do Not Disturb');
+    } else {
+      toast('✅ '+name+' re-enabled for messages');
+    }
+    setTimeout(()=>renderMissYou(),600);
+  }catch(e){toast('Error: '+e.message,'error');}
+}
 async function confirmNudgeSent(id,name,btn){
   btn.disabled=true;
   btn.textContent='Saving...';
