@@ -531,7 +531,7 @@ async function archiveCycle(customerId,stamps,firstStampDate,expiryDate,endedBy)
           </div>
           <div class="fg"><label class="fl">Starting Stamps (if transferring)</label><input class="fi" type="number" id="NC4" placeholder="0" min="0" max="5" value="0"></div>
           <div class="fr">
-            <div class="fg"><label class="fl">Date of Birth *</label><input class="fi" type="date" id="NC6" required></div>
+            <div class="fg"><label class="fl">Date of Birth <span style="color:var(--err);">*</span></label><input class="fi" type="date" id="NC6" style="border-color:#FFD600;"></div>
             <div class="fg"><label class="fl">Notes (optional)</label><input class="fi" type="text" id="NC5" placeholder="e.g. Special needs, preferred stylist"></div>
           </div>
           <div style="display:flex;gap:9px;margin-top:6px;">
@@ -1160,7 +1160,7 @@ async function createC(){
   const dob=document.getElementById('NC6').value||null;
   const stamps=parseInt(document.getElementById('NC4').value)||0;
   if(!name||!phone){toast('Name and mobile required.','error');return;}
-  if(!dob){toast('Date of birth is required! 🎂','error');return;}
+  if(!dob){toast('⛔ Date of birth is required!','error');document.getElementById('NC6').focus();return;}
   try{
     const ex=await sb('customers','GET',null,'select=id&mobile=eq.'+encodeURIComponent(phone)+'&gender=eq.'+ncG+'&name=eq.'+encodeURIComponent(name));
     if(ex.length){toast('This child already has a passport. Search by mobile to find them.','error');return;}
@@ -1172,7 +1172,7 @@ async function createC(){
     clearNC();showPage('customers',null);loadCustomers();
   }catch(e){toast('Error: '+e.message,'error');}
 }
-function clearNC(){['NC1','NC2','NC3','NC5'].forEach(id=>document.getElementById(id).value='');document.getElementById('NC4').value='0';setG('boy');}
+function clearNC(){['NC1','NC2','NC3','NC5','NC6'].forEach(id=>document.getElementById(id).value='');document.getElementById('NC4').value='0';ncG='boy';setG('boy');}
 
 // ══ EDIT ══
 let egG='boy';
