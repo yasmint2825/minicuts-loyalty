@@ -525,13 +525,13 @@ async function archiveCycle(customerId,stamps,firstStampDate,expiryDate,endedBy)
             <div class="fg"><label class="fl">Child's Name *</label><input class="fi" type="text" id="NC1" placeholder="e.g. Zara"></div>
             <div class="fg"><label class="fl">Mobile Number *</label><input class="fi" type="tel" id="NC2" placeholder="e.g. 0501234567"></div>
           </div>
-          <div class="fg"><label class="fl">Parent / Guardian Name</label><input class="fi" type="text" id="NC3" placeholder="e.g. Sara Ahmed"></div>
+          <div class="fg"><label class="fl">Parent / Guardian Name (optional)</label><input class="fi" type="text" id="NC3" placeholder="e.g. Sara Ahmed"></div>
           <div class="fg"><label class="fl">Gender *</label>
             <div class="gt"><button class="gb boy active" id="NCB" onclick="setG('boy')">👦 Boy</button><button class="gb girl" id="NCG" onclick="setG('girl')">👧 Girl</button></div>
           </div>
           <div class="fg"><label class="fl">Starting Stamps (if transferring)</label><input class="fi" type="number" id="NC4" placeholder="0" min="0" max="5" value="0"></div>
           <div class="fr">
-            <div class="fg"><label class="fl">Date of Birth (optional)</label><input class="fi" type="date" id="NC6"></div>
+            <div class="fg"><label class="fl">Date of Birth *</label><input class="fi" type="date" id="NC6" required></div>
             <div class="fg"><label class="fl">Notes (optional)</label><input class="fi" type="text" id="NC5" placeholder="e.g. Special needs, preferred stylist"></div>
           </div>
           <div style="display:flex;gap:9px;margin-top:6px;">
@@ -649,7 +649,7 @@ async function archiveCycle(customerId,stamps,firstStampDate,expiryDate,endedBy)
       <div class="fg"><label class="fl">Child's Name</label><input class="fi" type="text" id="EN"></div>
       <div class="fg"><label class="fl">Mobile</label><input class="fi" type="tel" id="EP"></div>
     </div>
-    <div class="fg"><label class="fl">Parent Name</label><input class="fi" type="text" id="EPR"></div>
+    <div class="fg"><label class="fl">Parent Name (optional)</label><input class="fi" type="text" id="EPR"></div>
     <div class="fg"><label class="fl">Gender</label>
       <div class="gt"><button class="gb boy active" id="EGB" onclick="setEG('boy')">👦 Boy</button><button class="gb girl" id="EGG" onclick="setEG('girl')">👧 Girl</button></div>
     </div>
@@ -1160,6 +1160,7 @@ async function createC(){
   const dob=document.getElementById('NC6').value||null;
   const stamps=parseInt(document.getElementById('NC4').value)||0;
   if(!name||!phone){toast('Name and mobile required.','error');return;}
+  if(!dob){toast('Date of birth is required! 🎂','error');return;}
   try{
     const ex=await sb('customers','GET',null,'select=id&mobile=eq.'+encodeURIComponent(phone)+'&gender=eq.'+ncG+'&name=eq.'+encodeURIComponent(name));
     if(ex.length){toast('This child already has a passport. Search by mobile to find them.','error');return;}
