@@ -530,10 +530,8 @@ async function archiveCycle(customerId,stamps,firstStampDate,expiryDate,endedBy)
             <div class="gt"><button class="gb boy active" id="NCB" onclick="setG('boy')">👦 Boy</button><button class="gb girl" id="NCG" onclick="setG('girl')">👧 Girl</button></div>
           </div>
           <div class="fg"><label class="fl">Starting Stamps (if transferring)</label><input class="fi" type="number" id="NC4" placeholder="0" min="0" max="5" value="0"></div>
-          <div class="fr">
-            <div class="fg"><label class="fl">Date of Birth <span style="color:var(--err);">*</span></label><input class="fi" type="date" id="NC6" style="border-color:#FFD600;"></div>
-            <div class="fg"><label class="fl">Notes (optional)</label><input class="fi" type="text" id="NC5" placeholder="e.g. Special needs, preferred stylist"></div>
-          </div>
+          <div class="fg"><label class="fl">Date of Birth <span style="color:#DC2626;font-weight:900;">*</span></label><input class="fi" type="date" id="NC6" style="border:2px solid #FFD600;background:#FFFDE7;"></div>
+          <div class="fg"><label class="fl">Notes (optional)</label><input class="fi" type="text" id="NC5" placeholder="e.g. Special needs, preferred stylist"></div>
           <div style="display:flex;gap:9px;margin-top:6px;">
             <button class="btn bp" onclick="createC()">Create Passport 🐼</button>
             <button class="btn bg2" onclick="clearNC()">Clear</button>
