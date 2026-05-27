@@ -1536,9 +1536,11 @@ function renderSalonQR(){
 
 // ══ CUSTOMER PAGE ══
 async function loadGameRanks(customers){
-  // Load leaderboard to find each customer's rank
+  // Small delay to ensure DOM is rendered
+  await new Promise(r=>setTimeout(r,200));
   try{
-    const r=await fetch(SB_URL+'/rest/v1/customers?select=name,mobile,game_points&order=game_points.desc&limit=50',{
+    // Fetch all customers with game points for ranking
+    const r=await fetch(SB_URL+'/rest/v1/customers?select=id,name,mobile,game_points&order=game_points.desc&limit=100',{
       headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}
     });
     if(!r.ok) return;
@@ -1548,15 +1550,22 @@ async function loadGameRanks(customers){
       if(!(c.game_points>0)) return;
       const rankEl=document.getElementById('rank_'+c.id);
       if(!rankEl) return;
-      const idx=ranked.findIndex(r=>r.mobile===c.mobile&&r.name===c.name);
+      // Match by id (most reliable)
+      const idx=ranked.findIndex(r=>r.id===c.id);
       if(idx>=0){
         const rank=idx+1;
         const medal=rank===1?'🥇':rank===2?'🥈':rank===3?'🥉':'#'+rank;
         rankEl.textContent=medal+' Rank '+rank+' of '+ranked.length;
         rankEl.style.color=rank<=3?'#FFD600':'rgba(255,255,255,.7)';
+        rankEl.style.fontWeight='800';
+      } else {
+        rankEl.textContent='Not ranked yet';
+        rankEl.style.color='rgba(255,255,255,.4)';
       }
     });
-  }catch(e){console.warn('rank load error:',e);}
+  }catch(e){
+    console.warn('rank load error:',e.message);
+  }
 }
 
 async function renderCP(prefMobile){
@@ -1744,6 +1753,7 @@ async function custLookup(){
         return buildCard(c)+buildCustomerHistory(visits,c);
       }));
       area.innerHTML=parts.join('<div style="height:14px;"></div>')+buildLookup('')+buildFooter();
+      loadGameRanks(res); // load game rankings
     } else{area.innerHTML=buildLookup('No passport found for this number.')+buildRegister(phone)+buildFooter();}
   }catch(e){area.innerHTML=buildLookup('Error: '+e.message)+buildFooter();}
 }
