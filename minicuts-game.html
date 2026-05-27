@@ -123,10 +123,10 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,var(--bd)
 
 <!-- REGISTER -->
 <div class="screen" id="s-register">
-  <div style="text-align:center;margin-bottom:14px;">
-    <span style="font-size:56px;display:block;">🐼</span>
-    <div class="brand" style="font-size:24px;">Join MiniCuts!</div>
-    <div class="sub">Register to play games & earn rewards</div>
+  <!-- Home bar - always at top -->
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;margin-top:4px;">
+    <div style="font-family:'Baloo 2',cursive;font-size:13px;font-weight:800;color:rgba(255,255,255,.7);">🐼 MiniCuts</div>
+    <button onclick="goHome()" style="background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.3);color:#fff;padding:6px 14px;border-radius:99px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">🏠 Home</button>
   </div>
   <div class="card">
     <div style="background:#EFF6FF;border-radius:12px;padding:12px 14px;margin-bottom:14px;font-size:13px;color:#1565C0;line-height:1.6;">
@@ -151,10 +151,7 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,var(--bd)
     </div>
     <div id="regMsg" style="display:none;margin-bottom:10px;padding:10px;border-radius:10px;font-size:13px;font-weight:700;text-align:center;"></div>
     <button class="btn btn-y" onclick="doRegister()">Register & Play! 🎮</button>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;">
-      <button class="btn btn-ghost" onclick="showScreen('s-login')" style="font-size:14px;padding:10px;">← Back</button>
-      <button class="btn btn-ghost" onclick="goHome()" style="font-size:14px;padding:10px;">🏠 Home</button>
-    </div>
+    <button class="btn btn-ghost" onclick="showScreen('s-login')" style="font-size:14px;padding:10px;margin-top:8px;">← Back to Login</button>
   </div>
 </div>
 
