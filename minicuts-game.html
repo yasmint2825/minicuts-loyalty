@@ -355,6 +355,13 @@ function newPlayer(){
   document.getElementById('loginName').focus();
   showScreen('s-login');
 }
+function confirmGoHome(){
+  const active=document.querySelector('.screen.active');
+  if(active&&['s-spin','s-tap','s-memory'].includes(active.id)){
+    if(!confirm('Leave game? Your current progress will be saved.')) return;
+  }
+  goHome();
+}
 function goHome(){
   spinCount=0;bestSpinPts=0;
   document.getElementById('loginName').value='';
@@ -362,6 +369,71 @@ function goHome(){
   player={id:null,name:'',mobile:'',game_points:0,game_spins:0};
   showScreen('s-login');
 }
+// ── AUTO RESET: if no activity for 60s on sensitive screens, go home ──
+let autoResetTimer=null;
+const SENSITIVE_SCREENS=['s-register','s-profile','s-spin','s-tap','s-memory','s-result'];
+const RESET_SECONDS=60;
+
+function startAutoReset(){
+  clearAutoReset();
+  autoResetTimer=setTimeout(()=>{
+    const active=document.querySelector('.screen.active');
+    if(active&&SENSITIVE_SCREENS.includes(active.id)){
+      showAutoResetWarning();
+    }
+  },RESET_SECONDS*1000);
+}
+
+function clearAutoReset(){
+  if(autoResetTimer) clearTimeout(autoResetTimer);
+  autoResetTimer=null;
+}
+
+function showAutoResetWarning(){
+  // Remove any existing warning
+  const existing=document.getElementById('autoResetOverlay');
+  if(existing) existing.remove();
+  const overlay=document.createElement('div');
+  overlay.id='autoResetOverlay';
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:5000;display:flex;align-items:center;justify-content:center;padding:20px;';
+  let countdown=10;
+  overlay.innerHTML=`
+    <div style="background:#fff;border-radius:20px;padding:28px 24px;max-width:320px;width:100%;text-align:center;">
+      <div style="font-size:56px;margin-bottom:10px;">🐼</div>
+      <div style="font-family:'Baloo 2',cursive;font-size:20px;font-weight:800;color:#0D47A1;margin-bottom:8px;">Still there?</div>
+      <div style="font-size:14px;color:#6B7280;margin-bottom:16px;line-height:1.6;">Returning to home in <strong id="countdownNum">10</strong> seconds...</div>
+      <button id="stayBtn" style="width:100%;padding:12px;background:linear-gradient(135deg,#FFD600,#FF8C00);border:none;border-radius:12px;font-family:'Baloo 2',cursive;font-size:18px;font-weight:800;color:#0D47A1;cursor:pointer;">I'm still here! 👋</button>
+    </div>`;
+  document.body.appendChild(overlay);
+  // Countdown
+  const cdInterval=setInterval(()=>{
+    countdown--;
+    const el=document.getElementById('countdownNum');
+    if(el) el.textContent=countdown;
+    if(countdown<=0){
+      clearInterval(cdInterval);
+      overlay.remove();
+      goHome();
+    }
+  },1000);
+  // Stay button
+  document.getElementById('stayBtn').addEventListener('click',()=>{
+    clearInterval(cdInterval);
+    overlay.remove();
+    startAutoReset(); // restart timer
+  });
+}
+
+// Reset timer on any user interaction
+['touchstart','click','keydown','mousemove'].forEach(ev=>{
+  document.addEventListener(ev,()=>{
+    const active=document.querySelector('.screen.active');
+    if(active&&SENSITIVE_SCREENS.includes(active.id)){
+      startAutoReset();
+    }
+  },{passive:true});
+});
+
 function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
 function goBack(){showScreen(prevScreen);}
 function goProfile(){
@@ -1211,6 +1283,10 @@ function launchConfetti(){
   setTimeout(()=>wrap.innerHTML='',4000);
 }
 </script>
+  <!-- Floating home button - always visible on sensitive screens -->
+  <div id="floatingHome" style="position:fixed;top:12px;right:12px;z-index:1000;display:none;">
+    <button onclick="confirmGoHome()" style="background:rgba(0,0,0,.4);border:1.5px solid rgba(255,255,255,.3);color:#fff;padding:8px 14px;border-radius:99px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;cursor:pointer;backdrop-filter:blur(4px);">🏠 Home</button>
+  </div>
 </div><!-- end max-width -->
 </div><!-- end game-area -->
 
