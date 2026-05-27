@@ -160,6 +160,10 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,var(--bd)
 
 <!-- PROFILE -->
 <div class="screen" id="s-profile">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;margin-top:4px;">
+    <div style="font-family:'Baloo 2',cursive;font-size:13px;font-weight:800;color:rgba(255,255,255,.7);">🐼 MiniCuts</div>
+    <button onclick="confirmGoHome()" style="background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.3);color:#fff;padding:6px 14px;border-radius:99px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">🏠 Home</button>
+  </div>
   <div style="text-align:center;margin-bottom:8px;margin-top:8px;">
     <div style="font-size:13px;color:rgba(255,255,255,.8);">Welcome back,</div>
     <div class="brand" id="profileName" style="font-size:22px;">Player</div>
@@ -208,6 +212,10 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,var(--bd)
 
 <!-- SPIN WHEEL -->
 <div class="screen" id="s-spin">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;margin-top:4px;">
+    <div style="font-family:'Baloo 2',cursive;font-size:13px;font-weight:800;color:rgba(255,255,255,.7);">🐼 MiniCuts</div>
+    <button onclick="confirmGoHome()" style="background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.3);color:#fff;padding:6px 14px;border-radius:99px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">🏠 Home</button>
+  </div>
   <div style="text-align:center;margin-bottom:6px;">
     <span id="pandaReact" style="font-size:52px;display:block;min-height:65px;">🐼</span>
     <div style="font-size:12px;color:rgba(255,255,255,.7);" id="spinChanceLabel">Spin 1 of 2</div>
@@ -226,6 +234,10 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,var(--bd)
 
 <!-- TAP PANDA GAME -->
 <div class="screen" id="s-tap">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;margin-top:4px;">
+    <div style="font-family:'Baloo 2',cursive;font-size:13px;font-weight:800;color:rgba(255,255,255,.7);">🐼 MiniCuts</div>
+    <button onclick="confirmGoHome()" style="background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.3);color:#fff;padding:6px 14px;border-radius:99px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">🏠 Home</button>
+  </div>
   <div class="tap-hud">
     <div class="hud-box"><div class="hud-lbl">Taps</div><div class="hud-val" id="tapCount">0</div></div>
     <div class="hud-box"><div class="hud-lbl">Time</div><div class="hud-val" id="tapTime">10</div></div>
@@ -241,6 +253,10 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,var(--bd)
 
 <!-- MEMORY MATCH -->
 <div class="screen" id="s-memory">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;margin-top:4px;">
+    <div style="font-family:'Baloo 2',cursive;font-size:13px;font-weight:800;color:rgba(255,255,255,.7);">🐼 MiniCuts</div>
+    <button onclick="confirmGoHome()" style="background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.3);color:#fff;padding:6px 14px;border-radius:99px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">🏠 Home</button>
+  </div>
   <div class="mem-hud">
     <div class="hud-box"><div class="hud-lbl">Moves</div><div class="hud-val" id="memMoves">0</div></div>
     <div class="hud-box"><div class="hud-lbl">Time</div><div class="hud-val" id="memTime">0s</div></div>
@@ -253,6 +269,10 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,var(--bd)
 
 <!-- RESULT -->
 <div class="screen" id="s-result">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;margin-top:4px;">
+    <div style="font-family:'Baloo 2',cursive;font-size:13px;font-weight:800;color:rgba(255,255,255,.7);">🐼 MiniCuts</div>
+    <button onclick="confirmGoHome()" style="background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.3);color:#fff;padding:6px 14px;border-radius:99px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">🏠 Home</button>
+  </div>
   <div style="position:fixed;inset:0;pointer-events:none;z-index:99;" id="confettiWrap"></div>
   <div style="text-align:center;margin-bottom:12px;">
     <span style="font-size:60px;display:block;animation:pop .5s cubic-bezier(.175,.885,.32,1.275);" id="resultEmoji">🎉</span>
@@ -356,10 +376,7 @@ function newPlayer(){
   showScreen('s-login');
 }
 function confirmGoHome(){
-  const active=document.querySelector('.screen.active');
-  if(active&&['s-spin','s-tap','s-memory'].includes(active.id)){
-    if(!confirm('Leave game? Your current progress will be saved.')) return;
-  }
+  // Points already auto-saved when game ends, so safe to go home anytime
   goHome();
 }
 function goHome(){
@@ -372,7 +389,7 @@ function goHome(){
 // ── AUTO RESET: if no activity for 60s on sensitive screens, go home ──
 let autoResetTimer=null;
 const SENSITIVE_SCREENS=['s-register','s-profile','s-spin','s-tap','s-memory','s-result'];
-const RESET_SECONDS=60;
+const RESET_SECONDS=45;
 
 function startAutoReset(){
   clearAutoReset();
@@ -399,10 +416,12 @@ function showAutoResetWarning(){
   let countdown=10;
   overlay.innerHTML=`
     <div style="background:#fff;border-radius:20px;padding:28px 24px;max-width:320px;width:100%;text-align:center;">
-      <div style="font-size:56px;margin-bottom:10px;">🐼</div>
-      <div style="font-family:'Baloo 2',cursive;font-size:20px;font-weight:800;color:#0D47A1;margin-bottom:8px;">Still there?</div>
-      <div style="font-size:14px;color:#6B7280;margin-bottom:16px;line-height:1.6;">Returning to home in <strong id="countdownNum">10</strong> seconds...</div>
-      <button id="stayBtn" style="width:100%;padding:12px;background:linear-gradient(135deg,#FFD600,#FF8C00);border:none;border-radius:12px;font-family:'Baloo 2',cursive;font-size:18px;font-weight:800;color:#0D47A1;cursor:pointer;">I'm still here! 👋</button>
+      <div style="font-size:64px;margin-bottom:8px;animation:bounce-anim 1s infinite;">🐼</div>
+      <div style="font-family:'Baloo 2',cursive;font-size:22px;font-weight:800;color:#0D47A1;margin-bottom:6px;">Are you still playing?</div>
+      <div style="font-size:15px;color:#6B7280;margin-bottom:6px;">Going back to start in</div>
+      <div style="font-family:'Baloo 2',cursive;font-size:48px;font-weight:900;color:#FF8C00;margin-bottom:14px;" id="countdownNum">10</div>
+      <button id="stayBtn" style="width:100%;padding:14px;background:linear-gradient(135deg,#FFD600,#FF8C00);border:none;border-radius:12px;font-family:'Baloo 2',cursive;font-size:20px;font-weight:800;color:#0D47A1;cursor:pointer;margin-bottom:8px;">Yes, keep playing! 🎮</button>
+      <button id="goHomeBtn" style="width:100%;padding:10px;background:transparent;border:1.5px solid #E5E7EB;border-radius:12px;font-family:'Baloo 2',cursive;font-size:16px;font-weight:800;color:#6B7280;cursor:pointer;">🏠 Go Home Now</button>
     </div>`;
   document.body.appendChild(overlay);
   // Countdown
@@ -420,7 +439,12 @@ function showAutoResetWarning(){
   document.getElementById('stayBtn').addEventListener('click',()=>{
     clearInterval(cdInterval);
     overlay.remove();
-    startAutoReset(); // restart timer
+    startAutoReset();
+  });
+  document.getElementById('goHomeBtn').addEventListener('click',()=>{
+    clearInterval(cdInterval);
+    overlay.remove();
+    goHome();
   });
 }
 
@@ -1283,10 +1307,6 @@ function launchConfetti(){
   setTimeout(()=>wrap.innerHTML='',4000);
 }
 </script>
-  <!-- Floating home button - always visible on sensitive screens -->
-  <div id="floatingHome" style="position:fixed;top:12px;right:12px;z-index:1000;display:none;">
-    <button onclick="confirmGoHome()" style="background:rgba(0,0,0,.4);border:1.5px solid rgba(255,255,255,.3);color:#fff;padding:8px 14px;border-radius:99px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;cursor:pointer;backdrop-filter:blur(4px);">🏠 Home</button>
-  </div>
 </div><!-- end max-width -->
 </div><!-- end game-area -->
 
