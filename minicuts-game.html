@@ -296,13 +296,25 @@ const SB_URL='https://wtapyfgtwkjyjrjdnhkb.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind0YXB5Zmd0d2tqeWpyamRuaGtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0NDc3ODEsImV4cCI6MjA5NTAyMzc4MX0.y_-iPfb8Pcg9zh42h6RGVBsUVZm80LcA9sPlz_Gl_fA';
 async function sb(path,method='GET',body=null,params=''){
   const url=SB_URL+'/rest/v1/'+path+(params?'?'+params:'');
-  const h={'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Prefer':'return=representation'};
-  if(method==='PATCH'||method==='DELETE') h['Prefer']='return=minimal';
-  const o={method,headers:h,cache:'no-store'};
+  const h={
+    'Content-Type':'application/json',
+    'apikey':SB_KEY,
+    'Authorization':'Bearer '+SB_KEY,
+    'Prefer': method==='PATCH'||method==='DELETE'?'return=minimal':'return=representation'
+  };
+  const o={method,headers:h};
   if(body) o.body=JSON.stringify(body);
-  const r=await fetch(url,o);
-  if(!r.ok){const e=await r.text();throw new Error(e);}
-  const t=await r.text();return t?JSON.parse(t):[];
+  try{
+    const r=await fetch(url,o);
+    const t=await r.text();
+    if(!r.ok) throw new Error('HTTP '+r.status+': '+t.substring(0,200));
+    return t?JSON.parse(t):[];
+  }catch(e){
+    if(e.message.includes('Failed to fetch')||e.message.includes('NetworkError')){
+      throw new Error('No internet connection. Please check your network.');
+    }
+    throw e;
+  }
 }
 
 // ══ CONFIG ══
@@ -982,7 +994,11 @@ async function loadSidebarLb(){
     const data=allData.filter(c=>(c.game_points||0)>0).slice(0,10);
     sidebarData=data;
     renderSidebar();
-  }catch(e){console.warn('Sidebar lb error:',e.message);document.getElementById('sideLbList').innerHTML='<div style="text-align:center;padding:16px;color:rgba(255,100,100,.8);font-size:11px;">'+e.message+'</div>';}
+  }catch(e){
+    console.warn('Sidebar lb error:',e.message);
+    const sEl=document.getElementById('sideLbList');
+    if(sEl) sEl.innerHTML='<div style="text-align:center;padding:10px;color:rgba(255,100,100,.7);font-size:10px;">'+e.message+'</div>';
+  }
 }
 
 function renderSidebar(){
@@ -1082,24 +1098,28 @@ setTimeout(loadSidebarLb,1000);
 
 async function loadLeaderboard(){
   const el=document.getElementById('lbList');
+  if(!el) return;
   el.innerHTML='<div class="load"><div class="spin-a"></div> Loading...</div>';
   try{
-    // Step 1: fetch all, sort by game_points desc
-    const allData=await sb('customers','GET',null,'select=name,mobile,game_points&order=game_points.desc&limit=50');
-    // Step 2: filter in JS - only those with points > 0
-    const data=allData.filter(c=>c.game_points&&c.game_points>0).slice(0,10);
+    const allData=await sb('customers','GET',null,
+      'select=name,game_points&order=game_points.desc&limit=50');
+    const data=allData.filter(c=>(c.game_points||0)>0).slice(0,10);
     const medals=['🥇','🥈','🥉'];
     if(!data.length){
-      // Show all customers even with 0 points if no one has played yet
-      el.innerHTML='<div style="text-align:center;padding:20px;color:#6B7280;font-size:13px;">No scores yet!<br>Play a game to get on the board 🎮</div>';
+      el.innerHTML=`<div style="text-align:center;padding:24px;">
+        <div style="font-size:40px;margin-bottom:8px;">🎮</div>
+        <div style="font-size:14px;font-weight:700;color:#6B7280;">No scores yet!</div>
+        <div style="font-size:12px;color:#9CA3AF;margin-top:4px;">Play a game to be first on the board</div>
+      </div>`;
       return;
     }
     el.innerHTML=data.map((c,i)=>{
       const pts=c.game_points||0;
       const pct=Math.min((pts/MAX_PTS)*100,100);
       const init=(c.name||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+      const medal=medals[i]||'#'+(i+1);
       return`<div class="lb-row">
-        <div style="font-family:'Baloo 2',cursive;font-size:18px;font-weight:800;width:30px;text-align:center;">${medals[i]||'#'+(i+1)}</div>
+        <div style="font-family:'Baloo 2',cursive;font-size:18px;font-weight:800;width:30px;text-align:center;">${medal}</div>
         <div class="lb-av">${init}</div>
         <div style="flex:1;">
           <div style="font-size:13.5px;font-weight:700;color:#1A1A2E;">${c.name||'Player'}</div>
@@ -1109,7 +1129,12 @@ async function loadLeaderboard(){
       </div>`;
     }).join('');
   }catch(e){
-    el.innerHTML='<div style="color:#DC2626;padding:16px;font-size:13px;">❌ '+e.message+'</div>';
+    el.innerHTML=`<div style="color:#DC2626;padding:16px;font-size:12px;word-break:break-word;">
+      ❌ ${e.message}<br><br>
+      <button onclick="loadLeaderboard()" style="padding:8px 16px;background:#1565C0;color:#fff;border:none;border-radius:8px;cursor:pointer;font-family:'Nunito',sans-serif;font-weight:700;">
+        Retry
+      </button>
+    </div>`;
   }
 }
 
