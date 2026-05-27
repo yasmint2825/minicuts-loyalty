@@ -1535,6 +1535,30 @@ function renderSalonQR(){
 }
 
 // ══ CUSTOMER PAGE ══
+async function loadGameRanks(customers){
+  // Load leaderboard to find each customer's rank
+  try{
+    const r=await fetch(SB_URL+'/rest/v1/customers?select=name,mobile,game_points&order=game_points.desc&limit=50',{
+      headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}
+    });
+    if(!r.ok) return;
+    const all=await r.json();
+    const ranked=all.filter(c=>(c.game_points||0)>0);
+    customers.forEach(c=>{
+      if(!(c.game_points>0)) return;
+      const rankEl=document.getElementById('rank_'+c.id);
+      if(!rankEl) return;
+      const idx=ranked.findIndex(r=>r.mobile===c.mobile&&r.name===c.name);
+      if(idx>=0){
+        const rank=idx+1;
+        const medal=rank===1?'🥇':rank===2?'🥈':rank===3?'🥉':'#'+rank;
+        rankEl.textContent=medal+' Rank '+rank+' of '+ranked.length;
+        rankEl.style.color=rank<=3?'#FFD600':'rgba(255,255,255,.7)';
+      }
+    });
+  }catch(e){console.warn('rank load error:',e);}
+}
+
 async function renderCP(prefMobile){
   const area=document.getElementById('CPA');
   if(prefMobile){
@@ -1549,6 +1573,7 @@ async function renderCP(prefMobile){
           return buildCard(c)+buildCustomerHistory(visits,c);
         }));
         area.innerHTML=parts.join('<div style="height:14px;"></div>')+buildLookup('')+buildFooter();
+        loadGameRanks(res); // load game rankings
       } else{area.innerHTML=buildRegister(prefMobile)+buildFooter();}
     }catch(e){area.innerHTML='<div style="color:red;padding:20px;">Error: '+e.message+'</div>';}
     return;
@@ -1582,6 +1607,30 @@ function buildCard(c){
     <div style="text-align:center;font-size:14.5px;font-weight:800;margin-bottom:4px;">${cta}</div>
     ${c.expiry_date&&!exp?`<div style="text-align:center;font-size:11.5px;opacity:.65;">Valid until ${fmtDate(c.expiry_date)}${d!==null&&d<=60?' · '+d+' days left':''}</div>`:''}
     <div style="background:rgba(255,255,255,.12);border-radius:10px;padding:11px;text-align:center;font-size:12px;opacity:.85;margin-top:14px;">✂️ Every paid haircut = 1 stamp &nbsp;·&nbsp; 🎁 After ${pN} stamps your <strong>visit ${CFG.stampsNeeded} is FREE!</strong></div>
+    ${(c.game_points||0)>0?`
+    <div style="background:rgba(255,255,255,.15);border-radius:10px;padding:12px;margin-top:10px;">
+      <div style="font-size:12px;font-weight:800;color:rgba(255,255,255,.8);margin-bottom:8px;text-align:center;">🎮 Game Zone Points</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <span style="font-family:'Baloo 2',cursive;font-size:28px;font-weight:900;color:#FFD600;">${c.game_points} pts</span>
+        <span id="rank_${c.id}" style="font-size:13px;color:rgba(255,255,255,.7);">loading rank...</span>
+      </div>
+      <div style="position:relative;height:32px;margin:4px 0 6px;">
+        <div style="position:absolute;top:14px;left:0;right:0;height:6px;background:rgba(255,255,255,.15);border-radius:99px;"></div>
+        <div style="position:absolute;top:14px;left:0;width:${Math.min(((c.game_points||0)/150)*100,100)}%;height:6px;background:linear-gradient(90deg,#FFD600,#FF8C00);border-radius:99px;box-shadow:0 0 8px rgba(255,214,0,.5);"></div>
+        ${[{pts:50,icon:'🍭'},{pts:100,icon:'🎁'},{pts:150,icon:'🚿'}].map(t=>{
+          const left=(t.pts/150)*100;
+          const done=(c.game_points||0)>=t.pts;
+          return`<div style="position:absolute;top:2px;left:calc(${left}% - 10px);font-size:16px;filter:${done?'none':'grayscale(1) opacity(.3)'};">${t.icon}</div>`;
+        }).join('')}
+        <div style="position:absolute;top:2px;left:calc(${Math.min(((c.game_points||0)/150)*100,93)}% - 10px);font-size:16px;">🐼</div>
+      </div>
+      <div style="font-size:11px;color:rgba(255,255,255,.6);text-align:center;">
+        ${(c.game_points||0)>=150?'🎉 All rewards unlocked!':
+          (c.game_points||0)>=100?`${150-(c.game_points||0)} more pts → 🚿 Free Hair Wash`:
+          (c.game_points||0)>=50?`${100-(c.game_points||0)} more pts → 🎁 Surprise Gift`:
+          `${50-(c.game_points||0)} more pts → 🍭 Lollipop`}
+      </div>
+    </div>`:''}
   </div>`;
 }
 
