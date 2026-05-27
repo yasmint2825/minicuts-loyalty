@@ -44,7 +44,7 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,var(--bd)
 .prog-wrap{background:#E5E7EB;border-radius:99px;height:16px;overflow:hidden;margin:8px 0;}
 .prog-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--y),#FF8C00);transition:width .8s cubic-bezier(.175,.885,.32,1.275);}
 .prog-labels{display:flex;justify-content:space-between;font-size:11px;color:#6B7280;margin-top:2px;}
-.game-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:4px;}
+.game-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:4px;}
 .game-card{background:linear-gradient(135deg,var(--bd),var(--b));border-radius:14px;padding:16px 10px;text-align:center;cursor:pointer;border:3px solid transparent;transition:all .2s;}
 .game-card:hover,.game-card:active{border-color:var(--y);transform:scale(.97);}
 .game-emoji{font-size:32px;display:block;margin-bottom:6px;}
@@ -58,6 +58,14 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,var(--bd)
 .spin-btn{width:100%;padding:16px;background:linear-gradient(135deg,var(--y),#FF8C00);border:none;border-radius:14px;font-family:'Baloo 2',cursive;font-size:22px;font-weight:800;color:var(--bd);cursor:pointer;transition:transform .15s;}
 .spin-btn:active{transform:scale(.97);}
 .spin-btn:disabled{opacity:.5;cursor:not-allowed;}
+/* MEMORY 3x3 (8 cards + 1 panda center) */
+.mem-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px;}
+.mem-card{aspect-ratio:1;background:var(--b);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:36px;cursor:pointer;transition:transform .2s,background .2s;border:2.5px solid rgba(255,255,255,.15);position:relative;}
+.mem-card:active{transform:scale(.94);}
+.mem-card.flipped{background:#fff;border-color:var(--y);}
+.mem-card.matched{background:linear-gradient(135deg,#DCFCE7,#BBF7D0);border-color:#4ADE80;pointer-events:none;}
+.mem-card.center-panda{background:rgba(255,214,0,.15);border-color:rgba(255,214,0,.4);pointer-events:none;cursor:default;}
+.mem-hud{display:flex;justify-content:space-between;gap:8px;margin-bottom:10px;}
 .load{display:flex;align-items:center;justify-content:center;gap:8px;color:rgba(255,255,255,.7);font-size:13px;padding:20px;}
 .spin-a{width:18px;height:18px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:sa .7s linear infinite;}
 @keyframes sa{to{transform:rotate(360deg);}}
@@ -87,17 +95,47 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,var(--bd)
   <div style="text-align:center;margin-bottom:14px;">
     <span style="font-size:64px;display:block;">🐼</span>
     <div class="brand">MiniCuts Game Zone!</div>
-    <div class="sub">Enter details to play & earn points</div>
+    <div class="sub">Enter your details to play & earn points</div>
   </div>
-  <div class="card">
+  <div class="card" id="loginCard">
     <div class="card-title">Who's playing? 🎮</div>
-    <input class="fi" type="text" id="loginName" placeholder="Child's name" maxlength="20" style="margin-bottom:10px;">
-    <input class="fi" type="tel" id="loginMobile" placeholder="Parent mobile number" maxlength="15" style="margin-bottom:14px;">
-    <button class="btn btn-y" onclick="doLogin()">Let's Play! 🎮</button>
+    <input class="fi" type="text" id="loginName" placeholder="Child's name" maxlength="20" style="margin-bottom:10px;" onkeydown="if(event.key==='Enter') doLogin()">
+    <input class="fi" type="tel" id="loginMobile" placeholder="Parent mobile number" maxlength="15" style="margin-bottom:14px;" onkeydown="if(event.key==='Enter') doLogin()">
+    <button class="btn btn-y" id="loginBtn" onclick="doLogin()">Let's Play! 🎮</button>
+    <div id="loginMsg" style="display:none;margin-top:10px;padding:10px;border-radius:10px;font-size:13px;font-weight:700;text-align:center;"></div>
     <button class="btn btn-ghost" onclick="goLeaderboard()" style="margin-top:10px;font-size:16px;">🏆 Leaderboard</button>
   </div>
   <div style="text-align:center;margin-top:6px;">
     <button onclick="goStaff()" style="background:none;border:none;color:rgba(255,255,255,.35);font-size:12px;cursor:pointer;font-family:'Nunito',sans-serif;">Staff view</button>
+  </div>
+</div>
+
+<!-- REGISTER -->
+<div class="screen" id="s-register">
+  <div style="text-align:center;margin-bottom:14px;">
+    <span style="font-size:56px;display:block;">🐼</span>
+    <div class="brand" style="font-size:24px;">Join MiniCuts!</div>
+    <div class="sub">Register to play games & earn rewards</div>
+  </div>
+  <div class="card">
+    <div class="card-title">Create your passport 🎫</div>
+    <input class="fi" type="text" id="regName" placeholder="Child's name *" maxlength="20" style="margin-bottom:10px;">
+    <input class="fi" type="tel" id="regMobile" placeholder="Parent mobile number *" maxlength="15" style="margin-bottom:10px;" readonly>
+    <input class="fi" type="text" id="regParent" placeholder="Parent's name *" maxlength="30" style="margin-bottom:10px;">
+    <input class="fi" type="date" id="regDob" placeholder="Date of birth *" style="margin-bottom:10px;">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
+      <div id="regBoy" onclick="setRegGender('boy')" style="padding:12px;border-radius:12px;border:2.5px solid #E5E7EB;text-align:center;cursor:pointer;transition:all .2s;">
+        <div style="font-size:28px;">👦</div>
+        <div style="font-size:13px;font-weight:700;color:#1A1A2E;">Boy</div>
+      </div>
+      <div id="regGirl" onclick="setRegGender('girl')" style="padding:12px;border-radius:12px;border:2.5px solid #E5E7EB;text-align:center;cursor:pointer;transition:all .2s;">
+        <div style="font-size:28px;">👧</div>
+        <div style="font-size:13px;font-weight:700;color:#1A1A2E;">Girl</div>
+      </div>
+    </div>
+    <div id="regMsg" style="display:none;margin-bottom:10px;padding:10px;border-radius:10px;font-size:13px;font-weight:700;text-align:center;"></div>
+    <button class="btn btn-y" onclick="doRegister()">Register & Play! 🎮</button>
+    <button class="btn btn-ghost" onclick="showScreen('s-login')" style="margin-top:10px;font-size:14px;padding:10px;">← Back to Login</button>
   </div>
 </div>
 
@@ -128,6 +166,11 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,var(--bd)
         <span class="game-emoji">🐼</span>
         <div class="game-name">Tap Panda</div>
         <div class="game-desc" id="gd-tap">10 seconds!</div>
+      </div>
+      <div class="game-card" id="gc-memory" onclick="goMemory()">
+        <span class="game-emoji">🧠</span>
+        <div class="game-name">Memory</div>
+        <div class="game-desc" id="gd-memory">Quick pairs!</div>
       </div>
 
     </div>
@@ -177,6 +220,18 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,var(--bd)
   <button class="btn btn-ghost" onclick="goProfile()" style="margin-top:8px;font-size:14px;padding:10px;">🎮 Choose Another Game</button>
 </div>
 
+<!-- MEMORY MATCH -->
+<div class="screen" id="s-memory">
+  <div class="mem-hud">
+    <div class="hud-box"><div class="hud-lbl">Moves</div><div class="hud-val" id="memMoves">0</div></div>
+    <div class="hud-box"><div class="hud-lbl">Time</div><div class="hud-val" id="memTime">0s</div></div>
+    <div class="hud-box"><div class="hud-lbl">Pairs</div><div class="hud-val" id="memPairs">0/4</div></div>
+  </div>
+  <div id="memGrid" class="mem-grid"></div>
+  <button class="btn btn-y" id="memStartBtn" onclick="startMemory()">START! 🧠</button>
+  <button class="btn btn-ghost" onclick="goProfile()" style="margin-top:8px;font-size:14px;padding:10px;">🎮 Choose Another Game</button>
+</div>
+
 <!-- RESULT -->
 <div class="screen" id="s-result">
   <div style="position:fixed;inset:0;pointer-events:none;z-index:99;" id="confettiWrap"></div>
@@ -194,8 +249,10 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,var(--bd)
     </div>
     <div id="resultMilestoneTrack" style="position:relative;padding:0 8px;margin-top:8px;"></div>
   </div>
+  <!-- Remaining games to play -->
+  <div id="remainingGames" style="margin-bottom:12px;"></div>
   <button class="btn btn-b" onclick="goLeaderboard()" style="margin-bottom:10px;">🏆 See Leaderboard</button>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:0;">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
     <button class="btn btn-ghost" onclick="goHome()" style="font-size:14px;padding:12px;">🏠 Done</button>
     <button class="btn btn-ghost" onclick="newPlayer()" style="font-size:14px;padding:12px;border-color:var(--y);color:var(--y);">👶 New Player</button>
   </div>
@@ -209,6 +266,10 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,var(--bd)
   </div>
   <div class="card"><div id="lbList"><div class="load"><div class="spin-a"></div> Loading...</div></div></div>
   <button class="btn btn-ghost" onclick="goBack()" style="margin-top:8px;">← Back</button>
+  <div style="margin-top:10px;text-align:center;">
+    <button onclick="debugLb()" style="background:none;border:none;color:rgba(255,255,255,.3);font-size:11px;cursor:pointer;font-family:'Nunito',sans-serif;">🔧 Debug</button>
+  </div>
+  <div id="debugOut" style="margin-top:8px;background:rgba(0,0,0,.4);border-radius:10px;padding:10px;font-size:11px;color:rgba(255,255,255,.7);display:none;word-break:break-all;"></div>
 </div>
 
 <!-- STAFF -->
@@ -278,43 +339,135 @@ function goLeaderboard(){prevScreen=document.querySelector('.screen.active')?.id
 function goStaff(){showScreen('s-staff');}
 
 // ══ LOGIN ══
+let regGender='boy';
+function setRegGender(g){
+  regGender=g;
+  document.getElementById('regBoy').style.borderColor=g==='boy'?'#FFD600':'#E5E7EB';
+  document.getElementById('regBoy').style.background=g==='boy'?'#FFFDE7':'#fff';
+  document.getElementById('regGirl').style.borderColor=g==='girl'?'#FF6B9D':'#E5E7EB';
+  document.getElementById('regGirl').style.background=g==='girl'?'#FFF0F6':'#fff';
+}
+
+function showLoginMsg(msg,ok){
+  const el=document.getElementById('loginMsg');
+  el.style.display='block';
+  el.style.background=ok?'#DCFCE7':'#FEE2E2';
+  el.style.color=ok?'#16A34A':'#DC2626';
+  el.textContent=msg;
+}
+
+function showRegMsg(msg,ok){
+  const el=document.getElementById('regMsg');
+  el.style.display='block';
+  el.style.background=ok?'#DCFCE7':'#FEE2E2';
+  el.style.color=ok?'#16A34A':'#DC2626';
+  el.textContent=msg;
+}
+
 async function doLogin(){
   const name=document.getElementById('loginName').value.trim();
   const mobile=document.getElementById('loginMobile').value.trim();
-  if(!name||mobile.length<7){
-    if(!name){document.getElementById('loginName').style.borderColor='#FF6B9D';setTimeout(()=>document.getElementById('loginName').style.borderColor='#E5E7EB',1200);}
-    if(mobile.length<7){document.getElementById('loginMobile').style.borderColor='#FF6B9D';setTimeout(()=>document.getElementById('loginMobile').style.borderColor='#E5E7EB',1200);}
+  document.getElementById('loginMsg').style.display='none';
+  if(!name){
+    document.getElementById('loginName').style.borderColor='#FF6B9D';
+    setTimeout(()=>document.getElementById('loginName').style.borderColor='#E5E7EB',1200);
     return;
   }
+  if(mobile.length<7){
+    document.getElementById('loginMobile').style.borderColor='#FF6B9D';
+    setTimeout(()=>document.getElementById('loginMobile').style.borderColor='#E5E7EB',1200);
+    return;
+  }
+  const btn=document.getElementById('loginBtn');
+  btn.disabled=true;btn.textContent='Checking...';
   try{
-    // Look up by mobile + name combination
-    const rows=await sb('customers','GET',null,'select=*&mobile=eq.'+encodeURIComponent(mobile)+'&name=eq.'+encodeURIComponent(name)+'&limit=1');
-    if(rows.length){
-      player={...rows[0]};
+    // Step 1: fetch ALL customers with this mobile
+    const byMobile=await sb('customers','GET',null,
+      'select=*&mobile=eq.'+encodeURIComponent(mobile)+'&limit=10');
+
+    if(!byMobile.length){
+      // Mobile not in system at all — must register
+      goToRegister(name, mobile, 'Mobile not registered. Please create your passport first!');
+      return;
+    }
+
+    // Step 2: find exact name match (case-insensitive in JS)
+    const match=byMobile.find(c=>
+      c.name.trim().toLowerCase()===name.toLowerCase()
+    );
+
+    if(match){
+      // Found exact match — log in
+      player={...match};
       player.game_points=player.game_points||0;
       player.game_spins=player.game_spins||0;
+      spinCount=0;bestSpinPts=0;
+      await checkTodaySessions();
+      goProfile();
     } else {
-      // Try mobile only
-      const byMobile=await sb('customers','GET',null,'select=*&mobile=eq.'+encodeURIComponent(mobile)+'&limit=1');
-      if(byMobile.length){
-        player={...byMobile[0]};
-        player.name=name;
-        player.game_points=player.game_points||0;
-        player.game_spins=player.game_spins||0;
-      } else {
-        // Create new
-        const res=await sb('customers','POST',{name,mobile,gender:'boy',stamps:0,redemptions:0,game_points:0,game_spins:0});
-        player=Array.isArray(res)?res[0]:res;
-      }
+      // Mobile exists but this child name not found
+      const existingNames=byMobile.map(c=>c.name).join(', ');
+      showLoginMsg('Child "'+name+'" not found. Registered: '+existingNames+'. Check spelling or register.', false);
+      // Show register button
+      document.getElementById('loginMsg').innerHTML=
+        'Child "<b>'+name+'</b>" not found under this mobile.<br>'+
+        'Registered: <b>'+existingNames+'</b><br>'+
+        '<button onclick="goToRegister(''+name.replace(/'/g,"\'")+"','"+mobile+"','New child? Register below!')" "+
+        'style="margin-top:8px;padding:8px 16px;background:#FFD600;border:none;border-radius:8px;font-family:'Baloo 2',cursive;font-size:15px;font-weight:800;color:#0D47A1;cursor:pointer;">'+
+        '+ Register New Child</button>';
+      document.getElementById('loginMsg').style.display='block';
+      document.getElementById('loginMsg').style.background='#FEE2E2';
+      document.getElementById('loginMsg').style.color='#DC2626';
     }
+  }catch(e){showLoginMsg('Error: '+e.message,false);}
+  finally{btn.disabled=false;btn.textContent="Let's Play! 🎮";}
+}
+
+function goToRegister(name,mobile,msg){
+  document.getElementById('regName').value=name||'';
+  document.getElementById('regMobile').value=mobile||'';
+  document.getElementById('regDob').value='';
+  document.getElementById('regParent').value='';
+  document.getElementById('regMsg').style.display='none';
+  setRegGender('boy');
+  if(msg){
+    document.getElementById('regMsg').style.display='block';
+    document.getElementById('regMsg').style.background='#EFF6FF';
+    document.getElementById('regMsg').style.color='#1565C0';
+    document.getElementById('regMsg').textContent=msg;
+  }
+  showScreen('s-register');
+}
+
+async function doRegister(){
+  const name=document.getElementById('regName').value.trim();
+  const mobile=document.getElementById('regMobile').value.trim();
+  const parent=document.getElementById('regParent').value.trim();
+  const dob=document.getElementById('regDob').value;
+  document.getElementById('regMsg').style.display='none';
+  if(!name){showRegMsg('Please enter child's name',false);return;}
+  if(!parent){showRegMsg('Please enter parent's name',false);return;}
+  if(!dob){showRegMsg('Date of birth is required! 🎂',false);return;}
+  if(!regGender){showRegMsg('Please select Boy or Girl',false);return;}
+  const btn=document.querySelector('#s-register .btn-y');
+  btn.disabled=true;btn.textContent='Registering...';
+  try{
+    const res=await sb('customers','POST',{
+      name,mobile,parent,dob,gender:regGender,
+      stamps:0,redemptions:0,game_points:0,game_spins:0
+    });
+    player=Array.isArray(res)?res[0]:res;
+    player.game_points=0;player.game_spins=0;
+    showRegMsg('Welcome to MiniCuts! 🎉','ok');
     spinCount=0;bestSpinPts=0;
     await checkTodaySessions();
-    goProfile();
-  }catch(e){alert('Error: '+e.message);}
+    setTimeout(()=>goProfile(),1000);
+  }catch(e){showRegMsg('Error: '+e.message,false);}
+  finally{btn.disabled=false;btn.textContent='Register & Play! 🎮';}
 }
 
 // Track which games played today
-let todayPlayed={spin:false,tap:false};
+let todayPlayed={spin:false,tap:false,memory:false};
 
 async function checkTodaySessions(){
   try{
@@ -328,12 +481,42 @@ async function checkTodaySessions(){
 }
 
 function allGamesPlayedToday(){
-  return todayPlayed.spin&&todayPlayed.tap;
+  return todayPlayed.spin&&todayPlayed.tap&&todayPlayed.memory;
 }
 
 // ══ PROFILE ══
+function renderRemainingGames(){
+  const el=document.getElementById('remainingGames');
+  if(!el) return;
+  const gameInfo={
+    spin:{icon:'🎡',name:'Spin Wheel',desc:'2 spins, best wins',fn:'goSpin()'},
+    tap:{icon:'🐼',name:'Tap Panda',desc:'10 seconds!',fn:'goTapPanda()'},
+    memory:{icon:'🧠',name:'Memory Match',desc:'Quick pairs!',fn:'goMemory()'},
+  };
+  const remaining=Object.entries(gameInfo).filter(([k])=>!todayPlayed[k]);
+  if(!remaining.length){
+    el.innerHTML=`<div style="background:#F0FDF4;border-radius:12px;padding:14px;text-align:center;margin-bottom:4px;">
+      <div style="font-size:28px;">🐼</div>
+      <div style="font-family:'Baloo 2',cursive;font-size:15px;font-weight:800;color:#16A34A;">All done for today!</div>
+      <div style="font-size:12px;color:#6B7280;margin-top:3px;">Come back after your next haircut 🎈</div>
+    </div>`;
+    return;
+  }
+  el.innerHTML=`<div style="font-family:'Baloo 2',cursive;font-size:15px;font-weight:800;color:var(--bd);margin-bottom:8px;text-align:center;">
+    Play another game? 🎮
+  </div>
+  <div style="display:grid;grid-template-columns:${remaining.length===1?'1fr':'1fr 1fr'};gap:10px;">
+    ${remaining.map(([k,g])=>`
+      <div onclick="${g.fn}" style="background:linear-gradient(135deg,var(--bd),var(--b));border-radius:14px;padding:14px 10px;text-align:center;cursor:pointer;border:3px solid transparent;transition:all .2s;" onmouseover="this.style.borderColor='#FFD600'" onmouseout="this.style.borderColor='transparent'">
+        <div style="font-size:32px;">${g.icon}</div>
+        <div style="font-family:'Baloo 2',cursive;font-size:15px;font-weight:800;color:#fff;margin-top:4px;">${g.name}</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.7);margin-top:2px;">${g.desc}</div>
+      </div>`).join('')}
+  </div>`;
+}
+
 function refreshGameCards(){
-  const games=['spin','tap'];
+  const games=['spin','tap','memory'];
   const all=allGamesPlayedToday();
   // Show/hide all done card
   const allDone=document.getElementById('allDoneCard');
@@ -358,7 +541,7 @@ function refreshGameCards(){
       card.style.pointerEvents='auto';
       card.style.border='3px solid transparent';
       if(desc){
-        const defaults={spin:'2 spins, best wins',tap:'10 seconds!'};
+        const defaults={spin:'2 spins, best wins',tap:'10 seconds!',memory:'Quick pairs!'};
         desc.textContent=defaults[g];
       }
     }
@@ -369,7 +552,7 @@ function showAlreadyPlayed(game){
   // Show panda saying already played
   const overlay=document.createElement('div');
   overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:3000;display:flex;align-items:center;justify-content:center;padding:20px;';
-  const gameNames={spin:'Spin Wheel',tap:'Tap Panda'};
+  const gameNames={spin:'Spin Wheel',tap:'Tap Panda',memory:'Memory Match'};
   overlay.innerHTML=`
     <div style="background:#fff;border-radius:24px;padding:32px 24px;max-width:320px;width:100%;text-align:center;">
       <div style="font-size:72px;margin-bottom:8px;animation:bounce-anim 1s infinite;">🐼</div>
@@ -560,6 +743,9 @@ function finishSpin(pts){
 // TAP PANDA GAME
 // ══════════════════════════════════════════
 let tapRunning=false,tapScore=0,tapTimer=null,tapSeconds=10;
+// Memory vars
+const MEM_EMOJIS=['🐼','🦁','🐸','🦊']; // 4 pairs = 8 cards
+let memCards=[],memFlipped=[],memMatched=0,memMoves=0,memStarted=false,memTimerInt=null,memSeconds=0,memLock=false;
 let tapBestScore=0;
 
 function goTapPanda(){
@@ -649,6 +835,104 @@ function endTapGame(){
 // ══════════════════════════════════════════
 // ══════════════════════════════════════════
 
+function goMemory(){
+  if(todayPlayed.memory){showAlreadyPlayed('memory');return;}
+  memMatched=0;memMoves=0;memStarted=false;memSeconds=0;memLock=false;
+  if(memTimerInt) clearInterval(memTimerInt);
+  document.getElementById('memMoves').textContent='0';
+  document.getElementById('memTime').textContent='0s';
+  document.getElementById('memPairs').textContent='0/4';
+  document.getElementById('memStartBtn').style.display='block';
+  document.getElementById('memStartBtn').textContent='START! 🧠';
+  document.getElementById('memStartBtn').disabled=false;
+  document.getElementById('memStartBtn').onclick=startMemory;
+  buildMemGrid(false);
+  showScreen('s-memory');
+}
+
+function buildMemGrid(reveal=false){
+  // 8 cards (4 pairs) + 1 center panda = 9 cells for 3x3
+  const pairs=[...MEM_EMOJIS,...MEM_EMOJIS].sort(()=>Math.random()-.5);
+  memCards=pairs;memFlipped=[];
+  const cells=[];
+  // Insert panda in center (index 4)
+  pairs.forEach((e,i)=>{
+    if(i===4) cells.push('__PANDA__');
+    cells.push(e);
+  });
+  // Trim to 9
+  const grid=cells.slice(0,9);
+  memCards=grid;
+  document.getElementById('memGrid').innerHTML=grid.map((e,i)=>{
+    if(e==='__PANDA__') return`<div class="mem-card center-panda" style="font-size:40px;">🐼</div>`;
+    return`<div class="mem-card ${reveal?'flipped':'hidden-face'}" id="mc${i}" onclick="memTap(${i})" data-emoji="${e}">
+      <span style="font-size:36px;">${reveal?e:'❓'}</span>
+    </div>`;
+  }).join('');
+}
+
+function startMemory(){
+  document.getElementById('memStartBtn').style.display='none';
+  // Show all cards briefly for 2 seconds
+  buildMemGrid(true);
+  let cd=3;
+  document.getElementById('memTime').textContent='Ready in 3s';
+  const c=setInterval(()=>{
+    cd--;
+    document.getElementById('memTime').textContent=cd>0?'Ready in '+cd+'s':'Go!';
+    if(cd<=0){
+      clearInterval(c);
+      buildMemGrid(false);
+      memStarted=true;
+      memTimerInt=setInterval(()=>{memSeconds++;document.getElementById('memTime').textContent=memSeconds+'s';},1000);
+    }
+  },1000);
+}
+
+function memTap(idx){
+  if(!memStarted||memLock)return;
+  const card=document.getElementById('mc'+idx);
+  if(!card||card.classList.contains('matched')||card.classList.contains('flipped')) return;
+  card.classList.add('flipped');
+  card.querySelector('span').textContent=memCards[idx];
+  memFlipped.push(idx);
+  if(memFlipped.length===2){
+    memLock=true;memMoves++;
+    document.getElementById('memMoves').textContent=memMoves;
+    const [a,b]=memFlipped;
+    if(memCards[a]===memCards[b]){
+      document.getElementById('mc'+a).classList.add('matched');
+      document.getElementById('mc'+b).classList.add('matched');
+      memMatched++;
+      document.getElementById('memPairs').textContent=memMatched+'/4';
+      memFlipped=[];memLock=false;
+      if(memMatched===4) setTimeout(endMemory,400);
+    } else {
+      setTimeout(()=>{
+        const ca=document.getElementById('mc'+a);
+        const cb=document.getElementById('mc'+b);
+        if(ca){ca.classList.remove('flipped');ca.querySelector('span').textContent='❓';}
+        if(cb){cb.classList.remove('flipped');cb.querySelector('span').textContent='❓';}
+        memFlipped=[];memLock=false;
+      },700);
+    }
+  }
+}
+
+function endMemory(){
+  clearInterval(memTimerInt);memStarted=false;
+  // Points: fewer moves + faster = more points (4 pairs, max ~8 moves)
+  let pts=0;
+  if(memMoves<=5) pts=20;
+  else if(memMoves<=7) pts=15;
+  else if(memMoves<=10) pts=10;
+  else pts=7;
+  document.getElementById('memStartBtn').style.display='block';
+  document.getElementById('memStartBtn').textContent='🎉 Collect '+pts+' pts!';
+  document.getElementById('memStartBtn').disabled=false;
+  document.getElementById('memStartBtn').onclick=()=>saveAndShowResult(pts,'memory');
+}
+
 async function saveAndShowResult(pts,gameType){
   const newTotal=Math.min((player.game_points||0)+pts,999);
   player.game_points=newTotal;
@@ -685,6 +969,7 @@ function showResult(pts,newTotal){
   }
   if(pts>=10) launchConfetti();
   refreshGameCards();
+  renderRemainingGames();
   showScreen('s-result');
 }
 
@@ -693,10 +978,11 @@ function showResult(pts,newTotal){
 let sidebarData=[];
 async function loadSidebarLb(){
   try{
-    const data=await sb('customers','GET',null,'select=name,mobile,game_points&order=game_points.desc&limit=10&game_points=gt.0');
+    const allData=await sb('customers','GET',null,'select=name,mobile,game_points&order=game_points.desc&limit=20');
+    const data=allData.filter(c=>(c.game_points||0)>0).slice(0,10);
     sidebarData=data;
     renderSidebar();
-  }catch(e){console.warn('Sidebar lb error:',e);}
+  }catch(e){console.warn('Sidebar lb error:',e.message);document.getElementById('sideLbList').innerHTML='<div style="text-align:center;padding:16px;color:rgba(255,100,100,.8);font-size:11px;">'+e.message+'</div>';}
 }
 
 function renderSidebar(){
@@ -795,12 +1081,22 @@ setInterval(loadSidebarLb,30000);
 setTimeout(loadSidebarLb,1000);
 
 async function loadLeaderboard(){
-  document.getElementById('lbList').innerHTML='<div class="load"><div class="spin-a"></div> Loading...</div>';
+  const el=document.getElementById('lbList');
+  el.innerHTML='<div class="load"><div class="spin-a"></div> Loading...</div>';
   try{
-    const data=await sb('customers','GET',null,'select=name,mobile,game_points&order=game_points.desc&limit=10&game_points=gt.0');
+    // Step 1: fetch all, sort by game_points desc
+    const allData=await sb('customers','GET',null,'select=name,mobile,game_points&order=game_points.desc&limit=50');
+    // Step 2: filter in JS - only those with points > 0
+    const data=allData.filter(c=>c.game_points&&c.game_points>0).slice(0,10);
     const medals=['🥇','🥈','🥉'];
-    document.getElementById('lbList').innerHTML=data.length?data.map((c,i)=>{
-      const pct=Math.min(((c.game_points||0)/MAX_PTS)*100,100);
+    if(!data.length){
+      // Show all customers even with 0 points if no one has played yet
+      el.innerHTML='<div style="text-align:center;padding:20px;color:#6B7280;font-size:13px;">No scores yet!<br>Play a game to get on the board 🎮</div>';
+      return;
+    }
+    el.innerHTML=data.map((c,i)=>{
+      const pts=c.game_points||0;
+      const pct=Math.min((pts/MAX_PTS)*100,100);
       const init=(c.name||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
       return`<div class="lb-row">
         <div style="font-family:'Baloo 2',cursive;font-size:18px;font-weight:800;width:30px;text-align:center;">${medals[i]||'#'+(i+1)}</div>
@@ -809,13 +1105,41 @@ async function loadLeaderboard(){
           <div style="font-size:13.5px;font-weight:700;color:#1A1A2E;">${c.name||'Player'}</div>
           <div style="width:${pct}%;max-width:100px;height:4px;background:var(--y);border-radius:99px;margin-top:3px;"></div>
         </div>
-        <div style="font-family:'Baloo 2',cursive;font-size:18px;font-weight:800;color:var(--b);">${c.game_points||0}<span style="font-size:11px;color:#6B7280;font-weight:400;"> pts</span></div>
+        <div style="font-family:'Baloo 2',cursive;font-size:18px;font-weight:800;color:var(--b);">${pts}<span style="font-size:11px;color:#6B7280;font-weight:400;"> pts</span></div>
       </div>`;
-    }).join(''):'<div style="text-align:center;padding:20px;color:#6B7280;">No scores yet — play first! 🎮</div>';
-  }catch(e){document.getElementById('lbList').innerHTML='<div style="color:#DC2626;padding:16px;">Error loading</div>';}
+    }).join('');
+  }catch(e){
+    el.innerHTML='<div style="color:#DC2626;padding:16px;font-size:13px;">❌ '+e.message+'</div>';
+  }
 }
 
 // ══ STAFF RESET ══
+async function debugLb(){
+  const out=document.getElementById('debugOut');
+  out.style.display='block';
+  out.textContent='Testing connection...';
+  try{
+    // Test 1: basic connection
+    const r1=await fetch(SB_URL+'/rest/v1/customers?select=id&limit=1',{
+      headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}
+    });
+    const t1=await r1.text();
+    out.textContent='Status: '+r1.status+'
+Response: '+t1.substring(0,200);
+    // Test 2: game_points column
+    const r2=await fetch(SB_URL+'/rest/v1/customers?select=name,game_points&limit=3',{
+      headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}
+    });
+    const t2=await r2.text();
+    out.textContent+='
+
+Game points test ('+r2.status+'):
+'+t2.substring(0,300);
+  }catch(e){
+    out.textContent='ERROR: '+e.message;
+  }
+}
+
 async function staffReset(){
   const m=document.getElementById('staffMobile').value.trim();
   if(!m)return;
