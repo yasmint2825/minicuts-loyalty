@@ -264,12 +264,15 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,var(--bd)
     <span style="font-size:44px;display:block;">🏆</span>
     <div class="brand" style="font-size:24px;">Top Players</div>
   </div>
-  <div class="card"><div id="lbList"><div class="load"><div class="spin-a"></div> Loading...</div></div></div>
-  <button class="btn btn-ghost" onclick="goBack()" style="margin-top:8px;">← Back</button>
-  <div style="margin-top:10px;text-align:center;">
-    <button onclick="debugLb()" style="background:none;border:none;color:rgba(255,255,255,.3);font-size:11px;cursor:pointer;font-family:'Nunito',sans-serif;">🔧 Debug</button>
+  <div class="card">
+    <div id="lbList"><div class="load"><div class="spin-a"></div> Loading...</div></div>
+    <div style="margin-top:12px;text-align:center;">
+      <button onclick="loadLeaderboard()" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;padding:7px 18px;border-radius:8px;cursor:pointer;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;">↻ Refresh</button>
+    </div>
+    <div id="debugOut" style="margin-top:8px;background:rgba(0,0,0,.4);border-radius:10px;padding:10px;font-size:11px;color:rgba(255,255,255,.7);display:none;word-break:break-all;max-height:200px;overflow-y:auto;"></div>
   </div>
-  <div id="debugOut" style="margin-top:8px;background:rgba(0,0,0,.4);border-radius:10px;padding:10px;font-size:11px;color:rgba(255,255,255,.7);display:none;word-break:break-all;"></div>
+  <button class="btn btn-ghost" onclick="goBack()" style="margin-top:8px;">← Back</button>
+
 </div>
 
 <!-- STAFF -->
@@ -291,7 +294,7 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,var(--bd)
 </div>
 
 <script>
-// ══ SUPABASE ══
+// == SUPABASE ==
 const SB_URL='https://wtapyfgtwkjyjrjdnhkb.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind0YXB5Zmd0d2tqeWpyamRuaGtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0NDc3ODEsImV4cCI6MjA5NTAyMzc4MX0.y_-iPfb8Pcg9zh42h6RGVBsUVZm80LcA9sPlz_Gl_fA';
 async function sb(path,method='GET',body=null,params=''){
@@ -317,13 +320,13 @@ async function sb(path,method='GET',body=null,params=''){
   }
 }
 
-// ══ CONFIG ══
+// == CONFIG ==
 const TIERS=[{pts:50,icon:'🍭',label:'Lollipop'},{pts:100,icon:'🎁',label:'Surprise Gift'},{pts:150,icon:'🚿',label:'Free Hair Wash'}];
 const MAX_PTS=150;
 let player={id:null,name:'',mobile:'',game_points:0,game_spins:0};
 let prevScreen='s-profile';
 
-// ══ NAV ══
+// == NAV ==
 function newPlayer(){
   // Keep leaderboard but clear current player for next kid
   spinCount=0;bestSpinPts=0;
@@ -350,7 +353,7 @@ function goProfile(){
 function goLeaderboard(){prevScreen=document.querySelector('.screen.active')?.id||'s-profile';loadLeaderboard();showScreen('s-lb');}
 function goStaff(){showScreen('s-staff');}
 
-// ══ LOGIN ══
+// == LOGIN ==
 let regGender='boy';
 function setRegGender(g){
   regGender=g;
@@ -419,17 +422,21 @@ async function doLogin(){
     } else {
       // Mobile exists but this child name not found
       const existingNames=byMobile.map(c=>c.name).join(', ');
-      showLoginMsg('Child "'+name+'" not found. Registered: '+existingNames+'. Check spelling or register.', false);
-      // Show register button
-      document.getElementById('loginMsg').innerHTML=
-        'Child "<b>'+name+'</b>" not found under this mobile.<br>'+
-        'Registered: <b>'+existingNames+'</b><br>'+
-        '<button onclick="goToRegister(''+name.replace(/'/g,"\'")+"','"+mobile+"','New child? Register below!')" "+
-        'style="margin-top:8px;padding:8px 16px;background:#FFD600;border:none;border-radius:8px;font-family:'Baloo 2',cursive;font-size:15px;font-weight:800;color:#0D47A1;cursor:pointer;">'+
-        '+ Register New Child</button>';
-      document.getElementById('loginMsg').style.display='block';
-      document.getElementById('loginMsg').style.background='#FEE2E2';
-      document.getElementById('loginMsg').style.color='#DC2626';
+      // Use DOM to build the message safely — no string escaping issues
+      const msgEl=document.getElementById('loginMsg');
+      msgEl.innerHTML='';
+      const txt=document.createElement('div');
+      txt.innerHTML='Child <b>'+name+'</b> not found.<br>Registered: <b>'+existingNames+'</b>';
+      txt.style.marginBottom='10px';
+      const regBtn=document.createElement('button');
+      regBtn.textContent='+ Register New Child';
+      regBtn.style.cssText='width:100%;padding:10px;background:#FFD600;border:none;border-radius:8px;font-family:\'Baloo 2\',cursive;font-size:16px;font-weight:800;color:#0D47A1;cursor:pointer;margin-top:4px;';
+      regBtn.onclick=()=>goToRegister(name,mobile,'New child? Fill in the details below!');
+      msgEl.appendChild(txt);
+      msgEl.appendChild(regBtn);
+      msgEl.style.display='block';
+      msgEl.style.background='#FEE2E2';
+      msgEl.style.color='#DC2626';
     }
   }catch(e){showLoginMsg('Error: '+e.message,false);}
   finally{btn.disabled=false;btn.textContent="Let's Play! 🎮";}
@@ -496,7 +503,7 @@ function allGamesPlayedToday(){
   return todayPlayed.spin&&todayPlayed.tap&&todayPlayed.memory;
 }
 
-// ══ PROFILE ══
+// == PROFILE ==
 function renderRemainingGames(){
   const el=document.getElementById('remainingGames');
   if(!el) return;
@@ -634,9 +641,9 @@ function renderProfile(){
   }).join('');
 }
 
-// ══════════════════════════════════════════
+// ==========================================
 // SPIN WHEEL — 2 spins, best of 2
-// ══════════════════════════════════════════
+// ==========================================
 const SEGS=[
   {pts:1,color:'#EF4444'},{pts:3,color:'#F97316'},{pts:5,color:'#EAB308'},
   {pts:8,color:'#22C55E'},{pts:10,color:'#3B82F6'},{pts:12,color:'#8B5CF6'},
@@ -751,9 +758,9 @@ function finishSpin(pts){
   saveAndShowResult(pts,'spin');
 }
 
-// ══════════════════════════════════════════
+// ==========================================
 // TAP PANDA GAME
-// ══════════════════════════════════════════
+// ==========================================
 let tapRunning=false,tapScore=0,tapTimer=null,tapSeconds=10;
 // Memory vars
 const MEM_EMOJIS=['🐼','🦁','🐸','🦊']; // 4 pairs = 8 cards
@@ -844,8 +851,8 @@ function endTapGame(){
   document.getElementById('tapStartBtn').onclick=()=>saveAndShowResult(pts,'tap');
 }
 
-// ══════════════════════════════════════════
-// ══════════════════════════════════════════
+// ==========================================
+// ==========================================
 
 function goMemory(){
   if(todayPlayed.memory){showAlreadyPlayed('memory');return;}
@@ -985,12 +992,15 @@ function showResult(pts,newTotal){
   showScreen('s-result');
 }
 
-// ══ LEADERBOARD ══
+// == LEADERBOARD ==
 // ── SIDEBAR LEADERBOARD ──
 let sidebarData=[];
 async function loadSidebarLb(){
   try{
-    const allData=await sb('customers','GET',null,'select=name,mobile,game_points&order=game_points.desc&limit=20');
+    const sUrl=SB_URL+'/rest/v1/customers?select=name,mobile,game_points&order=game_points.desc&limit=20';
+    const sRes=await fetch(sUrl,{headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}});
+    if(!sRes.ok) throw new Error('HTTP '+sRes.status);
+    const allData=await sRes.json();
     const data=allData.filter(c=>(c.game_points||0)>0).slice(0,10);
     sidebarData=data;
     renderSidebar();
@@ -1096,49 +1106,47 @@ setInterval(loadSidebarLb,30000);
 // Initial load
 setTimeout(loadSidebarLb,1000);
 
+async function fetchLb(){
+  // Direct fetch — no wrapper — to isolate any issues
+  const url=SB_URL+'/rest/v1/customers?select=name,game_points&order=game_points.desc&limit=50';
+  const r=await fetch(url,{headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}});
+  if(!r.ok){
+    const txt=await r.text();
+    throw new Error('HTTP '+r.status+': '+txt.slice(0,150));
+  }
+  const data=await r.json();
+  return data.filter(c=>(c.game_points||0)>0).slice(0,10);
+}
+
 async function loadLeaderboard(){
   const el=document.getElementById('lbList');
   if(!el) return;
   el.innerHTML='<div class="load"><div class="spin-a"></div> Loading...</div>';
   try{
-    const allData=await sb('customers','GET',null,
-      'select=name,game_points&order=game_points.desc&limit=50');
-    const data=allData.filter(c=>(c.game_points||0)>0).slice(0,10);
+    const data=await fetchLb();
     const medals=['🥇','🥈','🥉'];
     if(!data.length){
-      el.innerHTML=`<div style="text-align:center;padding:24px;">
-        <div style="font-size:40px;margin-bottom:8px;">🎮</div>
-        <div style="font-size:14px;font-weight:700;color:#6B7280;">No scores yet!</div>
-        <div style="font-size:12px;color:#9CA3AF;margin-top:4px;">Play a game to be first on the board</div>
-      </div>`;
+      el.innerHTML='<div style="text-align:center;padding:24px;"><div style="font-size:40px;margin-bottom:8px;">🎮</div><div style="font-size:14px;font-weight:700;color:#6B7280;">No scores yet!</div><div style="font-size:12px;color:#9CA3AF;margin-top:4px;">Play a game to be first</div></div>';
       return;
     }
     el.innerHTML=data.map((c,i)=>{
       const pts=c.game_points||0;
       const pct=Math.min((pts/MAX_PTS)*100,100);
       const init=(c.name||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
-      const medal=medals[i]||'#'+(i+1);
-      return`<div class="lb-row">
-        <div style="font-family:'Baloo 2',cursive;font-size:18px;font-weight:800;width:30px;text-align:center;">${medal}</div>
-        <div class="lb-av">${init}</div>
-        <div style="flex:1;">
-          <div style="font-size:13.5px;font-weight:700;color:#1A1A2E;">${c.name||'Player'}</div>
-          <div style="width:${pct}%;max-width:100px;height:4px;background:var(--y);border-radius:99px;margin-top:3px;"></div>
-        </div>
-        <div style="font-family:'Baloo 2',cursive;font-size:18px;font-weight:800;color:var(--b);">${pts}<span style="font-size:11px;color:#6B7280;font-weight:400;"> pts</span></div>
-      </div>`;
+      return'<div class="lb-row">'+
+        '<div style="font-family:Georgia,serif;font-size:18px;font-weight:800;width:30px;text-align:center;">'+(medals[i]||'#'+(i+1))+'</div>'+
+        '<div class="lb-av">'+init+'</div>'+
+        '<div style="flex:1;"><div style="font-size:13.5px;font-weight:700;color:#1A1A2E;">'+c.name+'</div>'+
+        '<div style="width:'+pct+'%;max-width:100px;height:4px;background:#FFD600;border-radius:99px;margin-top:3px;"></div></div>'+
+        '<div style="font-size:18px;font-weight:800;color:#1565C0;">'+pts+' <span style="font-size:11px;color:#6B7280;font-weight:400;">pts</span></div>'+
+        '</div>';
     }).join('');
   }catch(e){
-    el.innerHTML=`<div style="color:#DC2626;padding:16px;font-size:12px;word-break:break-word;">
-      ❌ ${e.message}<br><br>
-      <button onclick="loadLeaderboard()" style="padding:8px 16px;background:#1565C0;color:#fff;border:none;border-radius:8px;cursor:pointer;font-family:'Nunito',sans-serif;font-weight:700;">
-        Retry
-      </button>
-    </div>`;
+    el.innerHTML='<div style="color:#DC2626;padding:16px;font-size:12px;word-break:break-word;">Error: '+e.message+'<br><br><button onclick="loadLeaderboard()" style="padding:8px 16px;background:#1565C0;color:#fff;border:none;border-radius:8px;cursor:pointer;">Retry</button></div>';
   }
 }
 
-// ══ STAFF RESET ══
+// == STAFF RESET ==
 async function debugLb(){
   const out=document.getElementById('debugOut');
   out.style.display='block';
@@ -1181,7 +1189,7 @@ function showStaffMsg(msg,ok){
   el.textContent=msg;el.style.color=ok?'#16A34A':'#DC2626';el.style.display='block';
 }
 
-// ══ CONFETTI ══
+// == CONFETTI ==
 function launchConfetti(){
   const wrap=document.getElementById('confettiWrap');wrap.innerHTML='';
   const cols=['#FFD600','#FF6B9D','#4CAF50','#2196F3','#FF8C00','#9C27B0','#fff'];
