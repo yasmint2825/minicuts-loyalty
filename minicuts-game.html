@@ -103,7 +103,11 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,var(--bd)
     <input class="fi" type="tel" id="loginMobile" placeholder="Parent mobile number" maxlength="15" style="margin-bottom:14px;" onkeydown="if(event.key==='Enter') doLogin()">
     <button class="btn btn-y" id="loginBtn" onclick="doLogin()">Let's Play! 🎮</button>
     <div id="loginMsg" style="display:none;margin-top:10px;padding:10px;border-radius:10px;font-size:13px;font-weight:700;text-align:center;"></div>
-    <button class="btn btn-ghost" onclick="goLeaderboard()" style="margin-top:10px;font-size:16px;">🏆 Leaderboard</button>
+    <div style="text-align:center;margin-top:14px;padding-top:14px;border-top:1px solid #E5E7EB;">
+      <div style="font-size:12px;color:#6B7280;margin-bottom:8px;">First time at MiniCuts Game Zone?</div>
+      <button class="btn btn-b" onclick="goToRegister('','','Welcome! Please fill in your details to register.')" style="font-size:15px;padding:12px;">📝 Register New Player</button>
+    </div>
+    <button class="btn btn-ghost" onclick="goLeaderboard()" style="margin-top:10px;font-size:15px;color:#fff;">🏆 Leaderboard</button>
   </div>
   <div style="text-align:center;margin-top:6px;">
     <button onclick="goStaff()" style="background:none;border:none;color:rgba(255,255,255,.35);font-size:12px;cursor:pointer;font-family:'Nunito',sans-serif;">Staff view</button>
@@ -118,6 +122,10 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,var(--bd)
     <div class="sub">Register to play games & earn rewards</div>
   </div>
   <div class="card">
+    <div style="background:#EFF6FF;border-radius:12px;padding:12px 14px;margin-bottom:14px;font-size:13px;color:#1565C0;line-height:1.6;">
+      🐼 <strong>Not registered yet!</strong><br>
+      Please fill in your details to create your MiniCuts passport and start playing.
+    </div>
     <div class="card-title">Create your passport 🎫</div>
     <input class="fi" type="text" id="regName" placeholder="Child's name *" maxlength="20" style="margin-bottom:10px;">
     <input class="fi" type="tel" id="regMobile" placeholder="Parent mobile number *" maxlength="15" style="margin-bottom:10px;" readonly>
@@ -180,7 +188,7 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,var(--bd)
       <div style="font-size:13px;color:#6B7280;line-height:1.6;">You've played all 3 games today.<br>Come back after your next haircut! 🎈</div>
     </div>
   </div>
-  <button class="btn btn-ghost" onclick="goLeaderboard()" style="margin-bottom:10px;">🏆 Leaderboard</button>
+  <button class="btn btn-y" onclick="goLeaderboard()" style="margin-bottom:10px;color:#0D47A1;">🏆 Leaderboard</button>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
     <button class="btn btn-ghost" onclick="newPlayer()" style="font-size:14px;padding:10px;border-color:var(--y);color:var(--y);">👶 New Player</button>
     <button class="btn btn-ghost" onclick="goHome()" style="font-size:14px;padding:10px;">🏠 Exit</button>
@@ -251,7 +259,7 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,var(--bd)
   </div>
   <!-- Remaining games to play -->
   <div id="remainingGames" style="margin-bottom:12px;"></div>
-  <button class="btn btn-b" onclick="goLeaderboard()" style="margin-bottom:10px;">🏆 See Leaderboard</button>
+  <button class="btn btn-y" onclick="goLeaderboard()" style="margin-bottom:10px;color:#0D47A1;">🏆 See Leaderboard</button>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
     <button class="btn btn-ghost" onclick="goHome()" style="font-size:14px;padding:12px;">🏠 Done</button>
     <button class="btn btn-ghost" onclick="newPlayer()" style="font-size:14px;padding:12px;border-color:var(--y);color:var(--y);">👶 New Player</button>
@@ -464,10 +472,10 @@ async function doRegister(){
   const parent=document.getElementById('regParent').value.trim();
   const dob=document.getElementById('regDob').value;
   document.getElementById('regMsg').style.display='none';
-  if(!name){showRegMsg('Please enter child's name',false);return;}
-  if(!parent){showRegMsg('Please enter parent's name',false);return;}
-  if(!dob){showRegMsg('Date of birth is required! 🎂',false);return;}
-  if(!regGender){showRegMsg('Please select Boy or Girl',false);return;}
+  if(!name){showRegMsg("Please enter child's name",false);return;}
+  if(!parent){showRegMsg("Please enter parent's name",false);return;}
+  if(!dob){showRegMsg("Date of birth is required! 🎂",false);return;}
+  if(!regGender){showRegMsg("Please select Boy or Girl",false);return;}
   const btn=document.querySelector('#s-register .btn-y');
   btn.disabled=true;btn.textContent='Registering...';
   try{
@@ -1149,25 +1157,15 @@ async function loadLeaderboard(){
 // == STAFF RESET ==
 async function debugLb(){
   const out=document.getElementById('debugOut');
+  if(!out) return;
   out.style.display='block';
-  out.textContent='Testing connection...';
+  out.textContent='Testing...';
   try{
-    // Test 1: basic connection
-    const r1=await fetch(SB_URL+'/rest/v1/customers?select=id&limit=1',{
+    const r1=await fetch(SB_URL+'/rest/v1/customers?select=id,name,game_points&limit=3',{
       headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}
     });
     const t1=await r1.text();
-    out.textContent='Status: '+r1.status+'
-Response: '+t1.substring(0,200);
-    // Test 2: game_points column
-    const r2=await fetch(SB_URL+'/rest/v1/customers?select=name,game_points&limit=3',{
-      headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}
-    });
-    const t2=await r2.text();
-    out.textContent+='
-
-Game points test ('+r2.status+'):
-'+t2.substring(0,300);
+    out.textContent='Status: '+r1.status+'\n'+t1.slice(0,300);
   }catch(e){
     out.textContent='ERROR: '+e.message;
   }
