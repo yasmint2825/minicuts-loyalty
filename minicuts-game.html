@@ -151,7 +151,10 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,var(--bd)
     </div>
     <div id="regMsg" style="display:none;margin-bottom:10px;padding:10px;border-radius:10px;font-size:13px;font-weight:700;text-align:center;"></div>
     <button class="btn btn-y" onclick="doRegister()">Register & Play! 🎮</button>
-    <button class="btn btn-ghost" onclick="showScreen('s-login')" style="margin-top:10px;font-size:14px;padding:10px;">← Back to Login</button>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;">
+      <button class="btn btn-ghost" onclick="showScreen('s-login')" style="font-size:14px;padding:10px;">← Back</button>
+      <button class="btn btn-ghost" onclick="goHome()" style="font-size:14px;padding:10px;">🏠 Home</button>
+    </div>
   </div>
 </div>
 
@@ -663,7 +666,7 @@ function renderProfile(){
 const SEGS=[
   {pts:1,color:'#EF4444'},{pts:3,color:'#F97316'},{pts:5,color:'#EAB308'},
   {pts:8,color:'#22C55E'},{pts:10,color:'#3B82F6'},{pts:12,color:'#8B5CF6'},
-  {pts:15,color:'#EC4899'},{pts:20,color:'#FFD600'},{pts:2,color:'#14B8A6'},
+  {pts:15,color:'#EC4899'},{pts:15,color:'#FFD600'},{pts:2,color:'#14B8A6'},
   {pts:5,color:'#F59E0B'},{pts:8,color:'#10B981'},{pts:3,color:'#6366F1'},
 ];
 let spinCount=0,bestSpinPts=0,spinAngle=0,isSpinning=false;
@@ -718,11 +721,11 @@ function updateSpinUI(){
       const sb2=document.createElement('button');
       sb2.id='skipBtn';sb2.className='btn btn-ghost';
       sb2.style.cssText='margin-top:6px;font-size:14px;padding:9px;';
-      sb2.textContent='Keep '+bestSpinPts+' pts ✓';
+      sb2.textContent='Keep '+bestSpinPts+' pts & finish';
       sb2.onclick=()=>finishSpin(bestSpinPts);
       document.getElementById('s-spin').insertBefore(sb2,document.querySelector('#s-spin .btn-ghost:last-child'));
     } else {
-      document.getElementById('skipBtn').textContent='Keep '+bestSpinPts+' pts ✓';
+      document.getElementById('skipBtn').textContent='Keep '+bestSpinPts+' pts & finish';
     }
   }
 }
@@ -771,7 +774,9 @@ function pandaReact(pts){
 
 function finishSpin(pts){
   if(document.getElementById('skipBtn')) document.getElementById('skipBtn').remove();
-  saveAndShowResult(pts,'spin');
+  // Auto-save immediately
+  savePoints(pts,'spin');
+  showResult(pts);
 }
 
 // ==========================================
@@ -850,21 +855,17 @@ document.getElementById('pandaTarget').addEventListener('click',()=>{
 function endTapGame(){
   document.getElementById('tapTime').style.color='#fff';
   // Points based on taps
-  let pts=0;
-  if(tapScore>=30) pts=20;
-  else if(tapScore>=20) pts=15;
-  else if(tapScore>=15) pts=10;
-  else if(tapScore>=10) pts=7;
-  else if(tapScore>=5) pts=5;
-  else pts=3;
+  const pts=Math.min(tapScore,15);
   const isNewBest=!player.best_tap_score||tapScore>player.best_tap_score;
-  if(isNewBest){player.best_tap_score=tapScore;pts+=5;}// bonus for new best
-  document.getElementById('tapStatus').innerHTML=(isNewBest?'🏆 NEW BEST! ':'')+'You tapped <strong>'+tapScore+'</strong> times!<br><span style="font-size:14px;color:var(--y);">+'+pts+' points!</span>';
+  if(isNewBest) player.best_tap_score=tapScore;
+  document.getElementById('tapStatus').innerHTML=(isNewBest?'🏆 New Best! ':'')+'You caught the panda <strong>'+tapScore+'</strong> times!<br><span style="font-size:14px;color:var(--y);">'+pts+' point'+(pts!==1?'s':'')+'</span>';
   document.getElementById('tapStatus').style.display='block';
   document.getElementById('tapStartBtn').style.display='block';
-  document.getElementById('tapStartBtn').textContent='Collect '+pts+' pts 🎁';
+  document.getElementById('tapStartBtn').textContent='See my '+pts+' pts! 🎉';
   document.getElementById('tapStartBtn').disabled=false;
-  document.getElementById('tapStartBtn').onclick=()=>saveAndShowResult(pts,'tap');
+  document.getElementById('tapStartBtn').onclick=()=>showResult(pts);
+  // Auto-save immediately — points saved even if kid walks away
+  savePoints(pts,'tap');
 }
 
 // ==========================================
@@ -957,35 +958,38 @@ function memTap(idx){
 function endMemory(){
   clearInterval(memTimerInt);memStarted=false;
   // Points: fewer moves + faster = more points (4 pairs, max ~8 moves)
-  let pts=0;
-  if(memMoves<=5) pts=20;
-  else if(memMoves<=7) pts=15;
-  else if(memMoves<=10) pts=10;
-  else pts=7;
+  const pts=6; // 4 pairs matched = 6 pts always
   document.getElementById('memStartBtn').style.display='block';
-  document.getElementById('memStartBtn').textContent='🎉 Collect '+pts+' pts!';
+  document.getElementById('memStartBtn').textContent='See my '+pts+' pts! 🎉';
   document.getElementById('memStartBtn').disabled=false;
-  document.getElementById('memStartBtn').onclick=()=>saveAndShowResult(pts,'memory');
+  document.getElementById('memStartBtn').onclick=()=>showResult(pts);
+  // Auto-save immediately
+  savePoints(pts,'memory');
 }
 
-async function saveAndShowResult(pts,gameType){
+async function savePoints(pts,gameType){
+  // Called immediately when game ends — don't wait for button tap
   const newTotal=Math.min((player.game_points||0)+pts,999);
   player.game_points=newTotal;
+  if(gameType) todayPlayed[gameType]=true;
   try{
     const updates={game_points:newTotal,game_spins:(player.game_spins||0)+1};
     if(gameType==='tap'&&player.best_tap_score) updates.best_tap_score=player.best_tap_score;
     await sb('customers','PATCH',updates,'id=eq.'+player.id);
     await sb('game_sessions','POST',{customer_id:player.id,customer_name:player.name,points_earned:pts,game_type:gameType});
+    loadSidebarLb();
   }catch(e){console.warn('Save error:',e);}
-  // Mark game as played today
-  if(gameType) todayPlayed[gameType]=true;
-  loadSidebarLb();
-  showResult(pts,newTotal);
 }
 
-function showResult(pts,newTotal){
+// Legacy wrapper kept for safety
+async function saveAndShowResult(pts,gameType){
+  await savePoints(pts,gameType);
+  showResult(pts);
+}
+
+function showResult(pts){
+  const newTotal=player.game_points; // already updated by savePoints
   const emoji=pts>=15?'🔥':pts>=10?'🎉':pts>=5?'⭐':'👍';
-  document.getElementById('resultEmoji').textContent=emoji;
   document.getElementById('resultPts').textContent='+'+pts;
   document.getElementById('resultTotal').textContent=newTotal+' pts';
   drawMilestoneTrack(newTotal,'resultMilestoneTrack');
