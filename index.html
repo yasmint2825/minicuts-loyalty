@@ -1631,22 +1631,8 @@ async function sendFollowup(id,mobile,name){
     const portalUrl='https://yasmint2825.github.io/minicuts-loyalty/?customer=1&lookup='+encodeURIComponent(c.mobile);
     const stampLine=st>=pN?'🎁 Your FREE haircut is ready — come in and claim it!':
       'You have '+st+' stamp'+(st!==1?'s':'')+' — just '+(pN-st)+' more for a FREE haircut!';
-    const gameLine=(c.game_points||0)>0?'🎮 You have '+c.game_points+' game points too!':'🎮 Ask us about our Game Zone next visit!';
-    const msg='Hi '+(c.parent||c.name)+'! 🐼
-
-Thank you for visiting MiniCuts — '+c.name+' looked amazing! 💇
-
-'+stampLine+'
-'+gameLine+'
-
-Check your loyalty passport here:
-'+portalUrl+'
-
-If you enjoyed your visit, we'd love a Google review — it means the world to a small business like ours 🙏
-⭐ https://share.google/xpTR5fVOVbt4pwg8X
-
-See you soon!
-MiniCuts DSO 🐼';
+    const gameLine=(c.game_points||0)>0?'Game points: '+c.game_points+' pts':'Ask us about our Game Zone next visit!';
+    const msg='Hi '+(c.parent||c.name)+'!\n\nThank you for visiting MiniCuts — '+c.name+' looked amazing!\n\n'+stampLine+'\n'+gameLine+'\n\nCheck your loyalty passport here:\n'+portalUrl+'\n\nIf you enjoyed your visit, a Google review means the world to us:\nhttps://share.google/xpTR5fVOVbt4pwg8X\n\nSee you soon!\nMiniCuts DSO';
     openWA(mobile,msg);
   }catch(e){toast('Error: '+e.message,'error');}
 }
