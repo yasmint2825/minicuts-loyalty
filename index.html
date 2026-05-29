@@ -153,6 +153,7 @@ const SB_URL='https://wtapyfgtwkjyjrjdnhkb.supabase.co';
    alter table customers add column if not exists dob date;
    alter table customers add column if not exists last_visit_date timestamptz;
    alter table customers add column if not exists nudge_sent_at timestamptz;
+   alter table customers add column if not exists followup_sent_at timestamptz;
    alter table customers add column if not exists dnd boolean default false;
 */
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind0YXB5Zmd0d2tqeWpyamRuaGtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0NDc3ODEsImV4cCI6MjA5NTAyMzc4MX0.y_-iPfb8Pcg9zh42h6RGVBsUVZm80LcA9sPlz_Gl_fA';
@@ -975,6 +976,31 @@ function renderProfile(c,visits,cycles){
   // Cycle history tab
   const cycleHtml=buildCycleHistory(cycles,st,c);
 
+  // Build follow-up message
+  const portalUrl='https://yasmint2825.github.io/minicuts-loyalty/?customer=1&lookup='+encodeURIComponent(c.mobile);
+  const stamps=st;const pN=paid;
+  const stampLine=st>=pN?'🎁 Your FREE haircut is ready — come in and claim it!':
+    `You have ${st} stamp${st!==1?'s':''} — just ${pN-st} more for a FREE haircut!`;
+  const gameLine=(c.game_points||0)>0?`🎮 You have ${c.game_points} game points too!`:'🎮 Ask us about our Game Zone next visit!';
+  const followupMsg=`Hi ${c.parent||c.name}! 🐼
+
+Thank you for visiting MiniCuts — ${c.name} looked amazing! 💇
+
+${stampLine}
+${gameLine}
+
+Check your loyalty passport here:
+${portalUrl}
+
+If you enjoyed your visit, we'd love a Google review — it means the world to a small business like ours 🙏
+⭐ https://share.google/xpTR5fVOVbt4pwg8X
+
+See you soon!
+MiniCuts DSO 🐼`;
+
+  const followupSent=c.followup_sent_at;
+  const followupAge=followupSent?Math.round((new Date()-new Date(followupSent))/(1000*60*60*24)):null;
+
   document.getElementById('PC').innerHTML=`
     <div style="display:flex;align-items:center;gap:18px;margin-bottom:22px;flex-wrap:wrap;">
       <div style="width:68px;height:68px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:800;font-family:var(--fh);background:${c.gender==='girl'?'var(--pinkl)':'var(--bl)'};color:${c.gender==='girl'?'var(--pink)':'var(--b)'};">${c.name.charAt(0).toUpperCase()}</div>
@@ -1519,6 +1545,128 @@ function sendWA(id,mobile,gender,name,stamps,paid,msgType='lapsed'){
   document.getElementById('_wa_cancel').addEventListener('click',()=>document.body.removeChild(overlay));
   overlay.addEventListener('click',(e)=>{if(e.target===overlay) document.body.removeChild(overlay);});
 }
+function buildFollowupSection(c,followupSent,followupAge,followupMsg){
+  const pc=document.getElementById('PC');
+  if(!pc||document.getElementById('fu-'+c.id)) return;
+  const wrap=document.createElement('div');
+  wrap.id='fu-'+c.id;
+  wrap.style.marginTop='16px';
+
+  // Status bar
+  const status=document.createElement('div');
+  if(followupSent){
+    status.style.cssText='background:#F0FDF4;border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:10px;margin-bottom:10px;';
+    status.innerHTML='<span style="font-size:18px;">✅</span><div style="flex:1;"><div style="font-size:13px;font-weight:700;color:#16A34A;">Follow-up sent '+(followupAge===0?'today':followupAge===1?'yesterday':followupAge+' days ago')+'</div><div style="font-size:11px;color:#6B7280;">'+new Date(followupSent).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})+'</div></div>';
+    const resetBtn=document.createElement('button');
+    resetBtn.textContent='Reset';
+    resetBtn.style.cssText='font-size:11px;color:#6B7280;background:none;cursor:pointer;padding:4px 8px;border:1px solid #E5E7EB;border-radius:6px;';
+    resetBtn.onclick=()=>resetFollowup(c.id);
+    status.appendChild(resetBtn);
+  }
+
+  // Card
+  const card=document.createElement('div');
+  card.style.cssText='background:#fff;border-radius:12px;border:1px solid #E5E7EB;padding:16px;';
+
+  // Header
+  const header=document.createElement('div');
+  header.style.cssText='display:flex;align-items:center;gap:8px;margin-bottom:12px;';
+  header.innerHTML='<span style="font-size:16px;">💬</span><div style="font-family:var(--fh);font-size:15px;font-weight:800;color:var(--text);">After-Visit Follow-up</div><span style="font-size:11px;color:var(--muted);margin-left:auto;">Send same or next day</span>';
+
+  // Message preview
+  const preview=document.createElement('div');
+  preview.style.cssText='background:#F8FAFF;border-radius:10px;padding:12px;margin-bottom:12px;border:1px solid #E3EEFF;';
+  const previewLabel=document.createElement('div');
+  previewLabel.style.cssText='font-size:11px;color:var(--muted);margin-bottom:6px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;';
+  previewLabel.textContent='Message preview';
+  const previewText=document.createElement('div');
+  previewText.style.cssText='font-size:12.5px;color:var(--text);line-height:1.7;white-space:pre-line;';
+  previewText.textContent=followupMsg;
+  preview.appendChild(previewLabel);
+  preview.appendChild(previewText);
+
+  // Action buttons
+  const actions=document.createElement('div');
+  if(!followupSent){
+    actions.style.cssText='display:grid;grid-template-columns:1fr 1fr;gap:10px;';
+    const waBtn=document.createElement('button');
+    waBtn.className='btn bs bsm';
+    waBtn.textContent='💬 Open WhatsApp';
+    waBtn.onclick=()=>sendFollowup(c.id,c.mobile,c.name);
+    const markBtn=document.createElement('button');
+    markBtn.className='btn by bsm';
+    markBtn.textContent='✅ Mark as Sent';
+    markBtn.onclick=()=>markFollowupSent(c.id);
+    actions.appendChild(waBtn);
+    actions.appendChild(markBtn);
+    const hint=document.createElement('div');
+    hint.style.cssText='font-size:11px;color:var(--muted);text-align:center;margin-top:8px;';
+    hint.textContent='Tap WhatsApp → send → come back → Mark as Sent';
+    card.appendChild(hint);
+  } else {
+    const waBtn=document.createElement('button');
+    waBtn.className='btn bg2 bsm';
+    waBtn.style.width='100%';
+    waBtn.textContent='💬 Send Again on WhatsApp';
+    waBtn.onclick=()=>sendFollowup(c.id,c.mobile,c.name);
+    actions.appendChild(waBtn);
+  }
+
+  card.appendChild(header);
+  if(followupSent) card.appendChild(status);
+  card.appendChild(preview);
+  card.appendChild(actions);
+  wrap.appendChild(card);
+  pc.appendChild(wrap);
+}
+
+async function sendFollowup(id,mobile,name){
+  // Get fresh customer data for message
+  try{
+    const rows=await sbFresh('customers','select=*&id=eq.'+id);
+    if(!rows||!rows.length) return;
+    const c=rows[0];
+    const st=parseInt(c.stamps)||0;
+    const pN=paidNeeded();
+    const portalUrl='https://yasmint2825.github.io/minicuts-loyalty/?customer=1&lookup='+encodeURIComponent(c.mobile);
+    const stampLine=st>=pN?'🎁 Your FREE haircut is ready — come in and claim it!':
+      'You have '+st+' stamp'+(st!==1?'s':'')+' — just '+(pN-st)+' more for a FREE haircut!';
+    const gameLine=(c.game_points||0)>0?'🎮 You have '+c.game_points+' game points too!':'🎮 Ask us about our Game Zone next visit!';
+    const msg='Hi '+(c.parent||c.name)+'! 🐼
+
+Thank you for visiting MiniCuts — '+c.name+' looked amazing! 💇
+
+'+stampLine+'
+'+gameLine+'
+
+Check your loyalty passport here:
+'+portalUrl+'
+
+If you enjoyed your visit, we'd love a Google review — it means the world to a small business like ours 🙏
+⭐ https://share.google/xpTR5fVOVbt4pwg8X
+
+See you soon!
+MiniCuts DSO 🐼';
+    openWA(mobile,msg);
+  }catch(e){toast('Error: '+e.message,'error');}
+}
+
+async function markFollowupSent(id){
+  try{
+    await sb('customers','PATCH',{followup_sent_at:new Date().toISOString()},'id=eq.'+id);
+    toast('✅ Follow-up marked as sent!');
+    viewProfile(id); // refresh profile
+  }catch(e){toast('Error: '+e.message,'error');}
+}
+
+async function resetFollowup(id){
+  try{
+    await sb('customers','PATCH',{followup_sent_at:null},'id=eq.'+id);
+    toast('Follow-up reset');
+    viewProfile(id);
+  }catch(e){toast('Error: '+e.message,'error');}
+}
+
 async function openQR(id){
   const c=(await sb('customers','GET',null,'select=*&id=eq.'+id))[0];
   const el=document.getElementById('QMC');el.innerHTML='';
