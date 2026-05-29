@@ -34,29 +34,29 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,var(--bd)
 .sb-milestone{font-size:10px;color:rgba(255,255,255,.45);margin-top:1px;}
 .rank-badge{background:rgba(255,214,0,.2);border:1px solid rgba(255,214,0,.4);border-radius:8px;padding:6px 10px;text-align:center;margin-bottom:10px;}
 .rank-badge-txt{font-family:'Baloo 2',cursive;font-size:13px;font-weight:800;color:var(--y);}
-.screen{display:none;width:100%;max-width:420px;padding:8px 0;}
+.screen{display:none;width:100%;max-width:600px;padding:8px 0;}
 .screen.active{display:block;}
-.brand{font-family:'Baloo 2',cursive;font-size:26px;font-weight:900;color:var(--y);text-align:center;text-shadow:2px 2px 0 var(--bd);}
+.brand{font-family:'Baloo 2',cursive;font-size:30px;font-weight:900;color:var(--y);text-align:center;text-shadow:2px 2px 0 var(--bd);}
 .sub{color:rgba(255,255,255,.8);font-size:12px;text-align:center;margin-bottom:10px;}
-.card{background:#fff;border-radius:18px;padding:18px;margin-bottom:10px;box-shadow:0 2px 12px rgba(0,0,0,.15);}
-.card-title{font-family:'Baloo 2',cursive;font-size:19px;font-weight:800;color:var(--bd);margin-bottom:10px;text-align:center;}
-.fi{width:100%;padding:10px 14px;border:2px solid #E5E7EB;border-radius:10px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;text-align:center;outline:none;color:#1A1A2E;}
+.card{background:#fff;border-radius:20px;padding:22px;margin-bottom:12px;box-shadow:0 2px 16px rgba(0,0,0,.15);}
+.card-title{font-family:'Baloo 2',cursive;font-size:22px;font-weight:800;color:var(--bd);margin-bottom:12px;text-align:center;}
+.fi{width:100%;padding:12px 16px;border:2px solid #E5E7EB;border-radius:12px;font-family:'Nunito',sans-serif;font-size:17px;font-weight:700;text-align:center;outline:none;color:#1A1A2E;}
 .fi:focus{border-color:var(--y);}
-.btn{display:block;width:100%;padding:12px;border:none;border-radius:12px;font-family:'Baloo 2',cursive;font-size:17px;font-weight:800;cursor:pointer;transition:transform .15s;text-align:center;}
+.btn{display:block;width:100%;padding:14px;border:none;border-radius:14px;font-family:'Baloo 2',cursive;font-size:19px;font-weight:800;cursor:pointer;transition:transform .15s;text-align:center;}
 .btn:active{transform:scale(.97);}
 .btn-y{background:linear-gradient(135deg,var(--y),#FF8C00);color:var(--bd);}
 .btn-b{background:var(--b);color:#fff;}
 .btn-ghost{background:rgba(255,255,255,.15);border:2px solid rgba(255,255,255,.3);color:#fff;}
-.pts-badge{display:inline-flex;align-items:center;gap:5px;background:var(--y);color:var(--bd);padding:5px 14px;border-radius:99px;font-family:'Baloo 2',cursive;font-size:17px;font-weight:900;}
+.pts-badge{display:inline-flex;align-items:center;gap:6px;background:var(--y);color:var(--bd);padding:7px 18px;border-radius:99px;font-family:'Baloo 2',cursive;font-size:20px;font-weight:900;}
 .prog-wrap{background:#E5E7EB;border-radius:99px;height:16px;overflow:hidden;margin:8px 0;}
 .prog-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--y),#FF8C00);transition:width .8s cubic-bezier(.175,.885,.32,1.275);}
 .prog-labels{display:flex;justify-content:space-between;font-size:11px;color:#6B7280;margin-top:2px;}
-.game-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:4px;}
-.game-card{background:linear-gradient(135deg,var(--bd),var(--b));border-radius:14px;padding:16px 10px;text-align:center;cursor:pointer;border:3px solid transparent;transition:all .2s;}
+.game-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:4px;}
+.game-card{background:linear-gradient(135deg,var(--bd),var(--b));border-radius:16px;padding:20px 12px;text-align:center;cursor:pointer;border:3px solid transparent;transition:all .2s;}
 .game-card:hover,.game-card:active{border-color:var(--y);transform:scale(.97);}
-.game-emoji{font-size:32px;display:block;margin-bottom:6px;}
-.game-name{font-family:'Baloo 2',cursive;font-size:14px;font-weight:800;color:#fff;}
-.game-desc{font-size:10px;color:rgba(255,255,255,.7);margin-top:2px;}
+.game-emoji{font-size:42px;display:block;margin-bottom:8px;}
+.game-name{font-family:'Baloo 2',cursive;font-size:17px;font-weight:800;color:#fff;}
+.game-desc{font-size:13px;color:rgba(255,255,255,.7);margin-top:4px;}
 .tier-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #F3F4F6;}
 .tier-row:last-child{border-bottom:none;}
 .lb-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #F3F4F6;}
@@ -84,7 +84,7 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,var(--bd)
 .reward-banner{background:linear-gradient(135deg,var(--y),#FF8C00);border-radius:14px;padding:16px;text-align:center;margin:12px 0;}
 /* TAP PANDA GAME */
 #pandaTarget{position:absolute;font-size:52px;cursor:pointer;transition:none;z-index:10;line-height:1;}
-#tapGame{position:relative;background:#0D47A1;border-radius:16px;height:200px;overflow:hidden;margin-bottom:10px;border:3px solid var(--y);}
+#tapGame{position:relative;background:#0D47A1;border-radius:16px;height:260px;overflow:hidden;margin-bottom:10px;border:3px solid var(--y);}
 .tap-hud{display:flex;justify-content:space-between;margin-bottom:8px;}
 .hud-box{background:rgba(255,255,255,.12);border-radius:10px;padding:7px 14px;text-align:center;flex:1;margin:0 4px;}
 .hud-lbl{font-size:10px;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.5px;}
@@ -95,7 +95,7 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,var(--bd)
 <body>
 <div class="layout">
 <div class="game-area">
-<div style="width:100%;max-width:420px;padding-bottom:20px;">
+<div style="width:100%;max-width:600px;padding-bottom:20px;">
 
 <!-- LOGIN -->
 <div class="screen active" id="s-login">
@@ -107,29 +107,44 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,var(--bd)
       <div style="font-size:11px;color:rgba(255,255,255,.75);margin-top:2px;">Play · Earn Points · Win Prizes 🎁</div>
     </div>
   </div>
-  <!-- Instructions: compact horizontal strip -->
-  <div style="background:rgba(255,255,255,.1);border-radius:12px;padding:10px 12px;margin-bottom:10px;border:1px solid rgba(255,255,255,.15);">
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px;">
-      <div style="background:rgba(255,255,255,.08);border-radius:8px;padding:7px 4px;text-align:center;">
-        <span style="font-size:18px;">🎡</span>
-        <div style="font-size:10px;font-weight:800;color:#fff;margin-top:2px;">Spin</div>
-        <div style="font-size:9px;color:rgba(255,255,255,.55);">2 chances</div>
+  <!-- Instructions: full width, bigger for tablet -->
+  <div style="background:rgba(255,255,255,.1);border-radius:14px;padding:14px;margin-bottom:12px;border:1px solid rgba(255,255,255,.15);">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px;">
+      <div style="background:rgba(255,255,255,.08);border-radius:12px;padding:14px 8px;text-align:center;">
+        <div style="font-size:36px;margin-bottom:6px;">🎡</div>
+        <div style="font-family:'Baloo 2',cursive;font-size:16px;font-weight:800;color:#FFD600;">Spin Wheel</div>
+        <div style="font-size:13px;color:rgba(255,255,255,.7);margin-top:4px;">2 chances</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.45);margin-top:2px;">Best score wins</div>
       </div>
-      <div style="background:rgba(255,255,255,.08);border-radius:8px;padding:7px 4px;text-align:center;">
-        <span style="font-size:18px;">🐼</span>
-        <div style="font-size:10px;font-weight:800;color:#fff;margin-top:2px;">Tap Panda</div>
-        <div style="font-size:9px;color:rgba(255,255,255,.55);">10 secs</div>
+      <div style="background:rgba(255,255,255,.12);border-radius:12px;padding:14px 8px;text-align:center;border:1.5px solid rgba(255,214,0,.3);">
+        <div style="font-size:36px;margin-bottom:6px;">🐼</div>
+        <div style="font-family:'Baloo 2',cursive;font-size:16px;font-weight:800;color:#FFD600;">Tap Panda</div>
+        <div style="font-size:13px;color:rgba(255,255,255,.7);margin-top:4px;">10 seconds!</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.45);margin-top:2px;">1 tap = 1 point</div>
       </div>
-      <div style="background:rgba(255,255,255,.08);border-radius:8px;padding:7px 4px;text-align:center;">
-        <span style="font-size:18px;">🧠</span>
-        <div style="font-size:10px;font-weight:800;color:#fff;margin-top:2px;">Memory</div>
-        <div style="font-size:9px;color:rgba(255,255,255,.55);">Match pairs</div>
+      <div style="background:rgba(255,255,255,.08);border-radius:12px;padding:14px 8px;text-align:center;">
+        <div style="font-size:36px;margin-bottom:6px;">🧠</div>
+        <div style="font-family:'Baloo 2',cursive;font-size:16px;font-weight:800;color:#FFD600;">Memory</div>
+        <div style="font-size:13px;color:rgba(255,255,255,.7);margin-top:4px;">Match pairs</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.45);margin-top:2px;">Quick!</div>
       </div>
     </div>
-    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
-      <span style="font-size:11px;color:rgba(255,255,255,.8);">⚡ All 3 under <strong style="color:var(--y);">1 min</strong></span>
-      <span style="font-size:11px;color:rgba(255,255,255,.8);">🎯 Max <strong style="color:var(--y);">3 games</strong> per visit</span>
-      <span style="font-size:11px;color:rgba(255,255,255,.8);">🏆 Win <strong style="color:var(--y);">prizes!</strong></span>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+      <div style="text-align:center;background:rgba(255,255,255,.06);border-radius:8px;padding:8px 6px;">
+        <div style="font-size:18px;">⚡</div>
+        <div style="font-size:13px;font-weight:700;color:#fff;margin-top:3px;">Under <span style="color:#FFD600;">1 minute</span></div>
+        <div style="font-size:11px;color:rgba(255,255,255,.5);">all 3 games</div>
+      </div>
+      <div style="text-align:center;background:rgba(255,255,255,.06);border-radius:8px;padding:8px 6px;">
+        <div style="font-size:18px;">🎯</div>
+        <div style="font-size:13px;font-weight:700;color:#fff;margin-top:3px;">Max <span style="color:#FFD600;">3 games</span></div>
+        <div style="font-size:11px;color:rgba(255,255,255,.5);">per visit</div>
+      </div>
+      <div style="text-align:center;background:rgba(255,255,255,.06);border-radius:8px;padding:8px 6px;">
+        <div style="font-size:18px;">🎁</div>
+        <div style="font-size:13px;font-weight:700;color:#fff;margin-top:3px;"><span style="color:#FFD600;">Win prizes!</span></div>
+        <div style="font-size:11px;color:rgba(255,255,255,.5);">50-150 pts</div>
+      </div>
     </div>
   </div>
   <!-- Login form: compact -->
@@ -164,8 +179,19 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,var(--bd)
     <input class="fi" type="text" id="regName" placeholder="Child's name *" maxlength="20" style="margin-bottom:10px;">
     <input class="fi" type="tel" id="regMobile" placeholder="Parent mobile number *" maxlength="15" style="margin-bottom:10px;">
     <input class="fi" type="text" id="regParent" placeholder="Parent's name (optional)" maxlength="30" style="margin-bottom:10px;">
-    <label style="font-size:12px;font-weight:700;color:#6B7280;display:block;margin-bottom:3px;text-align:left;">Date of Birth <span style="color:#DC2626;font-weight:900;">*</span></label>
-    <input class="fi" type="date" id="regDob" required style="margin-bottom:10px;border:2.5px solid #FFD600;background:#FFFDE7;">
+<label style="font-size:12px;font-weight:700;color:#6B7280;display:block;margin-bottom:6px;text-align:left;">Date of Birth <span style="color:#DC2626;font-weight:900;">*</span></label>
+    <div style="display:grid;grid-template-columns:1fr 2fr 1.5fr;gap:8px;margin-bottom:10px;" id="dobRow">
+      <select id="dobDay" class="fi" style="padding:10px 8px;font-size:15px;text-align:center;appearance:auto;-webkit-appearance:auto;">
+        <option value="">Day</option><option value="01">1</option><option value="02">2</option><option value="03">3</option><option value="04">4</option><option value="05">5</option><option value="06">6</option><option value="07">7</option><option value="08">8</option><option value="09">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option><option value="24">24</option><option value="25">25</option><option value="26">26</option><option value="27">27</option><option value="28">28</option><option value="29">29</option><option value="30">30</option><option value="31">31</option>
+      </select>
+      <select id="dobMonth" class="fi" style="padding:10px 8px;font-size:15px;appearance:auto;-webkit-appearance:auto;">
+        <option value="">Month</option><option value="01">January</option><option value="02">February</option><option value="03">March</option><option value="04">April</option><option value="05">May</option><option value="06">June</option><option value="07">July</option><option value="08">August</option><option value="09">September</option><option value="10">October</option><option value="11">November</option><option value="12">December</option>
+      </select>
+      <select id="dobYear" class="fi" style="padding:10px 8px;font-size:15px;text-align:center;appearance:auto;-webkit-appearance:auto;">
+        <option value="">Year</option>
+        <option value="2024">2024</option><option value="2023">2023</option><option value="2022">2022</option><option value="2021">2021</option><option value="2020">2020</option><option value="2019">2019</option><option value="2018">2018</option><option value="2017">2017</option><option value="2016">2016</option><option value="2015">2015</option><option value="2014">2014</option><option value="2013">2013</option><option value="2012">2012</option><option value="2011">2011</option><option value="2010">2010</option><option value="2009">2009</option><option value="2008">2008</option><option value="2007">2007</option><option value="2006">2006</option><option value="2005">2005</option><option value="2004">2004</option><option value="2003">2003</option><option value="2002">2002</option><option value="2001">2001</option><option value="2000">2000</option><option value="1999">1999</option><option value="1998">1998</option><option value="1997">1997</option><option value="1996">1996</option><option value="1995">1995</option><option value="1994">1994</option><option value="1993">1993</option><option value="1992">1992</option><option value="1991">1991</option><option value="1990">1990</option>
+      </select>
+    </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
       <div id="regBoy" onclick="setRegGender('boy')" style="padding:12px;border-radius:12px;border:2.5px solid #E5E7EB;text-align:center;cursor:pointer;transition:all .2s;">
         <div style="font-size:28px;">👦</div>
@@ -244,9 +270,9 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,var(--bd)
     <span id="pandaReact" style="font-size:52px;display:block;min-height:65px;">🐼</span>
     <div style="font-size:12px;color:rgba(255,255,255,.7);" id="spinChanceLabel">Spin 1 of 2</div>
   </div>
-  <div style="position:relative;width:300px;height:300px;margin:0 auto 12px;">
+  <div style="position:relative;width:340px;height:340px;margin:0 auto 12px;">
     <div style="position:absolute;top:-14px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:13px solid transparent;border-right:13px solid transparent;border-top:26px solid var(--y);z-index:10;filter:drop-shadow(0 2px 4px rgba(0,0,0,.4));"></div>
-    <canvas id="wCanvas" width="300" height="300" style="border-radius:50%;box-shadow:0 8px 32px rgba(0,0,0,.4);"></canvas>
+    <canvas id="wCanvas" width="340" height="340" style="border-radius:50%;box-shadow:0 8px 32px rgba(0,0,0,.4);"></canvas>
   </div>
   <div style="text-align:center;margin-bottom:10px;">
     <div style="font-size:12px;color:rgba(255,255,255,.7);">Best so far: <strong id="bestSoFar" style="color:var(--y);">—</strong></div>
@@ -584,7 +610,9 @@ async function doLogin(){
 function goToRegister(name,mobile,msg){
   document.getElementById('regName').value=name||'';
   document.getElementById('regMobile').value=mobile||'';
-  document.getElementById('regDob').value='';
+  const dd=document.getElementById('dobDay');if(dd) dd.value='';
+  const dm=document.getElementById('dobMonth');if(dm) dm.value='';
+  const dy=document.getElementById('dobYear');if(dy) dy.value='';
   document.getElementById('regParent').value='';
   document.getElementById('regMsg').style.display='none';
   setRegGender('boy');
@@ -601,7 +629,10 @@ async function doRegister(){
   const name=document.getElementById('regName').value.trim();
   const mobile=document.getElementById('regMobile').value.trim();
   const parent=document.getElementById('regParent').value.trim();
-  const dob=document.getElementById('regDob').value;
+  const dobDay=document.getElementById('dobDay').value;
+  const dobMonth=document.getElementById('dobMonth').value;
+  const dobYear=document.getElementById('dobYear').value;
+  const dob=(dobYear&&dobMonth&&dobDay)?(dobYear+'-'+dobMonth+'-'+dobDay):null;
   document.getElementById('regMsg').style.display='none';
   if(!name){showRegMsg("Please enter child's name",false);return;}
   
@@ -792,7 +823,7 @@ const SEGS=[
 let spinCount=0,bestSpinPts=0,spinAngle=0,isSpinning=false;
 const cvs=document.getElementById('wCanvas');
 const ctx=cvs.getContext('2d');
-const CX=150,CY=150,R=135;
+const CX=170,CY=170,R=155;
 
 function drawWheel(rot=0){
   ctx.clearRect(0,0,300,300);
