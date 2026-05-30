@@ -865,19 +865,26 @@ async function loadAfterService(){
     const now=new Date();
     const cutoff=new Date(now.getTime()-48*60*60*1000);
 
-    const pending=all.filter(c=>{
-      // Use last_visit_date if available, otherwise fall back to created_at
+    const rawPending=all.filter(c=>{
       const lastActivity=c.last_visit_date||c.created_at;
       if(!lastActivity) return false;
       const activityDate=new Date(lastActivity);
-      if(activityDate<cutoff) return false; // older than 48hrs
-      // Skip if followup already sent AFTER the last activity
+      if(activityDate<cutoff) return false;
       if(c.followup_sent_at){
         const sent=new Date(c.followup_sent_at);
         if(sent>=activityDate) return false;
       }
       return true;
     });
+    // Deduplicate by mobile — keep only the most recent entry per mobile
+    const seenMobiles=new Map();
+    rawPending.forEach(c=>{
+      const lastActivity=new Date(c.last_visit_date||c.created_at);
+      if(!seenMobiles.has(c.mobile)||lastActivity>seenMobiles.get(c.mobile).lastActivity){
+        seenMobiles.set(c.mobile,{...c,lastActivity});
+      }
+    });
+    const pending=[...seenMobiles.values()];
 
     if(!pending.length){
       el.innerHTML=`<div style="text-align:center;padding:24px;">
@@ -1054,6 +1061,8 @@ function renderCT(data){
       <td>${dots} <span style="font-size:11px;color:var(--muted);margin-left:2px;">${st}/${paidNeeded()}</span></td>
       <td><span class="badge ${s.cls}">${s.label}</span>${c.dnd?' <span class="badge bg-err" style="font-size:10px;">🔕 DND</span>':''}</td>
       <td style="font-size:12.5px;">${fmtDate(c.expiry_date)}</td>
+      <td style="font-size:12px;color:var(--muted);white-space:nowrap;">${fmtDate(c.created_at)||'—'}</td>
+      <td style="font-size:12px;color:var(--muted);white-space:nowrap;">${fmtDate(c.last_visit_date)||'—'}</td>
       <td><div style="display:flex;gap:5px;flex-wrap:wrap;">
         <button class="btn bp bsm" onclick="viewProfile('${c.id}')">View</button>
         <button class="btn bg2 bsm" onclick="openEditM('${c.id}')" title="Edit">✏️</button>
@@ -1063,7 +1072,7 @@ function renderCT(data){
         <button class="btn bg2 bsm" onclick="openQR('${c.id}')">QR</button>
       </div></td></tr>`;
   }).join('');
-  document.getElementById('CT').innerHTML=`<div class="tw"><table><thead><tr><th>Name</th><th>Mobile</th><th>Gender</th><th>Stamps</th><th>Status</th><th>Expiry</th><th>Actions</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  document.getElementById('CT').innerHTML=`<div class="tw"><table><thead><tr><th>Name</th><th>Mobile</th><th>Gender</th><th>Stamps</th><th>Status</th><th>Registered</th><th>Last Visit</th><th>Actions</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 function searchC(){
   const q=(document.getElementById('CS')?.value||'').trim().toLowerCase();
@@ -1072,11 +1081,26 @@ function searchC(){
   let data=[...allC];
   if(q) data=data.filter(c=>c.mobile.includes(q)||c.name.toLowerCase().includes(q)||(c.parent||'').toLowerCase().includes(q));
   if(gf) data=data.filter(c=>c.gender===gf);
+  const fromDate=document.getElementById('CF_FROM')?.value;
+  const toDate=document.getElementById('CF_TO')?.value;
+  if(fromDate||toDate){
+    data=data.filter(c=>{
+      // Filter by last_visit_date OR created_at whichever is more recent
+      const d=c.last_visit_date||c.created_at;
+      if(!d) return false;
+      const dt=new Date(d);
+      if(fromDate&&dt<new Date(fromDate)) return false;
+      if(toDate&&dt>new Date(toDate+'T23:59:59')) return false;
+      return true;
+    });
+  }
   if(dashFilter==='active') data=data.filter(c=>!isExp(c));
   else if(dashFilter==='rewards') data=data.filter(c=>(c.stamps||0)>=paidNeeded()&&!isExp(c));
   if(sf==='expiry') data.sort((a,b)=>{if(!a.expiry_date)return 1;if(!b.expiry_date)return -1;return new Date(a.expiry_date)-new Date(b.expiry_date);});
   else if(sf==='stamps') data.sort((a,b)=>(b.stamps||0)-(a.stamps||0));
   else if(sf==='status') data.sort((a,b)=>getStatus(a).label.localeCompare(getStatus(b).label));
+  else if(sf==='last_visit') data.sort((a,b)=>{if(!a.last_visit_date)return 1;if(!b.last_visit_date)return -1;return new Date(b.last_visit_date)-new Date(a.last_visit_date);});
+  else if(sf==='registered') data.sort((a,b)=>{if(!a.created_at)return 1;if(!b.created_at)return -1;return new Date(b.created_at)-new Date(a.created_at);});
   else data.sort((a,b)=>a.name.localeCompare(b.name));
   renderCT(data);
 }
@@ -1313,14 +1337,25 @@ async function createC(){
   if(!name||!phone){toast('Name and mobile required.','error');return;}
   if(!dob){toast('⛔ Date of birth is required!','error');document.getElementById('NC6').focus();return;}
   try{
-    const ex=await sb('customers','GET',null,'select=id&mobile=eq.'+encodeURIComponent(phone)+'&gender=eq.'+ncG+'&name=eq.'+encodeURIComponent(name));
-    if(ex.length){toast('This child already has a passport. Search by mobile to find them.','error');return;}
+    const ex=await sb('customers','GET',null,'select=id,name&mobile=eq.'+encodeURIComponent(phone));
+    const exactDup=ex.find(r=>r.name.trim().toLowerCase()===name.toLowerCase());
+    if(exactDup){toast('Duplicate: '+name+' already has a passport under this mobile number.','error');return;}
     const now=new Date().toISOString();
     const months=ncG==='girl'?CFG.girlMonths:CFG.boyMonths;
-    await sb('customers','POST',{name,mobile:phone,parent,notes,dob,gender:ncG,stamps,redemptions:0,
+    const res=await sb('customers','POST',{name,mobile:phone,parent,notes,dob,gender:ncG,stamps,redemptions:0,
       first_stamp_date:stamps>0?now:null,
       expiry_date:stamps>0?addMonths(now,months):null,
       last_visit_date:stamps>0?now:null}); // ← triggers After-Service Alert
+    const newC=Array.isArray(res)?res[0]:res;
+    // If starting stamps > 0, log a visit so it shows in Recent Visits
+    if(stamps>0&&newC&&newC.id){
+      await sb('visits','POST',{
+        customer_id:newC.id,
+        type:'paid',
+        stamp_count_after:stamps,
+        cycle_expiry:stamps>0?addMonths(now,months):null
+      });
+    }
     toast(`🐼 Passport created for ${name}!`);
     clearNC();showPage('customers',null);loadCustomers();
     setTimeout(loadAfterService,500); // refresh alert list
