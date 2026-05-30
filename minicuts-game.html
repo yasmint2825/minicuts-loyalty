@@ -132,18 +132,18 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,var(--bd)
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
       <div style="text-align:center;background:rgba(255,255,255,.06);border-radius:8px;padding:8px 6px;">
         <div style="font-size:18px;">⚡</div>
-        <div style="font-size:13px;font-weight:700;color:#fff;margin-top:3px;">Under <span style="color:#FFD600;">1 minute</span></div>
+        <div style="font-size:13px;font-weight:700;color:#fff;margin-top:3px;">Under <span style="color:#FFD600;">1 min</span></div>
         <div style="font-size:11px;color:rgba(255,255,255,.5);">all 3 games</div>
       </div>
       <div style="text-align:center;background:rgba(255,255,255,.06);border-radius:8px;padding:8px 6px;">
-        <div style="font-size:18px;">🎯</div>
-        <div style="font-size:13px;font-weight:700;color:#fff;margin-top:3px;">Max <span style="color:#FFD600;">3 games</span></div>
-        <div style="font-size:11px;color:rgba(255,255,255,.5);">per visit</div>
+        <div style="font-size:18px;">🏆</div>
+        <div style="font-size:13px;font-weight:700;color:#fff;margin-top:3px;"><span style="color:#FFD600;">6 Levels</span></div>
+        <div style="font-size:11px;color:rgba(255,255,255,.5);">earn badges!</div>
       </div>
       <div style="text-align:center;background:rgba(255,255,255,.06);border-radius:8px;padding:8px 6px;">
-        <div style="font-size:18px;">🎁</div>
-        <div style="font-size:13px;font-weight:700;color:#fff;margin-top:3px;"><span style="color:#FFD600;">Win prizes!</span></div>
-        <div style="font-size:11px;color:rgba(255,255,255,.5);">50-150 pts</div>
+        <div style="font-size:18px;">🐉</div>
+        <div style="font-size:13px;font-weight:700;color:#fff;margin-top:3px;"><span style="color:#FFD600;">Dragon Warrior</span></div>
+        <div style="font-size:11px;color:rgba(255,255,255,.5);">at 300 pts!</div>
       </div>
     </div>
   </div>
@@ -369,9 +369,12 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,var(--bd)
   <div style="text-align:center;margin-bottom:12px;"><div class="brand" style="font-size:22px;">Staff View ⚙️</div></div>
   <div class="card">
     <div class="card-title">Reward Tiers</div>
-    <div class="tier-row"><span style="font-size:22px;">🍭</span><div style="flex:1;"><div style="font-size:13.5px;font-weight:700;">Lollipop</div></div><span style="font-size:12px;color:#6B7280;">50 pts</span></div>
-    <div class="tier-row"><span style="font-size:22px;">🎁</span><div style="flex:1;"><div style="font-size:13.5px;font-weight:700;">Surprise Gift</div></div><span style="font-size:12px;color:#6B7280;">100 pts</span></div>
-    <div class="tier-row"><span style="font-size:22px;">🚿</span><div style="flex:1;"><div style="font-size:13.5px;font-weight:700;">Free Hair Wash</div></div><span style="font-size:12px;color:#6B7280;">150 pts</span></div>
+    <div class="tier-row"><span style="font-size:20px;">🌟</span><div style="flex:1;margin-left:8px;"><div style="font-weight:800;font-size:13px;">L1 · Panda Explorer</div><div style="font-size:11px;color:#6B7280;">Extra Sticker + Lollipop</div></div><span style="font-size:12px;color:#6B7280;font-weight:700;">50pts</span></div>
+    <div class="tier-row"><span style="font-size:20px;">🏅</span><div style="flex:1;margin-left:8px;"><div style="font-weight:800;font-size:13px;">L2 · Panda Adventurer</div><div style="font-size:11px;color:#6B7280;">Surprise Gift</div></div><span style="font-size:12px;color:#6B7280;font-weight:700;">100pts</span></div>
+    <div class="tier-row"><span style="font-size:20px;">🦸</span><div style="flex:1;margin-left:8px;"><div style="font-weight:800;font-size:13px;">L3 · Panda Hero</div><div style="font-size:11px;color:#6B7280;">Surprise Gift</div></div><span style="font-size:12px;color:#6B7280;font-weight:700;">150pts</span></div>
+    <div class="tier-row"><span style="font-size:20px;">⭐</span><div style="flex:1;margin-left:8px;"><div style="font-weight:800;font-size:13px;">L4 · Panda Superstar</div><div style="font-size:11px;color:#6B7280;">Surprise Gift</div></div><span style="font-size:12px;color:#6B7280;font-weight:700;">200pts</span></div>
+    <div class="tier-row"><span style="font-size:20px;">🔥</span><div style="flex:1;margin-left:8px;"><div style="font-weight:800;font-size:13px;">L5 · Panda Legend</div><div style="font-size:11px;color:#6B7280;">Surprise Gift</div></div><span style="font-size:12px;color:#6B7280;font-weight:700;">250pts</span></div>
+    <div class="tier-row"><span style="font-size:20px;">🐉</span><div style="flex:1;margin-left:8px;"><div style="font-weight:800;font-size:13px;">L6 · Panda Dragon Warrior</div><div style="font-size:11px;color:#6B7280;">Surprise Gift</div></div><span style="font-size:12px;color:#6B7280;font-weight:700;">300pts</span></div>
   </div>
   <div class="card">
     <div class="card-title">Reset Points</div>
@@ -410,8 +413,15 @@ async function sb(path,method='GET',body=null,params=''){
 }
 
 // == CONFIG ==
-const TIERS=[{pts:50,icon:'🍭',label:'Lollipop'},{pts:100,icon:'🎁',label:'Surprise Gift'},{pts:150,icon:'🚿',label:'Free Hair Wash'}];
-const MAX_PTS=150;
+const TIERS=[
+  {pts:50,  icon:'🌟', badge:'Panda Explorer',    level:1, reward:'Extra Sticker + Lollipop',   color:'#4CAF50', glow:'rgba(76,175,80,.6)'},
+  {pts:100, icon:'🏅', badge:'Panda Adventurer',  level:2, reward:'Surprise Gift',               color:'#2196F3', glow:'rgba(33,150,243,.6)'},
+  {pts:150, icon:'🦸', badge:'Panda Hero',         level:3, reward:'Surprise Gift',               color:'#9C27B0', glow:'rgba(156,39,176,.6)'},
+  {pts:200, icon:'⭐', badge:'Panda Superstar',    level:4, reward:'Surprise Gift',               color:'#FF8C00', glow:'rgba(255,140,0,.6)'},
+  {pts:250, icon:'🔥', badge:'Panda Legend',       level:5, reward:'Surprise Gift',               color:'#EC4899', glow:'rgba(236,72,153,.6)'},
+  {pts:300, icon:'🐉', badge:'Panda Dragon Warrior',level:6,reward:'Surprise Gift',               color:'#FFD600', glow:'rgba(255,214,0,.8)'},
+];
+const MAX_PTS=300;
 let player={id:null,name:'',mobile:'',game_points:0,game_spins:0};
 let prevScreen='s-profile';
 
@@ -760,9 +770,12 @@ function showAlreadyPlayed(game){
 function drawMilestoneTrack(pts, containerId){
   const el=document.getElementById(containerId);
   if(!el) return;
-  const MAX=160; // max pts for full bar
+  const MAX=300; // max pts for full bar
   const pct=Math.min((pts/MAX)*100,100);
-  const tiers=[{pts:50,icon:'🍭',label:'Lollipop'},{pts:100,icon:'🎁',label:'Surprise Gift'},{pts:150,icon:'🚿',label:'Hair Wash'}];
+  const tiers=[
+    {pts:50,icon:'🌟'},{pts:100,icon:'🏅'},{pts:150,icon:'🦸'},
+    {pts:200,icon:'⭐'},{pts:250,icon:'🔥'},{pts:300,icon:'🐉'}
+  ];
   el.innerHTML=`
     <div style="position:relative;height:56px;margin-bottom:4px;">
       <!-- Track -->
@@ -800,13 +813,15 @@ function renderProfile(){
   document.getElementById('tierList').innerHTML=TIERS.map(t=>{
     const done=pts>=t.pts;
     const needed=t.pts-pts;
-    return`<div class="tier-row">
-      <span style="font-size:${done?'26':'22'}px;filter:${done?'none':'grayscale(.6)'};">${t.icon}</span>
-      <div style="flex:1;margin-left:8px;">
-        <div style="font-size:13px;font-weight:700;color:#1A1A2E;">${t.label}</div>
-        <div style="font-size:11px;color:${done?'#16A34A':'#6B7280'};">${done?'✅ Unlocked!':needed+' more points to go'}</div>
+    const isNext=!done&&TIERS.find(x=>pts<x.pts)===t;
+    return`<div class="tier-row" style="padding:8px 0;border-bottom:1px solid #F3F4F6;">
+      <div style="width:36px;height:36px;border-radius:50%;background:${done?t.color:'#F3F4F6'};display:flex;align-items:center;justify-content:center;font-size:${done?'20':'16'}px;flex-shrink:0;box-shadow:${done?'0 0 10px '+t.glow:'none'};filter:${done?'none':'grayscale(.5)'};">${t.icon}</div>
+      <div style="flex:1;margin-left:10px;">
+        <div style="font-size:13px;font-weight:800;color:${done?t.color:'#6B7280'};">Level ${t.level} · ${t.badge}</div>
+        <div style="font-size:11px;color:${done?'#16A34A':'#9CA3AF'};margin-top:1px;">${t.reward}</div>
+        ${isNext?`<div style="font-size:11px;color:#FF8C00;font-weight:700;margin-top:2px;">⚡ ${needed} more points!</div>`:''}
       </div>
-      <span style="font-family:'Baloo 2',cursive;font-size:14px;font-weight:800;color:${done?'#16A34A':'#9CA3AF'};">${t.pts}</span>
+      <span style="font-family:'Baloo 2',cursive;font-size:13px;font-weight:800;color:${done?t.color:'#9CA3AF'};">${done?'✅':t.pts+'pts'}</span>
     </div>`;
   }).join('');
 }
@@ -1144,18 +1159,37 @@ function showResult(pts){
   document.getElementById('resultPts').textContent='+'+pts;
   document.getElementById('resultTotal').textContent=newTotal+' pts';
   drawMilestoneTrack(newTotal,'resultMilestoneTrack');
+  // Find highest unlocked tier
   const tier=TIERS.slice().reverse().find(t=>newTotal>=t.pts);
+  const next=TIERS.find(t=>newTotal<t.pts);
   const bannerEl=document.getElementById('rewardBanner');
   if(tier){
-    bannerEl.innerHTML=`<div class="reward-banner">
-      <div style="font-size:32px;margin-bottom:6px;">${tier.icon}</div>
-      <div style="font-family:'Baloo 2',cursive;font-size:18px;font-weight:800;color:var(--bd);">Reward Unlocked!</div>
-      <div style="font-size:15px;font-weight:800;color:var(--bd);margin:4px 0;">${tier.label}</div>
-      <div style="font-size:12px;color:var(--bd);opacity:.8;">Show screen to staff to claim 🐼</div>
+    // Check if this game just unlocked a NEW level
+    const prevTotal=newTotal-pts;
+    const justUnlocked=TIERS.slice().reverse().find(t=>newTotal>=t.pts&&prevTotal<t.pts);
+    if(justUnlocked){
+      bannerEl.innerHTML=`<div style="background:linear-gradient(135deg,${justUnlocked.color},${justUnlocked.color}99);border-radius:16px;padding:20px;text-align:center;margin:8px 0;animation:pop .5s cubic-bezier(.175,.885,.32,1.275);">
+        <div style="font-size:48px;margin-bottom:6px;">${justUnlocked.icon}</div>
+        <div style="font-family:'Baloo 2',cursive;font-size:13px;font-weight:800;color:#fff;text-transform:uppercase;letter-spacing:1px;opacity:.85;">LEVEL ${justUnlocked.level} UNLOCKED!</div>
+        <div style="font-family:'Baloo 2',cursive;font-size:24px;font-weight:900;color:#fff;margin:4px 0;">${justUnlocked.badge}</div>
+        <div style="font-size:14px;color:#fff;opacity:.9;margin-top:4px;">${justUnlocked.reward} 🎁</div>
+        <div style="font-size:12px;color:#fff;opacity:.7;margin-top:8px;">Show this screen to staff to claim!</div>
+      </div>`;
+    } else {
+      bannerEl.innerHTML=`<div style="background:#F0FDF4;border-radius:12px;padding:14px;text-align:center;margin:8px 0;display:flex;align-items:center;gap:12px;">
+        <div style="font-size:32px;">${tier.icon}</div>
+        <div style="text-align:left;">
+          <div style="font-size:12px;color:#16A34A;font-weight:700;text-transform:uppercase;">Current Level</div>
+          <div style="font-family:'Baloo 2',cursive;font-size:16px;font-weight:800;color:#15803D;">${tier.badge}</div>
+        </div>
+      </div>`;
+    }
+  } else { bannerEl.innerHTML=''; }
+  if(next){
+    const existing=bannerEl.innerHTML;
+    bannerEl.innerHTML+=`<div style="text-align:center;padding:8px;color:#6B7280;font-size:12px;background:#F9FAFB;border-radius:10px;margin-top:6px;">
+      ${next.pts-newTotal} more pts → ${next.icon} <strong>Level ${next.level}: ${next.badge}</strong>
     </div>`;
-  } else {
-    const next=TIERS.find(t=>newTotal<t.pts);
-    bannerEl.innerHTML=next?`<div style="text-align:center;padding:10px;color:#6B7280;font-size:13px;">${next.pts-newTotal} more points → ${next.icon} ${next.label}</div>`:'';
   }
   if(pts>=10) launchConfetti();
   refreshGameCards();
@@ -1200,9 +1234,12 @@ function renderSidebar(){
   }
 
   const TIERS_SB=[
-    {pts:50,icon:'🍭',label:'Lollipop'},
-    {pts:100,icon:'🎁',label:'Surprise Gift'},
-    {pts:150,icon:'🚿',label:'Free Hair Wash'},
+    {pts:50,  icon:'🌟', label:'Panda Explorer'},
+    {pts:100, icon:'🏅', label:'Panda Adventurer'},
+    {pts:150, icon:'🦸', label:'Panda Hero'},
+    {pts:200, icon:'⭐', label:'Panda Superstar'},
+    {pts:250, icon:'🔥', label:'Panda Legend'},
+    {pts:300, icon:'🐉', label:'Dragon Warrior'},
   ];
   function nextMilestone(pts){
     const next=TIERS_SB.find(t=>pts<t.pts);
