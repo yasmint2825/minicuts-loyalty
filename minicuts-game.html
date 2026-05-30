@@ -572,12 +572,14 @@ async function doLogin(){
 
     if(match){
       // Found exact match — log in
+      resetAllGameState();
       player={...match};
       player.game_points=player.game_points||0;
       player.game_spins=player.game_spins||0;
       player.best_memory_time=player.best_memory_time||null;
       spinCount=0;bestSpinPts=0;
       await checkTodaySessions();
+      await fetchGlobalBests();
       goProfile();
     } else {
       // Mobile exists but this child name not found
