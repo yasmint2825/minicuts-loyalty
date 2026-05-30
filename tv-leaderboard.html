@@ -142,9 +142,12 @@ html,body{
       </div>
     </div>
     <div class="prizes">
-      <div class="prize"><span>🍭</span><span class="prize-name">Lollipop</span><span class="prize-pts">50pts</span></div>
-      <div class="prize"><span>🎁</span><span class="prize-name">Surprise Gift</span><span class="prize-pts">100pts</span></div>
-      <div class="prize"><span>🚿</span><span class="prize-name">Free Hair Wash</span><span class="prize-pts">150pts</span></div>
+      <div class="prize"><span>🌟</span><span class="prize-name">Explorer</span><span class="prize-pts">50pts</span></div>
+      <div class="prize"><span>🏅</span><span class="prize-name">Adventurer</span><span class="prize-pts">100pts</span></div>
+      <div class="prize"><span>🦸</span><span class="prize-name">Hero</span><span class="prize-pts">150pts</span></div>
+      <div class="prize"><span>⭐</span><span class="prize-name">Superstar</span><span class="prize-pts">200pts</span></div>
+      <div class="prize"><span>🔥</span><span class="prize-name">Legend</span><span class="prize-pts">250pts</span></div>
+      <div class="prize" style="background:rgba(255,214,0,.15);border-color:rgba(255,214,0,.4);"><span>🐉</span><span class="prize-name">Dragon Warrior</span><span class="prize-pts">300pts</span></div>
     </div>
     <div class="live">
       <div class="dot"></div>
@@ -169,7 +172,7 @@ html,body{
         <span class="t">🧠 <b>Memory Match</b> — flip the cards and find matching pairs</span>
         <span class="t">⚡ All 3 games in <b>under 1 minute!</b></span>
         <span class="t">🎯 Play <b>1 of each game</b> after every haircut visit</span>
-        <span class="t">🍭 <b>50 pts</b> = Lollipop &nbsp;·&nbsp; 🎁 <b>100 pts</b> = Surprise Gift &nbsp;·&nbsp; 🚿 <b>150 pts</b> = Free Hair Wash</span>
+        <span class="t">🌟 <b>50pts</b> Explorer &nbsp;·&nbsp; 🏅 <b>100pts</b> Adventurer &nbsp;·&nbsp; 🦸 <b>150pts</b> Hero &nbsp;·&nbsp; ⭐ <b>200pts</b> Superstar &nbsp;·&nbsp; 🔥 <b>250pts</b> Legend &nbsp;·&nbsp; 🐉 <b>300pts</b> Dragon Warrior</span>
         <span class="t">⭐ <b>4.9 Google Rating</b> · Highly Rated · Follow us @minicutsdso</span>
         <!-- Duplicate for seamless loop -->
         <span class="t">🎡 <b>Spin the Wheel</b> — 2 chances, best of 2 wins</span>
@@ -177,7 +180,7 @@ html,body{
         <span class="t">🧠 <b>Memory Match</b> — flip the cards and find matching pairs</span>
         <span class="t">⚡ All 3 games in <b>under 1 minute!</b></span>
         <span class="t">🎯 Play <b>1 of each game</b> after every haircut visit</span>
-        <span class="t">🍭 <b>50 pts</b> = Lollipop &nbsp;·&nbsp; 🎁 <b>100 pts</b> = Surprise Gift &nbsp;·&nbsp; 🚿 <b>150 pts</b> = Free Hair Wash</span>
+        <span class="t">🌟 <b>50pts</b> Explorer &nbsp;·&nbsp; 🏅 <b>100pts</b> Adventurer &nbsp;·&nbsp; 🦸 <b>150pts</b> Hero &nbsp;·&nbsp; ⭐ <b>200pts</b> Superstar &nbsp;·&nbsp; 🔥 <b>250pts</b> Legend &nbsp;·&nbsp; 🐉 <b>300pts</b> Dragon Warrior</span>
         <span class="t">⭐ <b>4.9 Google Rating</b> · Highly Rated · Follow us @minicutsdso</span>
       </div>
     </div>
@@ -187,8 +190,15 @@ html,body{
 <script>
 const SB_URL='https://wtapyfgtwkjyjrjdnhkb.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind0YXB5Zmd0d2tqeWpyamRuaGtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0NDc3ODEsImV4cCI6MjA5NTAyMzc4MX0.y_-iPfb8Pcg9zh42h6RGVBsUVZm80LcA9sPlz_Gl_fA';
-const MAX=150;
-const TIERS=[{pts:50,icon:'🍭'},{pts:100,icon:'🎁'},{pts:150,icon:'🚿'}];
+const MAX=300;
+const TIERS=[
+  {pts:50, icon:'🌟',badge:'Explorer'},
+  {pts:100,icon:'🏅',badge:'Adventurer'},
+  {pts:150,icon:'🦸',badge:'Hero'},
+  {pts:200,icon:'⭐',badge:'Superstar'},
+  {pts:250,icon:'🔥',badge:'Legend'},
+  {pts:300,icon:'🐉',badge:'Dragon Warrior'},
+];
 const MEDALS=['🥇','🥈','🥉'];
 const COLORS=[
   {bar:'#FFD600,#FF8C00',glow:'rgba(255,214,0,.7)',av:'#FF8C00'},
@@ -219,7 +229,13 @@ function init(n){
 
 function nextMilestone(pts){
   const n=TIERS.find(t=>pts<t.pts);
-  return n?`${n.pts-pts}pts → ${n.icon}`:'🎉 All unlocked!';
+  if(!n) return '🐉 Dragon Warrior!';
+  return (n.pts-pts)+'pts → '+n.icon+' '+n.badge;
+}
+
+function currentBadge(pts){
+  const t=TIERS.slice().reverse().find(t=>pts>=t.pts);
+  return t?t.icon+' '+t.badge:'No level yet';
 }
 
 function road(pts,rc,size='normal'){
@@ -232,7 +248,7 @@ function road(pts,rc,size='normal'){
   const cps=TIERS.map(t=>{
     const l=(t.pts/MAX)*100;
     const done=pts>=t.pts;
-    return`<div class="cp" style="left:calc(${l}% - 8px);${fs};filter:${done?'none':'grayscale(1) opacity(.25)'};">${t.icon}</div>`;
+    return`<div class="cp" style="left:calc(${l}% - 8px);${fs};filter:${done?'none':'grayscale(1) opacity(.2)'};" title="${t.badge}">${t.icon}</div>`;
   }).join('');
   return`<div class="road" style="${h};">
     <div class="road-track" style="${tw};${th};"></div>
@@ -262,7 +278,10 @@ function renderTop3(data){
         <div class="top-name" style="font-size:${i===0?'24px':'20px'};">${c.name}</div>
         <div class="top-pts" style="color:${ptColor};font-size:${i===0?'40px':'32px'};">${pts}<span style="font-size:14px;opacity:.6;font-family:'Nunito',sans-serif;"> pts</span></div>
         <div class="top-road">${road(pts,rc,'big')}</div>
-        <div class="top-next">${nextMilestone(pts)}</div>
+        <div class="top-next" style="display:flex;flex-direction:column;gap:2px;">
+          <span style="color:${ptColor};font-weight:800;">${currentBadge(pts)}</span>
+          <span style="opacity:.7;">${nextMilestone(pts)}</span>
+        </div>
       </div>
     </div>`;
   }).join('');
@@ -281,6 +300,7 @@ function renderRest(data){
       <div class="mini-av" style="background:linear-gradient(135deg,${rc.bar});box-shadow:0 0 6px ${rc.glow};">${init(c.name)}</div>
       <div class="mini-info">
         <div class="mini-name">${c.name}</div>
+        <div style="font-size:10px;color:rgba(255,255,255,.5);margin:1px 0;">${currentBadge(pts)}</div>
         <div class="mini-road">${road(pts,rc,'small')}</div>
       </div>
       <div class="mini-pts" style="color:transparent;background:linear-gradient(90deg,${rc.bar});-webkit-background-clip:text;background-clip:text;">${pts}</div>
