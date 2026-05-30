@@ -178,7 +178,7 @@ const DC={
   boyWABirthday:'🎂 Happy Birthday to {name}! Wishing him a wonderful day from all of us at MiniCuts 🐼 Come in for a special birthday haircut!',
   girlWABirthday:'🎂 Happy Birthday to {name}! Wishing her a wonderful day from all of us at MiniCuts 🐼 Come in for a special birthday haircut!',
   user:'admin', pass:'minicuts123', resetCode:'MINICUTS2025',
-  afterServiceMsg:'Hi {parent}!\n\nThank you for visiting MiniCuts - {name} looked amazing!\n\nStamps: {stamps} collected - just {needed} more for a FREE haircut!\n{game_points}\n\nCheck your loyalty passport:\n{passport_link}\n\nIf you enjoyed your visit, a Google review means the world to us:\nhttps://share.google/xpTR5fVOVbt4pwg8X\n\nSee you soon!\nMiniCuts DSO'
+  afterServiceMsg:'Hi {parent}!\n\nThank you for visiting MiniCuts - we loved having {name} with us today!\n\nStamps: {stamps} collected - just {needed} more for a FREE haircut!\n{game_points}\n\nCheck your loyalty passport:\n{passport_link}\n\nIf you enjoyed your visit, a Google review means the world to us:\nhttps://share.google/xpTR5fVOVbt4pwg8X\n\nSee you soon!\nMiniCuts DSO'
 };
 let CFG=loadCfg();
 function loadCfg(){try{return Object.assign({},DC,JSON.parse(localStorage.getItem('mc_cfg')||'{}'));}catch(e){return{...DC};}}
@@ -921,8 +921,11 @@ async function loadAfterService(){
       const gameLine=(c.game_points||0)>0?'Game points: '+c.game_points+' pts - keep playing!':'';
       // Use configurable template with placeholder replacement
       const template=CFG.afterServiceMsg||DC.afterServiceMsg;
+      // Greeting uses parent name if available (they're the one on WhatsApp)
+      // but {name} always refers to the child
+      const greetName=c.parent||c.name; // parent gets the WA, so greet them
       const msg=template
-        .replace(/{parent}/g,(c.parent||c.name))
+        .replace(/{parent}/g,greetName)
         .replace(/{name}/g,c.name)
         .replace(/{stamps}/g,String(st))
         .replace(/{needed}/g,String(Math.max(0,pN-st)))
@@ -1171,7 +1174,7 @@ function renderProfile(c,visits,cycles){
   const stampLine=st>=pN?'FREE haircut ready - come claim it!':
     'Stamps: '+st+' of '+pN+' - just '+(pN-st)+' more for a free haircut!';
   const gameLine=(c.game_points||0)>0?'Game points: '+c.game_points+' pts - keep playing!':'Ask us about our Game Zone next visit!';
-  const followupMsg='Hi '+(c.parent||c.name)+'!\n\nThank you for visiting MiniCuts - '+c.name+' looked amazing!\n\n'+stampLine+'\n'+gameLine+'\n\nCheck your loyalty passport:\n'+portalUrl+'\n\nIf you enjoyed your visit, a Google review means the world to us:\nhttps://share.google/xpTR5fVOVbt4pwg8X\n\nSee you soon!\nMiniCuts DSO';
+  const followupMsg='Hi '+(c.parent?c.parent:c.name)+'!\n\nThank you for visiting MiniCuts - '+c.name+' looked amazing!\n\n'+stampLine+'\n'+gameLine+'\n\nCheck your loyalty passport:\n'+portalUrl+'\n\nIf you enjoyed your visit, a Google review means the world to us:\nhttps://share.google/xpTR5fVOVbt4pwg8X\n\nSee you soon!\nMiniCuts DSO';
   const followupSent=c.followup_sent_at;
   const followupAge=followupSent?Math.round((new Date()-new Date(followupSent))/(1000*60*60*24)):null;
 
@@ -1453,11 +1456,23 @@ async function renderMissYou(){
     });
 
     // ── Tab 5: Free cut ready ──
-    const freeCut=custs.filter(c=>(c.stamps||0)>=paidNeeded()&&!isExp(c)&&!c.dnd);
+    // freeCut: ready for free cut, not DND, not already nudged today
+    const todayStr=new Date().toISOString().split('T')[0];
+    const freeCut=custs.filter(c=>{
+      if((c.stamps||0)<paidNeeded()) return false;
+      if(isExp(c)||c.dnd) return false;
+      // Hide if nudge already sent today (staff already actioned)
+      if(c.nudge_sent_at){
+        const sentDay=new Date(c.nudge_sent_at).toISOString().split('T')[0];
+        if(sentDay===todayStr) return false;
+      }
+      return true;
+    });
 
     // ── Tab 6: Waiting ──
     const waiting=custs.filter(c=>{
       if(!c.nudge_sent_at) return false;
+      if(c.dnd) return false; // Bug 1 fix: DND customers must not show in waiting
       const age=now2-new Date(c.nudge_sent_at);
       if(age>TWO_WEEKS) return false;
       const returned=c.last_visit_date&&new Date(c.last_visit_date)>new Date(c.nudge_sent_at);
