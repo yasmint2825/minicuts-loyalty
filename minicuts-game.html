@@ -972,14 +972,27 @@ function goTapPanda(){
   tapScore=0;tapSeconds=10;tapRunning=false;
   document.getElementById('tapCount').textContent='0';
   document.getElementById('tapTime').textContent='10';
+  document.getElementById('tapTime').style.color='#fff';
   document.getElementById('tapBest').textContent=player.best_tap_score||'--';
-  document.getElementById('tapStatus').style.display='block';
-  document.getElementById('tapStatus').innerHTML='Tap the panda!<br><span style="font-size:14px;opacity:.8;">Tap START to begin</span>';
   document.getElementById('tapStartBtn').style.display='block';
   document.getElementById('tapStartBtn').textContent='START! 🐼';
   document.getElementById('tapStartBtn').disabled=false;
+  document.getElementById('tapStartBtn').onclick=startTapGame;
   document.getElementById('pandaTarget').style.display='none';
   if(tapTimer) clearInterval(tapTimer);
+  // Build status with global + personal best
+  let statusHtml='';
+  if(globalBestTap.score){
+    const isChamp=globalBestTap.name===player.name;
+    statusHtml+='<div style="font-size:13px;color:#FFD600;font-weight:800;margin-bottom:5px;">🏆 All-time champion:<br><strong>'+globalBestTap.name+'</strong> — '+globalBestTap.score+' taps'+(isChamp?' (you!)':'')+'</div>';
+  }
+  if(player.best_tap_score){
+    statusHtml+='<div style="font-size:12px;color:rgba(255,255,255,.7);margin-bottom:6px;">Your best: <strong>'+player.best_tap_score+'</strong> taps</div>';
+  }
+  statusHtml+='<div style="font-size:17px;font-weight:800;color:#fff;">Tap the 🐼 fast!</div>';
+  statusHtml+='<div style="font-size:12px;color:rgba(255,255,255,.5);margin-top:3px;">Tap START to begin</div>';
+  document.getElementById('tapStatus').style.display='block';
+  document.getElementById('tapStatus').innerHTML=statusHtml;
   showScreen('s-tap');
 }
 
