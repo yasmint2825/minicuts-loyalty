@@ -312,6 +312,7 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,var(--bd)
     <div class="hud-box"><div class="hud-lbl">Time</div><div class="hud-val" id="memTime">0s</div></div>
     <div class="hud-box"><div class="hud-lbl">Pairs</div><div class="hud-val" id="memPairs">0/4</div></div>
   </div>
+  <div id="memBestHint" style="display:none;background:rgba(255,214,0,.15);border:1px solid rgba(255,214,0,.3);border-radius:10px;padding:8px 12px;margin-bottom:8px;font-size:13px;font-weight:700;color:var(--y);text-align:center;"></div>
   <div id="memGrid" class="mem-grid"></div>
   <button class="btn btn-y" id="memStartBtn" onclick="startMemory()">START! 🧠</button>
   <button class="btn btn-ghost" onclick="goProfile()" style="margin-top:8px;font-size:14px;padding:10px;">🎮 Choose Another Game</button>
@@ -591,6 +592,7 @@ async function doLogin(){
       player={...match};
       player.game_points=player.game_points||0;
       player.game_spins=player.game_spins||0;
+      player.best_memory_time=player.best_memory_time||null;
       spinCount=0;bestSpinPts=0;
       await checkTodaySessions();
       goProfile();
@@ -830,10 +832,10 @@ function renderProfile(){
 // SPIN WHEEL — 2 spins, best of 2
 // ==========================================
 const SEGS=[
-  {pts:1,color:'#EF4444'},{pts:3,color:'#F97316'},{pts:5,color:'#EAB308'},
-  {pts:8,color:'#22C55E'},{pts:10,color:'#3B82F6'},{pts:12,color:'#8B5CF6'},
-  {pts:15,color:'#EC4899'},{pts:15,color:'#FFD600'},{pts:2,color:'#14B8A6'},
-  {pts:5,color:'#F59E0B'},{pts:8,color:'#10B981'},{pts:3,color:'#6366F1'},
+  {pts:10,color:'#3B82F6'},{pts:11,color:'#8B5CF6'},{pts:12,color:'#EC4899'},
+  {pts:13,color:'#22C55E'},{pts:14,color:'#F97316'},{pts:15,color:'#EAB308'},
+  {pts:16,color:'#14B8A6'},{pts:17,color:'#F59E0B'},{pts:18,color:'#10B981'},
+  {pts:19,color:'#6366F1'},{pts:20,color:'#FFD600'},{pts:10,color:'#EF4444'},
 ];
 let spinCount=0,bestSpinPts=0,spinAngle=0,isSpinning=false;
 const cvs=document.getElementById('wCanvas');
@@ -1021,7 +1023,7 @@ document.getElementById('pandaTarget').addEventListener('click',()=>{
 function endTapGame(){
   document.getElementById('tapTime').style.color='#fff';
   // Points based on taps
-  const pts=Math.min(tapScore,15);
+  const pts=tapScore; // 1 tap = 1 point, no cap
   const isNewBest=!player.best_tap_score||tapScore>player.best_tap_score;
   if(isNewBest) player.best_tap_score=tapScore;
   document.getElementById('tapStatus').innerHTML=(isNewBest?'🏆 New Best! ':'')+'You caught the panda <strong>'+tapScore+'</strong> times!<br><span style="font-size:14px;color:var(--y);">'+pts+' point'+(pts!==1?'s':'')+'</span>';
@@ -1044,10 +1046,21 @@ function goMemory(){
   document.getElementById('memMoves').textContent='0';
   document.getElementById('memTime').textContent='0s';
   document.getElementById('memPairs').textContent='0/4';
+  // Show best time encouragement
+  const bestTime=player.best_memory_time;
+  const startLabel=bestTime
+    ? 'START! 🧠  (Beat your best: '+bestTime+'s!)'
+    : 'START! 🧠';
   document.getElementById('memStartBtn').style.display='block';
-  document.getElementById('memStartBtn').textContent='START! 🧠';
+  document.getElementById('memStartBtn').textContent=startLabel;
   document.getElementById('memStartBtn').disabled=false;
   document.getElementById('memStartBtn').onclick=startMemory;
+  // Show best time hint above grid
+  const hintEl=document.getElementById('memBestHint');
+  if(hintEl){
+    hintEl.style.display=bestTime?'block':'none';
+    hintEl.textContent=bestTime?'🏆 Your best time: '+bestTime+'s — can you beat it?':'';
+  }
   buildMemGrid(false);
   showScreen('s-memory');
 }
@@ -1123,24 +1136,36 @@ function memTap(idx){
 
 function endMemory(){
   clearInterval(memTimerInt);memStarted=false;
-  // Points: fewer moves + faster = more points (4 pairs, max ~8 moves)
-  const pts=6; // 4 pairs matched = 6 pts always
+  // 2pts per pair matched (4 pairs = 8pts base)
+  const basePts=memMatched*2;
+  const prevBest=player.best_memory_time||null;
+  const isNewBest=!prevBest||memSeconds<prevBest;
+  const bonusPts=isNewBest?2:0;
+  const pts=basePts+bonusPts;
+  if(isNewBest) player.best_memory_time=memSeconds;
+  // Result label
+  let hint='';
+  if(isNewBest&&prevBest) hint='🏆 New best: '+memSeconds+'s! +2 bonus pts!';
+  else if(isNewBest) hint='⏱️ First time: '+memSeconds+'s!';
+  else hint='Beat '+prevBest+'s next time for +2 bonus! ('+memSeconds+'s this time)';
+  document.getElementById('memBestHint').style.display='block';
+  document.getElementById('memBestHint').textContent=hint;
   document.getElementById('memStartBtn').style.display='block';
   document.getElementById('memStartBtn').textContent='See my '+pts+' pts! 🎉';
   document.getElementById('memStartBtn').disabled=false;
   document.getElementById('memStartBtn').onclick=()=>showResult(pts);
   // Auto-save immediately
-  savePoints(pts,'memory');
+  savePoints(pts,'memory',isNewBest?memSeconds:null);
 }
 
-async function savePoints(pts,gameType){
-  // Called immediately when game ends — don't wait for button tap
+async function savePoints(pts,gameType,bestMemTime=null){
   const newTotal=Math.min((player.game_points||0)+pts,999);
   player.game_points=newTotal;
   if(gameType) todayPlayed[gameType]=true;
   try{
     const updates={game_points:newTotal,game_spins:(player.game_spins||0)+1};
     if(gameType==='tap'&&player.best_tap_score) updates.best_tap_score=player.best_tap_score;
+    if(gameType==='memory'&&bestMemTime!==null) updates.best_memory_time=bestMemTime;
     await sb('customers','PATCH',updates,'id=eq.'+player.id);
     await sb('game_sessions','POST',{customer_id:player.id,customer_name:player.name,points_earned:pts,game_type:gameType});
     loadSidebarLb();
