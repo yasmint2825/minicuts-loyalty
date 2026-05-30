@@ -874,6 +874,49 @@ async function renderDash(){
       <button class="btn bs bsm" onclick="redeemFree('${c.id}')">🎁 Give FREE Cut</button></div>`).join('')
       :'<div style="text-align:center;padding:20px;color:var(--muted);font-size:13.5px;">No rewards ready 🐼</div>';
 
+    // ── Outreach counts for dashboard widgets ──
+    const now3=new Date();
+    const TWO_WEEKS=14*24*60*60*1000;
+
+    const toNudgeCount=custs.filter(c=>{
+      if(isExp(c)||c.dnd) return false;
+      if(!needsNudge(c)) return false;
+      if(!c.nudge_sent_at) return true;
+      const age=now3-new Date(c.nudge_sent_at);
+      const returned=c.last_visit_date&&new Date(c.last_visit_date)>new Date(c.nudge_sent_at);
+      return !returned&&age>TWO_WEEKS;
+    }).length;
+
+    const lapsedCount=custs.filter(c=>!isExp(c)&&!c.dnd&&isLapsed(c)).length;
+
+    const expiryCount=custs.filter(c=>!isExp(c)&&!c.dnd&&isExpiringSoon(c)).length;
+
+    const weekStart=new Date(now3);weekStart.setDate(now3.getDate()-now3.getDay());
+    const weekEnd=new Date(weekStart);weekEnd.setDate(weekStart.getDate()+6);
+    const bdayCount=custs.filter(c=>{
+      if(!c.dob||c.dnd) return false;
+      const bd=new Date(c.dob);
+      const thisYear=new Date(now3.getFullYear(),bd.getMonth(),bd.getDate());
+      return thisYear>=weekStart&&thisYear<=weekEnd;
+    }).length;
+
+    const returnedCount=custs.filter(c=>
+      c.nudge_sent_at&&c.last_visit_date&&
+      new Date(c.last_visit_date)>new Date(c.nudge_sent_at)&&
+      (new Date(c.last_visit_date)-new Date(c.nudge_sent_at))<TWO_WEEKS
+    ).length;
+
+    const setW=(id,val)=>{
+      const el=document.getElementById(id);
+      if(el){el.textContent=val;el.style.color=val>0?'var(--err)':'var(--ok)';}
+    };
+    setW('DS_NUDGE',toNudgeCount);
+    setW('DS_LAPSED',lapsedCount);
+    setW('DS_EXPIRY',expiryCount);
+    setW('DS_BDAY',bdayCount);
+    document.getElementById('DS_RETURNED').textContent=returnedCount;
+    document.getElementById('DS_RETURNED').style.color='var(--ok)';
+
 
   }catch(e){document.getElementById('SR').innerHTML='<div style="color:var(--err);padding:20px;font-size:13px;">⚠ Error: '+e.message+'</div>';}
 }
