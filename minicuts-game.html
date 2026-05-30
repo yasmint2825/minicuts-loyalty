@@ -17,7 +17,7 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,var(--bd)
 .left-panel::-webkit-scrollbar{width:3px;}
 .left-panel::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:99px;}
 /* CENTRE - game */
-.game-area{flex:1;display:flex;align-items:center;justify-content:center;overflow:hidden;padding:8px;}
+.game-area{flex:1;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;overflow-x:hidden;padding:12px 8px;height:100vh;}
 /* RIGHT panel - leaderboard */
 .lb-sidebar{width:250px;background:rgba(0,0,0,.3);border-left:1px solid rgba(255,255,255,.1);padding:12px 10px;display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;flex-shrink:0;height:100vh;}
 .lb-sidebar::-webkit-scrollbar{width:3px;}
@@ -44,25 +44,25 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,var(--bd)
 .sb-milestone{font-size:10px;color:rgba(255,255,255,.45);margin-top:1px;}
 .rank-badge{background:rgba(255,214,0,.2);border:1px solid rgba(255,214,0,.4);border-radius:8px;padding:6px 10px;text-align:center;margin-bottom:10px;}
 .rank-badge-txt{font-family:'Baloo 2',cursive;font-size:13px;font-weight:800;color:var(--y);}
-.screen{display:none;width:100%;max-width:480px;padding:4px 0;}
+.screen{display:none;width:100%;max-width:460px;padding:0;}
 .screen.active{display:block;}
 .brand{font-family:'Baloo 2',cursive;font-size:30px;font-weight:900;color:var(--y);text-align:center;text-shadow:2px 2px 0 var(--bd);}
 .sub{color:rgba(255,255,255,.8);font-size:11px;text-align:center;margin-bottom:6px;}
-.card{background:#fff;border-radius:18px;padding:16px;margin-bottom:8px;box-shadow:0 2px 12px rgba(0,0,0,.15);}
-.card-title{font-family:'Baloo 2',cursive;font-size:22px;font-weight:800;color:var(--bd);margin-bottom:12px;text-align:center;}
+.card{background:#fff;border-radius:16px;padding:14px;margin-bottom:6px;box-shadow:0 2px 10px rgba(0,0,0,.15);}
+.card-title{font-family:'Baloo 2',cursive;font-size:18px;font-weight:800;color:var(--bd);margin-bottom:8px;text-align:center;}
 .fi{width:100%;padding:10px 14px;border:2px solid #E5E7EB;border-radius:10px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;text-align:center;outline:none;color:#1A1A2E;}
 .fi:focus{border-color:var(--y);}
-.btn{display:block;width:100%;padding:11px;border:none;border-radius:12px;font-family:'Baloo 2',cursive;font-size:17px;font-weight:800;cursor:pointer;transition:transform .15s;text-align:center;}
+.btn{display:block;width:100%;padding:10px;border:none;border-radius:11px;font-family:'Baloo 2',cursive;font-size:16px;font-weight:800;cursor:pointer;transition:transform .15s;text-align:center;}
 .btn:active{transform:scale(.97);}
 .btn-y{background:linear-gradient(135deg,var(--y),#FF8C00);color:var(--bd);}
 .btn-b{background:var(--b);color:#fff;}
 .btn-ghost{background:rgba(255,255,255,.15);border:2px solid rgba(255,255,255,.3);color:#fff;}
-.pts-badge{display:inline-flex;align-items:center;gap:6px;background:var(--y);color:var(--bd);padding:7px 18px;border-radius:99px;font-family:'Baloo 2',cursive;font-size:20px;font-weight:900;}
+.pts-badge{display:inline-flex;align-items:center;gap:5px;background:var(--y);color:var(--bd);padding:5px 14px;border-radius:99px;font-family:'Baloo 2',cursive;font-size:17px;font-weight:900;}
 .prog-wrap{background:#E5E7EB;border-radius:99px;height:16px;overflow:hidden;margin:8px 0;}
 .prog-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--y),#FF8C00);transition:width .8s cubic-bezier(.175,.885,.32,1.275);}
 .prog-labels{display:flex;justify-content:space-between;font-size:11px;color:#6B7280;margin-top:2px;}
 .game-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:4px;}
-.game-card{background:linear-gradient(135deg,var(--bd),var(--b));border-radius:14px;padding:14px 10px;text-align:center;cursor:pointer;border:3px solid transparent;transition:all .2s;}
+.game-card{background:linear-gradient(135deg,var(--bd),var(--b));border-radius:12px;padding:12px 8px;text-align:center;cursor:pointer;border:3px solid transparent;transition:all .2s;}
 .game-card:hover,.game-card:active{border-color:var(--y);transform:scale(.97);}
 .game-emoji{font-size:34px;display:block;margin-bottom:5px;}
 .game-name{font-family:'Baloo 2',cursive;font-size:15px;font-weight:800;color:#fff;}
@@ -133,7 +133,7 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,var(--bd)
 </div>
 
 <div class="game-area">
-<div style="width:100%;max-width:480px;">
+<div style="width:100%;max-width:460px;">
 
 <!-- LOGIN -->
 <div class="screen active" id="s-login">
@@ -162,7 +162,7 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,var(--bd)
 <!-- REGISTER -->
 <div class="screen" id="s-register">
   <!-- Home bar - always at top -->
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;margin-top:4px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;margin-top:2px;">
     <div style="font-family:'Baloo 2',cursive;font-size:13px;font-weight:800;color:rgba(255,255,255,.7);">🐼 MiniCuts</div>
     <button onclick="goHome()" style="background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.3);color:#fff;padding:6px 14px;border-radius:99px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">🏠 Home</button>
   </div>
@@ -206,17 +206,17 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,var(--bd)
 
 <!-- PROFILE -->
 <div class="screen" id="s-profile">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;margin-top:4px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;margin-top:2px;">
     <div style="font-family:'Baloo 2',cursive;font-size:13px;font-weight:800;color:rgba(255,255,255,.7);">🐼 MiniCuts</div>
     <button onclick="confirmGoHome()" style="background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.3);color:#fff;padding:6px 14px;border-radius:99px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">🏠 Home</button>
   </div>
-  <div style="text-align:center;margin-bottom:8px;margin-top:8px;">
-    <div style="font-size:13px;color:rgba(255,255,255,.8);">Welcome back,</div>
-    <div class="brand" id="profileName" style="font-size:22px;">Player</div>
+  <div style="text-align:center;margin-bottom:6px;margin-top:4px;">
+    <div style="font-size:11px;color:rgba(255,255,255,.7);">Welcome back,</div>
+    <div class="brand" id="profileName" style="font-size:20px;">Player</div>
   </div>
   <div class="card">
-    <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:14px;">
-      <span style="font-size:13px;color:#6B7280;">Total Points:</span>
+    <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:8px;">
+      <span style="font-size:12px;color:#6B7280;">Total Points:</span>
       <span class="pts-badge" id="totalPts">0 pts</span>
     </div>
     <!-- Visual milestone track -->
@@ -258,7 +258,7 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,var(--bd)
 
 <!-- SPIN WHEEL -->
 <div class="screen" id="s-spin">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;margin-top:4px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;margin-top:2px;">
     <div style="font-family:'Baloo 2',cursive;font-size:13px;font-weight:800;color:rgba(255,255,255,.7);">🐼 MiniCuts</div>
     <button onclick="confirmGoHome()" style="background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.3);color:#fff;padding:6px 14px;border-radius:99px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">🏠 Home</button>
   </div>
@@ -266,9 +266,9 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,var(--bd)
     <span id="pandaReact" style="font-size:52px;display:block;min-height:65px;">🐼</span>
     <div style="font-size:12px;color:rgba(255,255,255,.7);" id="spinChanceLabel">Spin 1 of 2</div>
   </div>
-  <div style="position:relative;width:280px;height:280px;margin:0 auto 8px;">
+  <div style="position:relative;width:260px;height:260px;margin:0 auto 6px;">
     <div style="position:absolute;top:-14px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:13px solid transparent;border-right:13px solid transparent;border-top:26px solid var(--y);z-index:10;filter:drop-shadow(0 2px 4px rgba(0,0,0,.4));"></div>
-    <canvas id="wCanvas" width="280" height="280" style="border-radius:50%;box-shadow:0 8px 32px rgba(0,0,0,.4);"></canvas>
+    <canvas id="wCanvas" width="260" height="260" style="border-radius:50%;box-shadow:0 8px 32px rgba(0,0,0,.4);"></canvas>
   </div>
   <div style="text-align:center;margin-bottom:10px;">
     <div style="font-size:12px;color:rgba(255,255,255,.7);">Best so far: <strong id="bestSoFar" style="color:var(--y);">—</strong></div>
@@ -280,7 +280,7 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,var(--bd)
 
 <!-- TAP PANDA GAME -->
 <div class="screen" id="s-tap">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;margin-top:4px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;margin-top:2px;">
     <div style="font-family:'Baloo 2',cursive;font-size:13px;font-weight:800;color:rgba(255,255,255,.7);">🐼 MiniCuts</div>
     <button onclick="confirmGoHome()" style="background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.3);color:#fff;padding:6px 14px;border-radius:99px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">🏠 Home</button>
   </div>
@@ -299,7 +299,7 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,var(--bd)
 
 <!-- MEMORY MATCH -->
 <div class="screen" id="s-memory">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;margin-top:4px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;margin-top:2px;">
     <div style="font-family:'Baloo 2',cursive;font-size:13px;font-weight:800;color:rgba(255,255,255,.7);">🐼 MiniCuts</div>
     <button onclick="confirmGoHome()" style="background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.3);color:#fff;padding:6px 14px;border-radius:99px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">🏠 Home</button>
   </div>
@@ -316,7 +316,7 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,var(--bd)
 
 <!-- RESULT -->
 <div class="screen" id="s-result">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;margin-top:4px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;margin-top:2px;">
     <div style="font-family:'Baloo 2',cursive;font-size:13px;font-weight:800;color:rgba(255,255,255,.7);">🐼 MiniCuts</div>
     <button onclick="confirmGoHome()" style="background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.3);color:#fff;padding:6px 14px;border-radius:99px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">🏠 Home</button>
   </div>
@@ -768,7 +768,7 @@ function showAlreadyPlayed(game){
 function drawMilestoneTrack(pts, containerId){
   const el=document.getElementById(containerId);
   if(!el) return;
-  const MAX=300; // max pts for full bar
+  const MAX=300;
   const pct=Math.min((pts/MAX)*100,100);
   const tiers=[
     {pts:50,icon:'🌟'},{pts:100,icon:'🏅'},{pts:150,icon:'🦸'},
@@ -808,20 +808,28 @@ function renderProfile(){
   // Simple tier list
   // Update game card states
   refreshGameCards();
-  document.getElementById('tierList').innerHTML=TIERS.map(t=>{
-    const done=pts>=t.pts;
-    const needed=t.pts-pts;
-    const isNext=!done&&TIERS.find(x=>pts<x.pts)===t;
-    return`<div class="tier-row" style="padding:8px 0;border-bottom:1px solid #F3F4F6;">
-      <div style="width:36px;height:36px;border-radius:50%;background:${done?t.color:'#F3F4F6'};display:flex;align-items:center;justify-content:center;font-size:${done?'20':'16'}px;flex-shrink:0;box-shadow:${done?'0 0 10px '+t.glow:'none'};filter:${done?'none':'grayscale(.5)'};">${t.icon}</div>
-      <div style="flex:1;margin-left:10px;">
-        <div style="font-size:13px;font-weight:800;color:${done?t.color:'#6B7280'};">Level ${t.level} · ${t.badge}</div>
-        <div style="font-size:11px;color:${done?'#16A34A':'#9CA3AF'};margin-top:1px;">${t.reward}</div>
-        ${isNext?`<div style="font-size:11px;color:#FF8C00;font-weight:700;margin-top:2px;">⚡ ${needed} more points!</div>`:''}
-      </div>
-      <span style="font-family:'Baloo 2',cursive;font-size:13px;font-weight:800;color:${done?t.color:'#9CA3AF'};">${done?'✅':t.pts+'pts'}</span>
+  // Show only current level + next level (compact for tablet)
+  const curTier=TIERS.slice().reverse().find(t=>pts>=t.pts)||null;
+  const nextTier=TIERS.find(t=>pts<t.pts)||null;
+  let tierHtml='';
+  if(curTier){
+    tierHtml+=`<div style="display:flex;align-items:center;gap:8px;padding:6px;background:${curTier.color}22;border-radius:10px;border:1px solid ${curTier.color}44;margin-bottom:6px;">
+      <div style="font-size:24px;">${curTier.icon}</div>
+      <div><div style="font-size:12px;font-weight:800;color:${curTier.color};">Level ${curTier.level} · ${curTier.badge}</div>
+      <div style="font-size:11px;color:#16A34A;">✅ Unlocked! ${curTier.reward}</div></div>
     </div>`;
-  }).join('');
+  } else {
+    tierHtml+=`<div style="font-size:12px;color:#6B7280;text-align:center;padding:4px;">No level yet — start playing!</div>`;
+  }
+  if(nextTier){
+    const needed=nextTier.pts-pts;
+    tierHtml+=`<div style="display:flex;align-items:center;gap:8px;padding:6px;background:#F9FAFB;border-radius:10px;border:1px dashed #E5E7EB;">
+      <div style="font-size:20px;filter:grayscale(.5);">${nextTier.icon}</div>
+      <div><div style="font-size:12px;font-weight:800;color:#6B7280;">Next: Level ${nextTier.level} · ${nextTier.badge}</div>
+      <div style="font-size:11px;color:#FF8C00;font-weight:700;">⚡ ${needed} more points!</div></div>
+    </div>`;
+  }
+  document.getElementById('tierList').innerHTML=tierHtml;
 }
 
 // ==========================================
@@ -836,7 +844,7 @@ const SEGS=[
 let spinCount=0,bestSpinPts=0,spinAngle=0,isSpinning=false;
 const cvs=document.getElementById('wCanvas');
 const ctx=cvs.getContext('2d');
-const CX=140,CY=140,R=128;
+const CX=130,CY=130,R=118;
 
 function drawWheel(rot=0){
   ctx.clearRect(0,0,300,300);
