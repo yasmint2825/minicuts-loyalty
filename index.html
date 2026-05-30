@@ -412,6 +412,17 @@ async function archiveCycle(customerId,stamps,firstStampDate,expiryDate,endedBy)
               <div class="si" style="background:#F0FDF4;">✅</div><div><div class="sl">Returned</div><div class="sv" id="DS_RETURNED">-</div><div style="font-size:10px;color:var(--ok);margin-top:2px;">click to view →</div></div></div>
           </div>
         </div>
+        <!-- SEND AFTER-SERVICE ALERT -->
+        <div class="card" style="border-left:4px solid #25D366;margin-top:4px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+            <div>
+              <div style="font-family:var(--fh);font-size:16px;font-weight:800;">💬 Send After-Service Alert</div>
+              <div style="font-size:12px;color:var(--muted);margin-top:2px;">Customers visited today/yesterday — send thank you + passport link + Google review</div>
+            </div>
+            <button class="btn bg2 bsm" onclick="loadAfterService()">↻ Refresh</button>
+          </div>
+          <div id="AS_LIST"><div class="load"><div class="spin"></div></div></div>
+        </div>
       </div>
 
       <!-- MISS YOU -->
@@ -817,6 +828,7 @@ function showStaffPanel(u){
   document.getElementById('SN').textContent=u.charAt(0).toUpperCase()+u.slice(1);
   document.getElementById('SAV').textContent=u.charAt(0).toUpperCase();
   renderDash();
+  loadAfterService();
 }
 
 
@@ -836,14 +848,95 @@ function showPage(id,btn){
   if(btn) btn.classList.add('active');
   const titles={dashboard:'Dashboard',customers:'Customers',profile:'Customer Profile',newcustomer:'New Customer',upload:'Import Customers',qrpage:'Salon QR Code',config:'Settings',missyou:'Miss You 💌 — Nudge & Track'};
   document.getElementById('TT').textContent=titles[id]||'';
-  if(id==='dashboard') renderDash();
+  if(id==='dashboard'){renderDash();loadAfterService();}
   if(id==='customers') loadCustomers();
   if(id==='qrpage') renderSalonQR();
   if(id==='config') syncCfgInputs();
   if(id==='missyou') renderMissYou();
 }
 
-// ══ DASHBOARD ══
+// ══ AFTER-SERVICE ALERT ══
+async function loadAfterService(){
+  const el=document.getElementById('AS_LIST');
+  if(!el) return;
+  el.innerHTML='<div class="load"><div class="spin"></div></div>';
+  try{
+    // Get customers visited in last 48 hours who haven't had followup sent
+    const all=await sb('customers','GET',null,'select=*&order=last_visit_date.desc');
+    const now=new Date();
+    const cutoff=new Date(now.getTime()-48*60*60*1000); // 48hrs ago
+    const pending=all.filter(c=>{
+      if(!c.last_visit_date) return false;
+      const visited=new Date(c.last_visit_date);
+      if(visited<cutoff) return false; // visited more than 48hrs ago
+      if(c.followup_sent_at){
+        // Already sent — only show if sent before this visit
+        const sent=new Date(c.followup_sent_at);
+        if(sent>=visited) return false;
+      }
+      return true;
+    });
+
+    if(!pending.length){
+      el.innerHTML=`<div style="text-align:center;padding:24px;">
+        <div style="font-size:36px;margin-bottom:8px;">✅</div>
+        <div style="font-family:var(--fh);font-size:15px;font-weight:800;color:var(--ok);">All done!</div>
+        <div style="font-size:13px;color:var(--muted);margin-top:4px;">No pending after-service alerts.<br>New ones appear here after each haircut visit.</div>
+      </div>`;
+      return;
+    }
+
+    el.innerHTML=pending.map(c=>{
+      const st=parseInt(c.stamps)||0;
+      const pN=paidNeeded();
+      const portalUrl='https://yasmint2825.github.io/minicuts-loyalty/?customer=1&lookup='+encodeURIComponent(c.mobile);
+      const stampLine=st>=pN?'FREE haircut ready - come claim it!':'Stamps: '+st+' of '+pN+' - just '+(pN-st)+' more for a free haircut!';
+      const gameLine=(c.game_points||0)>0?'Game points: '+c.game_points+' pts - keep playing!':'Ask us about our Game Zone next visit!';
+      const msg='Hi '+(c.parent||c.name)+'!\n\nThank you for visiting MiniCuts - '+c.name+' looked amazing!\n\n'+stampLine+'\n'+gameLine+'\n\nCheck your loyalty passport:\n'+portalUrl+'\n\nIf you enjoyed your visit, a Google review means the world to us:\nhttps://share.google/xpTR5fVOVbt4pwg8X\n\nSee you soon!\nMiniCuts DSO';
+      const visitedAgo=Math.round((now-new Date(c.last_visit_date))/(1000*60*60));
+      const visitedStr=visitedAgo<2?'Just now':visitedAgo<24?visitedAgo+'h ago':'Yesterday';
+      return`<div class="hi" id="as-row-${c.id}" style="padding:14px 0;border-bottom:1px solid var(--border);">
+        <div class="hic" style="background:var(--bl);font-size:18px;flex-shrink:0;">💬</div>
+        <div style="flex:1;min-width:0;margin:0 12px;">
+          <div style="font-size:14px;font-weight:800;color:var(--text);">${c.name}</div>
+          <div style="font-size:11.5px;color:var(--muted);">${c.mobile}${c.parent?' · '+c.parent:''} · visited ${visitedStr}</div>
+          <div style="font-size:11px;color:var(--b);margin-top:3px;">${stampLine}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
+          <button class="btn bsm" style="background:#25D366;color:#fff;border:none;padding:8px 12px;white-space:nowrap;font-size:13px;"
+            onclick="openWA('${c.mobile}',decodeURIComponent('${encodeURIComponent(msg)}'))">💬 WhatsApp</button>
+          <button class="btn bg2 bsm" style="font-size:12px;padding:7px 10px;white-space:nowrap;"
+            onclick="markASsent('${c.id}','${c.name}')">✅ Mark Sent</button>
+        </div>
+      </div>`;
+    }).join('');
+  }catch(e){
+    el.innerHTML='<div style="color:var(--err);padding:16px;font-size:13px;">Error: '+e.message+'</div>';
+  }
+}
+
+async function markASsent(id,name){
+  try{
+    await sb('customers','PATCH',{followup_sent_at:new Date().toISOString()},'id=eq.'+id);
+    // Animate row out
+    const row=document.getElementById('as-row-'+id);
+    if(row){
+      row.style.transition='opacity .4s,max-height .4s';
+      row.style.opacity='0';
+      row.style.maxHeight='0';
+      row.style.overflow='hidden';
+      setTimeout(()=>row.remove(),400);
+    }
+    toast('✅ Follow-up marked as sent for '+name);
+    // Check if list is now empty
+    setTimeout(()=>{
+      const remaining=document.querySelectorAll('[id^="as-row-"]');
+      if(!remaining.length) loadAfterService();
+    },500);
+  }catch(e){toast('Error: '+e.message,'error');}
+}
+
+
 function filterCustomersByWidget(type){
   dashFilter=type;
   const btn=document.querySelector('.ni[onclick*="customers"]');
@@ -1083,6 +1176,8 @@ function renderProfile(c,visits,cycles){
         <div class="tab-pane" id="tCycles">${cycleHtml}</div>
       </div>
     </div>`;
+  // Inject follow-up section after DOM renders
+  setTimeout(()=>buildFollowupSection(c,followupSent,followupAge,followupMsg),150);
 }
 
 function switchTab(btn,paneId){
