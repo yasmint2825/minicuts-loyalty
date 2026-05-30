@@ -177,7 +177,8 @@ const DC={
   girlWAReady:'🎉 Great news! {name} has earned a FREE haircut at MiniCuts! Bring her in anytime to redeem. See you soon! 🐼💇‍♀️',
   boyWABirthday:'🎂 Happy Birthday to {name}! Wishing him a wonderful day from all of us at MiniCuts 🐼 Come in for a special birthday haircut!',
   girlWABirthday:'🎂 Happy Birthday to {name}! Wishing her a wonderful day from all of us at MiniCuts 🐼 Come in for a special birthday haircut!',
-  user:'admin', pass:'minicuts123', resetCode:'MINICUTS2025'
+  user:'admin', pass:'minicuts123', resetCode:'MINICUTS2025',
+  afterServiceMsg:'Hi {parent}!\n\nThank you for visiting MiniCuts - {name} looked amazing!\n\nStamps: {stamps} collected - just {needed} more for a FREE haircut!\n{game_points}\n\nCheck your loyalty passport:\n{passport_link}\n\nIf you enjoyed your visit, a Google review means the world to us:\nhttps://share.google/xpTR5fVOVbt4pwg8X\n\nSee you soon!\nMiniCuts DSO'
 };
 let CFG=loadCfg();
 function loadCfg(){try{return Object.assign({},DC,JSON.parse(localStorage.getItem('mc_cfg')||'{}'));}catch(e){return{...DC};}}
@@ -641,6 +642,20 @@ async function archiveCycle(customerId,stamps,firstStampDate,expiryDate,endedBy)
           </div>
           <button class="btn bp" style="margin-top:8px;" onclick="saveConfig()">Save Templates</button>
         </div>
+        <!-- After-Service Message Template -->
+        <div class="card" style="max-width:540px;">
+          <div style="font-family:var(--fh);font-size:16px;font-weight:800;margin-bottom:4px;">💬 After-Service Message</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">Sent same/next day after every haircut. Use placeholders: <code>{parent}</code> <code>{name}</code> <code>{stamps}</code> <code>{needed}</code> <code>{game_points}</code> <code>{passport_link}</code></div>
+          <div class="fg">
+            <label class="fl">Message template</label>
+            <textarea class="fi" id="CF_AS_MSG" rows="8" style="resize:vertical;font-size:12.5px;line-height:1.6;"></textarea>
+          </div>
+          <div style="font-size:11px;color:var(--muted);margin-top:6px;margin-bottom:10px;">
+            💡 <strong>{parent}</strong> = parent name · <strong>{name}</strong> = child name · <strong>{stamps}</strong> = current stamps · <strong>{needed}</strong> = stamps needed for free cut · <strong>{game_points}</strong> = game points · <strong>{passport_link}</strong> = unique passport URL
+          </div>
+          <button class="btn bp bsm" onclick="saveConfig()">Save Message</button>
+          <button class="btn bg2 bsm" style="margin-left:8px;" onclick="resetASMsg()">Reset to Default</button>
+        </div>
         <div class="card" style="max-width:540px;">
           <div style="font-family:var(--fh);font-size:16px;font-weight:800;margin-bottom:12px;">Data — Supabase Cloud ☁️</div>
           <div style="font-size:13px;color:var(--muted);margin-bottom:14px;">All customer data is stored securely in your Supabase database. Works across all devices.</div>
@@ -795,6 +810,7 @@ function syncCfgInputs(){
   document.getElementById('CFB').value=CFG.boyMonths;
   document.getElementById('CFG2').value=CFG.girlMonths;
   document.getElementById('CFU').value=CFG.user;
+  document.getElementById('CF_AS_MSG').value=CFG.afterServiceMsg||DC.afterServiceMsg;
   document.getElementById('CFP').value=CFG.pass;
   document.getElementById('CFRC').value=CFG.resetCode||'MINICUTS2025';
   // Retention
@@ -901,9 +917,17 @@ async function loadAfterService(){
       const st=parseInt(c.stamps)||0;
       const pN=paidNeeded();
       const portalUrl='https://yasmint2825.github.io/minicuts-loyalty/?customer=1&lookup='+encodeURIComponent(c.mobile);
-      const stampLine=st>=pN?'FREE haircut ready - come claim it!':'Stamps: '+st+' of '+pN+' - just '+(pN-st)+' more for a free haircut!';
-      const gameLine=(c.game_points||0)>0?'Game points: '+c.game_points+' pts - keep playing!':'Ask us about our Game Zone next visit!';
-      const msg='Hi '+(c.parent||c.name)+'!\n\nThank you for visiting MiniCuts - '+c.name+' looked amazing!\n\n'+stampLine+'\n'+gameLine+'\n\nCheck your loyalty passport:\n'+portalUrl+'\n\nIf you enjoyed your visit, a Google review means the world to us:\nhttps://share.google/xpTR5fVOVbt4pwg8X\n\nSee you soon!\nMiniCuts DSO';
+      const stampLine=st>=pN?'FREE haircut ready - come claim it!':'just '+(pN-st)+' more for a FREE haircut!';
+      const gameLine=(c.game_points||0)>0?'Game points: '+c.game_points+' pts - keep playing!':'';
+      // Use configurable template with placeholder replacement
+      const template=CFG.afterServiceMsg||DC.afterServiceMsg;
+      const msg=template
+        .replace(/{parent}/g,(c.parent||c.name))
+        .replace(/{name}/g,c.name)
+        .replace(/{stamps}/g,String(st))
+        .replace(/{needed}/g,String(Math.max(0,pN-st)))
+        .replace(/{game_points}/g,(c.game_points||0)>0?'Game points: '+c.game_points+' pts':'')
+        .replace(/{passport_link}/g,portalUrl);
       const lastActivity=c.last_visit_date||c.created_at;
       const activityAgo=Math.round((now-new Date(lastActivity))/(1000*60*60));
       const activityStr=activityAgo<1?'Just now':activityAgo<24?activityAgo+'h ago':'Yesterday';
@@ -2171,8 +2195,14 @@ function saveConfig(){
   CFG.girlWALapsed=document.getElementById('CFG_WL').value||DC.girlWALapsed;
   CFG.boyWABirthday=document.getElementById('CFB_WB').value||DC.boyWABirthday;
   CFG.girlWABirthday=document.getElementById('CFG_WB').value||DC.girlWABirthday;
+  CFG.afterServiceMsg=document.getElementById('CF_AS_MSG').value||DC.afterServiceMsg;
   saveCfg();toast('Settings saved!');
 }
+function resetASMsg(){
+  document.getElementById('CF_AS_MSG').value=DC.afterServiceMsg;
+  toast('After-service message reset to default');
+}
+
 async function exportCSV(){
   const data=await sb('customers','GET',null,'select=*&order=name.asc');
   const h=['name','mobile','gender','stamps','parent','notes','redemptions','expiry_date','first_stamp_date'];
