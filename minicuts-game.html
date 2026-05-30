@@ -988,10 +988,10 @@ function goTapPanda(){
   let statusHtml='';
   if(globalBestTap.score){
     const isChamp=globalBestTap.name===player.name;
-    statusHtml+='<div style="font-size:13px;color:#FFD600;font-weight:800;margin-bottom:5px;">🏆 All-time champion:<br><strong>'+globalBestTap.name+'</strong> — '+globalBestTap.score+' taps'+(isChamp?' (you!)':'')+'</div>';
+    statusHtml+='<div style="font-size:16px;color:#FFD600;font-weight:900;margin-bottom:8px;background:rgba(255,214,0,.12);border-radius:10px;padding:8px 10px;border:1px solid rgba(255,214,0,.3);">🏆 ALL-TIME CHAMPION<br><span style="font-size:20px;color:#fff;">'+globalBestTap.name+'</span><br><span style="font-size:18px;color:#FFD600;">'+globalBestTap.score+' taps</span>'+(isChamp?' <span style="font-size:13px;color:#4ADE80;">(thats you!)</span>':'')+'</div>';
   }
   if(player.best_tap_score){
-    statusHtml+='<div style="font-size:12px;color:rgba(255,255,255,.7);margin-bottom:6px;">Your best: <strong>'+player.best_tap_score+'</strong> taps</div>';
+    statusHtml+='<div style="font-size:14px;color:rgba(255,255,255,.8);font-weight:800;margin-bottom:6px;">Your best: <span style="color:#FFD600;font-size:16px;">'+player.best_tap_score+'</span> taps</div>';
   }
   statusHtml+='<div style="font-size:17px;font-weight:800;color:#fff;">Tap the 🐼 fast!</div>';
   statusHtml+='<div style="font-size:12px;color:rgba(255,255,255,.5);margin-top:3px;">Tap START to begin</div>';
@@ -1061,11 +1061,11 @@ function endTapGame(){
   if(isGlobalTapBest) globalBestTap={score:tapScore,name:player.name};
   let tapResultHtml='';
   if(isGlobalTapBest){
-    tapResultHtml='🏆 <strong>ALL-TIME RECORD: '+tapScore+' taps!</strong><br>You are the Panda Champion!';
+    tapResultHtml='<span style="font-size:18px;font-weight:900;color:#FFD600;">🏆 ALL-TIME RECORD!</span><br><span style="font-size:22px;font-weight:900;color:#fff;">'+tapScore+' taps!</span><br><span style="font-size:14px;">You are the Panda Champion!</span>';
   } else if(isNewBest){
-    tapResultHtml='⭐ <strong>Personal best: '+tapScore+' taps!</strong>'+(prevGlobalTap?'<br>Champion: '+globalBestTap.name+' ('+prevGlobalTap+')'  :'');
+    tapResultHtml='<span style="font-size:18px;font-weight:900;color:#FFD600;">⭐ Personal best!</span><br><span style="font-size:22px;font-weight:900;color:#fff;">'+tapScore+' taps</span>'+(prevGlobalTap?'<br><span style="font-size:13px;">Champion: <strong>'+globalBestTap.name+'</strong> ('+prevGlobalTap+')</span>':'');
   } else {
-    tapResultHtml='You tapped <strong>'+tapScore+'</strong> times!'+(prevGlobalTap?'<br>Champion: <strong>'+globalBestTap.name+'</strong> ('+prevGlobalTap+' taps)':'');
+    tapResultHtml='<span style="font-size:22px;font-weight:900;color:#fff;">'+tapScore+' taps!</span>'+(prevGlobalTap?'<br><span style="font-size:13px;color:#FFD600;">Champion: <strong>'+globalBestTap.name+'</strong> ('+prevGlobalTap+')</span>':'');
   }
   tapResultHtml+='<br><span style="font-size:16px;color:var(--y);font-weight:800;">'+pts+' point'+(pts!==1?'s':'')+'</span>';
   document.getElementById('tapStatus').innerHTML=tapResultHtml;
@@ -1096,18 +1096,15 @@ function goMemory(){
     // Global best (all kids)
     if(globalBestMemory.time){
       const isChamp=globalBestMemory.name===player.name;
-      html+='<div style="margin-bottom:4px;">🏆 All-time fastest: <strong>'
-        +globalBestMemory.name+'</strong> in <strong>'
-        +globalBestMemory.time+'s</strong>'
-        +(isChamp?' (you!)':'')+'</div>';
+      html+='<div style="font-size:15px;font-weight:900;color:#FFD600;background:rgba(255,214,0,.12);border-radius:10px;padding:8px 10px;border:1px solid rgba(255,214,0,.3);margin-bottom:6px;">🏆 ALL-TIME CHAMPION<br><span style="font-size:18px;color:#fff;">'+globalBestMemory.name+'</span><br><span style="font-size:17px;color:#FFD600;">'+globalBestMemory.time+'s — fastest ever!</span>'+(isChamp?' <span style="font-size:12px;color:#4ADE80;">(thats you!)</span>':'')+'</div>';
     }
     // Player's own best
     if(bestTime){
       const beatGlobal=globalBestMemory.time&&bestTime<globalBestMemory.time;
-      html+='⏱️ Your best: <strong>'+bestTime+'s</strong>';
-      if(beatGlobal) html+=' &nbsp;🏆 You hold the record!';
-      else if(globalBestMemory.time) html+=' &nbsp;· Beat <strong>'+globalBestMemory.time+'s</strong> to be champion!';
-      html+=' &nbsp;|&nbsp; Beat it for <strong>+2 bonus!</strong>';
+      html+='<div style="font-size:14px;font-weight:800;color:rgba(255,255,255,.85);">⏱️ Your best: <span style="color:#FFD600;font-size:16px;font-weight:900;">'+bestTime+'s</span>';
+      if(beatGlobal) html+=' 🏆 You hold the record!';
+      else if(globalBestMemory.time) html+=' · Beat <span style="color:#FFD600;font-weight:900;">'+globalBestMemory.time+'s</span> to be champion!';
+      html+='</div><div style="font-size:13px;color:rgba(255,255,255,.6);margin-top:2px;">Beat your best for <span style="color:#FFD600;font-weight:800;">+2 bonus pts!</span></div>';
     } else {
       html+='🧠 Earn <strong>8 pts</strong> + <strong>+2 bonus</strong> if you set the fastest time!';
     }
@@ -1115,7 +1112,7 @@ function goMemory(){
   }
   document.getElementById('memStartBtn').style.display='block';
   const targetTime=globalBestMemory.time||(bestTime||null);
-  document.getElementById('memStartBtn').textContent=targetTime?'START! Can you beat '+targetTime+'s? 🏆':'START! 🧠';
+  document.getElementById('memStartBtn').textContent=targetTime?'START! Beat '+targetTime+'s 🏆':'START! Set the first record! 🧠';
   document.getElementById('memStartBtn').disabled=false;
   document.getElementById('memStartBtn').onclick=startMemory;
   buildMemGrid(false);
@@ -1208,12 +1205,12 @@ function endMemory(){
   if(hintEl){
     hintEl.style.display='block';
     if(isGlobalBest){
-      hintEl.innerHTML='🏆 <strong>ALL-TIME RECORD: '+memSeconds+'s!</strong> You are the fastest kid ever! +2 bonus!';
+      hintEl.innerHTML='<span style="font-size:18px;font-weight:900;">🏆 ALL-TIME RECORD: '+memSeconds+'s!</span><br><span style="font-size:14px;">You are the fastest kid ever! +2 bonus earned!</span>';
       hintEl.style.background='rgba(22,163,74,.2)';
       hintEl.style.borderColor='rgba(22,163,74,.5)';
       hintEl.style.color='#4ADE80';
     } else if(isPersonalBest&&prevBest){
-      hintEl.innerHTML='⭐ <strong>Personal best: '+memSeconds+'s!</strong> (was '+prevBest+'s) +2 bonus! Champion: '+globalBestMemory.name+' ('+prevGlobal+'s)';
+      hintEl.innerHTML='<span style="font-size:17px;font-weight:900;">⭐ Personal best: '+memSeconds+'s!</span><br><span style="font-size:13px;">(was '+prevBest+'s) +2 bonus! Champion: '+globalBestMemory.name+' ('+prevGlobal+'s)</span>';
       hintEl.style.background='rgba(22,163,74,.2)';
       hintEl.style.borderColor='rgba(22,163,74,.5)';
       hintEl.style.color='#4ADE80';
@@ -1224,7 +1221,7 @@ function endMemory(){
       hintEl.style.color='#4ADE80';
     } else {
       const target=prevGlobal?globalBestMemory.name+' ('+prevGlobal+'s)':'your own best';
-      hintEl.innerHTML='⏱️ '+memSeconds+'s &nbsp;·&nbsp; Beat '+target+' to be champion & get +2 bonus!';
+      hintEl.innerHTML='<span style="font-size:16px;font-weight:900;">⏱️ '+memSeconds+'s</span><br><span style="font-size:13px;">Beat <strong>'+target+'</strong> to be champion & get +2 bonus!</span>';
       hintEl.style.background='rgba(255,214,0,.15)';
       hintEl.style.borderColor='rgba(255,214,0,.3)';
       hintEl.style.color='var(--y)';
