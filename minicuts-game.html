@@ -12,15 +12,25 @@
 html,body{height:100%;overflow:hidden;margin:0;padding:0;}
 body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,var(--bd) 0%,var(--bm) 60%,#1E40AF 100%);display:flex;align-items:stretch;justify-content:center;}
 .layout{display:flex;width:100%;height:100vh;overflow:hidden;}
-.game-area{flex:1;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;overflow-x:hidden;padding:16px 12px;}
-.game-area::-webkit-scrollbar{width:4px;}
-.game-area::-webkit-scrollbar-track{background:transparent;}
-.game-area::-webkit-scrollbar-thumb{background:rgba(255,255,255,.2);border-radius:99px;}
-.lb-sidebar{width:270px;background:rgba(0,0,0,.3);border-left:1px solid rgba(255,255,255,.1);padding:14px 12px;display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;flex-shrink:0;height:100vh;}
+/* LEFT panel - rules & levels */
+.left-panel{width:220px;background:rgba(0,0,0,.25);border-right:1px solid rgba(255,255,255,.1);padding:12px 10px;display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;flex-shrink:0;height:100vh;}
+.left-panel::-webkit-scrollbar{width:3px;}
+.left-panel::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:99px;}
+/* CENTRE - game */
+.game-area{flex:1;display:flex;align-items:center;justify-content:center;overflow:hidden;padding:8px;}
+/* RIGHT panel - leaderboard */
+.lb-sidebar{width:250px;background:rgba(0,0,0,.3);border-left:1px solid rgba(255,255,255,.1);padding:12px 10px;display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;flex-shrink:0;height:100vh;}
 .lb-sidebar::-webkit-scrollbar{width:3px;}
-.lb-sidebar::-webkit-scrollbar-track{background:transparent;}
 .lb-sidebar::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:99px;}
+@media(max-width:900px){.left-panel{display:none;}}
 @media(max-width:700px){.lb-sidebar{display:none;}}
+/* Left panel elements */
+.lp-title{font-family:'Baloo 2',cursive;font-size:13px;font-weight:800;color:var(--y);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,.1);text-align:center;}
+.lp-game{background:rgba(255,255,255,.06);border-radius:10px;padding:8px;margin-bottom:6px;}
+.lp-game-name{font-family:'Baloo 2',cursive;font-size:13px;font-weight:800;color:#fff;}
+.lp-game-desc{font-size:11px;color:rgba(255,255,255,.55);margin-top:2px;line-height:1.5;}
+.lp-level{display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.06);}
+.lp-level:last-child{border-bottom:none;}
 .sb-title{font-family:'Baloo 2',cursive;font-size:15px;font-weight:800;color:var(--y);margin-bottom:8px;text-align:center;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,.1);}
 .sb-row{display:flex;align-items:center;gap:7px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.08);}
 .sb-row:last-child{border-bottom:none;}
@@ -34,15 +44,15 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,var(--bd)
 .sb-milestone{font-size:10px;color:rgba(255,255,255,.45);margin-top:1px;}
 .rank-badge{background:rgba(255,214,0,.2);border:1px solid rgba(255,214,0,.4);border-radius:8px;padding:6px 10px;text-align:center;margin-bottom:10px;}
 .rank-badge-txt{font-family:'Baloo 2',cursive;font-size:13px;font-weight:800;color:var(--y);}
-.screen{display:none;width:100%;max-width:600px;padding:8px 0;}
+.screen{display:none;width:100%;max-width:480px;padding:4px 0;}
 .screen.active{display:block;}
 .brand{font-family:'Baloo 2',cursive;font-size:30px;font-weight:900;color:var(--y);text-align:center;text-shadow:2px 2px 0 var(--bd);}
-.sub{color:rgba(255,255,255,.8);font-size:12px;text-align:center;margin-bottom:10px;}
-.card{background:#fff;border-radius:20px;padding:22px;margin-bottom:12px;box-shadow:0 2px 16px rgba(0,0,0,.15);}
+.sub{color:rgba(255,255,255,.8);font-size:11px;text-align:center;margin-bottom:6px;}
+.card{background:#fff;border-radius:18px;padding:16px;margin-bottom:8px;box-shadow:0 2px 12px rgba(0,0,0,.15);}
 .card-title{font-family:'Baloo 2',cursive;font-size:22px;font-weight:800;color:var(--bd);margin-bottom:12px;text-align:center;}
-.fi{width:100%;padding:12px 16px;border:2px solid #E5E7EB;border-radius:12px;font-family:'Nunito',sans-serif;font-size:17px;font-weight:700;text-align:center;outline:none;color:#1A1A2E;}
+.fi{width:100%;padding:10px 14px;border:2px solid #E5E7EB;border-radius:10px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;text-align:center;outline:none;color:#1A1A2E;}
 .fi:focus{border-color:var(--y);}
-.btn{display:block;width:100%;padding:14px;border:none;border-radius:14px;font-family:'Baloo 2',cursive;font-size:19px;font-weight:800;cursor:pointer;transition:transform .15s;text-align:center;}
+.btn{display:block;width:100%;padding:11px;border:none;border-radius:12px;font-family:'Baloo 2',cursive;font-size:17px;font-weight:800;cursor:pointer;transition:transform .15s;text-align:center;}
 .btn:active{transform:scale(.97);}
 .btn-y{background:linear-gradient(135deg,var(--y),#FF8C00);color:var(--bd);}
 .btn-b{background:var(--b);color:#fff;}
@@ -52,12 +62,12 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,var(--bd)
 .prog-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--y),#FF8C00);transition:width .8s cubic-bezier(.175,.885,.32,1.275);}
 .prog-labels{display:flex;justify-content:space-between;font-size:11px;color:#6B7280;margin-top:2px;}
 .game-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:4px;}
-.game-card{background:linear-gradient(135deg,var(--bd),var(--b));border-radius:16px;padding:20px 12px;text-align:center;cursor:pointer;border:3px solid transparent;transition:all .2s;}
+.game-card{background:linear-gradient(135deg,var(--bd),var(--b));border-radius:14px;padding:14px 10px;text-align:center;cursor:pointer;border:3px solid transparent;transition:all .2s;}
 .game-card:hover,.game-card:active{border-color:var(--y);transform:scale(.97);}
-.game-emoji{font-size:42px;display:block;margin-bottom:8px;}
-.game-name{font-family:'Baloo 2',cursive;font-size:17px;font-weight:800;color:#fff;}
+.game-emoji{font-size:34px;display:block;margin-bottom:5px;}
+.game-name{font-family:'Baloo 2',cursive;font-size:15px;font-weight:800;color:#fff;}
 .game-desc{font-size:13px;color:rgba(255,255,255,.7);margin-top:4px;}
-.tier-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #F3F4F6;}
+.tier-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #F3F4F6;}
 .tier-row:last-child{border-bottom:none;}
 .lb-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #F3F4F6;}
 .lb-row:last-child{border-bottom:none;}
@@ -84,7 +94,7 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,var(--bd)
 .reward-banner{background:linear-gradient(135deg,var(--y),#FF8C00);border-radius:14px;padding:16px;text-align:center;margin:12px 0;}
 /* TAP PANDA GAME */
 #pandaTarget{position:absolute;font-size:52px;cursor:pointer;transition:none;z-index:10;line-height:1;}
-#tapGame{position:relative;background:#0D47A1;border-radius:16px;height:260px;overflow:hidden;margin-bottom:10px;border:3px solid var(--y);}
+#tapGame{position:relative;background:#0D47A1;border-radius:14px;height:200px;overflow:hidden;margin-bottom:8px;border:3px solid var(--y);}
 .tap-hud{display:flex;justify-content:space-between;margin-bottom:8px;}
 .hud-box{background:rgba(255,255,255,.12);border-radius:10px;padding:7px 14px;text-align:center;flex:1;margin:0 4px;}
 .hud-lbl{font-size:10px;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.5px;}
@@ -94,59 +104,45 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,var(--bd)
 </head>
 <body>
 <div class="layout">
+
+<!-- LEFT PANEL: Rules & Levels -->
+<div class="left-panel" id="leftPanel">
+  <div class="lp-title">🎮 How to Play</div>
+  <div class="lp-game">
+    <div class="lp-game-name">🎡 Spin Wheel</div>
+    <div class="lp-game-desc">2 spins · best score wins<br>Min 10pts · Max 20pts</div>
+  </div>
+  <div class="lp-game">
+    <div class="lp-game-name">🐼 Tap Panda</div>
+    <div class="lp-game-desc">Tap as fast as you can!<br>10 seconds · 1 tap = 1pt</div>
+  </div>
+  <div class="lp-game">
+    <div class="lp-game-name">🧠 Memory Match</div>
+    <div class="lp-game-desc">Flip & match pairs<br>2pts per pair · +2 bonus for best time!</div>
+  </div>
+  <div style="margin-top:10px;" class="lp-title">🏆 Level System</div>
+  <div class="lp-level"><span style="font-size:16px;">🌟</span><div><div style="font-size:11px;font-weight:800;color:#fff;">L1 · Panda Explorer</div><div style="font-size:10px;color:rgba(255,255,255,.45);">50 pts</div></div></div>
+  <div class="lp-level"><span style="font-size:16px;">🏅</span><div><div style="font-size:11px;font-weight:800;color:#fff;">L2 · Panda Adventurer</div><div style="font-size:10px;color:rgba(255,255,255,.45);">100 pts</div></div></div>
+  <div class="lp-level"><span style="font-size:16px;">🦸</span><div><div style="font-size:11px;font-weight:800;color:#fff;">L3 · Panda Hero</div><div style="font-size:10px;color:rgba(255,255,255,.45);">150 pts</div></div></div>
+  <div class="lp-level"><span style="font-size:16px;">⭐</span><div><div style="font-size:11px;font-weight:800;color:#fff;">L4 · Panda Superstar</div><div style="font-size:10px;color:rgba(255,255,255,.45);">200 pts</div></div></div>
+  <div class="lp-level"><span style="font-size:16px;">🔥</span><div><div style="font-size:11px;font-weight:800;color:#fff;">L5 · Panda Legend</div><div style="font-size:10px;color:rgba(255,255,255,.45);">250 pts</div></div></div>
+  <div class="lp-level"><span style="font-size:16px;">🐉</span><div><div style="font-size:11px;font-weight:800;color:#fff;">L6 · Dragon Warrior</div><div style="font-size:10px;color:rgba(255,255,255,.45);">300 pts</div></div></div>
+  <div style="margin-top:10px;background:rgba(255,214,0,.08);border-radius:8px;padding:8px;text-align:center;">
+    <div style="font-size:10px;color:rgba(255,255,255,.5);line-height:1.6;">⚡ All 3 games under 1 min<br>🎯 1 of each game per visit</div>
+  </div>
+</div>
+
 <div class="game-area">
-<div style="width:100%;max-width:600px;padding-bottom:20px;">
+<div style="width:100%;max-width:480px;">
 
 <!-- LOGIN -->
 <div class="screen active" id="s-login">
   <!-- Top: brand + instructions in one compact row -->
-  <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;margin-top:6px;">
-    <span style="font-size:44px;flex-shrink:0;">🐼</span>
-    <div style="flex:1;">
-      <div class="brand" style="font-size:20px;text-align:left;text-shadow:1px 2px 0 var(--bd);">MiniCuts Game Zone!</div>
-      <div style="font-size:11px;color:rgba(255,255,255,.75);margin-top:2px;">Play · Earn Points · Win Prizes 🎁</div>
-    </div>
+  <div style="text-align:center;margin-bottom:8px;margin-top:4px;">
+    <span style="font-size:40px;">🐼</span>
+    <div class="brand" style="font-size:22px;">MiniCuts Game Zone!</div>
   </div>
-  <!-- Instructions: full width, bigger for tablet -->
-  <div style="background:rgba(255,255,255,.1);border-radius:14px;padding:14px;margin-bottom:12px;border:1px solid rgba(255,255,255,.15);">
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px;">
-      <div style="background:rgba(255,255,255,.08);border-radius:12px;padding:14px 8px;text-align:center;">
-        <div style="font-size:36px;margin-bottom:6px;">🎡</div>
-        <div style="font-family:'Baloo 2',cursive;font-size:16px;font-weight:800;color:#FFD600;">Spin Wheel</div>
-        <div style="font-size:13px;color:rgba(255,255,255,.7);margin-top:4px;">2 chances</div>
-        <div style="font-size:12px;color:rgba(255,255,255,.45);margin-top:2px;">Best score wins</div>
-      </div>
-      <div style="background:rgba(255,255,255,.12);border-radius:12px;padding:14px 8px;text-align:center;border:1.5px solid rgba(255,214,0,.3);">
-        <div style="font-size:36px;margin-bottom:6px;">🐼</div>
-        <div style="font-family:'Baloo 2',cursive;font-size:16px;font-weight:800;color:#FFD600;">Tap Panda</div>
-        <div style="font-size:13px;color:rgba(255,255,255,.7);margin-top:4px;">10 seconds!</div>
-        <div style="font-size:12px;color:rgba(255,255,255,.45);margin-top:2px;">1 tap = 1 point</div>
-      </div>
-      <div style="background:rgba(255,255,255,.08);border-radius:12px;padding:14px 8px;text-align:center;">
-        <div style="font-size:36px;margin-bottom:6px;">🧠</div>
-        <div style="font-family:'Baloo 2',cursive;font-size:16px;font-weight:800;color:#FFD600;">Memory</div>
-        <div style="font-size:13px;color:rgba(255,255,255,.7);margin-top:4px;">Match pairs</div>
-        <div style="font-size:12px;color:rgba(255,255,255,.45);margin-top:2px;">Quick!</div>
-      </div>
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
-      <div style="text-align:center;background:rgba(255,255,255,.06);border-radius:8px;padding:8px 6px;">
-        <div style="font-size:18px;">⚡</div>
-        <div style="font-size:13px;font-weight:700;color:#fff;margin-top:3px;">Under <span style="color:#FFD600;">1 min</span></div>
-        <div style="font-size:11px;color:rgba(255,255,255,.5);">all 3 games</div>
-      </div>
-      <div style="text-align:center;background:rgba(255,255,255,.06);border-radius:8px;padding:8px 6px;">
-        <div style="font-size:18px;">🏆</div>
-        <div style="font-size:13px;font-weight:700;color:#fff;margin-top:3px;"><span style="color:#FFD600;">6 Levels</span></div>
-        <div style="font-size:11px;color:rgba(255,255,255,.5);">earn badges!</div>
-      </div>
-      <div style="text-align:center;background:rgba(255,255,255,.06);border-radius:8px;padding:8px 6px;">
-        <div style="font-size:18px;">🐉</div>
-        <div style="font-size:13px;font-weight:700;color:#fff;margin-top:3px;"><span style="color:#FFD600;">Dragon Warrior</span></div>
-        <div style="font-size:11px;color:rgba(255,255,255,.5);">at 300 pts!</div>
-      </div>
-    </div>
-  </div>
+
   <!-- Login form: compact -->
   <div class="card" id="loginCard" style="padding:14px;">
     <input class="fi" type="text" id="loginName" placeholder="👦👧 Child's name" maxlength="20" style="margin-bottom:8px;padding:10px 14px;font-size:15px;" onkeydown="if(event.key==='Enter') doLogin()">
@@ -270,9 +266,9 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,var(--bd)
     <span id="pandaReact" style="font-size:52px;display:block;min-height:65px;">🐼</span>
     <div style="font-size:12px;color:rgba(255,255,255,.7);" id="spinChanceLabel">Spin 1 of 2</div>
   </div>
-  <div style="position:relative;width:340px;height:340px;margin:0 auto 12px;">
+  <div style="position:relative;width:280px;height:280px;margin:0 auto 8px;">
     <div style="position:absolute;top:-14px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:13px solid transparent;border-right:13px solid transparent;border-top:26px solid var(--y);z-index:10;filter:drop-shadow(0 2px 4px rgba(0,0,0,.4));"></div>
-    <canvas id="wCanvas" width="340" height="340" style="border-radius:50%;box-shadow:0 8px 32px rgba(0,0,0,.4);"></canvas>
+    <canvas id="wCanvas" width="280" height="280" style="border-radius:50%;box-shadow:0 8px 32px rgba(0,0,0,.4);"></canvas>
   </div>
   <div style="text-align:center;margin-bottom:10px;">
     <div style="font-size:12px;color:rgba(255,255,255,.7);">Best so far: <strong id="bestSoFar" style="color:var(--y);">—</strong></div>
@@ -840,7 +836,7 @@ const SEGS=[
 let spinCount=0,bestSpinPts=0,spinAngle=0,isSpinning=false;
 const cvs=document.getElementById('wCanvas');
 const ctx=cvs.getContext('2d');
-const CX=170,CY=170,R=155;
+const CX=140,CY=140,R=128;
 
 function drawWheel(rot=0){
   ctx.clearRect(0,0,300,300);
@@ -1431,7 +1427,7 @@ function launchConfetti(){
   setTimeout(()=>wrap.innerHTML='',4000);
 }
 </script>
-</div><!-- end max-width -->
+</div><!-- end game inner -->
 </div><!-- end game-area -->
 
 <!-- LIVE LEADERBOARD SIDEBAR -->
