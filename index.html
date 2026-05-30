@@ -1062,7 +1062,6 @@ function renderCT(data){
       <td><span class="badge ${c.gender==='girl'?'bg-p':'bg-b'}">${c.gender==='girl'?'👧 Girl':'👦 Boy'}</span></td>
       <td>${dots} <span style="font-size:11px;color:var(--muted);margin-left:2px;">${st}/${paidNeeded()}</span></td>
       <td><span class="badge ${s.cls}">${s.label}</span>${c.dnd?' <span class="badge bg-err" style="font-size:10px;">🔕 DND</span>':''}</td>
-      <td style="font-size:12.5px;">${fmtDate(c.expiry_date)}</td>
       <td style="font-size:12px;color:var(--muted);white-space:nowrap;">${fmtDate(c.created_at)||'—'}</td>
       <td style="font-size:12px;color:var(--muted);white-space:nowrap;">${fmtDate(c.last_visit_date)||'—'}</td>
       <td><div style="display:flex;gap:5px;flex-wrap:wrap;">
