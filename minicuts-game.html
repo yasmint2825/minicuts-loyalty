@@ -656,25 +656,27 @@ let todayPlayed={spin:false,tap:false,memory:false};
 
 async function fetchGlobalBests(){
   try{
-    // Fetch all customers with best scores
     const all=await fetch(
       SB_URL+'/rest/v1/customers?select=name,best_memory_time,best_tap_score&order=best_memory_time.asc&limit=100',
       {headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}}
     ).then(r=>r.json());
 
-    // Best memory time (lowest = fastest)
+    console.log('fetchGlobalBests raw:', JSON.stringify(all.slice(0,3)));
+
     const memBest=all.filter(c=>c.best_memory_time>0)
       .sort((a,b)=>a.best_memory_time-b.best_memory_time)[0];
     globalBestMemory=memBest
       ?{time:memBest.best_memory_time,name:memBest.name}
       :{time:null,name:null};
 
-    // Best tap score (highest)
     const tapBest=all.filter(c=>(c.best_tap_score||0)>0)
       .sort((a,b)=>(b.best_tap_score||0)-(a.best_tap_score||0))[0];
     globalBestTap=tapBest
       ?{score:tapBest.best_tap_score,name:tapBest.name}
       :{score:null,name:null};
+
+    console.log('globalBestMemory:', JSON.stringify(globalBestMemory));
+    console.log('globalBestTap:', JSON.stringify(globalBestTap));
 
   }catch(e){console.warn('Global bests error:',e.message);}
 }
