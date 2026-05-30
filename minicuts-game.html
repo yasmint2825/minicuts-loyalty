@@ -314,31 +314,31 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,var(--bd)
 
 <!-- RESULT -->
 <div class="screen" id="s-result">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;margin-top:2px;">
-    <div style="font-family:'Baloo 2',cursive;font-size:13px;font-weight:800;color:rgba(255,255,255,.7);">🐼 MiniCuts</div>
-    <button onclick="confirmGoHome()" style="background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.3);color:#fff;padding:6px 14px;border-radius:99px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">🏠 Home</button>
-  </div>
   <div style="position:fixed;inset:0;pointer-events:none;z-index:99;" id="confettiWrap"></div>
-  <div style="text-align:center;margin-bottom:12px;">
-    <span style="font-size:60px;display:block;animation:pop .5s cubic-bezier(.175,.885,.32,1.275);" id="resultEmoji">🎉</span>
-    <div style="font-size:13px;color:rgba(255,255,255,.8);" id="resultLabel">You earned</div>
-    <div style="font-family:'Baloo 2',cursive;font-size:60px;font-weight:900;color:var(--y);text-shadow:2px 3px 0 var(--bd);animation:pop .5s cubic-bezier(.175,.885,.32,1.275);" id="resultPts">+10</div>
-    <div style="font-size:13px;color:rgba(255,255,255,.8);">points!</div>
-  </div>
-  <div class="card">
-    <div id="rewardBanner"></div>
-    <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:10px;">
-      <span style="font-size:13px;color:#6B7280;">New Total:</span>
-      <span class="pts-badge" id="resultTotal">0 pts</span>
+  <!-- Row 1: emoji + pts + total - one compact card -->
+  <div style="display:flex;align-items:center;gap:10px;background:#fff;border-radius:14px;padding:10px 14px;margin-bottom:6px;">
+    <span style="font-size:40px;animation:pop .5s cubic-bezier(.175,.885,.32,1.275);" id="resultEmoji">🎉</span>
+    <div style="flex:1;">
+      <div style="font-size:10px;color:#6B7280;" id="resultLabel">You earned</div>
+      <div style="font-family:'Baloo 2',cursive;font-size:40px;font-weight:900;color:var(--bd);line-height:1;animation:pop .5s cubic-bezier(.175,.885,.32,1.275);" id="resultPts">+10</div>
     </div>
-    <div id="resultMilestoneTrack" style="position:relative;padding:0 8px;margin-top:8px;"></div>
+    <div style="text-align:right;">
+      <div style="font-size:10px;color:#6B7280;">Total</div>
+      <span class="pts-badge" id="resultTotal" style="font-size:14px;padding:4px 10px;">0pts</span>
+    </div>
   </div>
-  <!-- Remaining games to play -->
-  <div id="remainingGames" style="margin-bottom:12px;"></div>
-  <button class="btn" onclick="goLeaderboard()" style="margin-bottom:10px;background:linear-gradient(135deg,#10B981,#059669);color:#fff;border:none;padding:14px;border-radius:14px;font-family:'Baloo 2',cursive;font-size:19px;font-weight:800;cursor:pointer;">🏆 See Leaderboard</button>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-    <button class="btn btn-ghost" onclick="goHome()" style="font-size:14px;padding:12px;">🏠 Done</button>
-    <button class="btn btn-ghost" onclick="newPlayer()" style="font-size:14px;padding:12px;border-color:var(--y);color:var(--y);">👶 New Player</button>
+  <!-- Row 2: milestone + reward -->
+  <div style="background:#fff;border-radius:14px;padding:8px 12px;margin-bottom:6px;">
+    <div id="resultMilestoneTrack" style="position:relative;padding:0 4px;"></div>
+    <div id="rewardBanner"></div>
+  </div>
+  <!-- Row 3: remaining games -->
+  <div id="remainingGames" style="margin-bottom:6px;"></div>
+  <!-- Row 4: actions - compact 3 col -->
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;">
+    <button class="btn" onclick="goLeaderboard()" style="background:linear-gradient(135deg,#10B981,#059669);color:#fff;border:none;padding:9px;font-size:13px;">🏆 Scores</button>
+    <button class="btn btn-ghost" onclick="newPlayer()" style="font-size:13px;padding:9px;border-color:var(--y);color:var(--y);">👶 New</button>
+    <button class="btn btn-ghost" onclick="goHome()" style="font-size:13px;padding:9px;">🏠 Done</button>
   </div>
 </div>
 
@@ -684,29 +684,23 @@ function renderRemainingGames(){
   const el=document.getElementById('remainingGames');
   if(!el) return;
   const gameInfo={
-    spin:{icon:'🎡',name:'Spin Wheel',desc:'2 spins, best wins',fn:'goSpin()'},
-    tap:{icon:'🐼',name:'Tap Panda',desc:'10 seconds!',fn:'goTapPanda()'},
-    memory:{icon:'🧠',name:'Memory Match',desc:'Quick pairs!',fn:'goMemory()'},
+    spin:{icon:'🎡',name:'Spin',fn:'goSpin()'},
+    tap:{icon:'🐼',name:'Tap Panda',fn:'goTapPanda()'},
+    memory:{icon:'🧠',name:'Memory',fn:'goMemory()'},
   };
   const remaining=Object.entries(gameInfo).filter(([k])=>!todayPlayed[k]);
   if(!remaining.length){
-    el.innerHTML=`<div style="background:#F0FDF4;border-radius:12px;padding:14px;text-align:center;margin-bottom:4px;">
-      <div style="font-size:28px;">🐼</div>
-      <div style="font-family:'Baloo 2',cursive;font-size:15px;font-weight:800;color:#16A34A;">All done for today!</div>
-      <div style="font-size:12px;color:#6B7280;margin-top:3px;">Come back after your next haircut 🎈</div>
+    el.innerHTML=`<div style="background:rgba(255,255,255,.1);border-radius:10px;padding:8px;text-align:center;font-size:12px;color:rgba(255,255,255,.7);">
+      🐼 All 3 games done today! Come back next visit.
     </div>`;
     return;
   }
-  el.innerHTML=`<div style="font-family:'Baloo 2',cursive;font-size:15px;font-weight:800;color:var(--bd);margin-bottom:8px;text-align:center;">
-    Play another game? 🎮
-  </div>
-  <div style="display:grid;grid-template-columns:${remaining.length===1?'1fr':'1fr 1fr'};gap:10px;">
+  el.innerHTML=`<div style="font-size:11px;font-weight:700;color:rgba(255,255,255,.6);margin-bottom:4px;text-align:center;">Play another game →</div>
+  <div style="display:grid;grid-template-columns:${remaining.length===1?'1fr':'1fr 1fr'};gap:6px;">
     ${remaining.map(([k,g])=>`
-      <div onclick="${g.fn}" style="background:linear-gradient(135deg,var(--bd),var(--b));border-radius:14px;padding:14px 10px;text-align:center;cursor:pointer;border:3px solid transparent;transition:all .2s;" onmouseover="this.style.borderColor='#FFD600'" onmouseout="this.style.borderColor='transparent'">
-        <div style="font-size:32px;">${g.icon}</div>
-        <div style="font-family:'Baloo 2',cursive;font-size:15px;font-weight:800;color:#fff;margin-top:4px;">${g.name}</div>
-        <div style="font-size:11px;color:rgba(255,255,255,.7);margin-top:2px;">${g.desc}</div>
-      </div>`).join('')}
+      <button onclick="${g.fn}" style="background:linear-gradient(135deg,var(--bd),var(--b));border:2px solid rgba(255,255,255,.2);border-radius:10px;padding:8px;text-align:center;cursor:pointer;color:#fff;font-family:'Baloo 2',cursive;font-size:14px;font-weight:800;">
+        ${g.icon} ${g.name}
+      </button>`).join('')}
   </div>`;
 }
 
@@ -1195,27 +1189,25 @@ function showResult(pts){
     const prevTotal=newTotal-pts;
     const justUnlocked=TIERS.slice().reverse().find(t=>newTotal>=t.pts&&prevTotal<t.pts);
     if(justUnlocked){
-      bannerEl.innerHTML=`<div style="background:linear-gradient(135deg,${justUnlocked.color},${justUnlocked.color}99);border-radius:16px;padding:20px;text-align:center;margin:8px 0;animation:pop .5s cubic-bezier(.175,.885,.32,1.275);">
-        <div style="font-size:48px;margin-bottom:6px;">${justUnlocked.icon}</div>
-        <div style="font-family:'Baloo 2',cursive;font-size:13px;font-weight:800;color:#fff;text-transform:uppercase;letter-spacing:1px;opacity:.85;">LEVEL ${justUnlocked.level} UNLOCKED!</div>
-        <div style="font-family:'Baloo 2',cursive;font-size:24px;font-weight:900;color:#fff;margin:4px 0;">${justUnlocked.badge}</div>
-        <div style="font-size:14px;color:#fff;opacity:.9;margin-top:4px;">${justUnlocked.reward} 🎁</div>
-        <div style="font-size:12px;color:#fff;opacity:.7;margin-top:8px;">Show this screen to staff to claim!</div>
-      </div>`;
-    } else {
-      bannerEl.innerHTML=`<div style="background:#F0FDF4;border-radius:12px;padding:14px;text-align:center;margin:8px 0;display:flex;align-items:center;gap:12px;">
-        <div style="font-size:32px;">${tier.icon}</div>
+      bannerEl.innerHTML=`<div style="background:linear-gradient(135deg,${justUnlocked.color},${justUnlocked.color}88);border-radius:10px;padding:8px 12px;text-align:center;margin-top:6px;display:flex;align-items:center;gap:10px;">
+        <div style="font-size:30px;">${justUnlocked.icon}</div>
         <div style="text-align:left;">
-          <div style="font-size:12px;color:#16A34A;font-weight:700;text-transform:uppercase;">Current Level</div>
-          <div style="font-family:'Baloo 2',cursive;font-size:16px;font-weight:800;color:#15803D;">${tier.badge}</div>
+          <div style="font-size:10px;font-weight:800;color:#fff;opacity:.8;text-transform:uppercase;letter-spacing:1px;">Level ${justUnlocked.level} Unlocked!</div>
+          <div style="font-family:'Baloo 2',cursive;font-size:16px;font-weight:900;color:#fff;">${justUnlocked.badge}</div>
+          <div style="font-size:11px;color:#fff;opacity:.85;">${justUnlocked.reward} — show staff! 🎁</div>
         </div>
       </div>`;
+    } else {
+      bannerEl.innerHTML=tier?`<div style="background:#F0FDF4;border-radius:10px;padding:8px 12px;margin-top:6px;display:flex;align-items:center;gap:8px;">
+        <div style="font-size:24px;">${tier.icon}</div>
+        <div><div style="font-size:10px;color:#16A34A;font-weight:700;text-transform:uppercase;">Current Level</div>
+        <div style="font-family:'Baloo 2',cursive;font-size:14px;font-weight:800;color:#15803D;">${tier.badge}</div></div>
+      </div>`:'';
     }
   } else { bannerEl.innerHTML=''; }
   if(next){
-    const existing=bannerEl.innerHTML;
-    bannerEl.innerHTML+=`<div style="text-align:center;padding:8px;color:#6B7280;font-size:12px;background:#F9FAFB;border-radius:10px;margin-top:6px;">
-      ${next.pts-newTotal} more pts → ${next.icon} <strong>Level ${next.level}: ${next.badge}</strong>
+    bannerEl.innerHTML+=`<div style="text-align:center;padding:5px 8px;color:#6B7280;font-size:11px;background:#F9FAFB;border-radius:8px;margin-top:4px;">
+      ${next.pts-newTotal}pts → ${next.icon} Level ${next.level}: ${next.badge}
     </div>`;
   }
   if(pts>=10) launchConfetti();
