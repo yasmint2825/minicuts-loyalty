@@ -397,6 +397,8 @@ const TIERS=[
 ];
 const MAX_PTS=300;
 let player={id:null,name:'',mobile:'',game_points:0,game_spins:0};
+let globalBestMemory={time:null,name:null}; // all-time fastest memory
+let globalBestTap={score:null,name:null};    // all-time most panda taps
 let prevScreen='s-profile';
 
 // ── RESET ALL GAME STATE (call on every player switch) ──
@@ -643,6 +645,7 @@ async function doRegister(){
     showRegMsg('Welcome to MiniCuts! 🎉','ok');
     spinCount=0;bestSpinPts=0;
     await checkTodaySessions();
+    await fetchGlobalBests();
     setTimeout(()=>goProfile(),1000);
   }catch(e){showRegMsg('Error: '+e.message,false);}
   finally{btn.disabled=false;btn.textContent='Register & Play! 🎮';}
@@ -650,6 +653,31 @@ async function doRegister(){
 
 // Track which games played today
 let todayPlayed={spin:false,tap:false,memory:false};
+
+async function fetchGlobalBests(){
+  try{
+    // Fetch all customers with best scores
+    const all=await fetch(
+      SB_URL+'/rest/v1/customers?select=name,best_memory_time,best_tap_score&order=best_memory_time.asc&limit=100',
+      {headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}}
+    ).then(r=>r.json());
+
+    // Best memory time (lowest = fastest)
+    const memBest=all.filter(c=>c.best_memory_time>0)
+      .sort((a,b)=>a.best_memory_time-b.best_memory_time)[0];
+    globalBestMemory=memBest
+      ?{time:memBest.best_memory_time,name:memBest.name}
+      :{time:null,name:null};
+
+    // Best tap score (highest)
+    const tapBest=all.filter(c=>(c.best_tap_score||0)>0)
+      .sort((a,b)=>(b.best_tap_score||0)-(a.best_tap_score||0))[0];
+    globalBestTap=tapBest
+      ?{score:tapBest.best_tap_score,name:tapBest.name}
+      :{score:null,name:null};
+
+  }catch(e){console.warn('Global bests error:',e.message);}
+}
 
 async function checkTodaySessions(){
   try{
@@ -1011,7 +1039,19 @@ function endTapGame(){
   const pts=tapScore; // 1 tap = 1 point, no cap
   const isNewBest=!player.best_tap_score||tapScore>player.best_tap_score;
   if(isNewBest) player.best_tap_score=tapScore;
-  document.getElementById('tapStatus').innerHTML=(isNewBest?'🏆 New Best! ':'')+'You caught the panda <strong>'+tapScore+'</strong> times!<br><span style="font-size:14px;color:var(--y);">'+pts+' point'+(pts!==1?'s':'')+'</span>';
+  const prevGlobalTap=globalBestTap.score||0;
+  const isGlobalTapBest=tapScore>prevGlobalTap;
+  if(isGlobalTapBest) globalBestTap={score:tapScore,name:player.name};
+  let tapResultHtml='';
+  if(isGlobalTapBest){
+    tapResultHtml='🏆 <strong>ALL-TIME RECORD: '+tapScore+' taps!</strong><br>You are the Panda Champion!';
+  } else if(isNewBest){
+    tapResultHtml='⭐ <strong>Personal best: '+tapScore+' taps!</strong>'+(prevGlobalTap?'<br>Champion: '+globalBestTap.name+' ('+prevGlobalTap+')'  :'');
+  } else {
+    tapResultHtml='You tapped <strong>'+tapScore+'</strong> times!'+(prevGlobalTap?'<br>Champion: <strong>'+globalBestTap.name+'</strong> ('+prevGlobalTap+' taps)':'');
+  }
+  tapResultHtml+='<br><span style="font-size:16px;color:var(--y);font-weight:800;">'+pts+' point'+(pts!==1?'s':'')+'</span>';
+  document.getElementById('tapStatus').innerHTML=tapResultHtml;
   document.getElementById('tapStatus').style.display='block';
   document.getElementById('tapStartBtn').style.display='block';
   document.getElementById('tapStartBtn').textContent='See my '+pts+' pts! 🎉';
@@ -1031,21 +1071,36 @@ function goMemory(){
   document.getElementById('memMoves').textContent='0';
   document.getElementById('memTime').textContent='0s';
   document.getElementById('memPairs').textContent='0/4';
-  // Show best time encouragement
   const bestTime=player.best_memory_time;
-  const startLabel=bestTime
-    ? 'START! 🧠  (Beat your best: '+bestTime+'s!)'
-    : 'START! 🧠';
-  document.getElementById('memStartBtn').style.display='block';
-  document.getElementById('memStartBtn').textContent=startLabel;
-  document.getElementById('memStartBtn').disabled=false;
-  document.getElementById('memStartBtn').onclick=startMemory;
-  // Show best time hint above grid
   const hintEl=document.getElementById('memBestHint');
   if(hintEl){
-    hintEl.style.display=bestTime?'block':'none';
-    hintEl.textContent=bestTime?'🏆 Your best time: '+bestTime+'s — can you beat it?':'';
+    hintEl.style.display='block';
+    let html='';
+    // Global best (all kids)
+    if(globalBestMemory.time){
+      const isChamp=globalBestMemory.name===player.name;
+      html+='<div style="margin-bottom:4px;">🏆 All-time fastest: <strong>'
+        +globalBestMemory.name+'</strong> in <strong>'
+        +globalBestMemory.time+'s</strong>'
+        +(isChamp?' (you!)':'')+'</div>';
+    }
+    // Player's own best
+    if(bestTime){
+      const beatGlobal=globalBestMemory.time&&bestTime<globalBestMemory.time;
+      html+='⏱️ Your best: <strong>'+bestTime+'s</strong>';
+      if(beatGlobal) html+=' &nbsp;🏆 You hold the record!';
+      else if(globalBestMemory.time) html+=' &nbsp;· Beat <strong>'+globalBestMemory.time+'s</strong> to be champion!';
+      html+=' &nbsp;|&nbsp; Beat it for <strong>+2 bonus!</strong>';
+    } else {
+      html+='🧠 Earn <strong>8 pts</strong> + <strong>+2 bonus</strong> if you set the fastest time!';
+    }
+    hintEl.innerHTML=html;
   }
+  document.getElementById('memStartBtn').style.display='block';
+  const targetTime=globalBestMemory.time||(bestTime||null);
+  document.getElementById('memStartBtn').textContent=targetTime?'START! Can you beat '+targetTime+'s? 🏆':'START! 🧠';
+  document.getElementById('memStartBtn').disabled=false;
+  document.getElementById('memStartBtn').onclick=startMemory;
   buildMemGrid(false);
   showScreen('s-memory');
 }
@@ -1121,25 +1176,47 @@ function memTap(idx){
 
 function endMemory(){
   clearInterval(memTimerInt);memStarted=false;
-  // 2pts per pair matched (4 pairs = 8pts base)
-  const basePts=memMatched*2;
   const prevBest=player.best_memory_time||null;
-  const isNewBest=!prevBest||memSeconds<prevBest;
-  const bonusPts=isNewBest?2:0;
-  const pts=basePts+bonusPts;
+  const prevGlobal=globalBestMemory.time||null;
+  // Beat own best OR global best = bonus
+  const isPersonalBest=!prevBest||memSeconds<prevBest;
+  const isGlobalBest=!prevGlobal||memSeconds<prevGlobal;
+  const isNewBest=isPersonalBest; // save if personal best
+  const pts=8+(isNewBest?2:0);
   if(isNewBest) player.best_memory_time=memSeconds;
-  // Result label
-  let hint='';
-  if(isNewBest&&prevBest) hint='🏆 New best: '+memSeconds+'s! +2 bonus pts!';
-  else if(isNewBest) hint='⏱️ First time: '+memSeconds+'s!';
-  else hint='Beat '+prevBest+'s next time for +2 bonus! ('+memSeconds+'s this time)';
-  document.getElementById('memBestHint').style.display='block';
-  document.getElementById('memBestHint').textContent=hint;
+  if(isGlobalBest){
+    globalBestMemory={time:memSeconds,name:player.name};
+  }
+  const hintEl=document.getElementById('memBestHint');
+  if(hintEl){
+    hintEl.style.display='block';
+    if(isGlobalBest){
+      hintEl.innerHTML='🏆 <strong>ALL-TIME RECORD: '+memSeconds+'s!</strong> You are the fastest kid ever! +2 bonus!';
+      hintEl.style.background='rgba(22,163,74,.2)';
+      hintEl.style.borderColor='rgba(22,163,74,.5)';
+      hintEl.style.color='#4ADE80';
+    } else if(isPersonalBest&&prevBest){
+      hintEl.innerHTML='⭐ <strong>Personal best: '+memSeconds+'s!</strong> (was '+prevBest+'s) +2 bonus! Champion: '+globalBestMemory.name+' ('+prevGlobal+'s)';
+      hintEl.style.background='rgba(22,163,74,.2)';
+      hintEl.style.borderColor='rgba(22,163,74,.5)';
+      hintEl.style.color='#4ADE80';
+    } else if(isPersonalBest){
+      hintEl.innerHTML='⭐ <strong>First record: '+memSeconds+'s!</strong> +2 bonus! Champion: '+(prevGlobal?globalBestMemory.name+' ('+prevGlobal+'s)':'No one yet!');
+      hintEl.style.background='rgba(22,163,74,.2)';
+      hintEl.style.borderColor='rgba(22,163,74,.5)';
+      hintEl.style.color='#4ADE80';
+    } else {
+      const target=prevGlobal?globalBestMemory.name+' ('+prevGlobal+'s)':'your own best';
+      hintEl.innerHTML='⏱️ '+memSeconds+'s &nbsp;·&nbsp; Beat '+target+' to be champion & get +2 bonus!';
+      hintEl.style.background='rgba(255,214,0,.15)';
+      hintEl.style.borderColor='rgba(255,214,0,.3)';
+      hintEl.style.color='var(--y)';
+    }
+  }
   document.getElementById('memStartBtn').style.display='block';
   document.getElementById('memStartBtn').textContent='See my '+pts+' pts! 🎉';
   document.getElementById('memStartBtn').disabled=false;
   document.getElementById('memStartBtn').onclick=()=>showResult(pts);
-  // Auto-save immediately
   savePoints(pts,'memory',isNewBest?memSeconds:null);
 }
 
