@@ -976,28 +976,13 @@ function renderProfile(c,visits,cycles){
   // Cycle history tab
   const cycleHtml=buildCycleHistory(cycles,st,c);
 
-  // Build follow-up message
+  // Build follow-up message - passed to buildFollowupSection
   const portalUrl='https://yasmint2825.github.io/minicuts-loyalty/?customer=1&lookup='+encodeURIComponent(c.mobile);
-  const stamps=st;const pN=paid;
-  const stampLine=st>=pN?'🎁 Your FREE haircut is ready — come in and claim it!':
-    `You have ${st} stamp${st!==1?'s':''} — just ${pN-st} more for a FREE haircut!`;
-  const gameLine=(c.game_points||0)>0?`🎮 You have ${c.game_points} game points too!`:'🎮 Ask us about our Game Zone next visit!';
-  const followupMsg=`Hi ${c.parent||c.name}! 🐼
-
-Thank you for visiting MiniCuts — ${c.name} looked amazing! 💇
-
-${stampLine}
-${gameLine}
-
-Check your loyalty passport here:
-${portalUrl}
-
-If you enjoyed your visit, we'd love a Google review — it means the world to a small business like ours 🙏
-⭐ https://share.google/xpTR5fVOVbt4pwg8X
-
-See you soon!
-MiniCuts DSO 🐼`;
-
+  const pN=paid;
+  const stampLine=st>=pN?'FREE haircut ready - come claim it!':
+    'Stamps: '+st+' of '+pN+' - just '+(pN-st)+' more for a free haircut!';
+  const gameLine=(c.game_points||0)>0?'Game points: '+c.game_points+' pts - keep playing!':'Ask us about our Game Zone next visit!';
+  const followupMsg='Hi '+(c.parent||c.name)+'!\n\nThank you for visiting MiniCuts - '+c.name+' looked amazing!\n\n'+stampLine+'\n'+gameLine+'\n\nCheck your loyalty passport:\n'+portalUrl+'\n\nIf you enjoyed your visit, a Google review means the world to us:\nhttps://share.google/xpTR5fVOVbt4pwg8X\n\nSee you soon!\nMiniCuts DSO';
   const followupSent=c.followup_sent_at;
   const followupAge=followupSent?Math.round((new Date()-new Date(followupSent))/(1000*60*60*24)):null;
 
