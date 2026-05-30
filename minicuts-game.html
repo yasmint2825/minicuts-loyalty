@@ -64,9 +64,9 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,var(--bd)
 .game-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:4px;}
 .game-card{background:linear-gradient(135deg,var(--bd),var(--b));border-radius:12px;padding:12px 8px;text-align:center;cursor:pointer;border:3px solid transparent;transition:all .2s;}
 .game-card:hover,.game-card:active{border-color:var(--y);transform:scale(.97);}
-.game-emoji{font-size:34px;display:block;margin-bottom:5px;}
-.game-name{font-family:'Baloo 2',cursive;font-size:15px;font-weight:800;color:#fff;}
-.game-desc{font-size:13px;color:rgba(255,255,255,.7);margin-top:4px;}
+.game-emoji{font-size:28px;display:block;margin-bottom:3px;}
+.game-name{font-family:'Baloo 2',cursive;font-size:13px;font-weight:800;color:#fff;}
+.game-desc{font-size:11px;color:rgba(255,255,255,.7);margin-top:2px;}
 .tier-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #F3F4F6;}
 .tier-row:last-child{border-bottom:none;}
 .lb-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #F3F4F6;}
@@ -144,7 +144,7 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,var(--bd)
   </div>
 
   <!-- Login form: compact -->
-  <div class="card" id="loginCard" style="padding:14px;">
+  <div class="card" id="loginCard" style="padding:12px;">
     <input class="fi" type="text" id="loginName" placeholder="👦👧 Child's name" maxlength="20" style="margin-bottom:8px;padding:10px 14px;font-size:15px;" onkeydown="if(event.key==='Enter') doLogin()">
     <input class="fi" type="tel" id="loginMobile" placeholder="📱 Parent mobile number" maxlength="15" style="margin-bottom:10px;padding:10px 14px;font-size:15px;" onkeydown="if(event.key==='Enter') doLogin()">
     <button class="btn btn-y" id="loginBtn" onclick="doLogin()" style="padding:12px;font-size:18px;">Let's Play! 🎮</button>
@@ -249,7 +249,7 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,var(--bd)
       <div style="font-size:13px;color:#6B7280;line-height:1.6;">You've played all 3 games today.<br>Come back after your next haircut! 🎈</div>
     </div>
   </div>
-  <button class="btn btn-y" onclick="goLeaderboard()" style="margin-bottom:10px;color:#0D47A1;">🏆 Leaderboard</button>
+  <button class="btn" onclick="goLeaderboard()" style="margin-bottom:6px;background:linear-gradient(135deg,#10B981,#059669);color:#fff;border:none;padding:10px;">🏆 See Leaderboard</button>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
     <button class="btn btn-ghost" onclick="newPlayer()" style="font-size:14px;padding:10px;border-color:var(--y);color:var(--y);">👶 New Player</button>
     <button class="btn btn-ghost" onclick="goHome()" style="font-size:14px;padding:10px;">🏠 Exit</button>
@@ -775,7 +775,7 @@ function drawMilestoneTrack(pts, containerId){
     {pts:200,icon:'⭐'},{pts:250,icon:'🔥'},{pts:300,icon:'🐉'}
   ];
   el.innerHTML=`
-    <div style="position:relative;height:56px;margin-bottom:4px;">
+    <div style="position:relative;height:44px;margin-bottom:2px;">
       <!-- Track -->
       <div style="position:absolute;top:20px;left:0;right:0;height:10px;background:#E5E7EB;border-radius:99px;overflow:hidden;">
         <div style="width:${pct}%;height:100%;background:linear-gradient(90deg,#FFD600,#FF8C00);border-radius:99px;transition:width .8s cubic-bezier(.175,.885,.32,1.275);"></div>
