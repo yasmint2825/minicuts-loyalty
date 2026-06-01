@@ -9,6 +9,51 @@
     return '<div id="'+id+'" style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;padding:8px 10px;margin-bottom:14px;text-align:center;color:#0D47A1;font-size:12px;font-weight:900;line-height:1.35;">'+title+'<br><span style="font-size:11px;color:#1565C0;font-weight:800;">'+body+'</span></div>';
   }
 
+  function dobDropdownHtml(){
+    var currentYear=new Date().getFullYear();
+    var days='<option value="">DD</option>';
+    for(var d=1;d<=31;d++){var dd=String(d).padStart(2,'0');days+='<option value="'+dd+'">'+dd+'</option>';}
+    var months='<option value="">MM</option>';
+    for(var m=1;m<=12;m++){var mm=String(m).padStart(2,'0');months+='<option value="'+mm+'">'+mm+'</option>';}
+    var years='<option value="">YYYY</option>';
+    for(var y=currentYear;y>=currentYear-18;y--){years+='<option value="'+y+'">'+y+'</option>';}
+    return '<div class="fg" id="CRDOB_WRAP"><label class="fl">Date of Birth <span style="color:#DC2626;font-weight:900;">*</span></label><div style="display:grid;grid-template-columns:1fr 1fr 1.25fr;gap:8px;"><select class="fi" id="CRDOB_D" style="border:2px solid #FFD600;background:#FFFDE7;padding:10px 8px;">'+days+'</select><select class="fi" id="CRDOB_M" style="border:2px solid #FFD600;background:#FFFDE7;padding:10px 8px;">'+months+'</select><select class="fi" id="CRDOB_Y" style="border:2px solid #FFD600;background:#FFFDE7;padding:10px 8px;">'+years+'</select></div><input type="hidden" id="CRDOB"><div style="font-size:11px;color:#6B7280;margin-top:5px;">Select day, month and year</div></div>';
+  }
+
+  function normalizeDobDropdown(){
+    try{
+      var d=document.getElementById('CRDOB_D');
+      var m=document.getElementById('CRDOB_M');
+      var y=document.getElementById('CRDOB_Y');
+      var h=document.getElementById('CRDOB');
+      if(!d||!m||!y||!h) return '';
+      h.value=(y.value&&m.value&&d.value)?(y.value+'-'+m.value+'-'+d.value):'';
+      return h.value;
+    }catch(e){return '';}
+  }
+
+  function patchDobValidation(){
+    try{
+      if(window.__lgcDobPatched) return;
+      if(typeof window.custRegister !== 'function') return;
+      window.__lgcDobPatched=true;
+      var oldCustRegister=window.custRegister;
+      window.custRegister=function(){
+        var dob=normalizeDobDropdown();
+        var wrap=document.getElementById('CRDOB_WRAP');
+        if(wrap && !dob){
+          wrap.style.border='2px solid #DC2626';
+          wrap.style.borderRadius='12px';
+          wrap.style.padding='8px';
+          alert('Date of birth is required. Please select DD, MM and YYYY. 🎂');
+          return;
+        }
+        if(wrap){wrap.style.border='none';wrap.style.padding='0';}
+        return oldCustRegister.apply(this,arguments);
+      };
+    }catch(e){console.warn('DOB validation patch:',e.message);}
+  }
+
   function enhanceCustomerPortalDom(){
     try{
       var cp=document.getElementById('CP');
@@ -39,12 +84,18 @@
           var sub2=heading.nextElementSibling;
           if(sub2) sub2.textContent='Register once for stamps, rewards and MiniCuts Games Club';
           box.insertAdjacentHTML('afterbegin', noteHtml('lgcCustomerRegisterNote','register'));
+          var oldDate=box.querySelector('input[type="date"]#CRDOB');
+          if(oldDate){
+            var fg=oldDate.closest('.fg');
+            if(fg) fg.outerHTML=dobDropdownHtml();
+          }
           var btn=box.querySelector('button[onclick="custRegister()"]');
           if(btn) btn.textContent='Create Loyalty & Games Account 🐼';
           var back=box.querySelector('a[onclick="showLookup()"]');
           if(back) back.textContent='Check Loyalty & Games login →';
         }
       });
+      patchDobValidation();
     }catch(e){console.warn('Customer portal wording patch:',e.message);}
   }
 
@@ -71,6 +122,8 @@
         html=html.replace('Register to start earning stamps','Register once for stamps, rewards and MiniCuts Games Club');
         html=html.replace('Create My Passport 🐼','Create Loyalty & Games Account 🐼');
         html=html.replace('Check stamps →','Check Loyalty & Games login →');
+        html=html.replace(/<div class="fg"><label class="fl">Date of Birth[\s\S]*?<\/div>\s*<div class="fg"><label class="fl">Gender \*<\/label>/,'__DOB_BLOCK__<div class="fg"><label class="fl">Gender *</label>');
+        html=html.replace('__DOB_BLOCK__',dobDropdownHtml());
         html=html.replace('<div class="cbox">','<div class="cbox">'+noteHtml('lgcCustomerRegisterNote','register'));
         return html;
       };
@@ -125,6 +178,7 @@
 
       patchBuildFunctions();
       enhanceCustomerPortalDom();
+      patchDobValidation();
     }catch(e){console.warn('Loyalty Games Club text patch:',e.message);}
   }
 
@@ -132,5 +186,6 @@
   setTimeout(applyText,300);
   setTimeout(applyText,900);
   setTimeout(applyText,1800);
+  document.addEventListener('change',function(e){if(e.target&&(/^CRDOB_/.test(e.target.id))) normalizeDobDropdown();});
   document.addEventListener('click',function(){setTimeout(applyText,80);setTimeout(enhanceCustomerPortalDom,250);});
 })();
