@@ -16,7 +16,7 @@
 <div class="box">
   <div class="panda">🐼</div>
   <div class="title">Loading MiniCuts Game...</div>
-  <div class="msg">Applying registration hotfix safely.</div>
+  <div class="msg">Applying registration + memory hotfix safely.</div>
 </div>
 <script>
 (async function(){
@@ -33,6 +33,20 @@
     html = html.replace(
       'if(!name){showRegMsg("Please enter child\'s name",false);return;}\n   \n   if(!dob){',
       'if(!name){showRegMsg("Please enter child\'s name",false);return;}\n   if(mobile.length<7){showRegMsg("Please enter valid parent mobile",false);return;}\n   \n   if(!dob){'
+    );
+
+    // Memory fix: show all 8 cards cleanly as 4 x 2 and avoid using panda as a front card.
+    html = html.replace(
+      ".mem-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px;}",
+      ".mem-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:8px;}"
+    );
+    html = html.replace(
+      ".mem-card{aspect-ratio:1;background:var(--b);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:36px;cursor:pointer;transition:transform .2s;border:2px solid rgba(255,255,255,.15);}",
+      ".mem-card{aspect-ratio:1;background:var(--b);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:28px;cursor:pointer;transition:transform .2s;border:2px solid rgba(255,255,255,.15);min-height:64px;}"
+    );
+    html = html.replace(
+      "const MEM_EMOJIS=['🐼','🌟','🎡','🎈','🍭','🚀','🎮','🦁'];",
+      "const MEM_EMOJIS=['🌟','🎡','🎈','🍭','🚀','🎮','🦁','✂️'];"
     );
 
     const helperScript = `
