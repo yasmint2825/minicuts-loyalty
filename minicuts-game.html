@@ -277,7 +277,7 @@ body{display:flex;font-family:'Nunito',sans-serif;}
     <button class="home-btn" onclick="goProfile()" style="align-self:center;margin-left:4px;flex-shrink:0;">🎮</button>
   </div>
   <div id="tapGame" style="height:230px;">
-    <div id="pandaTarget" style="top:80px;left:100px;">🐼</div>
+    <div id="pandaTarget" style="top:80px;left:100px;cursor:pointer;" onclick="tapPanda()" ontouchstart="tapPanda()">🐼</div>
     <div id="tapStatus" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:'Baloo 2',cursive;font-size:22px;font-weight:800;color:#fff;text-align:center;text-shadow:2px 2px 0 #000;">Tap the panda!<br><span style="font-size:13px;opacity:.7;">Tap START</span></div>
   </div>
   <button class="btn btn-y" id="tapStartBtn" onclick="startTapGame()" style="margin-top:8px;">START! 🐼</button>
@@ -444,7 +444,7 @@ function showAlreadyPlayed(game){
     const daysAgo=Math.floor((Date.now()-player._lastGameDate.getTime())/(1000*60*60*24));
     const daysLeft=Math.max(1,30-daysAgo);
     if(prompt){
-      prompt.textContent='Games available after your next haircut! (~'+daysLeft+' days)';
+      prompt.textContent='Games available after your next haircut! ✂️';
       prompt.style.fontSize='13px';
       prompt.style.color='rgba(255,255,255,.65)';
       prompt.style.textShadow='none';
@@ -473,7 +473,7 @@ function renderRemainingGames(){
       el.innerHTML='<div style="background:rgba(255,255,255,.08);border-radius:12px;padding:12px;text-align:center;">'+
         '<div style="font-size:24px;margin-bottom:4px;">✂️🐼</div>'+
         '<div style="font-size:14px;font-weight:800;color:rgba(255,255,255,.9);">Games available after your next haircut!</div>'+
-        '<div style="font-size:11px;color:rgba(255,255,255,.5);margin-top:3px;">Come back in ~'+daysLeft+' days</div>'+
+        '<div style="font-size:11px;color:rgba(255,255,255,.5);margin-top:3px;">See you after your next haircut! ✂️</div>'+
       '</div>';
     } else {
       el.innerHTML='<div style="background:rgba(22,163,74,.15);border:1px solid rgba(22,163,74,.3);border-radius:10px;padding:10px;text-align:center;">'+
@@ -542,8 +542,8 @@ function refreshGameCards(){
       const daysAgo=Math.floor((Date.now()-player._lastGameDate.getTime())/(1000*60*60*24));
       const daysLeft=Math.max(1,30-daysAgo);
       doneCard.innerHTML='<div style="font-size:28px;margin-bottom:6px;">✂️🐼</div>'+
-        '<div style="font-size:14px;font-weight:800;color:var(--bd);margin:4px 0;">Games available after your next haircut!</div>'+
-        '<div style="font-size:11px;color:#6B7280;margin-top:2px;">Come back in ~'+daysLeft+' days</div>';
+        '<div style="font-size:14px;font-weight:800;color:var(--bd);margin:4px 0;">Amazing! All games done!</div>'+
+        '<div style="font-size:11px;color:#6B7280;margin-top:2px;">Games available after your next haircut 🎈</div>';
     } else {
       doneCard.innerHTML='<div style="font-size:36px;">🎉</div>'+
         '<div style="font-size:15px;font-weight:800;color:var(--bd);margin:4px 0;">All 3 games done! Amazing!</div>'+
@@ -695,6 +695,36 @@ let spinCount=0,bestSpinPts=0,spinAngle=0,isSpinning=false;
 let tapScore=0,tapSeconds=10,tapRunning=false,tapTimer=null;
 let memCards=[],memFlipped=[],memMatched=0,memMoves=0,memSeconds=0,memStarted=false,memTimerInt=null,memLock=false;
 
+
+// ══ SOUNDS ══
+const AudioCtx=window.AudioContext||window.webkitAudioContext;
+let audioCtx=null;
+function getAudio(){if(!audioCtx){try{audioCtx=new AudioCtx();}catch(e){}}return audioCtx;}
+function playTone(freq,dur,type='sine',vol=0.3){
+  const ctx=getAudio();if(!ctx) return;
+  try{
+    const o=ctx.createOscillator(),g=ctx.createGain();
+    o.connect(g);g.connect(ctx.destination);
+    o.frequency.value=freq;o.type=type;
+    g.gain.setValueAtTime(vol,ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+dur);
+    o.start();o.stop(ctx.currentTime+dur);
+  }catch(e){}
+}
+function soundSpin(){playTone(220,0.08,'sawtooth',0.2);setTimeout(()=>playTone(280,0.08,'sawtooth',0.2),80);}
+function soundSpinResult(pts){
+  const f=pts>=13?523:pts>=10?392:330;
+  playTone(f,0.15,'sine',0.35);setTimeout(()=>playTone(f*1.25,0.2,'sine',0.3),150);
+  if(pts>=13){setTimeout(()=>playTone(f*1.5,0.25,'sine',0.25),300);}
+}
+function soundTap(){playTone(600,0.05,'square',0.15);}
+function soundMatch(){playTone(523,0.1,'sine',0.3);setTimeout(()=>playTone(659,0.15,'sine',0.3),100);}
+function soundNoMatch(){playTone(220,0.1,'sawtooth',0.2);}
+function soundWin(){
+  [523,659,784,1047].forEach((f,i)=>setTimeout(()=>playTone(f,0.15,'sine',0.35),i*120));
+}
+function soundStart(){playTone(440,0.1,'sine',0.3);setTimeout(()=>playTone(550,0.15,'sine',0.3),100);}
+
 // ══ SPIN WHEEL ══
 const cvs=document.createElement('canvas');
 let ctx,CX=125,CY=125,R=114;
@@ -730,7 +760,7 @@ function drawWheel(angle){
 function goSpin(){
   if(todayPlayed.spin){showAlreadyPlayed('spin');return;}
   spinCount=0;bestSpinPts=0;
-  document.getElementById('spinChanceLabel').textContent='Spin 1 of 2';
+  document.getElementById('spinChanceLabel').textContent='One spin — good luck!';
   document.getElementById('bestSoFar').textContent='—';
   document.getElementById('pandaReact').textContent='🐼';
   document.getElementById('spinBtn').textContent='SPIN! 🎡';
@@ -754,6 +784,7 @@ function startSpin(){
     const ease=1-Math.pow(1-progress,4);
     spinAngle=spinAngle+(targetAngle-spinAngle)*ease;
     drawWheel(spinAngle);
+    if(Math.round(elapsed)%80===0) soundSpin(); // tick sound
     if(progress<1){requestAnimationFrame(animate);}
     else{
       isSpinning=false;
@@ -767,17 +798,13 @@ function startSpin(){
       if(earned>bestSpinPts) bestSpinPts=earned;
       document.getElementById('bestSoFar').textContent=bestSpinPts+'pts';
       document.getElementById('pandaReact').textContent=earned>=13?'🤩':earned>=11?'😄':'😊';
-      if(spinCount<2){
-        document.getElementById('spinChanceLabel').textContent='Spin 2 of 2 — Best: '+bestSpinPts+'pts';
-        document.getElementById('spinBtn').textContent='SPIN AGAIN! 🎡 (Best so far: '+bestSpinPts+')';
-        document.getElementById('spinBtn').disabled=false;
-      } else {
-        document.getElementById('spinChanceLabel').textContent='Done! Earned: '+bestSpinPts+' pts';
-        document.getElementById('spinBtn').textContent='Take '+bestSpinPts+' pts! 🎉';
-        document.getElementById('spinBtn').disabled=false;
-        document.getElementById('spinBtn').onclick=()=>{saveAndShowResult(bestSpinPts,'spin');};
-        savePoints(bestSpinPts,'spin');
-      }
+      soundSpinResult(earned);
+      // Single spin - show result immediately
+      document.getElementById('spinChanceLabel').textContent='You spun: '+bestSpinPts+' pts!';
+      document.getElementById('spinBtn').textContent='Take '+bestSpinPts+' pts! 🎉';
+      document.getElementById('spinBtn').disabled=false;
+      document.getElementById('spinBtn').onclick=()=>{saveAndShowResult(bestSpinPts,'spin');};
+      savePoints(bestSpinPts,'spin');
     }
   }
   requestAnimationFrame(animate);
@@ -812,6 +839,7 @@ function goTapPanda(){
 }
 function startTapGame(){
   tapScore=0;tapSeconds=10;tapRunning=true;
+  soundStart();
   document.getElementById('tapStatus').style.display='none';
   document.getElementById('pandaTarget').style.display='block';
   document.getElementById('tapStartBtn').style.display='none';
@@ -835,6 +863,7 @@ function movePanda(){
 function tapPanda(){
   if(!tapRunning) return;
   tapScore++;
+  soundTap();
   document.getElementById('tapCount').textContent=tapScore;
   movePanda();
 }
@@ -910,6 +939,7 @@ function buildMemGrid(reveal){
 }
 function startMemory(){
   memStarted=true;memSeconds=0;
+  soundStart();
   document.getElementById('memStartBtn').style.display='none';
   buildMemGrid(false);
   memTimerInt=setInterval(()=>{
@@ -929,6 +959,7 @@ function flipCard(i){
     document.getElementById('memMoves').textContent=memMoves;
     const[a,b]=memFlipped;
     if(memCards[a]===memCards[b]){
+      soundMatch();
       document.getElementById('mc'+a).classList.add('matched');
       document.getElementById('mc'+b).classList.add('matched');
       memMatched++;
@@ -937,6 +968,7 @@ function flipCard(i){
       if(memMatched===4) setTimeout(endMemory,400);
     } else {
       setTimeout(()=>{
+        soundNoMatch();
         document.getElementById('mc'+a).classList.remove('flipped');
         document.getElementById('mc'+b).classList.remove('flipped');
         document.getElementById('mc'+a).textContent='🐼';
@@ -1032,83 +1064,6 @@ function drawMilestoneTrack(containerId,pts){
   </div>`;
 }
 
-function showResult(pts){saveAndShowResult(pts,'');}
-async function saveAndShowResult(pts,gameType){
-  const prevTotal=player.game_points||0;
-  const newTotal=Math.min(prevTotal+pts,999);
-  // Update player pts (savePoints already updated, just refresh display)
-  player.game_points=newTotal;
-  document.getElementById('resultEmoji').textContent=pts>=15?'🤩':pts>=10?'🎉':'😊';
-  document.getElementById('resultLabel').textContent='You earned';
-  document.getElementById('resultPts').textContent='+'+pts;
-  document.getElementById('resultTotal').textContent=newTotal+' pts';
-  drawMilestoneTrack('resultMilestoneTrack',newTotal);
-  // Reward banner
-  const tier=TIERS.slice().reverse().find(t=>newTotal>=t.pts)||null;
-  const next=TIERS.find(t=>newTotal<t.pts)||null;
-  const bannerEl=document.getElementById('rewardBanner');
-  if(tier){
-    const justUnlocked=TIERS.slice().reverse().find(t=>newTotal>=t.pts&&prevTotal<t.pts);
-    if(justUnlocked){
-      bannerEl.innerHTML=`<div style="background:linear-gradient(135deg,${justUnlocked.color},${justUnlocked.color}88);border-radius:10px;padding:8px 12px;text-align:center;margin-top:6px;display:flex;align-items:center;gap:10px;">
-        <div style="font-size:30px;">${justUnlocked.icon}</div>
-        <div style="text-align:left;">
-          <div style="font-size:10px;font-weight:800;color:#fff;opacity:.8;text-transform:uppercase;letter-spacing:1px;">Level ${justUnlocked.level} Unlocked!</div>
-          <div style="font-size:16px;font-weight:900;color:#fff;">${justUnlocked.badge}</div>
-          <div style="font-size:11px;color:#fff;opacity:.85;">${justUnlocked.reward} — show staff! 🎀</div>
-        </div>
-      </div>`;
-    } else {
-      bannerEl.innerHTML=`<div style="background:#F0FDF4;border-radius:10px;padding:8px 12px;margin-top:6px;display:flex;align-items:center;gap:8px;">
-        <div style="font-size:24px;">${tier.icon}</div>
-        <div><div style="font-size:10px;color:#16A34A;font-weight:700;text-transform:uppercase;">Current Level</div>
-        <div style="font-size:14px;font-weight:800;color:#15803D;">${tier.badge}</div></div>
-      </div>`;
-    }
-  } else {bannerEl.innerHTML='';}
-  if(next){
-    bannerEl.innerHTML+=`<div style="text-align:center;padding:5px 8px;color:#6B7280;font-size:11px;background:#F9FAFB;border-radius:8px;margin-top:4px;">${next.pts-newTotal}pts → ${next.icon} Level ${next.level}: ${next.badge}</div>`;
-  }
-  renderRemainingGames();
-  showScreen('s-result');
-  if(pts>=10) setTimeout(launchConfetti,300);
-  await loadSidebarLb();
-}
-
-function goProfile(){
-  renderProfile();
-  showScreen('s-profile');
-  loadSidebarLb();
-}
-
-function goLeaderboard(){prevScreen=document.querySelector('.screen.active')?.id||'s-profile';loadLeaderboard();showScreen('s-lb');}
-function goStaff(){showScreen('s-staff');}
-
-// == LOGIN ==
-let regGender='boy';
-function setRegGender(g){
-  regGender=g;
-  document.getElementById('regBoy').style.borderColor=g==='boy'?'#FFD600':'#E5E7EB';
-  document.getElementById('regBoy').style.background=g==='boy'?'#FFFDE7':'#fff';
-  document.getElementById('regGirl').style.borderColor=g==='girl'?'#FF6B9D':'#E5E7EB';
-  document.getElementById('regGirl').style.background=g==='girl'?'#FFF0F6':'#fff';
-}
-
-function showLoginMsg(msg,ok){
-  const el=document.getElementById('loginMsg');
-  el.style.display='block';
-  el.style.background=ok?'#DCFCE7':'#FEE2E2';
-  el.style.color=ok?'#16A34A':'#DC2626';
-  el.textContent=msg;
-}
-
-function showRegMsg(msg,ok){
-  const el=document.getElementById('regMsg');
-  el.style.display='block';
-  el.style.background=ok?'#DCFCE7':'#FEE2E2';
-  el.style.color=ok?'#16A34A':'#DC2626';
-  el.textContent=msg;
-}
 
 async function doLogin(){
   const name=document.getElementById('loginName').value.trim();
