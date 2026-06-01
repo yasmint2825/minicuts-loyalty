@@ -377,12 +377,10 @@ body{display:flex;font-family:'Nunito',sans-serif;}
 window.onerror=function(msg,src,line,col,err){
   const d=document.createElement('div');
   d.style.cssText='position:fixed;top:0;left:0;right:0;background:#DC2626;color:#fff;padding:10px 16px;font-size:13px;font-weight:700;z-index:9999;';
-  d.textContent='JS Error line '+line+': '+msg;
+  d.textContent='ERROR line '+line+': '+msg;
   document.body.appendChild(d);
-  setTimeout(()=>d.remove(),8000);
-  return false;
+  setTimeout(()=>d.remove(),10000);
 };
-</script>
 
 // == SUPABASE ==
 const SB_URL='https://wtapyfgtwkjyjrjdnhkb.supabase.co';
