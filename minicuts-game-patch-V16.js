@@ -16,10 +16,17 @@
     var css=[
       '.mem-grid{display:grid!important;grid-template-columns:repeat(4,1fr)!important;gap:6px!important;margin-bottom:8px!important}',
       '.mem-card{aspect-ratio:1!important;border-radius:10px!important;font-size:28px!important;min-height:64px!important}',
+      '#s-login .btn-ghost{background:#1565C0!important;color:#fff!important;border:2px solid #1565C0!important;box-shadow:0 4px 12px rgba(21,101,192,.25)!important}',
+      '#s-login .btn-b{background:#FFD600!important;color:#0D47A1!important;border:2px solid #FFD600!important;box-shadow:0 4px 12px rgba(255,214,0,.25)!important}',
       '.v16-roadmap{margin:8px 0 10px;background:linear-gradient(135deg,#FFF7CC,#fff);border:2px solid rgba(255,214,0,.75);border-radius:16px;padding:12px 12px 18px;box-shadow:0 6px 18px rgba(0,0,0,.12)}',
       '.v16-road-head{display:flex;justify-content:space-between;gap:8px;align-items:flex-start;margin-bottom:16px;color:#0D47A1}',
       '.v16-road-head strong{display:block;font-size:13px;font-weight:900}.v16-road-head span{display:block;font-size:11px;font-weight:800;color:#FF8C00;margin-top:2px}',
       '.v16-rank-mini{font-size:11px;font-weight:900;color:#1565C0;background:#EAF2FF;border-radius:999px;padding:5px 8px;white-space:nowrap}',
+      '.v16-rank-card{margin:8px 0 10px;background:linear-gradient(135deg,#0D47A1,#1565C0);border:2px solid rgba(255,214,0,.75);border-radius:16px;padding:12px;color:#fff;box-shadow:0 8px 22px rgba(13,71,161,.28)}',
+      '.v16-rank-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}.v16-rank-title{font-family:"Baloo 2",cursive;font-size:17px;font-weight:900;color:#FFD600;line-height:1}.v16-rank-sub{font-size:11px;color:rgba(255,255,255,.75);font-weight:800;margin-top:2px}.v16-rank-pill{background:#FFD600;color:#0D47A1;border-radius:999px;padding:6px 10px;font-family:"Baloo 2",cursive;font-size:16px;font-weight:900;white-space:nowrap}',
+      '.v16-rank-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin:8px 0}.v16-rank-stat{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.16);border-radius:10px;padding:7px;text-align:center}.v16-rank-num{font-family:"Baloo 2",cursive;font-size:17px;font-weight:900;color:#fff}.v16-rank-lbl{font-size:9px;color:rgba(255,255,255,.65);font-weight:800;text-transform:uppercase;letter-spacing:.3px}',
+      '.v16-rank-insight{background:rgba(255,214,0,.14);border:1px solid rgba(255,214,0,.25);border-radius:10px;padding:8px;font-size:12px;font-weight:900;line-height:1.35;color:#fff;text-align:center}.v16-mobile-lb-btn{display:block;width:100%;margin-top:8px;background:#FFD600;color:#0D47A1;border:none;border-radius:12px;padding:10px;font-family:"Baloo 2",cursive;font-size:15px;font-weight:900;box-shadow:0 4px 12px rgba(255,214,0,.25)}',
+      '.v16-lb-modal{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px}.v16-lb-box{background:#fff;border-radius:18px;max-width:360px;width:100%;max-height:82vh;overflow:auto;padding:14px;color:#0D47A1}.v16-lb-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}.v16-lb-close{background:#FEE2E2;color:#DC2626;border:none;border-radius:999px;padding:6px 10px;font-weight:900}',
       '.v16-road-track{position:relative;height:18px;background:#E5E7EB;border-radius:999px;margin:30px 8px 34px}',
       '.v16-road-fill{position:absolute;left:0;top:0;height:100%;background:linear-gradient(90deg,#FFD600,#FF8C00);border-radius:999px;z-index:1}',
       '.v16-marker{position:absolute;top:50%;transform:translate(-50%,-50%);text-align:center;z-index:3}',
@@ -47,12 +54,56 @@
     var you='<div class="v16-you" style="left:'+pct+'%"><div class="v16-you-pin">YOU · '+i.pts+' pts</div><div class="v16-you-line"></div></div>';
     return '<div id="v16Roadmap" class="v16-roadmap"><div class="v16-road-head"><div><strong>'+i.cur.icon+' Level '+i.cur.level+' · '+i.cur.badge+'</strong><span>'+i.pts+' pts total · Mini Surprise Gift at every level</span></div><div class="v16-rank-mini" id="v16RankMini">Rank loading...</div></div><div class="v16-road-track"><div class="v16-road-fill" style="width:'+pct+'%"></div>'+marks+you+'</div><div class="v16-road-next">'+(i.next?i.needed+' points to Level '+i.next.level+' · '+i.next.badge:'Top level reached 🎉')+'</div></div>';
   }
-  function addRoadmap(){var name=el('profileName');if(!name||!window.player)return;var old=el('v16Roadmap');if(old)old.remove();name.insertAdjacentHTML('afterend',roadmap(Number(player.game_points||0)));renderRankMini();}
+  function addRoadmap(){var name=el('profileName');if(!name||!window.player)return;var old=el('v16Roadmap');if(old)old.remove();name.insertAdjacentHTML('afterend',roadmap(Number(player.game_points||0)));renderRankMini();addRankInsights();}
   function cleanupOldLevelSystems(){try{var tier=el('tierList');if(tier)tier.innerHTML='';var mt=el('milestoneTrack');if(mt)mt.style.display='none';var leftGuide=el('v16LevelGuide');if(leftGuide)leftGuide.remove();var cards=document.querySelectorAll('[id*="tier"], [class*="tier"], [id*="milestone"], [class*="milestone"]');for(var i=0;i<cards.length;i++){if(cards[i].id!=='v16Roadmap'&&!cards[i].closest('#v16Roadmap'))cards[i].style.display='none';}}catch(e){}}
   function addLeftGuide(){var old=el('v16LevelGuide');if(old)old.remove();}
   function rankCount(url){return fetch(url,{headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY,Prefer:'count=exact'}}).then(function(r){var cr=r.headers.get('content-range')||'';return parseInt((cr.split('/')[1]||'0'),10)||0;});}
+  function fetchTopRows(){return fetch(SB_URL+'/rest/v1/customers?select=id,name,game_points&game_points=gt.0&order=game_points.desc&limit=10',{headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY}}).then(function(r){return r.json();}).catch(function(){return [];});}
   function renderRankMini(){var mini=el('v16RankMini');if(!mini||!window.player)return;var pts=Number(player.game_points||0);rankCount(SB_URL+'/rest/v1/customers?select=id&game_points=gt.'+pts+'&limit=1').then(function(greater){return rankCount(SB_URL+'/rest/v1/customers?select=id&game_points=not.is.null&limit=1').then(function(total){mini.textContent='Global #'+(greater+1)+' of '+Math.max(total,1);});}).catch(function(){mini.textContent='Rank unavailable';});}
-  function patchProfile(){if(window.__v16ProfilePatched)return;window.__v16ProfilePatched=true;var oldRender=window.renderProfile;if(typeof oldRender==='function')window.renderProfile=function(){oldRender();setTimeout(function(){cleanupOldLevelSystems();addRoadmap();addLeftGuide();},80);};var oldGo=window.goProfile;if(typeof oldGo==='function')window.goProfile=function(){oldGo();setTimeout(function(){cleanupOldLevelSystems();addRoadmap();addLeftGuide();},100);};var oldSide=window.loadSidebarLb;if(typeof oldSide==='function')window.loadSidebarLb=function(){return Promise.resolve(oldSide()).then(function(){try{var rows=sidebarData||[],list=el('sideLbList');if(list&&rows.length){list.innerHTML=rows.map(function(c,idx){var pts=c.game_points||0;return '<div style="padding:7px 6px;margin-bottom:5px;border-radius:9px;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.06)"><div style="display:flex;justify-content:space-between;gap:6px"><div class="sb-name">#'+(idx+1)+' '+(c.name||'Player')+'</div><div class="sb-pts">'+pts+'</div></div>'+miniBar(pts)+'</div>';}).join('');}}catch(e){}});};}
+  function addRankInsights(){
+    if(!window.player||!el('profileName'))return;
+    var old=el('v16RankCard');if(old)old.remove();
+    var pts=Number(player.game_points||0);
+    var html='<div id="v16RankCard" class="v16-rank-card"><div class="v16-rank-top"><div><div class="v16-rank-title">🏆 Your MiniCuts Rank</div><div class="v16-rank-sub">Compete with all MiniCuts players</div></div><div class="v16-rank-pill" id="v16RankBig">Loading...</div></div><div class="v16-rank-grid"><div class="v16-rank-stat"><div class="v16-rank-num" id="v16RankPts">'+pts+'</div><div class="v16-rank-lbl">Points</div></div><div class="v16-rank-stat"><div class="v16-rank-num" id="v16RankTop">—</div><div class="v16-rank-lbl">Top %</div></div><div class="v16-rank-stat"><div class="v16-rank-num" id="v16RankNext">—</div><div class="v16-rank-lbl">Next Goal</div></div></div><div class="v16-rank-insight" id="v16RankInsight">Calculating your challenge...</div><button class="v16-mobile-lb-btn" onclick="showMobileLeaderboard()">🏆 View Leaderboard</button></div>';
+    var rm=el('v16Roadmap');
+    if(rm)rm.insertAdjacentHTML('afterend',html);
+    else el('profileName').insertAdjacentHTML('afterend',html);
+    updateRankInsights();
+  }
+  function updateRankInsights(){
+    if(!window.player)return;
+    var pts=Number(player.game_points||0);
+    Promise.all([rankCount(SB_URL+'/rest/v1/customers?select=id&game_points=gt.'+pts+'&limit=1'),rankCount(SB_URL+'/rest/v1/customers?select=id&game_points=not.is.null&limit=1'),fetchTopRows()]).then(function(all){
+      var greater=all[0],total=Math.max(all[1],1),topRows=all[2]||[],rank=greater+1,topPct=Math.max(1,Math.ceil((rank/total)*100));
+      var big=el('v16RankBig'),top=el('v16RankTop'),next=el('v16RankNext'),ins=el('v16RankInsight'),mini=el('v16RankMini');
+      if(big)big.textContent='#'+rank+' / '+total;
+      if(top)top.textContent='Top '+topPct+'%';
+      if(mini)mini.textContent='Global #'+rank+' of '+total;
+      var abovePts=null;
+      for(var i=0;i<topRows.length;i++){if(Number(topRows[i].game_points||0)>pts){abovePts=Number(topRows[i].game_points||0);break;}}
+      if(rank===1){if(next)next.textContent='Champion';if(ins)ins.innerHTML='👑 You are leading the MiniCuts Games Club. Keep playing to protect your #1 spot!';}
+      else if(abovePts!==null){var need=Math.max(1,abovePts-pts+1);if(next)next.textContent=need+' pts';if(ins)ins.innerHTML='⚡ You need <strong>'+need+' more pts</strong> to challenge the player above you. One strong game can move you up!';}
+      else {if(next)next.textContent='Play more';if(ins)ins.innerHTML='🎯 Keep collecting points to climb the leaderboard and unlock your next level.';}
+    }).catch(function(){var big=el('v16RankBig'),ins=el('v16RankInsight');if(big)big.textContent='Rank loading';if(ins)ins.textContent='Rank will appear after your points refresh.';});
+  }
+  window.showMobileLeaderboard=function(){
+    var old=el('v16LbModal');if(old)old.remove();
+    var modal=document.createElement('div');modal.id='v16LbModal';modal.className='v16-lb-modal';
+    modal.innerHTML='<div class="v16-lb-box"><div class="v16-lb-head"><div style="font-family:Baloo 2,cursive;font-size:20px;font-weight:900;color:#0D47A1;">🏆 Leaderboard</div><button class="v16-lb-close" onclick="document.getElementById(\'v16LbModal\').remove()">Close</button></div><div id="v16LbRows" style="font-size:13px;color:#0D47A1;text-align:center;padding:18px;">Loading scores...</div></div>';
+    document.body.appendChild(modal);
+    fetchTopRows().then(function(rows){var box=el('v16LbRows');if(!box)return;if(!rows.length){box.innerHTML='No scores yet.';return;}box.innerHTML=rows.map(function(c,i){var isMe=window.player&&player.id&&c.id===player.id;return '<div style="display:flex;align-items:center;gap:8px;padding:9px;border-radius:10px;margin-bottom:6px;background:'+(isMe?'#FFF7CC':'#F3F8FF')+';border:1px solid '+(isMe?'#FFD600':'#DBEAFE')+';"><div style="width:28px;font-weight:900;">#'+(i+1)+'</div><div style="flex:1;text-align:left;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+(c.name||'Player')+(isMe?' ⭐':'')+'</div><div style="font-weight:900;color:#FF8C00;">'+(c.game_points||0)+' pts</div></div>';}).join('');});
+  };
+  function patchLoginButtons(){
+    try{
+      var buttons=document.querySelectorAll('#s-login button');
+      for(var i=0;i<buttons.length;i++){
+        var t=(buttons[i].textContent||'').trim();
+        if(t.indexOf('Register')>-1){buttons[i].innerHTML='🐼 Register';buttons[i].style.color='#0D47A1';buttons[i].style.background='linear-gradient(135deg,#FFD600,#FF8C00)';buttons[i].style.border='2px solid #FFD600';}
+        if(t.indexOf('Scores')>-1||t.indexOf('Leaderboard')>-1){buttons[i].innerHTML='🏆 View Leaderboard';buttons[i].style.color='#fff';buttons[i].style.background='#1565C0';buttons[i].style.border='2px solid #1565C0';buttons[i].onclick=function(){showMobileLeaderboard();};}
+      }
+    }catch(e){}
+  }
+  function patchProfile(){if(window.__v16ProfilePatched)return;window.__v16ProfilePatched=true;var oldRender=window.renderProfile;if(typeof oldRender==='function')window.renderProfile=function(){oldRender();setTimeout(function(){cleanupOldLevelSystems();addRoadmap();addLeftGuide();addRankInsights();},80);};var oldGo=window.goProfile;if(typeof oldGo==='function')window.goProfile=function(){oldGo();setTimeout(function(){cleanupOldLevelSystems();addRoadmap();addLeftGuide();addRankInsights();},100);};var oldSide=window.loadSidebarLb;if(typeof oldSide==='function')window.loadSidebarLb=function(){return Promise.resolve(oldSide()).then(function(){try{var rows=sidebarData||[],list=el('sideLbList');if(list&&rows.length){list.innerHTML=rows.map(function(c,idx){var pts=c.game_points||0;return '<div style="padding:7px 6px;margin-bottom:5px;border-radius:9px;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.06)"><div style="display:flex;justify-content:space-between;gap:6px"><div class="sb-name">#'+(idx+1)+' '+(c.name||'Player')+'</div><div class="sb-pts">'+pts+'</div></div>'+miniBar(pts)+'</div>';}).join('');}}catch(e){}});};}
 
   function patchRegistration(){
     window.regGender=window.regGender||'boy';
@@ -81,6 +132,6 @@
       .catch(function(e){msg('regMsg','Error: '+(e&&e.message?e.message:'Registration failed'),false);if(btn){btn.disabled=false;btn.style.opacity='1';btn.style.pointerEvents='auto';btn.textContent='Register & Play!';}});
     };
   }
-  function patchBasicFixes(){if(typeof window.saveAndShowResult==='function')window.saveAndShowResult=function(pts,gameType){showResult(pts);};patchRegistration();}
-  safe(addCss);safe(patchBasicFixes);safe(patchProfile);setTimeout(function(){safe(patchRegistration);safe(cleanupOldLevelSystems);safe(addRoadmap);safe(addLeftGuide);safe(renderRankMini);},800);
+  function patchBasicFixes(){if(typeof window.saveAndShowResult==='function')window.saveAndShowResult=function(pts,gameType){showResult(pts);};patchRegistration();patchLoginButtons();}
+  safe(addCss);safe(patchBasicFixes);safe(patchProfile);setTimeout(function(){safe(patchRegistration);safe(patchLoginButtons);safe(cleanupOldLevelSystems);safe(addRoadmap);safe(addLeftGuide);safe(renderRankMini);safe(addRankInsights);},800);setTimeout(patchLoginButtons,1800);
 })();
