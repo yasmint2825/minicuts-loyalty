@@ -78,7 +78,7 @@ function showLoginMsg(msg,ok){
 `;
 
     const spinOverride = `
-// V11 hotfix: smoother spin and save score only once when player accepts result.
+// V11 hotfix: smoother spin and auto-save score when wheel stops.
 function startSpin(){
   if(isSpinning) return;
   isSpinning = true;
@@ -130,17 +130,13 @@ function startSpin(){
     bestSpinPts = earned;
     spinCount = 1;
     document.getElementById('bestSoFar').textContent = earned + 'pts';
-    document.getElementById('spinChanceLabel').textContent = 'You won: ' + earned + ' pts!';
+    document.getElementById('spinChanceLabel').textContent = 'You won: ' + earned + ' pts! Saving...';
     if(panda) panda.textContent = earned >= 13 ? '🤩' : earned >= 11 ? '😄' : '😊';
     soundSpinResult(earned);
 
-    spinBtn.disabled = false;
-    spinBtn.textContent = 'Add ' + earned + ' pts! 🎉';
-    spinBtn.onclick = function(){
-      spinBtn.disabled = true;
-      spinBtn.textContent = 'Saving...';
-      saveAndShowResult(earned, 'spin');
-    };
+    spinBtn.disabled = true;
+    spinBtn.textContent = 'Saved ' + earned + ' pts! 🎉';
+    saveAndShowResult(earned, 'spin');
   }
 
   requestAnimationFrame(animate);
