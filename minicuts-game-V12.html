@@ -22,7 +22,7 @@
     <div class="msg">Stable V12 test version</div>
   </div>
 </div>
-<iframe id="gameFrame" src="./minicuts-game-V10.html?v=20"></iframe>
+<iframe id="gameFrame" src="./minicuts-game-V10.html?v=21"></iframe>
 <script>
 (function(){
   const frame = document.getElementById('gameFrame');
@@ -75,7 +75,23 @@
       }
     });
 
-    // Patch Memory INSIDE the game page so original let memCards is updated.
+    if(!doc.getElementById('v12PointsPatch')){
+      const ptsScript = doc.createElement('script');
+      ptsScript.id = 'v12PointsPatch';
+      ptsScript.textContent = `
+(function(){
+  try{
+    saveAndShowResult = async function(pts, gameType){
+      // Tap and Memory already call savePoints when the game ends.
+      // This wrapper should only show the result screen to avoid double-counting.
+      showResult(pts);
+    };
+  }catch(e){ console.warn('V12 points patch failed:', e.message); }
+})();
+      `;
+      doc.body.appendChild(ptsScript);
+    }
+
     if(!doc.getElementById('v12MemoryPatch')){
       const memScript = doc.createElement('script');
       memScript.id = 'v12MemoryPatch';
@@ -98,7 +114,6 @@
       doc.body.appendChild(memScript);
     }
 
-    // Patch Spin INSIDE the game page so original wheel variables are accessible.
     if(!doc.getElementById('v12SpinPatch')){
       const spinScript = doc.createElement('script');
       spinScript.id = 'v12SpinPatch';
