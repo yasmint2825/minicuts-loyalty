@@ -710,12 +710,16 @@ async function archiveCycle(customerId,stamps,firstStampDate,expiryDate,endedBy)
   if(p.get('customer')==='1'||p.get('lookup')){
     document.getElementById('LS').style.display='none';
     document.getElementById('CP').style.display='block';
-    // Remember mobile for returning customers
-    const savedMobile=localStorage.getItem('mc_cust_mobile')||'';
     const lookupMobile=p.get('lookup')||'';
-    if(lookupMobile) localStorage.setItem('mc_cust_mobile',lookupMobile);
-    // No gender passed — always show all children under mobile
-    renderCP(lookupMobile||savedMobile);
+    if(lookupMobile){
+      // Came via personalised link (from WhatsApp/staff) — remember it
+      localStorage.setItem('mc_cust_mobile',lookupMobile);
+      renderCP(lookupMobile);
+    } else {
+      // Fresh URL (?customer=1 only) — clear any saved mobile, show blank lookup
+      localStorage.removeItem('mc_cust_mobile');
+      renderCP('');
+    }
     return;
   }
   if(window.innerWidth<=900) document.getElementById('MB').style.display='flex';
