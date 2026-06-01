@@ -374,6 +374,15 @@ body{display:flex;font-family:'Nunito',sans-serif;}
 </div><!-- end layout -->
 
 <script>
+window.onerror=function(msg,src,line,col,err){
+  const d=document.createElement('div');
+  d.style.cssText='position:fixed;top:0;left:0;right:0;background:#DC2626;color:#fff;padding:10px 16px;font-size:13px;font-weight:700;z-index:9999;';
+  d.textContent='JS Error line '+line+': '+msg;
+  document.body.appendChild(d);
+  setTimeout(()=>d.remove(),8000);
+  return false;
+};
+</script>
 
 // == SUPABASE ==
 const SB_URL='https://wtapyfgtwkjyjrjdnhkb.supabase.co';
@@ -416,6 +425,10 @@ let globalBestMemory={time:null,name:null};
 let globalBestTap={score:null,name:null};
 let prevScreen='s-profile';
 let todayPlayed={spin:false,tap:false,memory:false};
+// Game state vars - declared early so resetAllGameState can use them
+let spinCount=0,bestSpinPts=0,spinAngle=0,isSpinning=false;
+let tapScore=0,tapSeconds=10,tapRunning=false,tapTimer=null;
+let memCards=[],memFlipped=[],memMatched=0,memMoves=0,memSeconds=0,memStarted=false,memTimerInt=null,memLock=false;
 
 // ── RESET ALL GAME STATE (call on every player switch) ──
 function resetAllGameState(){
@@ -692,10 +705,6 @@ const SEGS=[
   {pts:10,color:'#F59E0B'},{pts:12,color:'#10B981'},{pts:9, color:'#6366F1'},
 ];
 const MEM_EMOJIS=['🐼','🌟','🎡','🎈','🍭','🚀','🎮','🦁'];
-let spinCount=0,bestSpinPts=0,spinAngle=0,isSpinning=false;
-let tapScore=0,tapSeconds=10,tapRunning=false,tapTimer=null;
-let memCards=[],memFlipped=[],memMatched=0,memMoves=0,memSeconds=0,memStarted=false,memTimerInt=null,memLock=false;
-
 
 // ══ SOUNDS ══
 const AudioCtx=window.AudioContext||window.webkitAudioContext;
