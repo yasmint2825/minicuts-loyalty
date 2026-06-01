@@ -695,6 +695,10 @@ function showAutoResetWarning(){
 
 function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
 function goBack(){showScreen(prevScreen);}
+function goProfile(){renderProfile();showScreen('s-profile');loadSidebarLb();}
+function goLeaderboard(){prevScreen=document.querySelector('.screen.active')?.id||'s-profile';loadLeaderboard();showScreen('s-lb');}
+function goStaff(){showScreen('s-staff');}
+function confirmGoHome(){goHome();}
 // ══ GAME STATE VARIABLES ══
 const SEGS=[
   {pts:8, color:'#3B82F6'},{pts:9, color:'#8B5CF6'},{pts:10,color:'#EC4899'},
