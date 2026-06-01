@@ -1,0 +1,1222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>MiniCuts Game Zone 🐼</title>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800;900&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;user-select:none;}
+:root{--y:#FFD600;--yd:#F0C000;--b:#1565C0;--bd:#0D47A1;--bm:#1976D2;--ok:#16A34A;--err:#DC2626;--pink:#EC4899;}
+*{-webkit-overflow-scrolling:touch;}
+html,body{height:100%;overflow:hidden;margin:0;padding:0;}
+body{font-family:'Nunito',sans-serif;background:linear-gradient(160deg,var(--bd) 0%,var(--bm) 60%,#1E40AF 100%);display:flex;align-items:stretch;justify-content:center;}
+.layout{display:flex;width:100%;height:100vh;overflow:hidden;}
+.game-area{flex:1;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;overflow-x:hidden;padding:16px 12px;}
+.game-area::-webkit-scrollbar{width:4px;}
+.game-area::-webkit-scrollbar-track{background:transparent;}
+.game-area::-webkit-scrollbar-thumb{background:rgba(255,255,255,.2);border-radius:99px;}
+.lb-sidebar{width:270px;background:rgba(0,0,0,.3);border-left:1px solid rgba(255,255,255,.1);padding:14px 12px;display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;flex-shrink:0;height:100vh;}
+.lb-sidebar::-webkit-scrollbar{width:3px;}
+.lb-sidebar::-webkit-scrollbar-track{background:transparent;}
+.lb-sidebar::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:99px;}
+@media(max-width:700px){.lb-sidebar{display:none;}}
+.sb-title{font-family:'Baloo 2',cursive;font-size:15px;font-weight:800;color:var(--y);margin-bottom:8px;text-align:center;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,.1);}
+.sb-row{display:flex;align-items:center;gap:7px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.08);}
+.sb-row:last-child{border-bottom:none;}
+.sb-rank{font-family:'Baloo 2',cursive;font-size:15px;font-weight:800;color:rgba(255,255,255,.7);width:24px;text-align:center;flex-shrink:0;}
+.sb-av{width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;flex-shrink:0;}
+.sb-info{flex:1;min-width:0;}
+.sb-name{font-size:12px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sb-pts-label{font-size:10px;color:rgba(255,255,255,.5);}
+.sb-pts{font-family:'Baloo 2',cursive;font-size:14px;font-weight:800;color:var(--y);flex-shrink:0;}
+.sb-row.me{background:rgba(255,214,0,.12);border-radius:8px;border:1px solid rgba(255,214,0,.3);}
+.sb-milestone{font-size:10px;color:rgba(255,255,255,.45);margin-top:1px;}
+.rank-badge{background:rgba(255,214,0,.2);border:1px solid rgba(255,214,0,.4);border-radius:8px;padding:6px 10px;text-align:center;margin-bottom:10px;}
+.rank-badge-txt{font-family:'Baloo 2',cursive;font-size:13px;font-weight:800;color:var(--y);}
+.screen{display:none;width:100%;max-width:420px;padding:8px 0;}
+.screen.active{display:block;}
+.brand{font-family:'Baloo 2',cursive;font-size:26px;font-weight:900;color:var(--y);text-align:center;text-shadow:2px 2px 0 var(--bd);}
+.sub{color:rgba(255,255,255,.8);font-size:12px;text-align:center;margin-bottom:10px;}
+.card{background:#fff;border-radius:18px;padding:18px;margin-bottom:10px;box-shadow:0 2px 12px rgba(0,0,0,.15);}
+.card-title{font-family:'Baloo 2',cursive;font-size:19px;font-weight:800;color:var(--bd);margin-bottom:10px;text-align:center;}
+.fi{width:100%;padding:10px 14px;border:2px solid #E5E7EB;border-radius:10px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;text-align:center;outline:none;color:#1A1A2E;}
+.fi:focus{border-color:var(--y);}
+.btn{display:block;width:100%;padding:12px;border:none;border-radius:12px;font-family:'Baloo 2',cursive;font-size:17px;font-weight:800;cursor:pointer;transition:transform .15s;text-align:center;}
+.btn:active{transform:scale(.97);}
+.btn-y{background:linear-gradient(135deg,var(--y),#FF8C00);color:var(--bd);}
+.btn-b{background:var(--b);color:#fff;}
+.btn-ghost{background:rgba(255,255,255,.15);border:2px solid rgba(255,255,255,.3);color:#fff;}
+.pts-badge{display:inline-flex;align-items:center;gap:5px;background:var(--y);color:var(--bd);padding:5px 14px;border-radius:99px;font-family:'Baloo 2',cursive;font-size:17px;font-weight:900;}
+.prog-wrap{background:#E5E7EB;border-radius:99px;height:16px;overflow:hidden;margin:8px 0;}
+.prog-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--y),#FF8C00);transition:width .8s cubic-bezier(.175,.885,.32,1.275);}
+.prog-labels{display:flex;justify-content:space-between;font-size:11px;color:#6B7280;margin-top:2px;}
+.game-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:4px;}
+.game-card{background:linear-gradient(135deg,var(--bd),var(--b));border-radius:14px;padding:16px 10px;text-align:center;cursor:pointer;border:3px solid transparent;transition:all .2s;}
+.game-card:hover,.game-card:active{border-color:var(--y);transform:scale(.97);}
+.game-emoji{font-size:32px;display:block;margin-bottom:6px;}
+.game-name{font-family:'Baloo 2',cursive;font-size:14px;font-weight:800;color:#fff;}
+.game-desc{font-size:10px;color:rgba(255,255,255,.7);margin-top:2px;}
+.tier-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #F3F4F6;}
+.tier-row:last-child{border-bottom:none;}
+.lb-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #F3F4F6;}
+.lb-row:last-child{border-bottom:none;}
+.lb-av{width:34px;height:34px;border-radius:50%;background:#E3F0FF;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:var(--b);flex-shrink:0;}
+.spin-btn{width:100%;padding:16px;background:linear-gradient(135deg,var(--y),#FF8C00);border:none;border-radius:14px;font-family:'Baloo 2',cursive;font-size:22px;font-weight:800;color:var(--bd);cursor:pointer;transition:transform .15s;}
+.spin-btn:active{transform:scale(.97);}
+.spin-btn:disabled{opacity:.5;cursor:not-allowed;}
+/* MEMORY 3x3 (8 cards + 1 panda center) */
+.mem-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px;}
+.mem-card{aspect-ratio:1;background:var(--b);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:36px;cursor:pointer;transition:transform .2s,background .2s;border:2.5px solid rgba(255,255,255,.15);position:relative;}
+.mem-card:active{transform:scale(.94);}
+.mem-card.flipped{background:#fff;border-color:var(--y);}
+.mem-card.matched{background:linear-gradient(135deg,#DCFCE7,#BBF7D0);border-color:#4ADE80;pointer-events:none;}
+.mem-card.center-panda{background:rgba(255,214,0,.15);border-color:rgba(255,214,0,.4);pointer-events:none;cursor:default;}
+.mem-hud{display:flex;justify-content:space-between;gap:8px;margin-bottom:10px;}
+.load{display:flex;align-items:center;justify-content:center;gap:8px;color:rgba(255,255,255,.7);font-size:13px;padding:20px;}
+.spin-a{width:18px;height:18px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:sa .7s linear infinite;}
+@keyframes sa{to{transform:rotate(360deg);}}
+@keyframes pop{0%{transform:scale(0);opacity:0;}80%{transform:scale(1.15);}100%{transform:scale(1);opacity:1;}}
+@keyframes shake{0%,100%{transform:translateX(0);}25%{transform:translateX(-8px);}75%{transform:translateX(8px);}}
+@keyframes jump{0%,100%{transform:translateY(0);}50%{transform:translateY(-18px);}}
+@keyframes fall{0%{top:-30px;opacity:1;}100%{top:110vh;opacity:.1;transform:rotate(720deg);}}
+@keyframes bounce-anim{0%,100%{transform:translateY(0);}50%{transform:translateY(-12px);}}
+.reward-banner{background:linear-gradient(135deg,var(--y),#FF8C00);border-radius:14px;padding:16px;text-align:center;margin:12px 0;}
+/* TAP PANDA GAME */
+#pandaTarget{position:absolute;font-size:52px;cursor:pointer;transition:none;z-index:10;line-height:1;}
+#tapGame{position:relative;background:#0D47A1;border-radius:16px;height:200px;overflow:hidden;margin-bottom:10px;border:3px solid var(--y);}
+.tap-hud{display:flex;justify-content:space-between;margin-bottom:8px;}
+.hud-box{background:rgba(255,255,255,.12);border-radius:10px;padding:7px 14px;text-align:center;flex:1;margin:0 4px;}
+.hud-lbl{font-size:10px;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.5px;}
+.hud-val{font-family:'Baloo 2',cursive;font-size:22px;font-weight:800;color:#fff;}
+
+</style>
+</head>
+<body>
+<div class="layout">
+<div class="game-area">
+<div style="width:100%;max-width:420px;padding-bottom:20px;">
+
+<!-- LOGIN -->
+<div class="screen active" id="s-login">
+  <div style="text-align:center;margin-bottom:10px;margin-top:8px;">
+    <span style="font-size:52px;display:block;">🐼</span>
+    <div class="brand">MiniCuts Game Zone!</div>
+    <div class="sub" style="margin-bottom:0;">Enter details to play & earn points</div>
+  </div>
+  <div class="card" id="loginCard">
+    <div class="card-title">Who's playing? 🎮</div>
+    <input class="fi" type="text" id="loginName" placeholder="Child's name" maxlength="20" style="margin-bottom:10px;" onkeydown="if(event.key==='Enter') doLogin()">
+    <input class="fi" type="tel" id="loginMobile" placeholder="Parent mobile number" maxlength="15" style="margin-bottom:14px;" onkeydown="if(event.key==='Enter') doLogin()">
+    <button class="btn btn-y" id="loginBtn" onclick="doLogin()">Let's Play! 🎮</button>
+    <div id="loginMsg" style="display:none;margin-top:10px;padding:10px;border-radius:10px;font-size:13px;font-weight:700;text-align:center;"></div>
+    <div style="text-align:center;margin-top:14px;padding-top:14px;border-top:1px solid #E5E7EB;">
+      <div style="font-size:12px;color:#6B7280;margin-bottom:8px;">First time at MiniCuts Game Zone?</div>
+      <button class="btn btn-b" onclick="goToRegister('','','Welcome! Please fill in your details to register.')" style="font-size:15px;padding:12px;">📝 Register New Player</button>
+    </div>
+    <button class="btn btn-ghost" onclick="goLeaderboard()" style="margin-top:10px;font-size:15px;color:#fff;">🏆 Leaderboard</button>
+  </div>
+  <div style="text-align:center;margin-top:6px;">
+    <button onclick="goStaff()" style="background:none;border:none;color:rgba(255,255,255,.35);font-size:12px;cursor:pointer;font-family:'Nunito',sans-serif;">Staff view</button>
+  </div>
+</div>
+
+<!-- REGISTER -->
+<div class="screen" id="s-register">
+  <div style="text-align:center;margin-bottom:14px;">
+    <span style="font-size:56px;display:block;">🐼</span>
+    <div class="brand" style="font-size:24px;">Join MiniCuts!</div>
+    <div class="sub">Register to play games & earn rewards</div>
+  </div>
+  <div class="card">
+    <div style="background:#EFF6FF;border-radius:12px;padding:12px 14px;margin-bottom:14px;font-size:13px;color:#1565C0;line-height:1.6;">
+      🐼 <strong>Not registered yet!</strong><br>
+      Please fill in your details to create your MiniCuts passport and start playing.
+    </div>
+    <div class="card-title">Create your passport 🎫</div>
+    <input class="fi" type="text" id="regName" placeholder="Child's name *" maxlength="20" style="margin-bottom:10px;">
+    <input class="fi" type="tel" id="regMobile" placeholder="Parent mobile number *" maxlength="15" style="margin-bottom:10px;">
+    <input class="fi" type="text" id="regParent" placeholder="Parent's name (optional)" maxlength="30" style="margin-bottom:10px;">
+    <label style="font-size:12px;font-weight:700;color:#6B7280;display:block;margin-bottom:3px;text-align:left;">Date of Birth <span style="color:#DC2626;font-weight:900;">*</span></label>
+    <input class="fi" type="date" id="regDob" required style="margin-bottom:10px;border:2.5px solid #FFD600;background:#FFFDE7;">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
+      <div id="regBoy" onclick="setRegGender('boy')" style="padding:12px;border-radius:12px;border:2.5px solid #E5E7EB;text-align:center;cursor:pointer;transition:all .2s;">
+        <div style="font-size:28px;">👦</div>
+        <div style="font-size:13px;font-weight:700;color:#1A1A2E;">Boy</div>
+      </div>
+      <div id="regGirl" onclick="setRegGender('girl')" style="padding:12px;border-radius:12px;border:2.5px solid #E5E7EB;text-align:center;cursor:pointer;transition:all .2s;">
+        <div style="font-size:28px;">👧</div>
+        <div style="font-size:13px;font-weight:700;color:#1A1A2E;">Girl</div>
+      </div>
+    </div>
+    <div id="regMsg" style="display:none;margin-bottom:10px;padding:10px;border-radius:10px;font-size:13px;font-weight:700;text-align:center;"></div>
+    <button class="btn btn-y" onclick="doRegister()">Register & Play! 🎮</button>
+    <button class="btn btn-ghost" onclick="showScreen('s-login')" style="margin-top:10px;font-size:14px;padding:10px;">← Back to Login</button>
+  </div>
+</div>
+
+<!-- PROFILE -->
+<div class="screen" id="s-profile">
+  <div style="text-align:center;margin-bottom:8px;margin-top:8px;">
+    <div style="font-size:13px;color:rgba(255,255,255,.8);">Welcome back,</div>
+    <div class="brand" id="profileName" style="font-size:22px;">Player</div>
+  </div>
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:14px;">
+      <span style="font-size:13px;color:#6B7280;">Total Points:</span>
+      <span class="pts-badge" id="totalPts">0 pts</span>
+    </div>
+    <!-- Visual milestone track -->
+    <div id="milestoneTrack" style="position:relative;padding:0 8px;margin-bottom:6px;"></div>
+    <div style="margin-top:4px;" id="tierList"></div>
+  </div>
+  <div class="card" id="gameSelectCard">
+    <div class="card-title">Choose your game 🎮</div>
+    <div class="game-grid" id="gameGrid">
+      <div class="game-card" id="gc-spin" onclick="goSpin()">
+        <span class="game-emoji">🎡</span>
+        <div class="game-name">Spin</div>
+        <div class="game-desc" id="gd-spin">2 spins, best wins</div>
+      </div>
+      <div class="game-card" id="gc-tap" onclick="goTapPanda()">
+        <span class="game-emoji">🐼</span>
+        <div class="game-name">Tap Panda</div>
+        <div class="game-desc" id="gd-tap">10 seconds!</div>
+      </div>
+      <div class="game-card" id="gc-memory" onclick="goMemory()">
+        <span class="game-emoji">🧠</span>
+        <div class="game-name">Memory</div>
+        <div class="game-desc" id="gd-memory">Quick pairs!</div>
+      </div>
+
+    </div>
+    <div id="allDoneCard" style="display:none;text-align:center;padding:10px 0 4px;">
+      <div style="font-size:48px;">🐼</div>
+      <div style="font-family:'Baloo 2',cursive;font-size:18px;font-weight:800;color:#0D47A1;margin:6px 0 4px;">See you next time!</div>
+      <div style="font-size:13px;color:#6B7280;line-height:1.6;">You've played all 3 games today.<br>Come back after your next haircut! 🎈</div>
+    </div>
+  </div>
+  <button class="btn btn-y" onclick="goLeaderboard()" style="margin-bottom:10px;color:#0D47A1;">🏆 Leaderboard</button>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+    <button class="btn btn-ghost" onclick="newPlayer()" style="font-size:14px;padding:10px;border-color:var(--y);color:var(--y);">👶 New Player</button>
+    <button class="btn btn-ghost" onclick="goHome()" style="font-size:14px;padding:10px;">🏠 Exit</button>
+  </div>
+</div>
+
+<!-- SPIN WHEEL -->
+<div class="screen" id="s-spin">
+  <div style="text-align:center;margin-bottom:6px;">
+    <span id="pandaReact" style="font-size:52px;display:block;min-height:65px;">🐼</span>
+    <div style="font-size:12px;color:rgba(255,255,255,.7);" id="spinChanceLabel">Spin 1 of 2</div>
+  </div>
+  <div style="position:relative;width:300px;height:300px;margin:0 auto 12px;">
+    <div style="position:absolute;top:-14px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:13px solid transparent;border-right:13px solid transparent;border-top:26px solid var(--y);z-index:10;filter:drop-shadow(0 2px 4px rgba(0,0,0,.4));"></div>
+    <canvas id="wCanvas" width="300" height="300" style="border-radius:50%;box-shadow:0 8px 32px rgba(0,0,0,.4);"></canvas>
+  </div>
+  <div style="text-align:center;margin-bottom:10px;">
+    <div style="font-size:12px;color:rgba(255,255,255,.7);">Best so far: <strong id="bestSoFar" style="color:var(--y);">—</strong></div>
+  </div>
+  <button class="spin-btn" id="spinBtn" onclick="startSpin()">SPIN! 🎡</button>
+  <div style="margin-top:8px;text-align:center;font-size:12px;color:rgba(255,255,255,.5);" id="spinSkipLabel"></div>
+  <button class="btn btn-ghost" onclick="goProfile()" style="margin-top:8px;font-size:14px;padding:10px;">🎮 Choose Another Game</button>
+</div>
+
+<!-- TAP PANDA GAME -->
+<div class="screen" id="s-tap">
+  <div class="tap-hud">
+    <div class="hud-box"><div class="hud-lbl">Taps</div><div class="hud-val" id="tapCount">0</div></div>
+    <div class="hud-box"><div class="hud-lbl">Time</div><div class="hud-val" id="tapTime">10</div></div>
+    <div class="hud-box"><div class="hud-lbl">Best</div><div class="hud-val" id="tapBest">--</div></div>
+  </div>
+  <div id="tapGame">
+    <div id="pandaTarget" style="top:90px;left:120px;">🐼</div>
+    <div id="tapStatus" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:'Baloo 2',cursive;font-size:28px;font-weight:800;color:#fff;text-align:center;text-shadow:2px 2px 0 #000;">Tap the panda!<br><span style="font-size:16px;opacity:.8;">Tap START to begin</span></div>
+  </div>
+  <button class="btn btn-y" id="tapStartBtn" onclick="startTapGame()">START! 🐼</button>
+  <button class="btn btn-ghost" onclick="goProfile()" style="margin-top:8px;font-size:14px;padding:10px;">🎮 Choose Another Game</button>
+</div>
+
+<!-- MEMORY MATCH -->
+<div class="screen" id="s-memory">
+  <div class="mem-hud">
+    <div class="hud-box"><div class="hud-lbl">Moves</div><div class="hud-val" id="memMoves">0</div></div>
+    <div class="hud-box"><div class="hud-lbl">Time</div><div class="hud-val" id="memTime">0s</div></div>
+    <div class="hud-box"><div class="hud-lbl">Pairs</div><div class="hud-val" id="memPairs">0/4</div></div>
+  </div>
+  <div id="memGrid" class="mem-grid"></div>
+  <button class="btn btn-y" id="memStartBtn" onclick="startMemory()">START! 🧠</button>
+  <button class="btn btn-ghost" onclick="goProfile()" style="margin-top:8px;font-size:14px;padding:10px;">🎮 Choose Another Game</button>
+</div>
+
+<!-- RESULT -->
+<div class="screen" id="s-result">
+  <div style="position:fixed;inset:0;pointer-events:none;z-index:99;" id="confettiWrap"></div>
+  <div style="text-align:center;margin-bottom:12px;">
+    <span style="font-size:60px;display:block;animation:pop .5s cubic-bezier(.175,.885,.32,1.275);" id="resultEmoji">🎉</span>
+    <div style="font-size:13px;color:rgba(255,255,255,.8);" id="resultLabel">You earned</div>
+    <div style="font-family:'Baloo 2',cursive;font-size:60px;font-weight:900;color:var(--y);text-shadow:2px 3px 0 var(--bd);animation:pop .5s cubic-bezier(.175,.885,.32,1.275);" id="resultPts">+10</div>
+    <div style="font-size:13px;color:rgba(255,255,255,.8);">points!</div>
+  </div>
+  <div class="card">
+    <div id="rewardBanner"></div>
+    <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:10px;">
+      <span style="font-size:13px;color:#6B7280;">New Total:</span>
+      <span class="pts-badge" id="resultTotal">0 pts</span>
+    </div>
+    <div id="resultMilestoneTrack" style="position:relative;padding:0 8px;margin-top:8px;"></div>
+  </div>
+  <!-- Remaining games to play -->
+  <div id="remainingGames" style="margin-bottom:12px;"></div>
+  <button class="btn" onclick="goLeaderboard()" style="margin-bottom:10px;background:linear-gradient(135deg,#10B981,#059669);color:#fff;border:none;padding:14px;border-radius:14px;font-family:'Baloo 2',cursive;font-size:19px;font-weight:800;cursor:pointer;">🏆 See Leaderboard</button>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+    <button class="btn btn-ghost" onclick="goHome()" style="font-size:14px;padding:12px;">🏠 Done</button>
+    <button class="btn btn-ghost" onclick="newPlayer()" style="font-size:14px;padding:12px;border-color:var(--y);color:var(--y);">👶 New Player</button>
+  </div>
+</div>
+
+<!-- LEADERBOARD -->
+<div class="screen" id="s-lb">
+  <div style="text-align:center;margin-bottom:12px;">
+    <span style="font-size:44px;display:block;">🏆</span>
+    <div class="brand" style="font-size:24px;">Top Players</div>
+  </div>
+  <div class="card">
+    <div id="lbList"><div class="load"><div class="spin-a"></div> Loading...</div></div>
+    <div style="margin-top:12px;text-align:center;">
+      <button onclick="loadLeaderboard()" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;padding:7px 18px;border-radius:8px;cursor:pointer;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;">↻ Refresh</button>
+    </div>
+    <div id="debugOut" style="margin-top:8px;background:rgba(0,0,0,.4);border-radius:10px;padding:10px;font-size:11px;color:rgba(255,255,255,.7);display:none;word-break:break-all;max-height:200px;overflow-y:auto;"></div>
+  </div>
+  <button class="btn btn-ghost" onclick="goBack()" style="margin-top:8px;">← Back</button>
+
+</div>
+
+<!-- STAFF -->
+<div class="screen" id="s-staff">
+  <div style="text-align:center;margin-bottom:12px;"><div class="brand" style="font-size:22px;">Staff View ⚙️</div></div>
+  <div class="card">
+    <div class="card-title">Reward Tiers</div>
+    <div class="tier-row"><span style="font-size:22px;">🍭</span><div style="flex:1;"><div style="font-size:13.5px;font-weight:700;">Lollipop</div></div><span style="font-size:12px;color:#6B7280;">50 pts</span></div>
+    <div class="tier-row"><span style="font-size:22px;">🎁</span><div style="flex:1;"><div style="font-size:13.5px;font-weight:700;">Surprise Gift</div></div><span style="font-size:12px;color:#6B7280;">100 pts</span></div>
+    <div class="tier-row"><span style="font-size:22px;">🚿</span><div style="flex:1;"><div style="font-size:13.5px;font-weight:700;">Free Hair Wash</div></div><span style="font-size:12px;color:#6B7280;">150 pts</span></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Reset Points</div>
+    <input class="fi" type="tel" id="staffMobile" placeholder="Customer mobile" style="margin-bottom:10px;">
+    <button class="btn btn-b" onclick="staffReset()">Reset to 0</button>
+    <div id="staffMsg" style="margin-top:8px;font-size:13px;text-align:center;display:none;"></div>
+  </div>
+  <button class="btn btn-ghost" onclick="showScreen('s-login')" style="margin-top:8px;">← Exit</button>
+</div>
+
+<script>
+// == SUPABASE ==
+const SB_URL='https://wtapyfgtwkjyjrjdnhkb.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind0YXB5Zmd0d2tqeWpyamRuaGtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0NDc3ODEsImV4cCI6MjA5NTAyMzc4MX0.y_-iPfb8Pcg9zh42h6RGVBsUVZm80LcA9sPlz_Gl_fA';
+async function sb(path,method='GET',body=null,params=''){
+  const url=SB_URL+'/rest/v1/'+path+(params?'?'+params:'');
+  const h={
+    'Content-Type':'application/json',
+    'apikey':SB_KEY,
+    'Authorization':'Bearer '+SB_KEY,
+    'Prefer': method==='PATCH'||method==='DELETE'?'return=minimal':'return=representation'
+  };
+  const o={method,headers:h};
+  if(body) o.body=JSON.stringify(body);
+  try{
+    const r=await fetch(url,o);
+    const t=await r.text();
+    if(!r.ok) throw new Error('HTTP '+r.status+': '+t.substring(0,200));
+    return t?JSON.parse(t):[];
+  }catch(e){
+    if(e.message.includes('Failed to fetch')||e.message.includes('NetworkError')){
+      throw new Error('No internet connection. Please check your network.');
+    }
+    throw e;
+  }
+}
+
+// == CONFIG ==
+const TIERS=[{pts:50,icon:'🍭',label:'Lollipop'},{pts:100,icon:'🎁',label:'Surprise Gift'},{pts:150,icon:'🚿',label:'Free Hair Wash'}];
+const MAX_PTS=150;
+let player={id:null,name:'',mobile:'',game_points:0,game_spins:0};
+let prevScreen='s-profile';
+
+// == NAV ==
+function newPlayer(){
+  // Keep leaderboard but clear current player for next kid
+  spinCount=0;bestSpinPts=0;
+  document.getElementById('loginName').value='';
+  document.getElementById('loginMobile').value='';
+  player={id:null,name:'',mobile:'',game_points:0,game_spins:0};
+  document.getElementById('loginName').focus();
+  showScreen('s-login');
+}
+function goHome(){
+  spinCount=0;bestSpinPts=0;
+  document.getElementById('loginName').value='';
+  document.getElementById('loginMobile').value='';
+  player={id:null,name:'',mobile:'',game_points:0,game_spins:0};
+  showScreen('s-login');
+}
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
+function goBack(){showScreen(prevScreen);}
+function goProfile(){
+  renderProfile();
+  showScreen('s-profile');
+  loadSidebarLb(); // refresh sidebar with latest rank
+}
+function goLeaderboard(){prevScreen=document.querySelector('.screen.active')?.id||'s-profile';loadLeaderboard();showScreen('s-lb');}
+function goStaff(){showScreen('s-staff');}
+
+// == LOGIN ==
+let regGender='boy';
+function setRegGender(g){
+  regGender=g;
+  document.getElementById('regBoy').style.borderColor=g==='boy'?'#FFD600':'#E5E7EB';
+  document.getElementById('regBoy').style.background=g==='boy'?'#FFFDE7':'#fff';
+  document.getElementById('regGirl').style.borderColor=g==='girl'?'#FF6B9D':'#E5E7EB';
+  document.getElementById('regGirl').style.background=g==='girl'?'#FFF0F6':'#fff';
+}
+
+function showLoginMsg(msg,ok){
+  const el=document.getElementById('loginMsg');
+  el.style.display='block';
+  el.style.background=ok?'#DCFCE7':'#FEE2E2';
+  el.style.color=ok?'#16A34A':'#DC2626';
+  el.textContent=msg;
+}
+
+function showRegMsg(msg,ok){
+  const el=document.getElementById('regMsg');
+  el.style.display='block';
+  el.style.background=ok?'#DCFCE7':'#FEE2E2';
+  el.style.color=ok?'#16A34A':'#DC2626';
+  el.textContent=msg;
+}
+
+async function doLogin(){
+  const name=document.getElementById('loginName').value.trim();
+  const mobile=document.getElementById('loginMobile').value.trim();
+  document.getElementById('loginMsg').style.display='none';
+  if(!name){
+    document.getElementById('loginName').style.borderColor='#FF6B9D';
+    setTimeout(()=>document.getElementById('loginName').style.borderColor='#E5E7EB',1200);
+    return;
+  }
+  if(mobile.length<7){
+    document.getElementById('loginMobile').style.borderColor='#FF6B9D';
+    setTimeout(()=>document.getElementById('loginMobile').style.borderColor='#E5E7EB',1200);
+    return;
+  }
+  const btn=document.getElementById('loginBtn');
+  btn.disabled=true;btn.textContent='Checking...';
+  try{
+    // Step 1: fetch ALL customers with this mobile
+    const byMobile=await sb('customers','GET',null,
+      'select=*&mobile=eq.'+encodeURIComponent(mobile)+'&limit=10');
+
+    if(!byMobile.length){
+      // Mobile not in system at all — must register
+      goToRegister(name, mobile, 'Mobile not registered. Please create your passport first!');
+      return;
+    }
+
+    // Step 2: find exact name match (case-insensitive in JS)
+    const match=byMobile.find(c=>
+      c.name.trim().toLowerCase()===name.toLowerCase()
+    );
+
+    if(match){
+      // Found exact match — log in
+      player={...match};
+      player.game_points=player.game_points||0;
+      player.game_spins=player.game_spins||0;
+      spinCount=0;bestSpinPts=0;
+      await checkTodaySessions();
+      goProfile();
+    } else {
+      // Mobile exists but this child name not found
+      const existingNames=byMobile.map(c=>c.name).join(', ');
+      // Use DOM to build the message safely — no string escaping issues
+      const msgEl=document.getElementById('loginMsg');
+      msgEl.innerHTML='';
+      const txt=document.createElement('div');
+      txt.innerHTML='Child <b>'+name+'</b> not found.<br>Registered: <b>'+existingNames+'</b>';
+      txt.style.marginBottom='10px';
+      const regBtn=document.createElement('button');
+      regBtn.textContent='+ Register New Child';
+      regBtn.style.cssText='width:100%;padding:10px;background:#FFD600;border:none;border-radius:8px;font-family:\'Baloo 2\',cursive;font-size:16px;font-weight:800;color:#0D47A1;cursor:pointer;margin-top:4px;';
+      regBtn.onclick=()=>goToRegister(name,mobile,'New child? Fill in the details below!');
+      msgEl.appendChild(txt);
+      msgEl.appendChild(regBtn);
+      msgEl.style.display='block';
+      msgEl.style.background='#FEE2E2';
+      msgEl.style.color='#DC2626';
+    }
+  }catch(e){showLoginMsg('Error: '+e.message,false);}
+  finally{btn.disabled=false;btn.textContent="Let's Play! 🎮";}
+}
+
+function goToRegister(name,mobile,msg){
+  document.getElementById('regName').value=name||'';
+  document.getElementById('regMobile').value=mobile||'';
+  document.getElementById('regDob').value='';
+  document.getElementById('regParent').value='';
+  document.getElementById('regMsg').style.display='none';
+  setRegGender('boy');
+  if(msg){
+    document.getElementById('regMsg').style.display='block';
+    document.getElementById('regMsg').style.background='#EFF6FF';
+    document.getElementById('regMsg').style.color='#1565C0';
+    document.getElementById('regMsg').textContent=msg;
+  }
+  showScreen('s-register');
+}
+
+async function doRegister(){
+  const name=document.getElementById('regName').value.trim();
+  const mobile=document.getElementById('regMobile').value.trim();
+  const parent=document.getElementById('regParent').value.trim();
+  const dob=document.getElementById('regDob').value;
+  document.getElementById('regMsg').style.display='none';
+  if(!name){showRegMsg("Please enter child's name",false);return;}
+  
+  if(!dob){showRegMsg("Date of birth is required! 🎂",false);return;}
+  if(!regGender){showRegMsg("Please select Boy or Girl",false);return;}
+  const btn=document.querySelector('#s-register .btn-y');
+  btn.disabled=true;btn.textContent='Registering...';
+  try{
+    const res=await sb('customers','POST',{
+      name,mobile,parent,dob,gender:regGender,
+      stamps:0,redemptions:0,game_points:0,game_spins:0
+    });
+    player=Array.isArray(res)?res[0]:res;
+    player.game_points=0;player.game_spins=0;
+    showRegMsg('Welcome to MiniCuts! 🎉','ok');
+    spinCount=0;bestSpinPts=0;
+    await checkTodaySessions();
+    setTimeout(()=>goProfile(),1000);
+  }catch(e){showRegMsg('Error: '+e.message,false);}
+  finally{btn.disabled=false;btn.textContent='Register & Play! 🎮';}
+}
+
+// Track which games played today
+let todayPlayed={spin:false,tap:false,memory:false};
+
+async function checkTodaySessions(){
+  try{
+    const today=new Date().toISOString().split('T')[0];
+    const rows=await sb('game_sessions','GET',null,
+      'select=game_type&customer_id=eq.'+player.id+
+      '&created_at=gte.'+today+'T00:00:00');
+    todayPlayed={spin:false,tap:false,memory:false};
+    rows.forEach(r=>{if(r.game_type) todayPlayed[r.game_type]=true;});
+  }catch(e){console.warn('Session check error:',e);}
+}
+
+function allGamesPlayedToday(){
+  return todayPlayed.spin&&todayPlayed.tap&&todayPlayed.memory;
+}
+
+// == PROFILE ==
+function renderRemainingGames(){
+  const el=document.getElementById('remainingGames');
+  if(!el) return;
+  const gameInfo={
+    spin:{icon:'🎡',name:'Spin Wheel',desc:'2 spins, best wins',fn:'goSpin()'},
+    tap:{icon:'🐼',name:'Tap Panda',desc:'10 seconds!',fn:'goTapPanda()'},
+    memory:{icon:'🧠',name:'Memory Match',desc:'Quick pairs!',fn:'goMemory()'},
+  };
+  const remaining=Object.entries(gameInfo).filter(([k])=>!todayPlayed[k]);
+  if(!remaining.length){
+    el.innerHTML=`<div style="background:#F0FDF4;border-radius:12px;padding:14px;text-align:center;margin-bottom:4px;">
+      <div style="font-size:28px;">🐼</div>
+      <div style="font-family:'Baloo 2',cursive;font-size:15px;font-weight:800;color:#16A34A;">All done for today!</div>
+      <div style="font-size:12px;color:#6B7280;margin-top:3px;">Come back after your next haircut 🎈</div>
+    </div>`;
+    return;
+  }
+  el.innerHTML=`<div style="font-family:'Baloo 2',cursive;font-size:15px;font-weight:800;color:var(--bd);margin-bottom:8px;text-align:center;">
+    Play another game? 🎮
+  </div>
+  <div style="display:grid;grid-template-columns:${remaining.length===1?'1fr':'1fr 1fr'};gap:10px;">
+    ${remaining.map(([k,g])=>`
+      <div onclick="${g.fn}" style="background:linear-gradient(135deg,var(--bd),var(--b));border-radius:14px;padding:14px 10px;text-align:center;cursor:pointer;border:3px solid transparent;transition:all .2s;" onmouseover="this.style.borderColor='#FFD600'" onmouseout="this.style.borderColor='transparent'">
+        <div style="font-size:32px;">${g.icon}</div>
+        <div style="font-family:'Baloo 2',cursive;font-size:15px;font-weight:800;color:#fff;margin-top:4px;">${g.name}</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.7);margin-top:2px;">${g.desc}</div>
+      </div>`).join('')}
+  </div>`;
+}
+
+function refreshGameCards(){
+  const games=['spin','tap','memory'];
+  const all=allGamesPlayedToday();
+  // Show/hide all done card
+  const allDone=document.getElementById('allDoneCard');
+  const gameGrid=document.getElementById('gameGrid');
+  if(allDone&&gameGrid){
+    allDone.style.display=all?'block':'none';
+    gameGrid.style.display=all?'none':'grid';
+  }
+  if(all) return;
+  // Update individual card states
+  games.forEach(g=>{
+    const card=document.getElementById('gc-'+g);
+    const desc=document.getElementById('gd-'+g);
+    if(!card) return;
+    if(todayPlayed[g]){
+      card.style.opacity='.45';
+      card.style.pointerEvents='none';
+      card.style.border='2px solid rgba(22,163,74,.5)';
+      if(desc) desc.innerHTML='✅ Done today!';
+    } else {
+      card.style.opacity='1';
+      card.style.pointerEvents='auto';
+      card.style.border='3px solid transparent';
+      if(desc){
+        const defaults={spin:'2 spins, best wins',tap:'10 seconds!',memory:'Quick pairs!'};
+        desc.textContent=defaults[g];
+      }
+    }
+  });
+}
+
+function showAlreadyPlayed(game){
+  // Show panda saying already played
+  const overlay=document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:3000;display:flex;align-items:center;justify-content:center;padding:20px;';
+  const gameNames={spin:'Spin Wheel',tap:'Tap Panda',memory:'Memory Match'};
+  overlay.innerHTML=`
+    <div style="background:#fff;border-radius:24px;padding:32px 24px;max-width:320px;width:100%;text-align:center;">
+      <div style="font-size:72px;margin-bottom:8px;animation:bounce-anim 1s infinite;">🐼</div>
+      <div style="font-family:'Baloo 2',cursive;font-size:22px;font-weight:800;color:#0D47A1;margin-bottom:6px;">Already played!</div>
+      <div style="font-size:14px;color:#6B7280;line-height:1.6;margin-bottom:20px;">
+        You've already played <strong>${gameNames[game]||game}</strong> today.<br>
+        Try another game or come back after your next haircut! 🎈
+      </div>
+      <button id="ov-close" style="width:100%;padding:13px;background:linear-gradient(135deg,#FFD600,#FF8C00);border:none;border-radius:12px;font-family:'Baloo 2',cursive;font-size:18px;font-weight:800;color:#0D47A1;cursor:pointer;">Got it! 🐼</button>
+    </div>`;
+  document.body.appendChild(overlay);
+  document.getElementById('ov-close').addEventListener('click',()=>document.body.removeChild(overlay));
+  overlay.addEventListener('click',e=>{if(e.target===overlay)document.body.removeChild(overlay);});
+}
+
+function drawMilestoneTrack(pts, containerId){
+  const el=document.getElementById(containerId);
+  if(!el) return;
+  const MAX=160; // max pts for full bar
+  const pct=Math.min((pts/MAX)*100,100);
+  const tiers=[{pts:50,icon:'🍭',label:'Lollipop'},{pts:100,icon:'🎁',label:'Surprise Gift'},{pts:150,icon:'🚿',label:'Hair Wash'}];
+  el.innerHTML=`
+    <div style="position:relative;height:56px;margin-bottom:4px;">
+      <!-- Track -->
+      <div style="position:absolute;top:20px;left:0;right:0;height:10px;background:#E5E7EB;border-radius:99px;overflow:hidden;">
+        <div style="width:${pct}%;height:100%;background:linear-gradient(90deg,#FFD600,#FF8C00);border-radius:99px;transition:width .8s cubic-bezier(.175,.885,.32,1.275);"></div>
+      </div>
+      <!-- Start dot -->
+      <div style="position:absolute;top:17px;left:0;width:16px;height:16px;background:#9CA3AF;border-radius:50%;border:2px solid #fff;"></div>
+      <!-- Milestone markers -->
+      ${tiers.map(t=>{
+        const pos=Math.min((t.pts/MAX)*100,100);
+        const done=pts>=t.pts;
+        return`<div style="position:absolute;top:0;left:calc(${pos}% - 18px);text-align:center;width:36px;">
+          <div style="font-size:${done?'26':'22'}px;line-height:1;filter:${done?'none':'grayscale(1) opacity(.5)'};">${t.icon}</div>
+          <div style="position:absolute;top:14px;left:50%;transform:translateX(-50%);width:12px;height:12px;background:${done?'#16A34A':'#9CA3AF'};border-radius:50%;border:2px solid #fff;"></div>
+          <div style="font-size:9px;font-weight:700;color:${done?'#16A34A':'#9CA3AF'};margin-top:18px;white-space:nowrap;">${t.pts}pts</div>
+        </div>`;
+      }).join('')}
+      <!-- Player dot -->
+      <div style="position:absolute;top:13px;left:calc(${pct}% - 10px);width:20px;height:20px;background:var(--bd);border-radius:50%;border:3px solid var(--y);box-shadow:0 0 8px rgba(255,214,0,.6);transition:left .8s cubic-bezier(.175,.885,.32,1.275);display:flex;align-items:center;justify-content:center;font-size:10px;">🐼</div>
+    </div>
+    <!-- Points label -->
+    <div style="text-align:center;font-size:11px;color:#6B7280;margin-top:2px;">${pts} pts earned</div>
+  `;
+}
+
+function renderProfile(){
+  const pts=player.game_points||0;
+  document.getElementById('profileName').textContent=player.name||'Player';
+  document.getElementById('totalPts').textContent=pts+' pts';
+  drawMilestoneTrack(pts,'milestoneTrack');
+  // Simple tier list
+  // Update game card states
+  refreshGameCards();
+  document.getElementById('tierList').innerHTML=TIERS.map(t=>{
+    const done=pts>=t.pts;
+    const needed=t.pts-pts;
+    return`<div class="tier-row">
+      <span style="font-size:${done?'26':'22'}px;filter:${done?'none':'grayscale(.6)'};">${t.icon}</span>
+      <div style="flex:1;margin-left:8px;">
+        <div style="font-size:13px;font-weight:700;color:#1A1A2E;">${t.label}</div>
+        <div style="font-size:11px;color:${done?'#16A34A':'#6B7280'};">${done?'✅ Unlocked!':needed+' more points to go'}</div>
+      </div>
+      <span style="font-family:'Baloo 2',cursive;font-size:14px;font-weight:800;color:${done?'#16A34A':'#9CA3AF'};">${t.pts}</span>
+    </div>`;
+  }).join('');
+}
+
+// ==========================================
+// SPIN WHEEL — 2 spins, best of 2
+// ==========================================
+const SEGS=[
+  {pts:1,color:'#EF4444'},{pts:3,color:'#F97316'},{pts:5,color:'#EAB308'},
+  {pts:8,color:'#22C55E'},{pts:10,color:'#3B82F6'},{pts:12,color:'#8B5CF6'},
+  {pts:15,color:'#EC4899'},{pts:20,color:'#FFD600'},{pts:2,color:'#14B8A6'},
+  {pts:5,color:'#F59E0B'},{pts:8,color:'#10B981'},{pts:3,color:'#6366F1'},
+];
+let spinCount=0,bestSpinPts=0,spinAngle=0,isSpinning=false;
+const cvs=document.getElementById('wCanvas');
+const ctx=cvs.getContext('2d');
+const CX=150,CY=150,R=135;
+
+function drawWheel(rot=0){
+  ctx.clearRect(0,0,300,300);
+  const slice=(Math.PI*2)/SEGS.length;
+  SEGS.forEach((s,i)=>{
+    const start=rot+i*slice;
+    ctx.beginPath();ctx.moveTo(CX,CY);ctx.arc(CX,CY,R,start,start+slice);ctx.closePath();
+    ctx.fillStyle=s.color;ctx.fill();
+    ctx.strokeStyle='rgba(255,255,255,.6)';ctx.lineWidth=2;ctx.stroke();
+    ctx.save();ctx.translate(CX,CY);ctx.rotate(start+slice/2);
+    ctx.textAlign='right';ctx.fillStyle='#fff';ctx.font='bold 13px Nunito,sans-serif';
+    ctx.shadowColor='rgba(0,0,0,.5)';ctx.shadowBlur=3;
+    ctx.fillText(s.pts+'pts',R-8,5);ctx.restore();
+  });
+  ctx.beginPath();ctx.arc(CX,CY,30,0,Math.PI*2);
+  ctx.fillStyle='#fff';ctx.fill();
+  ctx.font='24px serif';ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.shadowBlur=0;ctx.fillText('🐼',CX,CY);
+}
+drawWheel(0);
+
+function goSpin(){
+  if(todayPlayed.spin){showAlreadyPlayed('spin');return;}
+  if(spinCount>=2){spinCount=0;bestSpinPts=0;}
+  updateSpinUI();
+  drawWheel(spinAngle);
+  showScreen('s-spin');
+}
+
+function updateSpinUI(){
+  const btn=document.getElementById('spinBtn');
+  const lbl=document.getElementById('spinChanceLabel');
+  const skip=document.getElementById('spinSkipLabel');
+  const best=document.getElementById('bestSoFar');
+  if(spinCount===0){
+    lbl.textContent='Spin 1 of 2 — get the highest score!';
+    btn.disabled=false;btn.textContent='SPIN! 🎡';
+    skip.textContent='';best.textContent='—';
+  } else if(spinCount===1){
+    lbl.textContent='Spin 2 of 2 — can you beat '+bestSpinPts+' pts?';
+    btn.disabled=false;btn.textContent='SPIN AGAIN! 🎡';
+    skip.textContent='Happy with '+bestSpinPts+' pts? Tap below to keep it.';
+    best.textContent=bestSpinPts+' pts';
+    // Add skip button dynamically
+    if(!document.getElementById('skipBtn')){
+      const sb2=document.createElement('button');
+      sb2.id='skipBtn';sb2.className='btn btn-ghost';
+      sb2.style.cssText='margin-top:6px;font-size:14px;padding:9px;';
+      sb2.textContent='Keep '+bestSpinPts+' pts ✓';
+      sb2.onclick=()=>finishSpin(bestSpinPts);
+      document.getElementById('s-spin').insertBefore(sb2,document.querySelector('#s-spin .btn-ghost:last-child'));
+    } else {
+      document.getElementById('skipBtn').textContent='Keep '+bestSpinPts+' pts ✓';
+    }
+  }
+}
+
+function startSpin(){
+  if(isSpinning||spinCount>=2)return;
+  isSpinning=true;
+  document.getElementById('spinBtn').disabled=true;
+  document.getElementById('spinBtn').textContent='Spinning...';
+  if(document.getElementById('skipBtn')) document.getElementById('skipBtn').style.display='none';
+  const segIdx=Math.floor(Math.random()*SEGS.length);
+  const wonPts=SEGS[segIdx].pts;
+  const segAngle=(Math.PI*2)/SEGS.length;
+  const target=Math.PI*1.5-(segIdx*segAngle+segAngle/2);
+  const spins=(6+Math.floor(Math.random()*3))*Math.PI*2;
+  const final=spins+(target-spinAngle%(Math.PI*2));
+  const dur=4200;const t0=performance.now();const r0=spinAngle;
+  const ease=t=>1-Math.pow(1-t,4);
+  function anim(now){
+    const t=Math.min((now-t0)/dur,1);
+    spinAngle=r0+final*ease(t);
+    drawWheel(spinAngle);
+    if(t<1){requestAnimationFrame(anim);}
+    else{
+      isSpinning=false;spinCount++;
+      pandaReact(wonPts);
+      if(wonPts>bestSpinPts) bestSpinPts=wonPts;
+      if(spinCount>=2){
+        setTimeout(()=>finishSpin(bestSpinPts),900);
+      } else {
+        updateSpinUI();
+        if(document.getElementById('skipBtn')) document.getElementById('skipBtn').style.display='block';
+      }
+    }
+  }
+  requestAnimationFrame(anim);
+}
+
+function pandaReact(pts){
+  const el=document.getElementById('pandaReact');
+  if(pts>=15){el.textContent='🔥🐼🔥';el.style.animation='jump .4s 3';}
+  else if(pts>=10){el.textContent='🥳🐼🎉';el.style.animation='jump .4s 2';}
+  else if(pts>=5){el.textContent='😊🐼';el.style.animation='';}
+  else{el.textContent='😅🐼';el.style.animation='shake .4s 2';}
+}
+
+function finishSpin(pts){
+  if(document.getElementById('skipBtn')) document.getElementById('skipBtn').remove();
+  saveAndShowResult(pts,'spin');
+}
+
+// ==========================================
+// TAP PANDA GAME
+// ==========================================
+let tapRunning=false,tapScore=0,tapTimer=null,tapSeconds=10;
+// Memory vars
+const MEM_EMOJIS=['🐼','🦁','🐸','🦊']; // 4 pairs = 8 cards
+let memCards=[],memFlipped=[],memMatched=0,memMoves=0,memStarted=false,memTimerInt=null,memSeconds=0,memLock=false;
+let tapBestScore=0;
+
+function goTapPanda(){
+  if(todayPlayed.tap){showAlreadyPlayed('tap');return;}
+  tapScore=0;tapSeconds=10;tapRunning=false;
+  document.getElementById('tapCount').textContent='0';
+  document.getElementById('tapTime').textContent='10';
+  document.getElementById('tapBest').textContent=player.best_tap_score||'--';
+  document.getElementById('tapStatus').style.display='block';
+  document.getElementById('tapStatus').innerHTML='Tap the panda!<br><span style="font-size:14px;opacity:.8;">Tap START to begin</span>';
+  document.getElementById('tapStartBtn').style.display='block';
+  document.getElementById('tapStartBtn').textContent='START! 🐼';
+  document.getElementById('tapStartBtn').disabled=false;
+  document.getElementById('pandaTarget').style.display='none';
+  if(tapTimer) clearInterval(tapTimer);
+  showScreen('s-tap');
+}
+
+function startTapGame(){
+  tapScore=0;tapSeconds=10;tapRunning=true;
+  document.getElementById('tapCount').textContent='0';
+  document.getElementById('tapTime').textContent='10';
+  document.getElementById('tapStatus').style.display='none';
+  document.getElementById('tapStartBtn').style.display='none';
+  const panda=document.getElementById('pandaTarget');
+  panda.style.display='block';
+  movePanda();
+  tapTimer=setInterval(()=>{
+    tapSeconds--;
+    document.getElementById('tapTime').textContent=tapSeconds;
+    if(tapSeconds<=3) document.getElementById('tapTime').style.color='#FF6B9D';
+    if(tapSeconds<=0){
+      clearInterval(tapTimer);
+      tapRunning=false;
+      panda.style.display='none';
+      endTapGame();
+    }
+  },1000);
+}
+
+function movePanda(){
+  if(!tapRunning) return;
+  const el=document.getElementById('pandaTarget');
+  const track=document.getElementById('tapGame');
+  const tw=track.offsetWidth-60,th=track.offsetHeight-60;
+  el.style.left=Math.floor(Math.random()*tw)+'px';
+  el.style.top=Math.floor(Math.random()*th)+'px';
+}
+
+document.getElementById('pandaTarget').addEventListener('click',()=>{
+  if(!tapRunning)return;
+  tapScore++;
+  document.getElementById('tapCount').textContent=tapScore;
+  // Flash
+  const el=document.getElementById('pandaTarget');
+  el.style.transform='scale(1.4)';
+  setTimeout(()=>el.style.transform='scale(1)',150);
+  // Burst effect
+  const burst=document.createElement('div');
+  burst.textContent='⭐';
+  burst.style.cssText='position:absolute;font-size:20px;pointer-events:none;animation:fall .6s ease-out forwards;left:'+el.style.left+';top:'+el.style.top;
+  document.getElementById('tapGame').appendChild(burst);
+  setTimeout(()=>burst.remove(),600);
+  movePanda();
+});
+
+function endTapGame(){
+  document.getElementById('tapTime').style.color='#fff';
+  // Points based on taps
+  let pts=0;
+  if(tapScore>=30) pts=20;
+  else if(tapScore>=20) pts=15;
+  else if(tapScore>=15) pts=10;
+  else if(tapScore>=10) pts=7;
+  else if(tapScore>=5) pts=5;
+  else pts=3;
+  const isNewBest=!player.best_tap_score||tapScore>player.best_tap_score;
+  if(isNewBest){player.best_tap_score=tapScore;pts+=5;}// bonus for new best
+  document.getElementById('tapStatus').innerHTML=(isNewBest?'🏆 NEW BEST! ':'')+'You tapped <strong>'+tapScore+'</strong> times!<br><span style="font-size:14px;color:var(--y);">+'+pts+' points!</span>';
+  document.getElementById('tapStatus').style.display='block';
+  document.getElementById('tapStartBtn').style.display='block';
+  document.getElementById('tapStartBtn').textContent='Collect '+pts+' pts 🎁';
+  document.getElementById('tapStartBtn').disabled=false;
+  document.getElementById('tapStartBtn').onclick=()=>saveAndShowResult(pts,'tap');
+}
+
+// ==========================================
+// ==========================================
+
+function goMemory(){
+  if(todayPlayed.memory){showAlreadyPlayed('memory');return;}
+  memMatched=0;memMoves=0;memStarted=false;memSeconds=0;memLock=false;
+  if(memTimerInt) clearInterval(memTimerInt);
+  document.getElementById('memMoves').textContent='0';
+  document.getElementById('memTime').textContent='0s';
+  document.getElementById('memPairs').textContent='0/4';
+  document.getElementById('memStartBtn').style.display='block';
+  document.getElementById('memStartBtn').textContent='START! 🧠';
+  document.getElementById('memStartBtn').disabled=false;
+  document.getElementById('memStartBtn').onclick=startMemory;
+  buildMemGrid(false);
+  showScreen('s-memory');
+}
+
+function buildMemGrid(reveal=false){
+  // 8 cards (4 pairs) + 1 center panda = 9 cells for 3x3
+  const pairs=[...MEM_EMOJIS,...MEM_EMOJIS].sort(()=>Math.random()-.5);
+  memCards=pairs;memFlipped=[];
+  const cells=[];
+  // Insert panda in center (index 4)
+  pairs.forEach((e,i)=>{
+    if(i===4) cells.push('__PANDA__');
+    cells.push(e);
+  });
+  // Trim to 9
+  const grid=cells.slice(0,9);
+  memCards=grid;
+  document.getElementById('memGrid').innerHTML=grid.map((e,i)=>{
+    if(e==='__PANDA__') return`<div class="mem-card center-panda" style="font-size:40px;">🐼</div>`;
+    return`<div class="mem-card ${reveal?'flipped':'hidden-face'}" id="mc${i}" onclick="memTap(${i})" data-emoji="${e}">
+      <span style="font-size:36px;">${reveal?e:'❓'}</span>
+    </div>`;
+  }).join('');
+}
+
+function startMemory(){
+  document.getElementById('memStartBtn').style.display='none';
+  // Show all cards briefly for 2 seconds
+  buildMemGrid(true);
+  let cd=3;
+  document.getElementById('memTime').textContent='Ready in 3s';
+  const c=setInterval(()=>{
+    cd--;
+    document.getElementById('memTime').textContent=cd>0?'Ready in '+cd+'s':'Go!';
+    if(cd<=0){
+      clearInterval(c);
+      buildMemGrid(false);
+      memStarted=true;
+      memTimerInt=setInterval(()=>{memSeconds++;document.getElementById('memTime').textContent=memSeconds+'s';},1000);
+    }
+  },1000);
+}
+
+function memTap(idx){
+  if(!memStarted||memLock)return;
+  const card=document.getElementById('mc'+idx);
+  if(!card||card.classList.contains('matched')||card.classList.contains('flipped')) return;
+  card.classList.add('flipped');
+  card.querySelector('span').textContent=memCards[idx];
+  memFlipped.push(idx);
+  if(memFlipped.length===2){
+    memLock=true;memMoves++;
+    document.getElementById('memMoves').textContent=memMoves;
+    const [a,b]=memFlipped;
+    if(memCards[a]===memCards[b]){
+      document.getElementById('mc'+a).classList.add('matched');
+      document.getElementById('mc'+b).classList.add('matched');
+      memMatched++;
+      document.getElementById('memPairs').textContent=memMatched+'/4';
+      memFlipped=[];memLock=false;
+      if(memMatched===4) setTimeout(endMemory,400);
+    } else {
+      setTimeout(()=>{
+        const ca=document.getElementById('mc'+a);
+        const cb=document.getElementById('mc'+b);
+        if(ca){ca.classList.remove('flipped');ca.querySelector('span').textContent='❓';}
+        if(cb){cb.classList.remove('flipped');cb.querySelector('span').textContent='❓';}
+        memFlipped=[];memLock=false;
+      },700);
+    }
+  }
+}
+
+function endMemory(){
+  clearInterval(memTimerInt);memStarted=false;
+  // Points: fewer moves + faster = more points (4 pairs, max ~8 moves)
+  let pts=0;
+  if(memMoves<=5) pts=20;
+  else if(memMoves<=7) pts=15;
+  else if(memMoves<=10) pts=10;
+  else pts=7;
+  document.getElementById('memStartBtn').style.display='block';
+  document.getElementById('memStartBtn').textContent='🎉 Collect '+pts+' pts!';
+  document.getElementById('memStartBtn').disabled=false;
+  document.getElementById('memStartBtn').onclick=()=>saveAndShowResult(pts,'memory');
+}
+
+async function saveAndShowResult(pts,gameType){
+  const newTotal=Math.min((player.game_points||0)+pts,999);
+  player.game_points=newTotal;
+  try{
+    const updates={game_points:newTotal,game_spins:(player.game_spins||0)+1};
+    if(gameType==='tap'&&player.best_tap_score) updates.best_tap_score=player.best_tap_score;
+    await sb('customers','PATCH',updates,'id=eq.'+player.id);
+    await sb('game_sessions','POST',{customer_id:player.id,customer_name:player.name,points_earned:pts,game_type:gameType});
+  }catch(e){console.warn('Save error:',e);}
+  // Mark game as played today
+  if(gameType) todayPlayed[gameType]=true;
+  loadSidebarLb();
+  showResult(pts,newTotal);
+}
+
+function showResult(pts,newTotal){
+  const emoji=pts>=15?'🔥':pts>=10?'🎉':pts>=5?'⭐':'👍';
+  document.getElementById('resultEmoji').textContent=emoji;
+  document.getElementById('resultPts').textContent='+'+pts;
+  document.getElementById('resultTotal').textContent=newTotal+' pts';
+  drawMilestoneTrack(newTotal,'resultMilestoneTrack');
+  const tier=TIERS.slice().reverse().find(t=>newTotal>=t.pts);
+  const bannerEl=document.getElementById('rewardBanner');
+  if(tier){
+    bannerEl.innerHTML=`<div class="reward-banner">
+      <div style="font-size:32px;margin-bottom:6px;">${tier.icon}</div>
+      <div style="font-family:'Baloo 2',cursive;font-size:18px;font-weight:800;color:var(--bd);">Reward Unlocked!</div>
+      <div style="font-size:15px;font-weight:800;color:var(--bd);margin:4px 0;">${tier.label}</div>
+      <div style="font-size:12px;color:var(--bd);opacity:.8;">Show screen to staff to claim 🐼</div>
+    </div>`;
+  } else {
+    const next=TIERS.find(t=>newTotal<t.pts);
+    bannerEl.innerHTML=next?`<div style="text-align:center;padding:10px;color:#6B7280;font-size:13px;">${next.pts-newTotal} more points → ${next.icon} ${next.label}</div>`:'';
+  }
+  if(pts>=10) launchConfetti();
+  refreshGameCards();
+  renderRemainingGames();
+  showScreen('s-result');
+}
+
+// == LEADERBOARD ==
+// ── SIDEBAR LEADERBOARD ──
+let sidebarData=[];
+async function loadSidebarLb(){
+  try{
+    const sUrl=SB_URL+'/rest/v1/customers?select=name,mobile,game_points&order=game_points.desc&limit=20';
+    const sRes=await fetch(sUrl,{headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}});
+    if(!sRes.ok) throw new Error('HTTP '+sRes.status);
+    const allData=await sRes.json();
+    const data=allData.filter(c=>(c.game_points||0)>0).slice(0,10);
+    sidebarData=data;
+    renderSidebar();
+  }catch(e){
+    console.warn('Sidebar lb error:',e.message);
+    const sEl=document.getElementById('sideLbList');
+    if(sEl) sEl.innerHTML='<div style="text-align:center;padding:10px;color:rgba(255,100,100,.7);font-size:10px;">'+e.message+'</div>';
+  }
+}
+
+function renderSidebar(){
+  const medals=['🥇','🥈','🥉'];
+  const myPts=player.game_points||0;
+  const myRank=sidebarData.findIndex(c=>c.mobile===player.mobile)+1;
+
+  // Rank badge for current player
+  const rankEl=document.getElementById('sideRankBadge');
+  if(player.id&&myPts>0){
+    const rankTxt=myRank>0?'Your rank: #'+myRank:'Not ranked yet';
+    rankEl.innerHTML=`<div class="rank-badge">
+      <div class="rank-badge-txt">${rankTxt}</div>
+      <div style="font-size:10px;color:rgba(255,214,0,.7);">${myPts} pts total</div>
+    </div>`;
+  } else {
+    rankEl.innerHTML='';
+  }
+
+  const TIERS_SB=[
+    {pts:50,icon:'🍭',label:'Lollipop'},
+    {pts:100,icon:'🎁',label:'Surprise Gift'},
+    {pts:150,icon:'🚿',label:'Free Hair Wash'},
+  ];
+  function nextMilestone(pts){
+    const next=TIERS_SB.find(t=>pts<t.pts);
+    if(!next) return 'All rewards unlocked! 🎉';
+    const needed=next.pts-pts;
+    return `${needed}pts → ${next.icon} ${next.label}`;
+  }
+
+  if(!sidebarData.length){
+    document.getElementById('sideLbList').innerHTML='<div style="text-align:center;padding:16px;color:rgba(255,255,255,.35);font-size:11px;">No scores yet<br>Play to be first! 🎮</div>';
+    return;
+  }
+  const MAX_ROAD=150;
+  // Unique color per rank position
+  const RANK_COLORS=[
+    {bar:'#FFD600,#FF8C00', glow:'rgba(255,214,0,.7)', av:'#FF8C00'},   // 🥇 gold
+    {bar:'#C0C0C0,#9E9E9E', glow:'rgba(192,192,192,.6)', av:'#9E9E9E'}, // 🥈 silver
+    {bar:'#CD7F32,#8B5A2B', glow:'rgba(205,127,50,.6)', av:'#8B5A2B'}, // 🥉 bronze
+    {bar:'#FF6B9D,#FF1493', glow:'rgba(255,107,157,.6)', av:'#FF1493'}, // 4 pink
+    {bar:'#4CAF50,#1B5E20', glow:'rgba(76,175,80,.6)',   av:'#2E7D32'}, // 5 green
+    {bar:'#29B6F6,#0277BD', glow:'rgba(41,182,246,.6)', av:'#0277BD'}, // 6 cyan
+    {bar:'#CE93D8,#7B1FA2', glow:'rgba(206,147,216,.6)', av:'#7B1FA2'},// 7 purple
+    {bar:'#FF7043,#BF360C', glow:'rgba(255,112,67,.6)', av:'#BF360C'}, // 8 orange
+    {bar:'#80CBC4,#00695C', glow:'rgba(128,203,196,.6)', av:'#00695C'},// 9 teal
+    {bar:'#AED581,#558B2F', glow:'rgba(174,213,129,.6)', av:'#558B2F'}, // 10 lime
+  ];
+
+  document.getElementById('sideLbList').innerHTML=sidebarData.map((c,i)=>{
+    const isMe=player.mobile&&c.mobile===player.mobile;
+    const init=(c.name||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+    const pts=c.game_points||0;
+    const pct=Math.min((pts/MAX_ROAD)*100,100);
+    const rc=RANK_COLORS[i]||RANK_COLORS[0];
+    const checkpoints=[
+      {pts:50, icon:'🍭', trackPct:33.3, label:'50'},
+      {pts:100,icon:'🎁', trackPct:66.6, label:'100'},
+      {pts:150,icon:'🚿', trackPct:100,  label:'150'},
+    ];
+    const roadHtml=`
+      <div style="position:relative;height:38px;margin:6px 0 2px;padding:0 2px;">
+        <!-- Track background -->
+        <div style="position:absolute;top:16px;left:0;right:0;height:8px;background:rgba(255,255,255,.08);border-radius:99px;"></div>
+        <!-- Colored progress fill with glow -->
+        <div style="position:absolute;top:16px;left:0;width:${pct}%;height:8px;background:linear-gradient(90deg,${rc.bar});border-radius:99px;box-shadow:0 0 10px ${rc.glow};transition:width .7s ease;"></div>
+        <!-- Checkpoint markers -->
+        ${checkpoints.map(cp=>{
+          const done=pts>=cp.pts;
+          const left='calc('+cp.trackPct+'% - 12px)';
+          return`
+            <div style="position:absolute;top:8px;left:${left};font-size:${done?'22':'17'}px;line-height:1;filter:${done?'none':'grayscale(1) opacity(.2)'};z-index:3;">${cp.icon}</div>
+            <div style="position:absolute;top:30px;left:${left};font-size:9px;color:rgba(255,255,255,${done?.6:.25});font-weight:700;width:24px;text-align:center;">${cp.label}</div>
+          `;
+        }).join('')}
+        <!-- 🐼 player marker -->
+        <div style="position:absolute;top:8px;left:calc(${Math.min(pct,93)}% - 10px);font-size:18px;line-height:1;z-index:5;filter:drop-shadow(0 2px 4px rgba(0,0,0,.8));">🐼</div>
+      </div>`;
+
+    return`<div style="background:${isMe?'rgba(255,255,255,.07)':'rgba(255,255,255,.02)'};border:${isMe?'1.5px solid '+rc.glow:'1px solid rgba(255,255,255,.05)'};border-radius:14px;padding:10px 10px 14px;margin-bottom:10px;">
+      <div style="display:flex;align-items:center;gap:7px;margin-bottom:0;">
+        <div style="font-family:'Baloo 2',cursive;font-size:16px;font-weight:800;color:rgba(255,255,255,.8);width:24px;text-align:center;flex-shrink:0;">${medals[i]||'#'+(i+1)}</div>
+        <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,${rc.bar});display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;flex-shrink:0;box-shadow:0 0 8px ${rc.glow};">${init}</div>
+        <div style="font-size:12px;font-weight:700;color:#fff;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.name||'Player'}${isMe?' 👈':''}</div>
+        <div style="font-family:'Baloo 2',cursive;font-size:14px;font-weight:800;color:transparent;background:linear-gradient(90deg,${rc.bar});-webkit-background-clip:text;background-clip:text;">${pts}pts</div>
+      </div>
+      ${roadHtml}
+    </div>`;
+  }).join('');
+}
+
+// Refresh sidebar every 30 seconds
+setInterval(loadSidebarLb,30000);
+// Initial load
+setTimeout(loadSidebarLb,1000);
+
+async function fetchLb(){
+  // Direct fetch — no wrapper — to isolate any issues
+  const url=SB_URL+'/rest/v1/customers?select=name,game_points&order=game_points.desc&limit=50';
+  const r=await fetch(url,{headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}});
+  if(!r.ok){
+    const txt=await r.text();
+    throw new Error('HTTP '+r.status+': '+txt.slice(0,150));
+  }
+  const data=await r.json();
+  return data.filter(c=>(c.game_points||0)>0).slice(0,10);
+}
+
+async function loadLeaderboard(){
+  const el=document.getElementById('lbList');
+  if(!el) return;
+  el.innerHTML='<div class="load"><div class="spin-a"></div> Loading...</div>';
+  try{
+    const data=await fetchLb();
+    const medals=['🥇','🥈','🥉'];
+    if(!data.length){
+      el.innerHTML='<div style="text-align:center;padding:24px;"><div style="font-size:40px;margin-bottom:8px;">🎮</div><div style="font-size:14px;font-weight:700;color:#6B7280;">No scores yet!</div><div style="font-size:12px;color:#9CA3AF;margin-top:4px;">Play a game to be first</div></div>';
+      return;
+    }
+    el.innerHTML=data.map((c,i)=>{
+      const pts=c.game_points||0;
+      const pct=Math.min((pts/MAX_PTS)*100,100);
+      const init=(c.name||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+      return'<div class="lb-row">'+
+        '<div style="font-family:Georgia,serif;font-size:18px;font-weight:800;width:30px;text-align:center;">'+(medals[i]||'#'+(i+1))+'</div>'+
+        '<div class="lb-av">'+init+'</div>'+
+        '<div style="flex:1;"><div style="font-size:13.5px;font-weight:700;color:#1A1A2E;">'+c.name+'</div>'+
+        '<div style="width:'+pct+'%;max-width:100px;height:4px;background:#FFD600;border-radius:99px;margin-top:3px;"></div></div>'+
+        '<div style="font-size:18px;font-weight:800;color:#1565C0;">'+pts+' <span style="font-size:11px;color:#6B7280;font-weight:400;">pts</span></div>'+
+        '</div>';
+    }).join('');
+  }catch(e){
+    el.innerHTML='<div style="color:#DC2626;padding:16px;font-size:12px;word-break:break-word;">Error: '+e.message+'<br><br><button onclick="loadLeaderboard()" style="padding:8px 16px;background:#1565C0;color:#fff;border:none;border-radius:8px;cursor:pointer;">Retry</button></div>';
+  }
+}
+
+// == STAFF RESET ==
+async function debugLb(){
+  const out=document.getElementById('debugOut');
+  if(!out) return;
+  out.style.display='block';
+  out.textContent='Testing...';
+  try{
+    const r1=await fetch(SB_URL+'/rest/v1/customers?select=id,name,game_points&limit=3',{
+      headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}
+    });
+    const t1=await r1.text();
+    out.textContent='Status: '+r1.status+'\n'+t1.slice(0,300);
+  }catch(e){
+    out.textContent='ERROR: '+e.message;
+  }
+}
+
+async function staffReset(){
+  const m=document.getElementById('staffMobile').value.trim();
+  if(!m)return;
+  try{
+    const rows=await sb('customers','GET',null,'select=id,name&mobile=eq.'+encodeURIComponent(m)+'&limit=1');
+    if(!rows.length){showStaffMsg('Customer not found.',false);return;}
+    if(!confirm('Reset points for '+rows[0].name+'?'))return;
+    await sb('customers','PATCH',{game_points:0,game_spins:0},'id=eq.'+rows[0].id);
+    showStaffMsg('✅ Reset done for '+rows[0].name,true);
+  }catch(e){showStaffMsg('Error: '+e.message,false);}
+}
+function showStaffMsg(msg,ok){
+  const el=document.getElementById('staffMsg');
+  el.textContent=msg;el.style.color=ok?'#16A34A':'#DC2626';el.style.display='block';
+}
+
+// == CONFETTI ==
+function launchConfetti(){
+  const wrap=document.getElementById('confettiWrap');wrap.innerHTML='';
+  const cols=['#FFD600','#FF6B9D','#4CAF50','#2196F3','#FF8C00','#9C27B0','#fff'];
+  for(let i=0;i<60;i++){
+    const c=document.createElement('div');const sz=6+Math.random()*10;
+    c.style.cssText=`position:absolute;width:${sz}px;height:${sz}px;background:${cols[Math.floor(Math.random()*cols.length)]};left:${Math.random()*100}%;top:-20px;border-radius:${Math.random()>.5?'50%':'2px'};animation:fall ${1.5+Math.random()*2}s ease-in ${Math.random()*.8}s forwards;`;
+    wrap.appendChild(c);
+  }
+  setTimeout(()=>wrap.innerHTML='',4000);
+}
+</script>
+</div><!-- end max-width -->
+</div><!-- end game-area -->
+
+<!-- LIVE LEADERBOARD SIDEBAR -->
+<div class="lb-sidebar" id="lbSidebar">
+  <div class="sb-title">🏆 Leaderboard</div>
+  <div id="sideRankBadge"></div>
+  <div id="sideLbList"><div style="text-align:center;padding:20px;color:rgba(255,255,255,.4);font-size:12px;">Loading...</div></div>
+</div>
+
+</div><!-- end layout -->
+</body>
+</html>
