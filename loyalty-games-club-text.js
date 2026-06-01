@@ -143,6 +143,19 @@
     }catch(e){console.warn('Build function patch:',e.message);}
   }
 
+  function addLoginRegisterPrompt(login){
+    try{
+      if(!login || document.getElementById('lgcNewUserPrompt')) return;
+      var wrap=login.querySelector('div[style*="border-top"]');
+      if(!wrap) return;
+      var prompt=document.createElement('div');
+      prompt.id='lgcNewUserPrompt';
+      prompt.style.cssText='background:#FFF7CC;border:1px solid #FFD600;border-radius:12px;padding:10px 12px;margin-bottom:10px;text-align:center;color:#0D47A1;font-size:13px;font-weight:900;line-height:1.35;';
+      prompt.innerHTML='New parent or first-time customer?<br><span style="font-size:12px;color:#1565C0;font-weight:800;">Tap below to register for Loyalty & MiniCuts Games Club.</span>';
+      wrap.insertBefore(prompt,wrap.firstChild);
+    }catch(e){console.warn('Login register prompt patch:',e.message);}
+  }
+
   function applyText(){
     try{
       var login=document.getElementById('LS');
@@ -160,7 +173,8 @@
         var loginBtn=login.querySelector('button[onclick="doLogin()"]');
         if(loginBtn) loginBtn.textContent='Login to Loyalty & Games Club';
         var portalLink=login.querySelector('a[href="?customer=1"]');
-        if(portalLink) portalLink.textContent='→ Customer Portal: Loyalty + Games Club';
+        if(portalLink) portalLink.textContent='→ Register / Customer Portal: Loyalty + Games Club';
+        addLoginRegisterPrompt(login);
       }
 
       var newPage=document.getElementById('page-newcustomer');
