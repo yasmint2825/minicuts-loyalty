@@ -35,7 +35,6 @@
       'if(!name){showRegMsg("Please enter child\'s name",false);return;}\n   if(mobile.length<7){showRegMsg("Please enter valid parent mobile",false);return;}\n   \n   if(!dob){'
     );
 
-    // Memory fix: show all 8 cards cleanly as 4 x 2 and avoid using panda as a front card.
     html = html.replace(
       ".mem-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px;}",
       ".mem-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:8px;}"
@@ -78,7 +77,6 @@ function showLoginMsg(msg,ok){
 `;
 
     const spinOverride = `
-// V11 hotfix: smoother spin and auto-save score when wheel stops.
 function startSpin(){
   if(isSpinning) return;
   isSpinning = true;
@@ -88,7 +86,6 @@ function startSpin(){
   spinBtn.textContent = 'Spinning... 🎡';
   spinBtn.onclick = null;
   if(panda) panda.style.animation = 'jump 0.4s ease infinite';
-
   const startAngle = spinAngle || 0;
   const extraSpins = 6 + Math.random() * 4;
   const randomStop = Math.random() * 2 * Math.PI;
@@ -96,49 +93,34 @@ function startSpin(){
   const duration = 4200;
   const startedAt = performance.now();
   let lastTick = 0;
-
   function easeOutCubic(t){ return 1 - Math.pow(1 - t, 3); }
-
   function animate(now){
     const elapsed = now - startedAt;
     const progress = Math.min(elapsed / duration, 1);
     const eased = easeOutCubic(progress);
     spinAngle = startAngle + (targetAngle - startAngle) * eased;
     drawWheel(spinAngle);
-
-    if(now - lastTick > 120 && progress < 0.92){
-      lastTick = now;
-      soundSpin();
-    }
-
-    if(progress < 1){
-      requestAnimationFrame(animate);
-      return;
-    }
-
+    if(now - lastTick > 120 && progress < 0.92){ lastTick = now; soundSpin(); }
+    if(progress < 1){ requestAnimationFrame(animate); return; }
     spinAngle = targetAngle;
     drawWheel(spinAngle);
     isSpinning = false;
     if(panda) panda.style.animation = '';
-
     const n = SEGS.length;
     const arc = (2 * Math.PI) / n;
     const norm = ((spinAngle % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
     const idx = Math.floor(((2 * Math.PI - norm + Math.PI / 2) % (2 * Math.PI)) / arc) % n;
     const earned = SEGS[idx].pts;
-
     bestSpinPts = earned;
     spinCount = 1;
     document.getElementById('bestSoFar').textContent = earned + 'pts';
     document.getElementById('spinChanceLabel').textContent = 'You won: ' + earned + ' pts! Saving...';
     if(panda) panda.textContent = earned >= 13 ? '🤩' : earned >= 11 ? '😄' : '😊';
     soundSpinResult(earned);
-
     spinBtn.disabled = true;
     spinBtn.textContent = 'Saved ' + earned + ' pts! 🎉';
     saveAndShowResult(earned, 'spin');
   }
-
   requestAnimationFrame(animate);
 }
 `;
@@ -149,7 +131,9 @@ function startSpin(){
       html = html.replace('<script>', '<script>\n' + helperScript);
     }
 
-    html = html.replace('\n</script>\n</body>', '\n' + spinOverride + '\n</script>\n</body>');
+    const closeScript = '<' + '/script>';
+    const endNeedle = '\n' + closeScript + '\n</body>';
+    html = html.replace(endNeedle, '\n' + spinOverride + endNeedle);
     html = html.replace('<title>MiniCuts Game Zone 🐼</title>','<title>MiniCuts Game Zone 🐼 - Fixed Test</title>');
 
     document.open();
