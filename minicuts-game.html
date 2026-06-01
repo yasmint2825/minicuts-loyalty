@@ -57,7 +57,7 @@ body{display:flex;font-family:'Nunito',sans-serif;}
 
 /* ── GAME SELECT ── */
 .game-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:4px;}
-.game-card{background:linear-gradient(135deg,var(--bd),var(--b));border-radius:12px;padding:12px 8px;text-align:center;cursor:pointer;border:2.5px solid transparent;transition:all .2s;position:relative;overflow:visible;}
+.game-card{background:linear-gradient(135deg,var(--bd),var(--b));border-radius:12px;padding:12px 8px;text-align:center;cursor:pointer;border:2.5px solid transparent;transition:all .2s;}
 .game-card:active{transform:scale(.96);}
 .game-emoji{font-size:28px;display:block;margin-bottom:3px;}
 .game-name{font-family:'Baloo 2',cursive;font-size:13px;font-weight:800;color:#fff;}
@@ -100,10 +100,27 @@ body{display:flex;font-family:'Nunito',sans-serif;}
 @keyframes bounce-anim{0%,100%{transform:translateY(0);}50%{transform:translateY(-10px);}}
 @keyframes fall{0%{top:-20px;opacity:1;}100%{top:110vh;opacity:.1;transform:rotate(720deg);}}
 @keyframes jump{0%,100%{transform:translateY(0);}50%{transform:translateY(-16px);}}
+@keyframes shake{0%,100%{transform:translateX(0);}25%{transform:translateX(-8px);}75%{transform:translateX(8px);}}
 @keyframes shake{0%,100%{transform:translateX(0);}25%{transform:translateX(-6px);}75%{transform:translateX(6px);}}
 .home-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
 .home-btn{background:rgba(255,255,255,.14);border:1.5px solid rgba(255,255,255,.25);color:#fff;padding:5px 10px;border-radius:99px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;cursor:pointer;}
 .sub{color:rgba(255,255,255,.75);font-size:11px;text-align:center;margin-bottom:8px;}
+
+/* ── STAFF LOCK ── */
+#staffLockOverlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:99999;display:none;align-items:center;justify-content:center;}
+#staffLockOverlay.visible{display:flex;}
+.sl-box{background:#fff;border-radius:20px;padding:28px 24px;text-align:center;width:280px;box-shadow:0 20px 60px rgba(0,0,0,.4);}
+.sl-title{font-family:'Baloo 2',cursive;font-size:20px;font-weight:800;color:#0D47A1;margin-bottom:4px;}
+.sl-sub{font-size:13px;color:#6B7280;margin-bottom:18px;}
+.sl-dots{display:flex;justify-content:center;gap:10px;margin-bottom:18px;}
+.sl-dot{width:14px;height:14px;border-radius:50%;background:#E5E7EB;transition:background .2s;}
+.sl-dot.filled{background:#0D47A1;}
+.sl-keys{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.sl-key{padding:14px;background:#F3F4F6;border:none;border-radius:12px;font-size:20px;font-weight:800;cursor:pointer;font-family:'Baloo 2',cursive;color:#1A1A2E;transition:background .15s;}
+.sl-key:active{background:#E5E7EB;}
+.sl-key.del{background:#FEE2E2;color:#DC2626;}
+.sl-err{color:#DC2626;font-size:12px;font-weight:700;margin-top:8px;min-height:18px;}
+.sl-cancel{margin-top:12px;background:none;border:none;color:#9CA3AF;font-size:13px;cursor:pointer;font-family:'Nunito',sans-serif;font-weight:700;}
 </style>
 </head>
 <body>
@@ -216,15 +233,9 @@ body{display:flex;font-family:'Nunito',sans-serif;}
     <div id="tierList"></div>
   </div>
   <div class="card" id="gameSelectCard" style="padding:10px 12px;">
-    <div id="gameProgressBar" style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
-      <div style="flex:1;background:rgba(0,0,0,.08);border-radius:99px;height:8px;overflow:hidden;">
-        <div id="gameProgressFill" style="height:100%;background:linear-gradient(90deg,#FFD600,#FF8C00);border-radius:99px;transition:width .5s ease;width:0%;"></div>
-      </div>
-      <div id="gameProgressLabel" style="font-size:11px;font-weight:800;color:#6B7280;white-space:nowrap;flex-shrink:0;">0/3</div>
-    </div>
-    <div id="gamePrompt" style="text-align:center;margin-bottom:8px;min-height:20px;"></div>
+    <div id="gamePrompt" style="text-align:center;margin-bottom:8px;"></div>
     <div class="game-grid" id="gameGrid">
-      <div class="game-card" id="gc-spin" onclick="goSpin()" style="position:relative;">
+      <div class="game-card" id="gc-spin" onclick="goSpin()">
         <div id="gc-spin-badge" style="display:none;position:absolute;top:-6px;right:-6px;background:#FFD600;color:#0D47A1;font-size:9px;font-weight:800;padding:2px 6px;border-radius:99px;z-index:2;">PLAY!</div>
         <span class="game-emoji">🎡</span>
         <div class="game-name">Spin</div>
@@ -590,7 +601,7 @@ function refreshGameCards(){
       card.style.opacity='0.4';
       card.style.border='2px solid rgba(255,255,255,.08)';
       card.style.boxShadow='none';
-      card.style.transform='none';
+      card.style.transform='scale(1)';
       card.style.cursor='default';
       card.onclick=null;
       if(desc) desc.textContent='✅ Done!';
@@ -598,7 +609,7 @@ function refreshGameCards(){
       card.style.opacity='1';
       card.style.border='3px solid #FFD600';
       card.style.boxShadow='0 0 20px rgba(255,214,0,.65)';
-      card.style.transform='scale(1.0)';
+      card.style.transform='scale(1.05)';
       card.style.cursor='pointer';
       if(desc) desc.textContent=gameInfo[g].pts+' — PLAY NOW!';
       if(g==='spin')   card.onclick=goSpin;
@@ -608,7 +619,7 @@ function refreshGameCards(){
       card.style.opacity='0.8';
       card.style.border='2px solid rgba(255,255,255,.2)';
       card.style.boxShadow='none';
-      card.style.transform='none';
+      card.style.transform='scale(1)';
       card.style.cursor='pointer';
       if(desc) desc.textContent=gameInfo[g].pts;
       if(g==='spin')   card.onclick=goSpin;
@@ -1557,6 +1568,72 @@ function launchConfetti(){
   setTimeout(()=>wrap.innerHTML='',4000);
 }
 
+
+
+// ══ STAFF LOCK ══
+const STAFF_PIN_CODE = '2025';
+let slBuffer = '';
+
+function requireStaffPIN(onSuccess) {
+  slBuffer = '';
+  slUpdateDots();
+  document.getElementById('slErr').textContent = '';
+  document.getElementById('staffLockOverlay').classList.add('visible');
+  window._slSuccess = onSuccess;
+}
+
+function slKey(digit) {
+  if (slBuffer.length >= 4) return;
+  slBuffer += digit;
+  slUpdateDots();
+  if (slBuffer.length === 4) {
+    setTimeout(slCheck, 150);
+  }
+}
+
+function slDel() {
+  slBuffer = slBuffer.slice(0, -1);
+  slUpdateDots();
+  document.getElementById('slErr').textContent = '';
+}
+
+function slCheck() {
+  if (slBuffer === STAFF_PIN_CODE) {
+    document.getElementById('staffLockOverlay').classList.remove('visible');
+    slBuffer = '';
+    slUpdateDots();
+    if (typeof window._slSuccess === 'function') window._slSuccess();
+  } else {
+    document.getElementById('slErr').textContent = 'Incorrect PIN. Try again.';
+    slBuffer = '';
+    slUpdateDots();
+    // Shake animation
+    const box = document.querySelector('.sl-box');
+    box.style.animation = 'shake .4s ease';
+    setTimeout(() => box.style.animation = '', 400);
+  }
+}
+
+function slCancel() {
+  document.getElementById('staffLockOverlay').classList.remove('visible');
+  slBuffer = '';
+  slUpdateDots();
+  document.getElementById('slErr').textContent = '';
+}
+
+function slUpdateDots() {
+  for (let i = 0; i < 4; i++) {
+    const dot = document.getElementById('sld' + i);
+    if (dot) dot.classList.toggle('filled', i < slBuffer.length);
+  }
+}
+
+// Override goStaff to require PIN
+const _origGoStaff = typeof goStaff === 'function' ? goStaff : null;
+function goStaff() {
+  requireStaffPIN(() => {
+    showScreen('s-staff');
+  });
+}
+
 </script>
-</body>
-</html>
