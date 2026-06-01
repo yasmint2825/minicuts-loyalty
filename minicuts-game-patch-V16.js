@@ -90,12 +90,58 @@
     var oldSide=window.loadSidebarLb;if(typeof oldSide==='function')window.loadSidebarLb=async function(){await oldSide();try{var rows=sidebarData||[],list=el('sideLbList');if(list&&rows.length){list.innerHTML=rows.map(function(c,idx){var pts=c.game_points||0;return '<div style="padding:7px 6px;margin-bottom:5px;border-radius:9px;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.06)"><div style="display:flex;justify-content:space-between;gap:6px"><div class="sb-name">#'+(idx+1)+' '+(c.name||'Player')+'</div><div class="sb-pts">'+pts+'</div></div>'+miniBar(pts)+'</div>';}).join('');}}catch(e){} };
   }
 
-  function patchBasicFixes(){
-    if(typeof window.saveAndShowResult==='function')window.saveAndShowResult=async function(pts,gameType){showResult(pts);};
+  function showRegMsgSafe(msg,ok){
+    var r=el('regMsg');if(!r)return;
+    r.textContent=msg;r.style.display='block';
+    r.style.background=(ok==='ok'||ok===true)?'#DCFCE7':'#FEE2E2';
+    r.style.color=(ok==='ok'||ok===true)?'#166534':'#DC2626';
+  }
+
+  function patchRegistration(){
     window.regGender=window.regGender||'boy';
     window.setRegGender=function(g){window.regGender=g;var b=el('regBoy'),x=el('regGirl');if(b){b.style.borderColor=g==='boy'?'#FFD600':'#E5E7EB';b.style.background=g==='boy'?'#FFF7CC':'#fff';}if(x){x.style.borderColor=g==='girl'?'#FFD600':'#E5E7EB';x.style.background=g==='girl'?'#FFF7CC':'#fff';}};
+    window.showRegMsg=showRegMsgSafe;
+    window.showLoginMsg=function(msg,ok){var r=el('loginMsg');if(!r)return;r.textContent=msg;r.style.display='block';r.style.background=(ok==='ok'||ok===true)?'#DCFCE7':'#FEE2E2';r.style.color=(ok==='ok'||ok===true)?'#166534':'#DC2626';};
+    var registerBtns=document.querySelectorAll('button');
+    for(var i=0;i<registerBtns.length;i++){if(registerBtns[i].textContent&&registerBtns[i].textContent.indexOf('Register')>-1&&registerBtns[i].textContent.indexOf('Play')===-1){registerBtns[i].onclick=function(){goToRegister('','','Register below!');};}}
+    window.doRegister=async function(){
+      var name=(el('regName')&&el('regName').value||'').trim();
+      var mobile=(el('regMobile')&&el('regMobile').value||'').trim();
+      var parent=(el('regParent')&&el('regParent').value||'').trim();
+      var day=el('dobDay')?el('dobDay').value:'';
+      var month=el('dobMonth')?el('dobMonth').value:'';
+      var year=el('dobYear')?el('dobYear').value:'';
+      var dob=(year&&month&&day)?(year+'-'+month+'-'+day):null;
+      var gender=window.regGender||'boy';
+      var msg=el('regMsg');if(msg)msg.style.display='none';
+      if(!name){showRegMsgSafe('Please enter child name',false);return;}
+      if(mobile.length<7){showRegMsgSafe('Please enter valid parent mobile',false);return;}
+      if(!dob){showRegMsgSafe('Date of birth is required! 🎂',false);return;}
+      var btn=document.querySelector('#s-register .btn-y');
+      if(btn){btn.disabled=true;btn.style.opacity='0.65';btn.style.pointerEvents='none';btn.textContent='Registering... 🐼';}
+      try{
+        var res=await sb('customers','POST',{name:name,mobile:mobile,parent:parent,dob:dob,gender:gender,stamps:0,redemptions:0,game_points:0,game_spins:0});
+        player=Array.isArray(res)?res[0]:res;
+        player.game_points=0;player.game_spins=0;
+        showRegMsgSafe('Welcome to MiniCuts! 🎉','ok');
+        if(btn)btn.textContent='Starting game... 🎮';
+        spinCount=0;bestSpinPts=0;
+        await checkTodaySessions();
+        await fetchGlobalBests();
+        setTimeout(function(){goProfile();},450);
+      }catch(e){
+        var cleanMsg=e&&e.message?e.message:'Registration failed. Please try again.';
+        showRegMsgSafe('Error: '+cleanMsg,false);
+        if(btn){btn.disabled=false;btn.style.opacity='1';btn.style.pointerEvents='auto';btn.textContent='Register & Play! 🎮';}
+      }
+    };
+  }
+
+  function patchBasicFixes(){
+    if(typeof window.saveAndShowResult==='function')window.saveAndShowResult=async function(pts,gameType){showResult(pts);};
+    patchRegistration();
   }
 
   safe(addCss);safe(patchBasicFixes);safe(patchProfile);
-  setTimeout(function(){safe(cleanupOldLevelSystems);safe(addRoadmap);safe(addLeftGuide);safe(renderRankMini);},800);
+  setTimeout(function(){safe(patchRegistration);safe(cleanupOldLevelSystems);safe(addRoadmap);safe(addLeftGuide);safe(renderRankMini);},800);
 })();
