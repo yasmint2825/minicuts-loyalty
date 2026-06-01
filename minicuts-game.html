@@ -412,9 +412,10 @@ const TIERS=[
 ];
 const MAX_PTS=300;
 let player={id:null,name:'',mobile:'',game_points:0,game_spins:0};
-let globalBestMemory={time:null,name:null}; // all-time fastest memory
-let globalBestTap={score:null,name:null};    // all-time most panda taps
+let globalBestMemory={time:null,name:null};
+let globalBestTap={score:null,name:null};
 let prevScreen='s-profile';
+let todayPlayed={spin:false,tap:false,memory:false};
 
 // ── RESET ALL GAME STATE (call on every player switch) ──
 function resetAllGameState(){
@@ -1179,9 +1180,6 @@ async function doRegister(){
   }catch(e){showRegMsg('Error: '+e.message,false);}
   finally{btn.disabled=false;btn.textContent='Register & Play! 🎮';}
 }
-
-// Track which games played today
-let todayPlayed={spin:false,tap:false,memory:false};
 
 async function fetchGlobalBests(){
   try{
