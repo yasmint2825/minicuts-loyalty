@@ -22,7 +22,7 @@
     <div class="msg">Stable V12 test version</div>
   </div>
 </div>
-<iframe id="gameFrame" src="./minicuts-game-V10.html?v=15"></iframe>
+<iframe id="gameFrame" src="./minicuts-game-V10.html?v=16"></iframe>
 <script>
 (function(){
   const frame = document.getElementById('gameFrame');
@@ -103,7 +103,7 @@
         '<div style="font-family:Baloo 2, Nunito, sans-serif;font-size:24px;font-weight:900;color:#0D47A1;margin-bottom:4px;">Great Spin!</div>'+ 
         '<div style="font-family:Baloo 2, Nunito, sans-serif;font-size:54px;font-weight:900;color:#FF8C00;line-height:1;">+'+earned+'</div>'+ 
         '<div style="font-size:16px;font-weight:800;color:#1565C0;margin-top:6px;">points gained</div>'+ 
-        '<div style="font-size:12px;color:#6B7280;margin-top:12px;">Closing game...</div>'+ 
+        '<div style="font-size:12px;color:#6B7280;margin-top:12px;">Taking you back to games...</div>'+ 
       '</div>';
       document.body.appendChild(overlay);
     }
@@ -150,7 +150,12 @@
         try{ soundSpinResult(earned); }catch(e){}
         if(spinBtn){ spinBtn.disabled = true; spinBtn.textContent = 'Saved ' + earned + ' pts! 🎉'; }
         showSpinPointsPopup(earned);
-        setTimeout(function(){ saveAndShowResult(earned, 'spin'); }, 1600);
+        setTimeout(async function(){
+          try{ await savePoints(earned, 'spin'); }catch(e){ console.warn('Spin save failed:', e.message); }
+          const old = document.getElementById('spinPointsPopup');
+          if(old) old.remove();
+          goProfile();
+        }, 2400);
       }
       requestAnimationFrame(animate);
     };
