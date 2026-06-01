@@ -22,7 +22,7 @@
     <div class="msg">Stable V12 test version</div>
   </div>
 </div>
-<iframe id="gameFrame" src="./minicuts-game-V10.html?v=12"></iframe>
+<iframe id="gameFrame" src="./minicuts-game-V10.html?v=13"></iframe>
 <script>
 (function(){
   const frame = document.getElementById('gameFrame');
@@ -33,7 +33,6 @@
     const doc = frame.contentDocument || win.document;
     if(!win || !doc || !doc.body) return false;
 
-    // Add patch CSS once.
     if(!doc.getElementById('v12PatchCss')){
       const style = doc.createElement('style');
       style.id = 'v12PatchCss';
@@ -44,20 +43,14 @@
       doc.head.appendChild(style);
     }
 
-    // Missing registration helpers.
+    // Register helpers can safely live on window.
     win.regGender = win.regGender || 'boy';
     win.setRegGender = function(g){
       win.regGender = g;
       const boy = doc.getElementById('regBoy');
       const girl = doc.getElementById('regGirl');
-      if(boy){
-        boy.style.borderColor = g === 'boy' ? '#FFD600' : '#E5E7EB';
-        boy.style.background = g === 'boy' ? '#FFF7CC' : '#fff';
-      }
-      if(girl){
-        girl.style.borderColor = g === 'girl' ? '#FFD600' : '#E5E7EB';
-        girl.style.background = g === 'girl' ? '#FFF7CC' : '#fff';
-      }
+      if(boy){ boy.style.borderColor = g === 'boy' ? '#FFD600' : '#E5E7EB'; boy.style.background = g === 'boy' ? '#FFF7CC' : '#fff'; }
+      if(girl){ girl.style.borderColor = g === 'girl' ? '#FFD600' : '#E5E7EB'; girl.style.background = g === 'girl' ? '#FFF7CC' : '#fff'; }
     };
     win.showRegMsg = function(msg,ok){
       const el = doc.getElementById('regMsg');
@@ -76,96 +69,83 @@
       el.style.color = ok === 'ok' || ok === true ? '#166534' : '#DC2626';
     };
 
-    // Fix Register button onclick safely.
-    const registerButtons = Array.from(doc.querySelectorAll('button'));
-    registerButtons.forEach(btn=>{
+    Array.from(doc.querySelectorAll('button')).forEach(btn=>{
       if(btn.textContent && btn.textContent.includes('Register') && !btn.textContent.includes('Play')){
         btn.onclick = function(){ win.goToRegister('', '', 'Register below!'); };
       }
     });
 
-    // Improve memory symbols: avoid panda as the hidden front card.
-    try{ win.MEM_EMOJIS = ['🌟','🎡','🎈','🍭','🚀','🎮','🦁','✂️']; }catch(e){}
-
-    // Override memory grid builder to guarantee all 8 boxes display.
+    // Memory override can remain direct because it uses window functions only.
     if(typeof win.buildMemGrid === 'function'){
       win.buildMemGrid = function(reveal){
         const emojis = ['🌟','🎡','🎈','🍭'];
         const pairs = [...emojis,...emojis].sort(()=>Math.random()-.5);
-        win.memCards = pairs;
+        try{ win.memCards = pairs; }catch(e){}
         const grid = doc.getElementById('memGrid');
         if(!grid) return;
         grid.innerHTML = pairs.map((e,i)=>'<div class="mem-card'+(reveal?' flipped':'')+'" id="mc'+i+'" onclick="flipCard('+i+')">'+(reveal?e:'🐼')+'</div>').join('');
       };
     }
 
-    // Smooth spin + auto-save immediately when wheel stops.
-    if(typeof win.drawWheel === 'function' && typeof win.saveAndShowResult === 'function'){
-      win.startSpin = function(){
-        if(win.isSpinning) return;
-        win.isSpinning = true;
-        const spinBtn = doc.getElementById('spinBtn');
-        const panda = doc.getElementById('pandaReact');
-        if(spinBtn){
-          spinBtn.disabled = true;
-          spinBtn.textContent = 'Spinning... 🎡';
-          spinBtn.onclick = null;
-        }
-        if(panda) panda.style.animation = 'jump 0.4s ease infinite';
+    // Inject spin override into the iframe page itself, so it can access V10 lexical const/let variables directly.
+    if(!doc.getElementById('v12SpinPatch')){
+      const spinScript = doc.createElement('script');
+      spinScript.id = 'v12SpinPatch';
+      spinScript.textContent = `
+(function(){
+  window.startSpin = function(){
+    if(typeof isSpinning !== 'undefined' && isSpinning) return;
+    isSpinning = true;
+    const spinBtn = document.getElementById('spinBtn');
+    const panda = document.getElementById('pandaReact');
+    if(spinBtn){ spinBtn.disabled = true; spinBtn.textContent = 'Spinning... 🎡'; spinBtn.onclick = null; }
+    if(panda) panda.style.animation = 'jump 0.4s ease infinite';
 
-        const startAngle = win.spinAngle || 0;
-        const extraSpins = 6 + Math.random() * 4;
-        const randomStop = Math.random() * 2 * Math.PI;
-        const targetAngle = startAngle + extraSpins * 2 * Math.PI + randomStop;
-        const duration = 4200;
-        const startedAt = performance.now();
-        let lastTick = 0;
-        function easeOutCubic(t){ return 1 - Math.pow(1 - t, 3); }
+    const startAngle = spinAngle || 0;
+    const extraSpins = 6 + Math.random() * 4;
+    const randomStop = Math.random() * 2 * Math.PI;
+    const targetAngle = startAngle + extraSpins * 2 * Math.PI + randomStop;
+    const duration = 4200;
+    const startedAt = performance.now();
+    let lastTick = 0;
+    function easeOutCubic(t){ return 1 - Math.pow(1 - t, 3); }
 
-        function animate(now){
-          const elapsed = now - startedAt;
-          const progress = Math.min(elapsed / duration, 1);
-          const eased = easeOutCubic(progress);
-          win.spinAngle = startAngle + (targetAngle - startAngle) * eased;
-          win.drawWheel(win.spinAngle);
+    function animate(now){
+      const elapsed = now - startedAt;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = easeOutCubic(progress);
+      spinAngle = startAngle + (targetAngle - startAngle) * eased;
+      drawWheel(spinAngle);
+      if(now - lastTick > 120 && progress < 0.92){ lastTick = now; try{ soundSpin(); }catch(e){} }
+      if(progress < 1){ requestAnimationFrame(animate); return; }
 
-          if(now - lastTick > 120 && progress < 0.92){
-            lastTick = now;
-            try{ win.soundSpin(); }catch(e){}
-          }
+      spinAngle = targetAngle;
+      drawWheel(spinAngle);
+      isSpinning = false;
+      if(panda) panda.style.animation = '';
 
-          if(progress < 1){
-            win.requestAnimationFrame(animate);
-            return;
-          }
+      const n = SEGS.length;
+      const arc = (2 * Math.PI) / n;
+      const norm = ((spinAngle % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+      const idx = Math.floor(((2 * Math.PI - norm + Math.PI / 2) % (2 * Math.PI)) / arc) % n;
+      const earned = SEGS[idx].pts;
 
-          win.spinAngle = targetAngle;
-          win.drawWheel(win.spinAngle);
-          win.isSpinning = false;
-          if(panda) panda.style.animation = '';
-
-          const n = win.SEGS.length;
-          const arc = (2 * Math.PI) / n;
-          const norm = ((win.spinAngle % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
-          const idx = Math.floor(((2 * Math.PI - norm + Math.PI / 2) % (2 * Math.PI)) / arc) % n;
-          const earned = win.SEGS[idx].pts;
-
-          win.bestSpinPts = earned;
-          win.spinCount = 1;
-          const best = doc.getElementById('bestSoFar');
-          const label = doc.getElementById('spinChanceLabel');
-          if(best) best.textContent = earned + 'pts';
-          if(label) label.textContent = 'You won: ' + earned + ' pts! Saving...';
-          if(panda) panda.textContent = earned >= 13 ? '🤩' : earned >= 11 ? '😄' : '😊';
-          try{ win.soundSpinResult(earned); }catch(e){}
-          if(spinBtn){
-            spinBtn.disabled = true;
-            spinBtn.textContent = 'Saved ' + earned + ' pts! 🎉';
-          }
-          win.saveAndShowResult(earned, 'spin');
-        }
-        win.requestAnimationFrame(animate);
-      };
+      bestSpinPts = earned;
+      spinCount = 1;
+      const best = document.getElementById('bestSoFar');
+      const label = document.getElementById('spinChanceLabel');
+      if(best) best.textContent = earned + 'pts';
+      if(label) label.textContent = 'You won: ' + earned + ' pts! Saving...';
+      if(panda) panda.textContent = earned >= 13 ? '🤩' : earned >= 11 ? '😄' : '😊';
+      try{ soundSpinResult(earned); }catch(e){}
+      if(spinBtn){ spinBtn.disabled = true; spinBtn.textContent = 'Saved ' + earned + ' pts! 🎉'; }
+      saveAndShowResult(earned, 'spin');
+    }
+    requestAnimationFrame(animate);
+  };
+})();
+      `;
+      doc.body.appendChild(spinScript);
     }
 
     try{ win.setRegGender(win.regGender || 'boy'); }catch(e){}
