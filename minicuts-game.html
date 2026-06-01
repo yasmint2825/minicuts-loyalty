@@ -57,7 +57,7 @@ body{display:flex;font-family:'Nunito',sans-serif;}
 
 /* ── GAME SELECT ── */
 .game-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:4px;}
-.game-card{background:linear-gradient(135deg,var(--bd),var(--b));border-radius:12px;padding:12px 8px;text-align:center;cursor:pointer;border:2.5px solid transparent;transition:all .2s;}
+.game-card{background:linear-gradient(135deg,var(--bd),var(--b));border-radius:12px;padding:12px 8px;text-align:center;cursor:pointer;border:2.5px solid transparent;transition:all .2s;position:relative;overflow:visible;}
 .game-card:active{transform:scale(.96);}
 .game-emoji{font-size:28px;display:block;margin-bottom:3px;}
 .game-name{font-family:'Baloo 2',cursive;font-size:13px;font-weight:800;color:#fff;}
@@ -216,9 +216,15 @@ body{display:flex;font-family:'Nunito',sans-serif;}
     <div id="tierList"></div>
   </div>
   <div class="card" id="gameSelectCard" style="padding:10px 12px;">
-    <div id="gamePrompt" style="text-align:center;margin-bottom:8px;"></div>
+    <div id="gameProgressBar" style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+      <div style="flex:1;background:rgba(0,0,0,.08);border-radius:99px;height:8px;overflow:hidden;">
+        <div id="gameProgressFill" style="height:100%;background:linear-gradient(90deg,#FFD600,#FF8C00);border-radius:99px;transition:width .5s ease;width:0%;"></div>
+      </div>
+      <div id="gameProgressLabel" style="font-size:11px;font-weight:800;color:#6B7280;white-space:nowrap;flex-shrink:0;">0/3</div>
+    </div>
+    <div id="gamePrompt" style="text-align:center;margin-bottom:8px;min-height:20px;"></div>
     <div class="game-grid" id="gameGrid">
-      <div class="game-card" id="gc-spin" onclick="goSpin()">
+      <div class="game-card" id="gc-spin" onclick="goSpin()" style="position:relative;">
         <div id="gc-spin-badge" style="display:none;position:absolute;top:-6px;right:-6px;background:#FFD600;color:#0D47A1;font-size:9px;font-weight:800;padding:2px 6px;border-radius:99px;z-index:2;">PLAY!</div>
         <span class="game-emoji">🎡</span>
         <div class="game-name">Spin</div>
@@ -584,7 +590,7 @@ function refreshGameCards(){
       card.style.opacity='0.4';
       card.style.border='2px solid rgba(255,255,255,.08)';
       card.style.boxShadow='none';
-      card.style.transform='scale(1)';
+      card.style.transform='none';
       card.style.cursor='default';
       card.onclick=null;
       if(desc) desc.textContent='✅ Done!';
@@ -592,7 +598,7 @@ function refreshGameCards(){
       card.style.opacity='1';
       card.style.border='3px solid #FFD600';
       card.style.boxShadow='0 0 20px rgba(255,214,0,.65)';
-      card.style.transform='scale(1.05)';
+      card.style.transform='scale(1.0)';
       card.style.cursor='pointer';
       if(desc) desc.textContent=gameInfo[g].pts+' — PLAY NOW!';
       if(g==='spin')   card.onclick=goSpin;
@@ -602,7 +608,7 @@ function refreshGameCards(){
       card.style.opacity='0.8';
       card.style.border='2px solid rgba(255,255,255,.2)';
       card.style.boxShadow='none';
-      card.style.transform='scale(1)';
+      card.style.transform='none';
       card.style.cursor='pointer';
       if(desc) desc.textContent=gameInfo[g].pts;
       if(g==='spin')   card.onclick=goSpin;
@@ -1170,26 +1176,43 @@ async function doRegister(){
   const dobYear=document.getElementById('dobYear').value;
   const dob=(dobYear&&dobMonth&&dobDay)?(dobYear+'-'+dobMonth+'-'+dobDay):null;
   document.getElementById('regMsg').style.display='none';
-  if(!name){showRegMsg("Please enter child's name",false);return;}
-  
+
+  // Validate
+  if(!name){showRegMsg("Please enter child's name 👦",false);return;}
+  if(!mobile||mobile.length<8){showRegMsg("Please enter a valid parent mobile 📱",false);return;}
   if(!dob){showRegMsg("Date of birth is required! 🎂",false);return;}
   if(!regGender){showRegMsg("Please select Boy or Girl",false);return;}
+
   const btn=document.querySelector('#s-register .btn-y');
-  btn.disabled=true;btn.textContent='Registering...';
+  if(btn){btn.disabled=true;btn.textContent='Registering...';}
   try{
     const res=await sb('customers','POST',{
       name,mobile,parent,dob,gender:regGender,
       stamps:0,redemptions:0,game_points:0,game_spins:0
     });
-    player=Array.isArray(res)?res[0]:res;
-    player.game_points=0;player.game_spins=0;
-    showRegMsg('Welcome to MiniCuts! 🎉','ok');
+    // Safely extract player from response
+    const newPlayer=Array.isArray(res)?res[0]:res;
+    if(!newPlayer||!newPlayer.id){
+      showRegMsg('Registration failed — please try again.',false);
+      return;
+    }
+    player={...newPlayer};
+    player.game_points=player.game_points||0;
+    player.game_spins=player.game_spins||0;
+    player.best_memory_time=player.best_memory_time||null;
+    player.best_tap_score=player.best_tap_score||0;
+    player._lastGameDate=null;
+    showRegMsg('Welcome to MiniCuts! 🎉 Loading your game...','ok');
     spinCount=0;bestSpinPts=0;
+    resetAllGameState();
     await checkTodaySessions();
     await fetchGlobalBests();
-    setTimeout(()=>goProfile(),1000);
-  }catch(e){showRegMsg('Error: '+e.message,false);}
-  finally{btn.disabled=false;btn.textContent='Register & Play! 🎮';}
+    setTimeout(()=>goProfile(),1200);
+  }catch(e){
+    showRegMsg('Error: '+e.message,false);
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent='Register & Play! 🎮';}
+  }
 }
 
 async function fetchGlobalBests(){
