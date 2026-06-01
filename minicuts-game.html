@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
-<title>MiniCuts Game Zone 🐼</title>
+<title>MiniCuts Loyalty + Games Club</title>
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800;900&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;user-select:none;}
@@ -100,27 +100,10 @@ body{display:flex;font-family:'Nunito',sans-serif;}
 @keyframes bounce-anim{0%,100%{transform:translateY(0);}50%{transform:translateY(-10px);}}
 @keyframes fall{0%{top:-20px;opacity:1;}100%{top:110vh;opacity:.1;transform:rotate(720deg);}}
 @keyframes jump{0%,100%{transform:translateY(0);}50%{transform:translateY(-16px);}}
-@keyframes shake{0%,100%{transform:translateX(0);}25%{transform:translateX(-8px);}75%{transform:translateX(8px);}}
 @keyframes shake{0%,100%{transform:translateX(0);}25%{transform:translateX(-6px);}75%{transform:translateX(6px);}}
 .home-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
 .home-btn{background:rgba(255,255,255,.14);border:1.5px solid rgba(255,255,255,.25);color:#fff;padding:5px 10px;border-radius:99px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;cursor:pointer;}
 .sub{color:rgba(255,255,255,.75);font-size:11px;text-align:center;margin-bottom:8px;}
-
-/* ── STAFF LOCK ── */
-#staffLockOverlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:99999;display:none;align-items:center;justify-content:center;}
-#staffLockOverlay.visible{display:flex;}
-.sl-box{background:#fff;border-radius:20px;padding:28px 24px;text-align:center;width:280px;box-shadow:0 20px 60px rgba(0,0,0,.4);}
-.sl-title{font-family:'Baloo 2',cursive;font-size:20px;font-weight:800;color:#0D47A1;margin-bottom:4px;}
-.sl-sub{font-size:13px;color:#6B7280;margin-bottom:18px;}
-.sl-dots{display:flex;justify-content:center;gap:10px;margin-bottom:18px;}
-.sl-dot{width:14px;height:14px;border-radius:50%;background:#E5E7EB;transition:background .2s;}
-.sl-dot.filled{background:#0D47A1;}
-.sl-keys{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
-.sl-key{padding:14px;background:#F3F4F6;border:none;border-radius:12px;font-size:20px;font-weight:800;cursor:pointer;font-family:'Baloo 2',cursive;color:#1A1A2E;transition:background .15s;}
-.sl-key:active{background:#E5E7EB;}
-.sl-key.del{background:#FEE2E2;color:#DC2626;}
-.sl-err{color:#DC2626;font-size:12px;font-weight:700;margin-top:8px;min-height:18px;}
-.sl-cancel{margin-top:12px;background:none;border:none;color:#9CA3AF;font-size:13px;cursor:pointer;font-family:'Nunito',sans-serif;font-weight:700;}
 </style>
 </head>
 <body>
@@ -1568,72 +1551,787 @@ function launchConfetti(){
   setTimeout(()=>wrap.innerHTML='',4000);
 }
 
-
-
-// ══ STAFF LOCK ══
-const STAFF_PIN_CODE = '2025';
-let slBuffer = '';
-
-function requireStaffPIN(onSuccess) {
-  slBuffer = '';
-  slUpdateDots();
-  document.getElementById('slErr').textContent = '';
-  document.getElementById('staffLockOverlay').classList.add('visible');
-  window._slSuccess = onSuccess;
-}
-
-function slKey(digit) {
-  if (slBuffer.length >= 4) return;
-  slBuffer += digit;
-  slUpdateDots();
-  if (slBuffer.length === 4) {
-    setTimeout(slCheck, 150);
-  }
-}
-
-function slDel() {
-  slBuffer = slBuffer.slice(0, -1);
-  slUpdateDots();
-  document.getElementById('slErr').textContent = '';
-}
-
-function slCheck() {
-  if (slBuffer === STAFF_PIN_CODE) {
-    document.getElementById('staffLockOverlay').classList.remove('visible');
-    slBuffer = '';
-    slUpdateDots();
-    if (typeof window._slSuccess === 'function') window._slSuccess();
-  } else {
-    document.getElementById('slErr').textContent = 'Incorrect PIN. Try again.';
-    slBuffer = '';
-    slUpdateDots();
-    // Shake animation
-    const box = document.querySelector('.sl-box');
-    box.style.animation = 'shake .4s ease';
-    setTimeout(() => box.style.animation = '', 400);
-  }
-}
-
-function slCancel() {
-  document.getElementById('staffLockOverlay').classList.remove('visible');
-  slBuffer = '';
-  slUpdateDots();
-  document.getElementById('slErr').textContent = '';
-}
-
-function slUpdateDots() {
-  for (let i = 0; i < 4; i++) {
-    const dot = document.getElementById('sld' + i);
-    if (dot) dot.classList.toggle('filled', i < slBuffer.length);
-  }
-}
-
-// Override goStaff to require PIN
-const _origGoStaff = typeof goStaff === 'function' ? goStaff : null;
-function goStaff() {
-  requireStaffPIN(() => {
-    showScreen('s-staff');
-  });
-}
-
 </script>
+
+<!-- ═══ PATCHES (merged from separate JS files) ═══ -->
+
+<!-- V17: Roadmap, sidebar, memory 4x4, spin, profile patches -->
+<script>
+(function(){
+  const LEVELS = [
+    {level:1, pts:50, badge:'Panda Explorer', icon:'🌟', reward:'Small surprise / Mini gift'},
+    {level:2, pts:100, badge:'Panda Adventurer', icon:'🏅', reward:'Special sticker / Treat'},
+    {level:3, pts:150, badge:'Panda Hero', icon:'🦸', reward:'Mini gift upgrade'},
+    {level:4, pts:200, badge:'Panda Superstar', icon:'⭐', reward:'Premium surprise'},
+    {level:5, pts:250, badge:'Panda Legend', icon:'🔥', reward:'Big surprise gift'},
+    {level:6, pts:300, badge:'Dragon Warrior', icon:'🐉', reward:'Top level reward'}
+  ];
+  const $ = id => document.getElementById(id);
+  const safe = fn => { try { fn(); } catch(e) { console.warn('V17 patch:', e.message); } };
+
+  function levelInfo(points){
+    const pts = Number(points || 0);
+    let current = {level:0, pts:0, badge:'Starter Panda', icon:'🐼', reward:'Start playing'};
+    let next = null;
+    for(const l of LEVELS){ if(pts >= l.pts) current = l; else { next = l; break; } }
+    const base = current.pts || 0;
+    const target = next ? next.pts : 300;
+    const pct = target > base ? Math.min(100, Math.max(0, ((pts - base) / (target - base)) * 100)) : 100;
+    return {pts, current, next, pct, needed: next ? Math.max(0, next.pts - pts) : 0};
+  }
+
+  function injectCss(){
+    if($('v17Css')) return;
+    const css = `
+      .mem-grid{display:grid!important;grid-template-columns:repeat(4,1fr)!important;gap:6px!important;margin-bottom:8px!important;}
+      .mem-card{aspect-ratio:1!important;border-radius:10px!important;font-size:28px!important;min-height:64px!important;}
+      @keyframes v17pop{0%{transform:scale(.7);opacity:0}100%{transform:scale(1);opacity:1}}
+      .v17-roadmap{margin:8px 0 10px;background:linear-gradient(135deg,#FFF7CC,#fff);border:2px solid rgba(255,214,0,.75);border-radius:16px;padding:12px 12px 16px;box-shadow:0 6px 18px rgba(0,0,0,.12);}
+      .v17-road-head{display:flex;justify-content:space-between;gap:8px;align-items:flex-start;margin-bottom:18px;color:#0D47A1;}
+      .v17-road-head strong{display:block;font-size:13px;font-weight:900;}
+      .v17-road-head span{display:block;font-size:11px;font-weight:800;color:#FF8C00;margin-top:2px;}
+      .v17-rank-mini{font-size:11px;font-weight:900;color:#1565C0;background:#EAF2FF;border-radius:999px;padding:5px 8px;white-space:nowrap;}
+      .v17-road-track{position:relative;height:18px;background:#E5E7EB;border-radius:999px;margin:24px 6px 24px;}
+      .v17-road-fill{position:absolute;left:0;top:0;height:100%;background:linear-gradient(90deg,#FFD600,#FF8C00);border-radius:999px;}
+      .v17-marker{position:absolute;top:50%;transform:translate(-50%,-50%);text-align:center;z-index:3;}
+      .v17-dot{width:30px;height:30px;border-radius:50%;background:#fff;border:3px solid #D1D5DB;display:flex;align-items:center;justify-content:center;font-size:15px;box-shadow:0 3px 8px rgba(0,0,0,.15);}
+      .v17-dot.done{border-color:#FF8C00;background:#FFF2B8;}
+      .v17-m-label{font-size:10px;font-weight:900;color:#0D47A1;margin-top:4px;}
+      .v17-m-pts{font-size:9px;font-weight:800;color:#6B7280;}
+      .v17-road-next{font-size:12px;font-weight:900;color:#0D47A1;text-align:center;background:#F3F8FF;border-radius:10px;padding:6px;}
+      .v17-mini-bar{height:6px;background:rgba(255,255,255,.18);border-radius:999px;overflow:hidden;margin-top:4px;}
+      .v17-mini-fill{height:100%;background:linear-gradient(90deg,#FFD600,#FF8C00);border-radius:999px;}
+      .v17-mini-txt{font-size:9px;color:rgba(255,255,255,.65);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+      .v17-level-guide{background:rgba(255,255,255,.96);border-radius:14px;padding:12px;margin-top:10px;color:#0D47A1;box-shadow:0 4px 12px rgba(0,0,0,.12);}
+      .v17-level-guide h3{margin:0 0 8px;font-size:16px;color:#0D47A1;}
+      .v17-level-row{display:flex;gap:8px;align-items:flex-start;padding:8px;border-radius:10px;background:#F8FAFC;margin-bottom:7px;border:1px solid #E5E7EB;}
+      .v17-level-icon{font-size:19px;width:24px;text-align:center;}
+      .v17-level-title{font-size:12px;font-weight:900;color:#0D47A1;}
+      .v17-level-desc{font-size:11px;line-height:1.3;color:#374151;margin-top:2px;}
+      .v17-readable{font-size:12px!important;line-height:1.35!important;}
+      @media(min-width:901px){
+        .layout{display:block!important;width:100%!important;height:100vh!important;overflow:hidden!important;}
+        .left-panel{position:fixed!important;left:0!important;top:0!important;bottom:0!important;width:290px!important;height:100vh!important;z-index:20!important;box-shadow:6px 0 18px rgba(0,0,0,.12)!important;overflow-y:auto!important;padding:14px!important;}
+        .lb-sidebar{position:fixed!important;right:0!important;top:0!important;bottom:0!important;width:260px!important;height:100vh!important;z-index:20!important;box-shadow:-6px 0 18px rgba(0,0,0,.12)!important;}
+        .game-area{position:fixed!important;left:290px!important;right:260px!important;top:0!important;bottom:0!important;width:auto!important;height:100vh!important;display:flex!important;justify-content:center!important;align-items:flex-start!important;padding:10px 8px!important;overflow-y:auto!important;}
+      }
+    `;
+    const style = document.createElement('style');
+    style.id = 'v17Css';
+    style.textContent = css;
+    document.head.appendChild(style);
+  }
+
+  function miniBar(points){
+    const i = levelInfo(points);
+    return `<div class="v17-mini-bar"><div class="v17-mini-fill" style="width:${i.pct}%"></div></div><div class="v17-mini-txt">L${i.current.level} ${i.current.badge}${i.next ? ' · '+i.needed+' pts to L'+i.next.level : ' · Max'}</div>`;
+  }
+  window.v17MiniBar = miniBar;
+
+  function roadmapHtml(points){
+    const info = levelInfo(points);
+    const overallPct = Math.min(100, Math.max(0, (info.pts / 300) * 100));
+    const markers = LEVELS.map(l => {
+      const left = Math.min(100, Math.max(0, (l.pts / 300) * 100));
+      const reached = info.pts >= l.pts;
+      return `<div class="v17-marker" style="left:${left}%"><div class="v17-dot ${reached?'done':''}">${l.icon}</div><div class="v17-m-label">L${l.level}</div><div class="v17-m-pts">${l.pts}</div></div>`;
+    }).join('');
+    return `<div id="v17Roadmap" class="v17-roadmap"><div class="v17-road-head"><div><strong>${info.current.icon} Level ${info.current.level} · ${info.current.badge}</strong><span>${info.pts} pts total</span></div><div class="v17-rank-mini" id="v17RankMini">Rank loading...</div></div><div class="v17-road-track"><div class="v17-road-fill" style="width:${overallPct}%"></div>${markers}</div><div class="v17-road-next">${info.next ? info.needed+' points to Level '+info.next.level+' · '+info.next.badge : 'Top level reached 🎉'}</div></div>`;
+  }
+
+  function addRoadmap(){
+    const nameEl = $('profileName');
+    if(!nameEl || !window.player) return;
+    const old = $('v17Roadmap');
+    if(old) old.remove();
+    nameEl.insertAdjacentHTML('afterend', roadmapHtml(Number(player.game_points||0)));
+    renderRankMini();
+  }
+
+  function addLeftGuide(){
+    const left = document.querySelector('.left-panel');
+    if(!left || $('v17LevelGuide')) return;
+    Array.from(left.querySelectorAll('*')).forEach(el => {
+      if(['P','LI','DIV','SPAN'].includes(el.tagName)) el.classList.add('v17-readable');
+    });
+    const rows = LEVELS.map(l => `<div class="v17-level-row"><div class="v17-level-icon">${l.icon}</div><div><div class="v17-level-title">Level ${l.level} · ${l.badge} · ${l.pts} pts</div><div class="v17-level-desc">${l.reward}</div></div></div>`).join('');
+    left.insertAdjacentHTML('beforeend', `<div id="v17LevelGuide" class="v17-level-guide"><h3>🏆 Level Roadmap</h3>${rows}</div>`);
+  }
+
+  async function getExactCount(url){
+    const res = await fetch(url,{headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY,Prefer:'count=exact'}});
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const cr = res.headers.get('content-range') || '';
+    const total = parseInt((cr.split('/')[1] || '0'),10);
+    return isNaN(total) ? 0 : total;
+  }
+  async function refreshCurrentPlayer(){
+    if(!player || !player.id) return;
+    try{
+      const rows = await sb('customers','GET',null,'select=id,name,mobile,game_points,best_memory_time&id=eq.'+encodeURIComponent(player.id)+'&limit=1');
+      if(rows && rows.length) player = Object.assign(player, rows[0]);
+    }catch(e){}
+  }
+  async function calculateGlobalRank(){
+    await refreshCurrentPlayer();
+    if(!player || !player.id) return null;
+    const pts = Number(player.game_points || 0);
+    const greater = await getExactCount(SB_URL+'/rest/v1/customers?select=id&game_points=gt.'+pts+'&limit=1');
+    const total = await getExactCount(SB_URL+'/rest/v1/customers?select=id&game_points=not.is.null&limit=1');
+    return {rank: greater+1, total: Math.max(total,1), points: pts};
+  }
+  async function renderRankMini(){
+    const mini = $('v17RankMini');
+    if(!mini) return;
+    mini.textContent = 'Rank loading...';
+    try{
+      const r = await calculateGlobalRank();
+      if(r) mini.textContent = 'Global #'+r.rank+' of '+r.total;
+    }catch(e){ mini.textContent = 'Rank unavailable'; }
+  }
+
+  function patchRegister(){
+    window.regGender = window.regGender || 'boy';
+    window.setRegGender = function(g){
+      window.regGender = g;
+      const boy=$('regBoy'), girl=$('regGirl');
+      if(boy){ boy.style.borderColor=g==='boy'?'#FFD600':'#E5E7EB'; boy.style.background=g==='boy'?'#FFF7CC':'#fff'; }
+      if(girl){ girl.style.borderColor=g==='girl'?'#FFD600':'#E5E7EB'; girl.style.background=g==='girl'?'#FFF7CC':'#fff'; }
+    };
+    window.showRegMsg=function(msg,ok){const el=$('regMsg');if(!el)return;el.textContent=msg;el.style.display='block';el.style.background=(ok==='ok'||ok===true)?'#DCFCE7':'#FEE2E2';el.style.color=(ok==='ok'||ok===true)?'#166534':'#DC2626';};
+    window.showLoginMsg=function(msg,ok){const el=$('loginMsg');if(!el)return;el.textContent=msg;el.style.display='block';el.style.background=(ok==='ok'||ok===true)?'#DCFCE7':'#FEE2E2';el.style.color=(ok==='ok'||ok===true)?'#166534':'#DC2626';};
+    Array.from(document.querySelectorAll('button')).forEach(btn => {
+      if(btn.textContent && btn.textContent.includes('Register') && !btn.textContent.includes('Play')) btn.onclick=()=>goToRegister('', '', 'Register below!');
+    });
+    window.doRegister = async function(){
+      const name=$('regName').value.trim(), mobile=$('regMobile').value.trim(), parent=$('regParent').value.trim();
+      const d=$('dobDay').value, m=$('dobMonth').value, y=$('dobYear').value;
+      const dob=(y&&m&&d)?(y+'-'+m+'-'+d):null, gender=window.regGender||'boy';
+      if(!name){showRegMsg("Please enter child's name",false);return;}
+      if(mobile.length<7){showRegMsg('Please enter valid parent mobile',false);return;}
+      if(!dob){showRegMsg('Date of birth is required! 🎂',false);return;}
+      const btn=document.querySelector('#s-register .btn-y');
+      if(btn){btn.disabled=true;btn.style.opacity='.65';btn.style.pointerEvents='none';btn.textContent='Registering... 🐼';}
+      try{
+        const res=await sb('customers','POST',{name,mobile,parent,dob,gender,stamps:0,redemptions:0,game_points:0,game_spins:0});
+        player=Array.isArray(res)?res[0]:res; player.game_points=0; player.game_spins=0;
+        showRegMsg('Welcome to MiniCuts! 🎉','ok'); if(btn) btn.textContent='Starting game... 🎮';
+        spinCount=0; bestSpinPts=0; await checkTodaySessions(); await fetchGlobalBests(); setTimeout(()=>goProfile(),450);
+      }catch(e){ showRegMsg('Error: '+e.message,false); if(btn){btn.disabled=false;btn.style.opacity='1';btn.style.pointerEvents='auto';btn.textContent='Register & Play! 🎮';} }
+    };
+  }
+
+  function patchSidebar(){
+    window.loadSidebarLb = async function(){
+      try{
+        await refreshCurrentPlayer();
+        const rows = await sb('customers','GET',null,'select=id,name,mobile,game_points&order=game_points.desc&limit=10');
+        sidebarData = rows || [];
+        const listEl = $('sideLbList');
+        if(listEl){
+          if(!sidebarData.length) listEl.innerHTML='<div style="text-align:center;padding:16px;color:rgba(255,255,255,.35);font-size:11px;">No scores yet<br>Play to be first! 🎮</div>';
+          else{
+            const medals=['🥇','🥈','🥉'];
+            listEl.innerHTML = sidebarData.map((c,i) => {
+              const pts=c.game_points||0;
+              const isMe=(player && player.id && c.id===player.id);
+              const icon=medals[i] || '#'+(i+1);
+              return `<div style="display:flex;align-items:flex-start;gap:7px;padding:7px 6px;margin-bottom:5px;border-radius:9px;background:${isMe?'rgba(255,214,0,.16)':'rgba(255,255,255,.055)'};border:1px solid ${isMe?'rgba(255,214,0,.35)':'rgba(255,255,255,.06)'};"><div style="font-size:15px;width:24px;text-align:center;font-weight:900;color:#FFD600;">${icon}</div><div style="flex:1;min-width:0;"><div class="sb-name">${c.name||'Player'}${isMe?' ⭐':''}</div>${miniBar(pts)}</div><div class="sb-pts">${pts}</div></div>`;
+            }).join('');
+          }
+        }
+        const rankEl=$('sideRankBadge');
+        if(rankEl){
+          rankEl.innerHTML='<div class="rank-badge"><div class="rank-badge-txt">Calculating global rank...</div></div>';
+          const r = await calculateGlobalRank();
+          if(r) rankEl.innerHTML='<div class="rank-badge"><div class="rank-badge-txt">Global rank: #'+r.rank+' of '+r.total+'</div><div style="font-size:10px;color:rgba(255,214,0,.7);">'+r.points+' pts total</div></div>';
+        }
+        renderRankMini();
+      }catch(e){ console.warn('Sidebar error:',e.message); }
+    };
+    window.renderSidebar=()=>loadSidebarLb();
+  }
+
+  function patchMemory(){
+    window.buildMemGrid=function(reveal){
+      const symbols=['🌟','🎡','🎈','🍭'];
+      const pairs=symbols.concat(symbols).sort(()=>Math.random()-.5);
+      memCards=pairs;
+      const grid=$('memGrid'); if(!grid) return;
+      grid.innerHTML=pairs.map((e,i)=>`<div class="mem-card${reveal?' flipped':''}" id="mc${i}" onclick="flipCard(${i})">${reveal?e:'🐼'}</div>`).join('');
+    };
+    window.endMemory=async function(){
+      clearInterval(memTimerInt); memStarted=false;
+      let globalBestTime=null, globalBestName=null;
+      try{
+        const r=await fetch(SB_URL+'/rest/v1/customers?select=name,best_memory_time&best_memory_time=not.is.null&order=best_memory_time.asc&limit=50',{headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY}});
+        const rows=await r.json();
+        const best=(Array.isArray(rows)?rows:[]).filter(c=>Number(c.best_memory_time)>0).sort((a,b)=>Number(a.best_memory_time)-Number(b.best_memory_time))[0];
+        if(best){globalBestTime=Number(best.best_memory_time);globalBestName=best.name;}
+      }catch(e){ if(globalBestMemory&&globalBestMemory.time){globalBestTime=Number(globalBestMemory.time);globalBestName=globalBestMemory.name;} }
+      const isGlobalBest=!globalBestTime||memSeconds<globalBestTime;
+      const isPersonalBest=!player.best_memory_time||memSeconds<Number(player.best_memory_time);
+      const pts=8+(isGlobalBest?2:0);
+      if(isPersonalBest) player.best_memory_time=memSeconds;
+      if(isGlobalBest) globalBestMemory={time:memSeconds,name:player.name};
+      const hintEl=$('memBestHint');
+      if(hintEl){
+        hintEl.style.display='block';
+        if(isGlobalBest){ hintEl.innerHTML='<span style="font-size:18px;font-weight:900;">🏆 NEW ALL-TIME RECORD: '+memSeconds+'s!</span><br><span style="font-size:14px;">Fastest among all players. +2 bonus!</span>'; hintEl.style.background='rgba(22,163,74,.2)';hintEl.style.borderColor='rgba(22,163,74,.5)';hintEl.style.color='#4ADE80'; }
+        else{ hintEl.innerHTML='<span style="font-size:16px;font-weight:900;">⏱️ Your time: '+memSeconds+'s</span><br><span style="font-size:13px;">All-time best is <strong>'+globalBestTime+'s</strong>'+(globalBestName?' by '+globalBestName:'')+'. Earned 8 pts.</span>'; hintEl.style.background='rgba(255,214,0,.15)';hintEl.style.borderColor='rgba(255,214,0,.3)';hintEl.style.color='var(--y)'; }
+      }
+      const btn=$('memStartBtn'); if(btn){btn.style.display='block';btn.textContent='See my '+pts+' pts! 🎉';btn.disabled=false;btn.onclick=()=>saveAndShowResult(pts,'memory');}
+      savePoints(pts,'memory',isPersonalBest?memSeconds:null);
+    };
+  }
+
+  function patchSpin(){
+    function popup(earned){
+      const old=$('spinPointsPopup'); if(old) old.remove();
+      const overlay=document.createElement('div'); overlay.id='spinPointsPopup';
+      overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;';
+      overlay.innerHTML='<div style="background:#fff;border-radius:20px;padding:22px 22px;max-width:290px;width:100%;text-align:center;animation:v17pop .16s ease-out;box-shadow:0 14px 40px rgba(0,0,0,.35);"><div style="font-size:46px;margin-bottom:0;">🎉</div><div style="font-family:Baloo 2, Nunito, sans-serif;font-size:20px;font-weight:900;color:#0D47A1;margin-bottom:0;">Great Spin!</div><div style="font-family:Baloo 2, Nunito, sans-serif;font-size:46px;font-weight:900;color:#FF8C00;line-height:1;">+'+earned+'</div><div style="font-size:14px;font-weight:800;color:#1565C0;margin-top:4px;">points gained</div></div>';
+      document.body.appendChild(overlay);
+    }
+    window.startSpin=function(){
+      if(isSpinning) return; isSpinning=true;
+      const spinBtn=$('spinBtn'), panda=$('pandaReact');
+      if(spinBtn){spinBtn.disabled=true;spinBtn.textContent='Spinning... 🎡';spinBtn.onclick=null;}
+      if(panda) panda.style.animation='jump 0.4s ease infinite';
+      const startAngle=spinAngle||0, targetAngle=startAngle+(6+Math.random()*4)*2*Math.PI+Math.random()*2*Math.PI;
+      const duration=4200, startedAt=performance.now(); let lastTick=0;
+      const ease=t=>1-Math.pow(1-t,3);
+      function animate(now){
+        const progress=Math.min((now-startedAt)/duration,1);
+        spinAngle=startAngle+(targetAngle-startAngle)*ease(progress); drawWheel(spinAngle);
+        if(now-lastTick>120&&progress<.92){lastTick=now; try{soundSpin();}catch(e){}}
+        if(progress<1){requestAnimationFrame(animate);return;}
+        spinAngle=targetAngle; drawWheel(spinAngle); isSpinning=false; if(panda)panda.style.animation='';
+        const arc=(2*Math.PI)/SEGS.length, norm=((spinAngle%(2*Math.PI))+2*Math.PI)%(2*Math.PI);
+        const idx=Math.floor((((-Math.PI/2-norm)%(2*Math.PI))+2*Math.PI)%(2*Math.PI)/arc)%SEGS.length;
+        const earned=SEGS[idx].pts; bestSpinPts=earned; spinCount=1;
+        const best=$('bestSoFar'), label=$('spinChanceLabel'); if(best)best.textContent=earned+'pts'; if(label)label.textContent='You won: '+earned+' pts!';
+        if(panda)panda.textContent=earned>=13?'🤩':earned>=11?'😄':'😊'; try{soundSpinResult(earned);}catch(e){}
+        if(spinBtn){spinBtn.disabled=true;spinBtn.textContent='Saved '+earned+' pts! 🎉';}
+        popup(earned); savePoints(earned,'spin').catch(e=>console.warn('Spin save failed:',e.message));
+        setTimeout(()=>{const old=$('spinPointsPopup');if(old)old.remove();goProfile();},450);
+      }
+      requestAnimationFrame(animate);
+    };
+    const btn=$('spinBtn'); if(btn){btn.disabled=false;btn.textContent='SPIN! 🎡';btn.onclick=startSpin;}
+  }
+
+  function patchResults(){ window.saveAndShowResult=async function(pts,gameType){ showResult(pts); }; }
+  function patchProfile(){
+    const oldRenderProfile=window.renderProfile;
+    window.renderProfile=function(){ oldRenderProfile(); setTimeout(()=>{addRoadmap();addLeftGuide();},50); };
+    const oldShowResult=window.showResult;
+    window.showResult=function(pts){ oldShowResult(pts); setTimeout(addRoadmap,50); };
+    const oldGoProfile=window.goProfile;
+    window.goProfile=function(){ oldGoProfile(); setTimeout(()=>{addRoadmap();addLeftGuide();renderRankMini();},80); };
+  }
+
+  safe(injectCss); safe(patchRegister); safe(patchSidebar); safe(patchResults); safe(patchMemory); safe(patchSpin); safe(patchProfile);
+  setTimeout(()=>{ safe(addRoadmap); safe(addLeftGuide); safe(renderRankMini); },700);
+})();
+</script>
+
+<!-- Loyalty + Games Club: login/register text -->
+<script>
+(function(){
+  function noteHtml(id,kind){
+    var title = kind === 'register'
+      ? '📝 One-time registration for <strong>MiniCuts Loyalty</strong> & <strong>MiniCuts Games Club</strong>'
+      : '🔐 Same login for <strong>MiniCuts Loyalty</strong> & <strong>MiniCuts Games Club</strong>';
+    var body = kind === 'register'
+      ? 'This same account is used for stamps, rewards, game points and levels.'
+      : 'Use the same child name and parent mobile number to check stamps and play games.';
+    return '<div id="'+id+'" style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;padding:8px 10px;margin-bottom:14px;text-align:center;color:#0D47A1;font-size:12px;font-weight:900;line-height:1.35;">'+title+'<br><span style="font-size:11px;color:#1565C0;font-weight:800;">'+body+'</span></div>';
+  }
+
+  function dobSelectStyle(){
+    return 'width:100%;height:62px;border:2px solid #E5E7EB;border-radius:14px;background:#fff;padding:0 14px;font-size:20px;font-weight:800;color:#111827;text-align:center;text-align-last:center;outline:none;box-shadow:none;appearance:auto;';
+  }
+
+  function dobDropdownHtml(){
+    var currentYear=new Date().getFullYear();
+    var days='<option value="">Day</option>';
+    for(var d=1;d<=31;d++){var dd=String(d).padStart(2,'0');days+='<option value="'+dd+'">'+d+'</option>';}
+    var months='<option value="">Month</option>';
+    for(var m=1;m<=12;m++){var mm=String(m).padStart(2,'0');months+='<option value="'+mm+'">'+m+'</option>';}
+    var years='<option value="">Year</option>';
+    for(var y=currentYear;y>=currentYear-18;y--){years+='<option value="'+y+'">'+y+'</option>';}
+    var s=dobSelectStyle();
+    return '<div class="fg" id="CRDOB_WRAP"><label class="fl" style="font-size:15px;font-weight:800;color:#6B7280;margin-bottom:6px;display:block;">Date of Birth <span style="color:#DC2626;font-weight:900;">*</span></label><div style="display:grid;grid-template-columns:1fr 1fr 1.25fr;gap:10px;"><select class="fi" id="CRDOB_D" style="'+s+'">'+days+'</select><select class="fi" id="CRDOB_M" style="'+s+'">'+months+'</select><select class="fi" id="CRDOB_Y" style="'+s+'">'+years+'</select></div><input type="hidden" id="CRDOB"></div>';
+  }
+
+  function normalizeDobDropdown(){
+    try{
+      var d=document.getElementById('CRDOB_D');
+      var m=document.getElementById('CRDOB_M');
+      var y=document.getElementById('CRDOB_Y');
+      var h=document.getElementById('CRDOB');
+      if(!d||!m||!y||!h) return '';
+      h.value=(y.value&&m.value&&d.value)?(y.value+'-'+m.value+'-'+d.value):'';
+      return h.value;
+    }catch(e){return '';}
+  }
+
+  function replaceAnyNativeDob(){
+    try{
+      var oldDate=document.querySelector('input[type="date"]#CRDOB');
+      if(oldDate){
+        var fg=oldDate.closest('.fg');
+        if(fg) fg.outerHTML=dobDropdownHtml();
+      }
+    }catch(e){}
+  }
+
+  function patchDobValidation(){
+    try{
+      if(window.__lgcDobPatched) return;
+      if(typeof window.custRegister !== 'function') return;
+      window.__lgcDobPatched=true;
+      var oldCustRegister=window.custRegister;
+      window.custRegister=function(){
+        replaceAnyNativeDob();
+        var dob=normalizeDobDropdown();
+        var wrap=document.getElementById('CRDOB_WRAP');
+        if(wrap && !dob){
+          wrap.style.border='2px solid #DC2626';
+          wrap.style.borderRadius='14px';
+          wrap.style.padding='8px';
+          alert('Date of birth is required. Please select Day, Month and Year. 🎂');
+          return;
+        }
+        if(wrap){wrap.style.border='none';wrap.style.padding='0';}
+        return oldCustRegister.apply(this,arguments);
+      };
+    }catch(e){console.warn('DOB validation patch:',e.message);}
+  }
+
+  function enhanceCustomerPortalDom(){
+    try{
+      var cp=document.getElementById('CP');
+      if(cp){
+        var title=cp.querySelector('div[style*="font-family"][style*="25px"]');
+        if(title) title.textContent='MiniCuts Loyalty + Games Club';
+        var sub=title ? title.nextElementSibling : null;
+        if(sub) sub.textContent='One account for stamps, rewards, game points and levels';
+      }
+
+      var cpa=document.getElementById('CPA');
+      if(!cpa) return;
+      replaceAnyNativeDob();
+
+      var boxes=cpa.querySelectorAll('.cbox');
+      boxes.forEach(function(box){
+        var heading=box.querySelector('div[style*="Baloo 2"], div[style*="Baloo"]');
+        var text=heading ? heading.textContent.trim().toLowerCase() : '';
+        if(text.indexOf('check your stamps')>-1 && !box.querySelector('#lgcCustomerPortalNote')){
+          heading.textContent='Check Stamps & Games Club';
+          var sub=heading.nextElementSibling;
+          if(sub) sub.textContent='Enter your mobile number — same account for Loyalty and Games Club';
+          box.insertAdjacentHTML('afterbegin', noteHtml('lgcCustomerPortalNote','lookup'));
+          var link=box.querySelector('a[onclick="showReg()"]');
+          if(link) link.textContent='Register for Loyalty & Games Club →';
+        }
+        if((text.indexOf('join minicuts loyalty')>-1 || text.indexOf('join minicuts')>-1) && !box.querySelector('#lgcCustomerRegisterNote')){
+          heading.textContent='Join MiniCuts Loyalty + Games Club';
+          var sub2=heading.nextElementSibling;
+          if(sub2) sub2.textContent='Register once for stamps, rewards and MiniCuts Games Club';
+          box.insertAdjacentHTML('afterbegin', noteHtml('lgcCustomerRegisterNote','register'));
+          replaceAnyNativeDob();
+          var btn=box.querySelector('button[onclick="custRegister()"]');
+          if(btn) btn.textContent='Create Loyalty & Games Account 🐼';
+          var back=box.querySelector('a[onclick="showLookup()"]');
+          if(back) back.textContent='Check Loyalty & Games login →';
+        }
+      });
+      patchDobValidation();
+    }catch(e){console.warn('Customer portal wording patch:',e.message);}
+  }
+
+  function patchBuildFunctions(){
+    try{
+      if(window.__lgcBuildFunctionsPatched) return;
+      if(typeof window.buildLookup !== 'function' || typeof window.buildRegister !== 'function') return;
+      window.__lgcBuildFunctionsPatched=true;
+
+      var oldLookup=window.buildLookup;
+      window.buildLookup=function(msg){
+        var html=oldLookup(msg);
+        html=html.replace('Check your stamps','Check Stamps & Games Club');
+        html=html.replace('Enter your mobile number','Enter your mobile number — same account for Loyalty and Games Club');
+        html=html.replace('Register here →','Register for Loyalty & Games Club →');
+        html=html.replace('<div class="cbox">','<div class="cbox">'+noteHtml('lgcCustomerPortalNote','lookup'));
+        return html;
+      };
+
+      var oldRegister=window.buildRegister;
+      window.buildRegister=function(pf){
+        var html=oldRegister(pf);
+        html=html.replace('🐼 Join MiniCuts Loyalty!','Join MiniCuts Loyalty + Games Club');
+        html=html.replace('Register to start earning stamps','Register once for stamps, rewards and MiniCuts Games Club');
+        html=html.replace('Create My Passport 🐼','Create Loyalty & Games Account 🐼');
+        html=html.replace('Check stamps →','Check Loyalty & Games login →');
+        html=html.replace(/<div class="fg"><label class="fl">Date of Birth[\s\S]*?<\/div>\s*<div class="fg"><label class="fl">Gender \*<\/label>/,'__DOB_BLOCK__<div class="fg"><label class="fl">Gender *</label>');
+        html=html.replace('__DOB_BLOCK__',dobDropdownHtml());
+        html=html.replace('<div class="cbox">','<div class="cbox">'+noteHtml('lgcCustomerRegisterNote','register'));
+        return html;
+      };
+    }catch(e){console.warn('Build function patch:',e.message);}
+  }
+
+  function addLoginRegisterPrompt(login){
+    try{
+      if(!login || document.getElementById('lgcNewUserPrompt')) return;
+      var wrap=login.querySelector('div[style*="border-top"]');
+      if(!wrap) return;
+      var prompt=document.createElement('div');
+      prompt.id='lgcNewUserPrompt';
+      prompt.style.cssText='background:#FFF7CC;border:1px solid #FFD600;border-radius:12px;padding:10px 12px;margin-bottom:10px;text-align:center;color:#0D47A1;font-size:13px;font-weight:900;line-height:1.35;';
+      prompt.innerHTML='New parent or first-time customer?<br><span style="font-size:12px;color:#1565C0;font-weight:800;">Tap below to register for Loyalty & MiniCuts Games Club.</span>';
+      wrap.insertBefore(prompt,wrap.firstChild);
+    }catch(e){console.warn('Login register prompt patch:',e.message);}
+  }
+
+  function applyText(){
+    try{
+      var login=document.getElementById('LS');
+      if(login){
+        var header=login.querySelector('div[style*="text-align:center"]');
+        if(header && !document.getElementById('lgcLoginNote')){
+          var sub=header.querySelector('div[style*="color:#6B7280"]');
+          if(sub) sub.textContent='Loyalty Passport + MiniCuts Games Club · Staff Panel';
+          var note=document.createElement('div');
+          note.id='lgcLoginNote';
+          note.style.cssText='background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;padding:8px 10px;margin-top:12px;text-align:center;color:#0D47A1;font-size:12px;font-weight:900;line-height:1.35;';
+          note.innerHTML='🔐 Same account for <strong>MiniCuts Loyalty</strong> & <strong>MiniCuts Games Club</strong><br><span style="font-size:11px;color:#1565C0;font-weight:800;">Use the same child name and parent mobile number.</span>';
+          header.appendChild(note);
+        }
+        var loginBtn=login.querySelector('button[onclick="doLogin()"]');
+        if(loginBtn) loginBtn.textContent='Login to Loyalty & Games Club';
+        var portalLink=login.querySelector('a[href="?customer=1"]');
+        if(portalLink) portalLink.textContent='→ Register / Customer Portal: Loyalty + Games Club';
+        addLoginRegisterPrompt(login);
+      }
+
+      var newPage=document.getElementById('page-newcustomer');
+      if(newPage){
+        var title=newPage.querySelector('div[style*="font-family:var(--fh)"]');
+        if(title) title.textContent='New Customer Registration';
+        var subtitle=title ? title.nextElementSibling : null;
+        if(subtitle) subtitle.textContent='Create one account for MiniCuts Loyalty and MiniCuts Games Club';
+        var card=newPage.querySelector('.card');
+        if(card && !document.getElementById('lgcRegisterNote')){
+          var note2=document.createElement('div');
+          note2.id='lgcRegisterNote';
+          note2.style.cssText='background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;padding:8px 10px;margin-bottom:14px;text-align:center;color:#0D47A1;font-size:12px;font-weight:900;line-height:1.35;';
+          note2.innerHTML='📝 One-time registration for <strong>MiniCuts Loyalty</strong> & <strong>MiniCuts Games Club</strong><br><span style="font-size:11px;color:#1565C0;font-weight:800;">This same account will be used for stamps, rewards, game points and levels.</span>';
+          card.insertBefore(note2,card.firstChild);
+        }
+        var createBtn=newPage.querySelector('button[onclick="createC()"]');
+        if(createBtn) createBtn.textContent='Create Loyalty & Games Account 🐼';
+      }
+
+      var qr=document.getElementById('page-qrpage');
+      if(qr){
+        var qrTitle=qr.querySelector('.card div[style*="font-family:var(--fh)"]');
+        if(qrTitle) qrTitle.textContent='MiniCuts Loyalty + Games Club';
+        var qrSub=qrTitle ? qrTitle.nextElementSibling : null;
+        if(qrSub) qrSub.textContent='Scan to register, collect stamps, earn rewards and play MiniCuts games!';
+      }
+
+      patchBuildFunctions();
+      enhanceCustomerPortalDom();
+      patchDobValidation();
+    }catch(e){console.warn('Loyalty Games Club text patch:',e.message);}
+  }
+
+  applyText();
+  setTimeout(applyText,300);
+  setTimeout(applyText,900);
+  setTimeout(applyText,1800);
+  document.addEventListener('change',function(e){if(e.target&&(/^CRDOB_/.test(e.target.id))) normalizeDobDropdown();});
+  document.addEventListener('click',function(){setTimeout(applyText,80);setTimeout(enhanceCustomerPortalDom,250);});
+})();
+</script>
+
+<!-- Staff Lock: PIN protection for staff screen -->
+<script>
+(function(){
+  var KEY='mc_staff_ok';
+  var PIN=String.fromCharCode(56,48,56,50);
+  function has(){try{return sessionStorage.getItem(KEY)==='1';}catch(e){return false;}}
+  function set(){try{sessionStorage.setItem(KEY,'1');}catch(e){}}
+  function clr(){try{sessionStorage.removeItem(KEY);}catch(e){}}
+  function ask(){var p=prompt('Enter staff PIN'); if(p===PIN){set();return true;} if(p!==null) alert('Incorrect PIN'); return false;}
+  function open(){if(!has()&&!ask())return; if(window.__oldGoStaff)window.__oldGoStaff(); else if(window.showScreen)window.showScreen('s-staff');}
+  function infoBox(id,title,body){
+    var box=document.createElement('div');
+    box.id=id;
+    box.style.cssText='background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;padding:8px 10px;margin-bottom:10px;text-align:center;color:#0D47A1;font-size:12px;font-weight:900;line-height:1.35;';
+    box.innerHTML=title+'<br><span style="font-size:11px;color:#1565C0;font-weight:800;">'+body+'</span>';
+    return box;
+  }
+  function addLoginNote(){
+    var login=document.getElementById('s-login');
+    if(login&&!document.getElementById('loyaltyGameLoginNote')){
+      var card=login.querySelector('.card');
+      if(card){
+        var note=infoBox('loyaltyGameLoginNote','🔐 Same login for <strong>MiniCuts Loyalty</strong> & <strong>MiniCuts Games Club</strong>','Use the same child name and parent mobile number.');
+        card.insertBefore(note,card.firstChild.nextSibling);
+      }
+      var sub=login.querySelector('.sub');
+      if(sub)sub.textContent='One MiniCuts account · Loyalty + Games Club';
+      var title=login.querySelector('.card-title');
+      if(title)title.textContent='Login for Loyalty & Games Club 🎮';
+      var btn=document.getElementById('loginBtn');
+      if(btn)btn.textContent='Login & Play! 🎮';
+    }
+  }
+  function addRegisterNote(){
+    var reg=document.getElementById('s-register');
+    if(!reg)return;
+    var brand=reg.querySelector('.brand');
+    if(brand)brand.textContent='Join MiniCuts Club 🐼';
+    var card=reg.querySelector('.card');
+    if(card&&!document.getElementById('loyaltyGameRegisterNote')){
+      var note=infoBox('loyaltyGameRegisterNote','📝 One-time registration for <strong>Loyalty</strong> & <strong>MiniCuts Games Club</strong>','This same account will be used for stamps, rewards, game points and levels.');
+      card.insertBefore(note,card.firstChild);
+    }
+    var oldInfo=card?card.querySelector('div[style*="EFF6FF"]'):null;
+    if(oldInfo&&oldInfo.id!=='loyaltyGameRegisterNote'){
+      oldInfo.innerHTML='🐼 Register once to use <strong>MiniCuts Loyalty</strong> and <strong>MiniCuts Games Club</strong>.';
+    }
+    var btn=card?card.querySelector('.btn-y'):null;
+    if(btn)btn.textContent='Register for Loyalty & Games! 🎮';
+  }
+  function apply(){
+    if(!window.__staffGateApplied){window.__oldGoStaff=window.goStaff||null;window.__oldStaffReset=window.staffReset||null;window.__staffGateApplied=true;}
+    window.goStaff=function(){open();};
+    window.staffReset=function(){if(!has()&&!ask())return; if(window.__oldStaffReset)return window.__oldStaffReset.apply(this,arguments);};
+    var screen=document.getElementById('s-staff');
+    if(screen&&!document.getElementById('staffLockBtn')){
+      var b=document.createElement('button');b.id='staffLockBtn';b.className='home-btn';b.textContent='Lock';b.onclick=function(){clr();if(window.showScreen)showScreen('s-login');};
+      var bar=screen.querySelector('.home-bar'); if(bar)bar.appendChild(b);
+    }
+    document.querySelectorAll('button').forEach(function(btn){if(btn.textContent&&btn.textContent.trim()==='Staff'){btn.onclick=open;btn.title='Staff PIN required';}});
+    addLoginNote();
+    addRegisterNote();
+  }
+  apply();setTimeout(apply,500);setTimeout(apply,1500);setTimeout(apply,3000);
+})();
+</script>
+
+<!-- Registration submit fix: safe form submit -->
+<script>
+(function(){
+  function $(id){return document.getElementById(id);}
+
+  function isRegisterScreenVisible(){
+    var s=$('s-register');
+    if(!s) return false;
+    var cs=window.getComputedStyle(s);
+    return cs.display!=='none' && cs.visibility!=='hidden';
+  }
+
+  function isInsideRegisterSubmit(target){
+    try{
+      var reg=$('s-register');
+      if(!reg || !target || !reg.contains(target)) return false;
+      var btn=target.closest ? target.closest('button') : null;
+      if(!btn) return false;
+      var txt=(btn.textContent||'').toLowerCase();
+      return txt.indexOf('register')>-1;
+    }catch(e){return false;}
+  }
+
+  function showRegMsg(text,ok){
+    var r=$('regMsg');
+    if(!r) return;
+    r.textContent=text;
+    r.style.display='block';
+    r.style.background=ok?'#DCFCE7':'#FEE2E2';
+    r.style.color=ok?'#166534':'#DC2626';
+  }
+
+  function readForm(){
+    return {
+      name:(($('regName')&&$('regName').value)||'').trim(),
+      mobile:(($('regMobile')&&$('regMobile').value)||'').trim(),
+      parent:(($('regParent')&&$('regParent').value)||'').trim(),
+      day:($('dobDay')&&$('dobDay').value)||'',
+      month:($('dobMonth')&&$('dobMonth').value)||'',
+      year:($('dobYear')&&$('dobYear').value)||'',
+      gender:window.regGender||'boy'
+    };
+  }
+
+  function restoreForm(v){
+    if(!v) return;
+    if($('regName')) $('regName').value=v.name||'';
+    if($('regMobile')) $('regMobile').value=v.mobile||'';
+    if($('regParent')) $('regParent').value=v.parent||'';
+    if($('dobDay')) $('dobDay').value=v.day||'';
+    if($('dobMonth')) $('dobMonth').value=v.month||'';
+    if($('dobYear')) $('dobYear').value=v.year||'';
+  }
+
+  function safeRegister(){
+    var v=readForm();
+    var dob=(v.year&&v.month&&v.day)?(v.year+'-'+v.month+'-'+v.day):null;
+    if(!v.name){showRegMsg('Please enter child name',false);restoreForm(v);return;}
+    if(v.mobile.length<7){showRegMsg('Please enter valid parent mobile',false);restoreForm(v);return;}
+    if(!dob){showRegMsg('Date of birth is required!',false);restoreForm(v);return;}
+    var btn=document.querySelector('#s-register .btn-y') || document.querySelector('#s-register button');
+    if(btn){btn.disabled=true;btn.style.opacity='0.65';btn.style.pointerEvents='none';btn.textContent='Registering...';}
+    var payload={name:v.name,mobile:v.mobile,parent:v.parent,dob:dob,gender:v.gender,stamps:0,redemptions:0,game_points:0,game_spins:0};
+    fetch(SB_URL+'/rest/v1/customers',{method:'POST',headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY,'Content-Type':'application/json',Prefer:'return=representation'},body:JSON.stringify(payload)})
+      .then(function(res){return res.text().then(function(text){if(!res.ok){throw new Error(text||('HTTP '+res.status));}if(!text)return [payload];try{return JSON.parse(text);}catch(e){throw new Error('Registration response was not valid JSON. Please try again.');}});})
+      .then(function(data){
+        window.player=Array.isArray(data)?data[0]:data;
+        player.game_points=Number(player.game_points||0);
+        player.game_spins=Number(player.game_spins||0);
+        showRegMsg('Welcome to MiniCuts!',true);
+        if(btn) btn.textContent='Starting game...';
+        window.spinCount=0; window.bestSpinPts=0;
+        return Promise.resolve(typeof checkTodaySessions==='function'?checkTodaySessions():null).then(function(){return Promise.resolve(typeof fetchGlobalBests==='function'?fetchGlobalBests():null);});
+      })
+      .then(function(){setTimeout(function(){if(typeof goProfile==='function')goProfile();},450);})
+      .catch(function(e){
+        restoreForm(v);
+        showRegMsg('Error: '+(e&&e.message?e.message:'Registration failed'),false);
+        if(btn){btn.disabled=false;btn.style.opacity='1';btn.style.pointerEvents='auto';btn.textContent='Register for Loyalty & Games! 🎮';}
+      });
+  }
+
+  function fixLoginRegisterButtons(){
+    try{
+      var login=$('s-login');
+      if(!login) return;
+      login.querySelectorAll('button').forEach(function(btn){
+        var t=(btn.textContent||'').toLowerCase();
+        if(t.indexOf('register')>-1){
+          btn.onclick=function(){if(typeof window.goToRegister==='function') window.goToRegister('','','Register below!');};
+          btn.innerHTML='🐼 Register';
+          btn.style.color='#0D47A1';
+          btn.style.background='linear-gradient(135deg,#FFD600,#FF8C00)';
+          btn.style.border='2px solid #FFD600';
+        }
+      });
+    }catch(e){console.warn('login register button fix:',e.message);}
+  }
+
+  function fixRegisterSubmitButton(){
+    try{
+      var reg=$('s-register');
+      if(!reg) return;
+      var btn=reg.querySelector('.btn-y') || reg.querySelector('button');
+      if(!btn) return;
+      btn.onclick=function(ev){
+        if(ev){ev.preventDefault();ev.stopPropagation();if(ev.stopImmediatePropagation)ev.stopImmediatePropagation();}
+        safeRegister();
+        return false;
+      };
+      btn.textContent='Register for Loyalty & Games! 🎮';
+      btn.style.pointerEvents='auto';
+    }catch(e){console.warn('register submit button fix:',e.message);}
+  }
+
+  function wrapGoToRegister(){
+    try{
+      if(window.__goToRegisterPreservePatched || typeof window.goToRegister!=='function') return;
+      window.__goToRegisterPreservePatched=true;
+      var old=window.goToRegister;
+      window.goToRegister=function(){
+        old.apply(this,arguments);
+        setTimeout(fixRegisterSubmitButton,60);
+        setTimeout(fixRegisterSubmitButton,200);
+        setTimeout(fixRegisterSubmitButton,600);
+      };
+    }catch(e){console.warn('goToRegister wrap:',e.message);}
+  }
+
+  function apply(){
+    wrapGoToRegister();
+    fixLoginRegisterButtons();
+    fixRegisterSubmitButton();
+  }
+
+  document.addEventListener('click',function(ev){
+    if(isInsideRegisterSubmit(ev.target)){
+      ev.preventDefault();
+      ev.stopPropagation();
+      if(ev.stopImmediatePropagation) ev.stopImmediatePropagation();
+      safeRegister();
+      return false;
+    }
+  },true);
+
+  apply();
+  setTimeout(apply,300);
+  setTimeout(apply,900);
+  setTimeout(apply,1800);
+  setTimeout(apply,3000);
+  document.addEventListener('click',function(){setTimeout(apply,80);});
+})();
+</script>
+
+<!-- DOB dropdown style fix -->
+<script>
+(function(){
+  function styleDobBoxes(){
+    try{
+      var ids=['CRDOB_D','CRDOB_M','CRDOB_Y'];
+      ids.forEach(function(id){
+        var s=document.getElementById(id);
+        if(!s) return;
+        s.style.width='100%';
+        s.style.height='48px';
+        s.style.minHeight='48px';
+        s.style.border='2px solid #E5E7EB';
+        s.style.borderRadius='12px';
+        s.style.background='#fff';
+        s.style.padding='0 8px';
+        s.style.fontSize='15px';
+        s.style.fontWeight='700';
+        s.style.color='#374151';
+        s.style.lineHeight='48px';
+        s.style.textAlign='center';
+        s.style.textAlignLast='center';
+        s.style.boxShadow='none';
+        s.style.outline='none';
+        s.style.appearance='auto';
+      });
+      var wrap=document.getElementById('CRDOB_WRAP');
+      if(wrap){
+        wrap.style.marginBottom='12px';
+        var label=wrap.querySelector('label');
+        if(label){
+          label.style.fontSize='13px';
+          label.style.fontWeight='800';
+          label.style.color='#6B7280';
+          label.style.marginBottom='7px';
+          label.style.display='block';
+        }
+        var grid=wrap.querySelector('div[style*="grid-template-columns"]');
+        if(grid){
+          grid.style.gap='8px';
+          grid.style.gridTemplateColumns='1fr 1fr 1.15fr';
+        }
+      }
+    }catch(e){console.warn('DOB style patch:',e.message);}
+  }
+  styleDobBoxes();
+  setTimeout(styleDobBoxes,300);
+  setTimeout(styleDobBoxes,900);
+  setTimeout(styleDobBoxes,1800);
+  document.addEventListener('click',function(){setTimeout(styleDobBoxes,120);});
+  document.addEventListener('change',styleDobBoxes);
+})();
+</script>
+
+</body>
+</html>
