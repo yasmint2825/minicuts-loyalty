@@ -22,7 +22,7 @@
     <div class="msg">Stable V12 test version</div>
   </div>
 </div>
-<iframe id="gameFrame" src="./minicuts-game-V10.html?v=19"></iframe>
+<iframe id="gameFrame" src="./minicuts-game-V10.html?v=20"></iframe>
 <script>
 (function(){
   const frame = document.getElementById('gameFrame');
@@ -75,17 +75,30 @@
       }
     });
 
-    if(typeof win.buildMemGrid === 'function'){
-      win.buildMemGrid = function(reveal){
-        const emojis = ['🌟','🎡','🎈','🍭'];
-        const pairs = [...emojis,...emojis].sort(()=>Math.random()-.5);
-        try{ win.memCards = pairs; }catch(e){}
-        const grid = doc.getElementById('memGrid');
-        if(!grid) return;
-        grid.innerHTML = pairs.map((e,i)=>'<div class="mem-card'+(reveal?' flipped':'')+'" id="mc'+i+'" onclick="flipCard('+i+')">'+(reveal?e:'🐼')+'</div>').join('');
-      };
+    // Patch Memory INSIDE the game page so original let memCards is updated.
+    if(!doc.getElementById('v12MemoryPatch')){
+      const memScript = doc.createElement('script');
+      memScript.id = 'v12MemoryPatch';
+      memScript.textContent = `
+(function(){
+  try{
+    buildMemGrid = function(reveal){
+      const symbols = ['🌟','🎡','🎈','🍭'];
+      const pairs = symbols.concat(symbols).sort(function(){return Math.random()-.5;});
+      memCards = pairs;
+      const grid = document.getElementById('memGrid');
+      if(!grid) return;
+      grid.innerHTML = pairs.map(function(e,i){
+        return '<div class="mem-card'+(reveal?' flipped':'')+'" id="mc'+i+'" onclick="flipCard('+i+')">'+(reveal?e:'🐼')+'</div>';
+      }).join('');
+    };
+  }catch(e){ console.warn('V12 memory patch failed:', e.message); }
+})();
+      `;
+      doc.body.appendChild(memScript);
     }
 
+    // Patch Spin INSIDE the game page so original wheel variables are accessible.
     if(!doc.getElementById('v12SpinPatch')){
       const spinScript = doc.createElement('script');
       spinScript.id = 'v12SpinPatch';
