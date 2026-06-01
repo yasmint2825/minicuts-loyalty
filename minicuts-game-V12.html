@@ -22,7 +22,7 @@
     <div class="msg">Stable V12 test version</div>
   </div>
 </div>
-<iframe id="gameFrame" src="./minicuts-game-V10.html?v=14"></iframe>
+<iframe id="gameFrame" src="./minicuts-game-V10.html?v=15"></iframe>
 <script>
 (function(){
   const frame = document.getElementById('gameFrame');
@@ -39,6 +39,7 @@
       style.textContent = `
         .mem-grid{display:grid!important;grid-template-columns:repeat(4,1fr)!important;gap:6px!important;margin-bottom:8px!important;}
         .mem-card{aspect-ratio:1!important;border-radius:10px!important;font-size:28px!important;min-height:64px!important;}
+        @keyframes v12pop{0%{transform:scale(.65);opacity:0}70%{transform:scale(1.08);opacity:1}100%{transform:scale(1);opacity:1}}
       `;
       doc.head.appendChild(style);
     }
@@ -91,6 +92,22 @@
       spinScript.textContent = `
 (function(){
   try{
+    function showSpinPointsPopup(earned){
+      const old = document.getElementById('spinPointsPopup');
+      if(old) old.remove();
+      const overlay = document.createElement('div');
+      overlay.id = 'spinPointsPopup';
+      overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.62);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;';
+      overlay.innerHTML = '<div style="background:#fff;border-radius:22px;padding:26px 24px;max-width:320px;width:100%;text-align:center;animation:v12pop .35s ease-out;box-shadow:0 14px 40px rgba(0,0,0,.35);">'+
+        '<div style="font-size:62px;margin-bottom:4px;">🎉</div>'+ 
+        '<div style="font-family:Baloo 2, Nunito, sans-serif;font-size:24px;font-weight:900;color:#0D47A1;margin-bottom:4px;">Great Spin!</div>'+ 
+        '<div style="font-family:Baloo 2, Nunito, sans-serif;font-size:54px;font-weight:900;color:#FF8C00;line-height:1;">+'+earned+'</div>'+ 
+        '<div style="font-size:16px;font-weight:800;color:#1565C0;margin-top:6px;">points gained</div>'+ 
+        '<div style="font-size:12px;color:#6B7280;margin-top:12px;">Closing game...</div>'+ 
+      '</div>';
+      document.body.appendChild(overlay);
+    }
+
     startSpin = function(){
       if(isSpinning) return;
       isSpinning = true;
@@ -128,11 +145,12 @@
         const best = document.getElementById('bestSoFar');
         const label = document.getElementById('spinChanceLabel');
         if(best) best.textContent = earned + 'pts';
-        if(label) label.textContent = 'You won: ' + earned + ' pts! Saving...';
+        if(label) label.textContent = 'You won: ' + earned + ' pts!';
         if(panda) panda.textContent = earned >= 13 ? '🤩' : earned >= 11 ? '😄' : '😊';
         try{ soundSpinResult(earned); }catch(e){}
         if(spinBtn){ spinBtn.disabled = true; spinBtn.textContent = 'Saved ' + earned + ' pts! 🎉'; }
-        saveAndShowResult(earned, 'spin');
+        showSpinPointsPopup(earned);
+        setTimeout(function(){ saveAndShowResult(earned, 'spin'); }, 1600);
       }
       requestAnimationFrame(animate);
     };
