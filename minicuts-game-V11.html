@@ -31,19 +31,48 @@
       'onclick="goToRegister(\'\', \'\', \'Register below!\')"'
     );
 
-    // Fallback replacement in case GitHub/browser normalizes escaping differently.
-    html = html.replace(
-      'onclick="goToRegister(\\\'\\\',\\\'\\\',\\\'Register below!\\\')"',
-      'onclick="goToRegister(\'\', \'\', \'Register below!\')"'
-    );
-
     // Fix 2: add parent mobile validation before Supabase registration insert.
     html = html.replace(
       'if(!name){showRegMsg("Please enter child\'s name",false);return;}\n   \n   if(!dob){',
       'if(!name){showRegMsg("Please enter child\'s name",false);return;}\n   if(mobile.length<7){showRegMsg("Please enter valid parent mobile",false);return;}\n   \n   if(!dob){'
     );
 
-    // Add a visible marker for testing.
+    // Fix 3: inject missing registration/login helper functions.
+    const helperScript = `
+var regGender = window.regGender || 'boy';
+function setRegGender(g){
+  regGender = g;
+  window.regGender = g;
+  var boy = document.getElementById('regBoy');
+  var girl = document.getElementById('regGirl');
+  if(boy){
+    boy.style.borderColor = g === 'boy' ? '#FFD600' : '#E5E7EB';
+    boy.style.background = g === 'boy' ? '#FFF7CC' : '#fff';
+  }
+  if(girl){
+    girl.style.borderColor = g === 'girl' ? '#FFD600' : '#E5E7EB';
+    girl.style.background = g === 'girl' ? '#FFF7CC' : '#fff';
+  }
+}
+function showRegMsg(msg,ok){
+  var el = document.getElementById('regMsg');
+  if(!el) return;
+  el.textContent = msg;
+  el.style.display = 'block';
+  el.style.background = ok === 'ok' || ok === true ? '#DCFCE7' : '#FEE2E2';
+  el.style.color = ok === 'ok' || ok === true ? '#166534' : '#DC2626';
+}
+function showLoginMsg(msg,ok){
+  var el = document.getElementById('loginMsg');
+  if(!el) return;
+  el.textContent = msg;
+  el.style.display = 'block';
+  el.style.background = ok === 'ok' || ok === true ? '#DCFCE7' : '#FEE2E2';
+  el.style.color = ok === 'ok' || ok === true ? '#166534' : '#DC2626';
+}
+`;
+    html = html.replace('<script>\nwindow.onerror', '<script>\n' + helperScript + '\nwindow.onerror');
+
     html = html.replace(
       '<title>MiniCuts Game Zone 🐼</title>',
       '<title>MiniCuts Game Zone 🐼 - Fixed Test</title>'
