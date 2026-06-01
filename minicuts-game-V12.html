@@ -22,7 +22,7 @@
     <div class="msg">Stable V12 test version</div>
   </div>
 </div>
-<iframe id="gameFrame" src="./minicuts-game-V10.html?v=21"></iframe>
+<iframe id="gameFrame" src="./minicuts-game-V10.html?v=22"></iframe>
 <script>
 (function(){
   const frame = document.getElementById('gameFrame');
@@ -75,6 +75,60 @@
       }
     });
 
+    if(!doc.getElementById('v12RegisterPatch')){
+      const regScript = doc.createElement('script');
+      regScript.id = 'v12RegisterPatch';
+      regScript.textContent = `
+(function(){
+  try{
+    doRegister = async function(){
+      const name=document.getElementById('regName').value.trim();
+      const mobile=document.getElementById('regMobile').value.trim();
+      const parent=document.getElementById('regParent').value.trim();
+      const dobDay=document.getElementById('dobDay').value;
+      const dobMonth=document.getElementById('dobMonth').value;
+      const dobYear=document.getElementById('dobYear').value;
+      const dob=(dobYear&&dobMonth&&dobDay)?(dobYear+'-'+dobMonth+'-'+dobDay):null;
+      const gender = window.regGender || 'boy';
+      const msg=document.getElementById('regMsg');
+      if(msg) msg.style.display='none';
+      if(!name){showRegMsg("Please enter child's name",false);return;}
+      if(mobile.length<7){showRegMsg('Please enter valid parent mobile',false);return;}
+      if(!dob){showRegMsg('Date of birth is required! 🎂',false);return;}
+      if(!gender){showRegMsg('Please select Boy or Girl',false);return;}
+      const btn=document.querySelector('#s-register .btn-y');
+      if(btn){
+        btn.disabled=true;
+        btn.style.opacity='0.65';
+        btn.style.pointerEvents='none';
+        btn.textContent='Registering... 🐼';
+      }
+      try{
+        const res=await sb('customers','POST',{name,mobile,parent,dob,gender,stamps:0,redemptions:0,game_points:0,game_spins:0});
+        player=Array.isArray(res)?res[0]:res;
+        player.game_points=0;player.game_spins=0;
+        showRegMsg('Welcome to MiniCuts! 🎉','ok');
+        if(btn){ btn.textContent='Starting game... 🎮'; }
+        spinCount=0;bestSpinPts=0;
+        await checkTodaySessions();
+        await fetchGlobalBests();
+        setTimeout(()=>goProfile(),450);
+      }catch(e){
+        showRegMsg('Error: '+e.message,false);
+        if(btn){
+          btn.disabled=false;
+          btn.style.opacity='1';
+          btn.style.pointerEvents='auto';
+          btn.textContent='Register & Play! 🎮';
+        }
+      }
+    };
+  }catch(e){ console.warn('V12 registration patch failed:', e.message); }
+})();
+      `;
+      doc.body.appendChild(regScript);
+    }
+
     if(!doc.getElementById('v12PointsPatch')){
       const ptsScript = doc.createElement('script');
       ptsScript.id = 'v12PointsPatch';
@@ -82,8 +136,6 @@
 (function(){
   try{
     saveAndShowResult = async function(pts, gameType){
-      // Tap and Memory already call savePoints when the game ends.
-      // This wrapper should only show the result screen to avoid double-counting.
       showResult(pts);
     };
   }catch(e){ console.warn('V12 points patch failed:', e.message); }
