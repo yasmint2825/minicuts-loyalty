@@ -216,16 +216,31 @@ body{display:flex;font-family:'Nunito',sans-serif;}
     <div id="tierList"></div>
   </div>
   <div class="card" id="gameSelectCard" style="padding:10px 12px;">
-    <div class="card-title" style="margin-bottom:7px;">Choose your game 🎮</div>
+    <div id="gamePrompt" style="text-align:center;margin-bottom:8px;"></div>
     <div class="game-grid" id="gameGrid">
-      <div class="game-card" id="gc-spin" onclick="goSpin()"><span class="game-emoji">🎡</span><div class="game-name">Spin</div><div class="game-desc" id="gd-spin">2 spins</div></div>
-      <div class="game-card" id="gc-tap" onclick="goTapPanda()"><span class="game-emoji">🐼</span><div class="game-name">Tap Panda</div><div class="game-desc" id="gd-tap">10 secs</div></div>
-      <div class="game-card" id="gc-memory" onclick="goMemory()"><span class="game-emoji">🧠</span><div class="game-name">Memory</div><div class="game-desc" id="gd-memory">Match pairs</div></div>
+      <div class="game-card" id="gc-spin" onclick="goSpin()">
+        <div id="gc-spin-badge" style="display:none;position:absolute;top:-6px;right:-6px;background:#FFD600;color:#0D47A1;font-size:9px;font-weight:800;padding:2px 6px;border-radius:99px;z-index:2;">PLAY!</div>
+        <span class="game-emoji">🎡</span>
+        <div class="game-name">Spin</div>
+        <div class="game-desc" id="gd-spin">Win 8-15 pts!</div>
+      </div>
+      <div class="game-card" id="gc-tap" onclick="goTapPanda()" style="position:relative;">
+        <div id="gc-tap-badge" style="display:none;position:absolute;top:-6px;right:-6px;background:#FFD600;color:#0D47A1;font-size:9px;font-weight:800;padding:2px 6px;border-radius:99px;z-index:2;">PLAY!</div>
+        <span class="game-emoji">🐼</span>
+        <div class="game-name">Tap Panda</div>
+        <div class="game-desc" id="gd-tap">1 tap = 1 pt!</div>
+      </div>
+      <div class="game-card" id="gc-memory" onclick="goMemory()" style="position:relative;">
+        <div id="gc-memory-badge" style="display:none;position:absolute;top:-6px;right:-6px;background:#FFD600;color:#0D47A1;font-size:9px;font-weight:800;padding:2px 6px;border-radius:99px;z-index:2;">PLAY!</div>
+        <span class="game-emoji">🧠</span>
+        <div class="game-name">Memory</div>
+        <div class="game-desc" id="gd-memory">8 pts + bonus!</div>
+      </div>
     </div>
     <div id="allDoneCard" style="display:none;text-align:center;padding:8px 0;">
       <div style="font-size:32px;">🐼</div>
-      <div style="font-family:'Baloo 2',cursive;font-size:15px;font-weight:800;color:var(--bd);margin:4px 0;">See you next time!</div>
-      <div style="font-size:11px;color:#6B7280;">All games played today 🎈</div>
+      <div style="font-family:'Baloo 2',cursive;font-size:15px;font-weight:800;color:var(--bd);margin:4px 0;">Amazing! All 3 games done!</div>
+      <div style="font-size:11px;color:#6B7280;">Come back after your next haircut 🎈</div>
     </div>
   </div>
   <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;">
@@ -420,6 +435,170 @@ function newPlayer(){
   document.getElementById('loginName').focus();
   showScreen('s-login');
 }
+
+function showAlreadyPlayed(game){
+  showScreen('s-profile');
+  const isCooldown=todayPlayed.spin&&todayPlayed.tap&&todayPlayed.memory;
+  const prompt=document.getElementById('gamePrompt');
+  if(isCooldown&&player._lastGameDate){
+    const daysAgo=Math.floor((Date.now()-player._lastGameDate.getTime())/(1000*60*60*24));
+    const daysLeft=Math.max(1,30-daysAgo);
+    if(prompt){
+      prompt.textContent='Games available after your next haircut! (~'+daysLeft+' days)';
+      prompt.style.fontSize='13px';
+      prompt.style.color='rgba(255,255,255,.65)';
+      prompt.style.textShadow='none';
+    }
+  }
+  refreshGameCards();
+}
+
+function renderRemainingGames(){
+  const el=document.getElementById('remainingGames');
+  if(!el) return;
+  const gameInfo={
+    spin:{icon:'🎡',name:'Spin Wheel',fn:'goSpin',pts:'8-15 pts'},
+    tap:{icon:'🐼',name:'Tap Panda',fn:'goTapPanda',pts:'1pt per tap'},
+    memory:{icon:'🧠',name:'Memory Match',fn:'goMemory',pts:'8+2 pts'},
+  };
+  const remaining=Object.entries(gameInfo).filter(([k])=>!todayPlayed[k]);
+  const playedCount=3-remaining.length;
+
+  if(!remaining.length){
+    // Check if 30-day cooldown
+    const isCooldown=todayPlayed.spin&&todayPlayed.tap&&todayPlayed.memory;
+    if(isCooldown&&player._lastGameDate){
+      const daysAgo=Math.floor((Date.now()-player._lastGameDate.getTime())/(1000*60*60*24));
+      const daysLeft=Math.max(1,30-daysAgo);
+      el.innerHTML='<div style="background:rgba(255,255,255,.08);border-radius:12px;padding:12px;text-align:center;">'+
+        '<div style="font-size:24px;margin-bottom:4px;">✂️🐼</div>'+
+        '<div style="font-size:14px;font-weight:800;color:rgba(255,255,255,.9);">Games available after your next haircut!</div>'+
+        '<div style="font-size:11px;color:rgba(255,255,255,.5);margin-top:3px;">Come back in ~'+daysLeft+' days</div>'+
+      '</div>';
+    } else {
+      el.innerHTML='<div style="background:rgba(22,163,74,.15);border:1px solid rgba(22,163,74,.3);border-radius:10px;padding:10px;text-align:center;">'+
+        '<div style="font-size:22px;">🏆</div>'+
+        '<div style="font-size:13px;font-weight:800;color:#4ADE80;margin-top:4px;">All 3 games done today!</div>'+
+        '<div style="font-size:11px;color:rgba(255,255,255,.5);margin-top:2px;">Come back after your next haircut!</div>'+
+      '</div>';
+    }
+    return;
+  }
+
+  // Urgency message - BIG and BOLD
+  let urgencyHtml='';
+  if(playedCount===1) urgencyHtml='<div style="font-size:19px;font-weight:900;color:#FFD600;text-align:center;margin-bottom:8px;text-shadow:0 0 14px rgba(255,214,0,.6);">🔥 2 MORE GAMES LEFT — MORE POINTS!</div>';
+  if(playedCount===2) urgencyHtml='<div style="font-size:19px;font-weight:900;color:#FFD600;text-align:center;margin-bottom:8px;text-shadow:0 0 14px rgba(255,214,0,.6);">⚡ 1 MORE GAME LEFT — FINISH STRONG!</div>';
+
+  el.innerHTML=urgencyHtml+
+    '<div style="display:grid;grid-template-columns:'+(remaining.length===1?'1fr':'1fr 1fr')+';gap:8px;">'+
+    remaining.map(([k,g],i)=>
+      '<button onclick="'+g.fn+'()" style="background:linear-gradient(135deg,var(--bd),var(--b));border:'+(i===0?'2.5px solid #FFD600':'2px solid rgba(255,255,255,.2)')+';border-radius:12px;padding:12px 8px;text-align:center;cursor:pointer;width:100%;color:#fff;'+(i===0?'box-shadow:0 0 16px rgba(255,214,0,.5);':'')+' ">'+
+        '<div style="font-size:26px;margin-bottom:3px;">'+g.icon+'</div>'+
+        '<div style="font-size:14px;font-weight:800;">'+g.name+'</div>'+
+        '<div style="font-size:11px;color:'+(i===0?'#FFD600':'rgba(255,255,255,.55)')+';margin-top:2px;">'+g.pts+(i===0?' 👈 PLAY NEXT!':'')+'</div>'+
+      '</button>'
+    ).join('')+
+  '</div>';
+}
+
+function refreshGameCards(){
+  const games=['spin','tap','memory'];
+  const allDone=todayPlayed.spin&&todayPlayed.tap&&todayPlayed.memory;
+  const playedList=games.filter(g=>todayPlayed[g]);
+  const remaining=games.filter(g=>!todayPlayed[g]);
+  const playedCount=playedList.length;
+
+  // Progress bar
+  const pct=Math.round((playedCount/3)*100);
+  const fill=document.getElementById('gameProgressFill');
+  const lbl=document.getElementById('gameProgressLabel');
+  if(fill) fill.style.width=pct+'%';
+  if(lbl) lbl.textContent=playedCount+'/3 games';
+
+  // Prompt messages
+  const prompt=document.getElementById('gamePrompt');
+  if(prompt){
+    const msgs=[
+      ['🎮 Play all 3 games — max your points!','🚀 3 games waiting — lets go!','⚡ Spin · Tap · Match — all quick!'],
+      ['🔥 2 MORE GAMES LEFT — KEEP GOING!','⭐ 2 more games = MORE points!','💪 2 games left — on a roll!'],
+      ['🏁 1 MORE GAME LEFT — FINISH IT!','🎯 SO CLOSE — play the last game!','🌟 One more — do not stop now!'],
+      ['🎉 All done! Amazing effort!',''],
+    ][Math.min(playedCount,3)];
+    const pick=msgs[Math.floor(Math.random()*msgs.length)]||'';
+    prompt.textContent=pick;
+    prompt.style.fontSize=playedCount===0?'14px':'17px';
+    prompt.style.fontWeight=playedCount===0?'800':'900';
+    prompt.style.color=playedCount===0?'var(--bd)':'#FFD600';
+    prompt.style.textShadow=playedCount>0?'0 0 10px rgba(255,214,0,.4)':'none';
+  }
+
+  if(allDone){
+    document.getElementById('gameGrid').style.display='none';
+    const doneCard=document.getElementById('allDoneCard');
+    doneCard.style.display='block';
+    const isCooldown=player._lastGameDate&&((Date.now()-player._lastGameDate.getTime())<30*24*60*60*1000);
+    if(isCooldown){
+      const daysAgo=Math.floor((Date.now()-player._lastGameDate.getTime())/(1000*60*60*24));
+      const daysLeft=Math.max(1,30-daysAgo);
+      doneCard.innerHTML='<div style="font-size:28px;margin-bottom:6px;">✂️🐼</div>'+
+        '<div style="font-size:14px;font-weight:800;color:var(--bd);margin:4px 0;">Games available after your next haircut!</div>'+
+        '<div style="font-size:11px;color:#6B7280;margin-top:2px;">Come back in ~'+daysLeft+' days</div>';
+    } else {
+      doneCard.innerHTML='<div style="font-size:36px;">🎉</div>'+
+        '<div style="font-size:15px;font-weight:800;color:var(--bd);margin:4px 0;">All 3 games done! Amazing!</div>'+
+        '<div style="font-size:11px;color:#6B7280;">Come back after your next haircut 🎈</div>';
+    }
+    if(prompt) prompt.textContent='';
+    return;
+  }
+
+  document.getElementById('gameGrid').style.display='grid';
+  document.getElementById('allDoneCard').style.display='none';
+
+  const gameInfo={
+    spin:{fn:'goSpin',pts:'8-15 pts'},
+    tap:{fn:'goTapPanda',pts:'1pt/tap'},
+    memory:{fn:'goMemory',pts:'8+2 pts'},
+  };
+
+  games.forEach(g=>{
+    const card=document.getElementById('gc-'+g);
+    const desc=document.getElementById('gd-'+g);
+    if(!card) return;
+    const done=todayPlayed[g];
+    const isNext=!done&&remaining[0]===g;
+    if(done){
+      card.style.opacity='0.4';
+      card.style.border='2px solid rgba(255,255,255,.08)';
+      card.style.boxShadow='none';
+      card.style.transform='scale(1)';
+      card.style.cursor='default';
+      card.onclick=null;
+      if(desc) desc.textContent='✅ Done!';
+    } else if(isNext){
+      card.style.opacity='1';
+      card.style.border='3px solid #FFD600';
+      card.style.boxShadow='0 0 20px rgba(255,214,0,.65)';
+      card.style.transform='scale(1.05)';
+      card.style.cursor='pointer';
+      if(desc) desc.textContent=gameInfo[g].pts+' — PLAY NOW!';
+      if(g==='spin')   card.onclick=goSpin;
+      if(g==='tap')    card.onclick=goTapPanda;
+      if(g==='memory') card.onclick=goMemory;
+    } else {
+      card.style.opacity='0.8';
+      card.style.border='2px solid rgba(255,255,255,.2)';
+      card.style.boxShadow='none';
+      card.style.transform='scale(1)';
+      card.style.cursor='pointer';
+      if(desc) desc.textContent=gameInfo[g].pts;
+      if(g==='spin')   card.onclick=goSpin;
+      if(g==='tap')    card.onclick=goTapPanda;
+      if(g==='memory') card.onclick=goMemory;
+    }
+  });
+}
 function confirmGoHome(){
   goHome();
 }
@@ -504,11 +683,404 @@ function showAutoResetWarning(){
 
 function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
 function goBack(){showScreen(prevScreen);}
+// ══ GAME STATE VARIABLES ══
+const SEGS=[
+  {pts:8, color:'#3B82F6'},{pts:9, color:'#8B5CF6'},{pts:10,color:'#EC4899'},
+  {pts:11,color:'#22C55E'},{pts:12,color:'#F97316'},{pts:13,color:'#EAB308'},
+  {pts:14,color:'#14B8A6'},{pts:15,color:'#FFD600'},{pts:8, color:'#EF4444'},
+  {pts:10,color:'#F59E0B'},{pts:12,color:'#10B981'},{pts:9, color:'#6366F1'},
+];
+const MEM_EMOJIS=['🐼','🌟','🎡','🎈','🍭','🚀','🎮','🦁'];
+let spinCount=0,bestSpinPts=0,spinAngle=0,isSpinning=false;
+let tapScore=0,tapSeconds=10,tapRunning=false,tapTimer=null;
+let memCards=[],memFlipped=[],memMatched=0,memMoves=0,memSeconds=0,memStarted=false,memTimerInt=null,memLock=false;
+
+// ══ SPIN WHEEL ══
+const cvs=document.createElement('canvas');
+let ctx,CX=125,CY=125,R=114;
+function initWheel(){
+  const c=document.getElementById('wCanvas');
+  if(!c) return;
+  ctx=c.getContext('2d');
+  drawWheel(0);
+}
+function drawWheel(angle){
+  if(!ctx) return;
+  const n=SEGS.length;
+  const arc=(2*Math.PI)/n;
+  ctx.clearRect(0,0,250,250);
+  SEGS.forEach((s,i)=>{
+    const start=angle+i*arc;
+    ctx.beginPath();ctx.moveTo(CX,CY);
+    ctx.arc(CX,CY,R,start,start+arc);
+    ctx.fillStyle=s.color;ctx.fill();
+    ctx.strokeStyle='rgba(255,255,255,.3)';ctx.lineWidth=1.5;ctx.stroke();
+    ctx.save();ctx.translate(CX,CY);ctx.rotate(start+arc/2);
+    ctx.textAlign='right';ctx.fillStyle='#fff';
+    ctx.font='bold 14px Nunito,sans-serif';
+    ctx.fillText(s.pts+'pts',R-10,5);ctx.restore();
+  });
+  // centre
+  ctx.beginPath();ctx.arc(CX,CY,22,0,2*Math.PI);
+  ctx.fillStyle='#0D47A1';ctx.fill();
+  ctx.fillStyle='#FFD600';ctx.font='bold 13px Nunito,sans-serif';
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText('🐼',CX,CY);
+}
+function goSpin(){
+  if(todayPlayed.spin){showAlreadyPlayed('spin');return;}
+  spinCount=0;bestSpinPts=0;
+  document.getElementById('spinChanceLabel').textContent='Spin 1 of 2';
+  document.getElementById('bestSoFar').textContent='—';
+  document.getElementById('pandaReact').textContent='🐼';
+  document.getElementById('spinBtn').textContent='SPIN! 🎡';
+  document.getElementById('spinBtn').disabled=false;
+  document.getElementById('spinSkipLabel').textContent='';
+  initWheel();
+  showScreen('s-spin');
+}
+function startSpin(){
+  if(isSpinning) return;
+  isSpinning=true;
+  document.getElementById('spinBtn').disabled=true;
+  document.getElementById('pandaReact').style.animation='jump 0.4s ease infinite';
+  const extraSpins=5+Math.random()*5;
+  const targetAngle=spinAngle+extraSpins*2*Math.PI+Math.random()*2*Math.PI;
+  const duration=3000+Math.random()*1000;
+  const start=performance.now();
+  function animate(now){
+    const elapsed=now-start;
+    const progress=Math.min(elapsed/duration,1);
+    const ease=1-Math.pow(1-progress,4);
+    spinAngle=spinAngle+(targetAngle-spinAngle)*ease;
+    drawWheel(spinAngle);
+    if(progress<1){requestAnimationFrame(animate);}
+    else{
+      isSpinning=false;
+      document.getElementById('pandaReact').style.animation='';
+      // Find landed segment
+      const n=SEGS.length;const arc=(2*Math.PI)/n;
+      const norm=((spinAngle%(2*Math.PI))+2*Math.PI)%(2*Math.PI);
+      const idx=Math.floor(((2*Math.PI-norm+Math.PI/2)%(2*Math.PI))/arc)%n;
+      const earned=SEGS[idx].pts;
+      spinCount++;
+      if(earned>bestSpinPts) bestSpinPts=earned;
+      document.getElementById('bestSoFar').textContent=bestSpinPts+'pts';
+      document.getElementById('pandaReact').textContent=earned>=13?'🤩':earned>=11?'😄':'😊';
+      if(spinCount<2){
+        document.getElementById('spinChanceLabel').textContent='Spin 2 of 2 — Best: '+bestSpinPts+'pts';
+        document.getElementById('spinBtn').textContent='SPIN AGAIN! 🎡 (Best so far: '+bestSpinPts+')';
+        document.getElementById('spinBtn').disabled=false;
+      } else {
+        document.getElementById('spinChanceLabel').textContent='Done! Earned: '+bestSpinPts+' pts';
+        document.getElementById('spinBtn').textContent='Take '+bestSpinPts+' pts! 🎉';
+        document.getElementById('spinBtn').disabled=false;
+        document.getElementById('spinBtn').onclick=()=>{saveAndShowResult(bestSpinPts,'spin');};
+        savePoints(bestSpinPts,'spin');
+      }
+    }
+  }
+  requestAnimationFrame(animate);
+}
+
+// ══ TAP PANDA ══
+function goTapPanda(){
+  if(todayPlayed.tap){showAlreadyPlayed('tap');return;}
+  tapScore=0;tapSeconds=10;tapRunning=false;
+  document.getElementById('tapCount').textContent='0';
+  document.getElementById('tapTime').textContent='10';
+  document.getElementById('tapTime').style.color='#fff';
+  document.getElementById('tapBest').textContent=player.best_tap_score||'--';
+  document.getElementById('tapStartBtn').style.display='block';
+  document.getElementById('tapStartBtn').textContent='START! 🐼';
+  document.getElementById('tapStartBtn').disabled=false;
+  document.getElementById('tapStartBtn').onclick=startTapGame;
+  document.getElementById('pandaTarget').style.display='none';
+  if(tapTimer) clearInterval(tapTimer);
+  let statusHtml='';
+  if(globalBestTap.score){
+    const isChamp=globalBestTap.name===player.name;
+    statusHtml+='<div style="font-size:16px;color:#FFD600;font-weight:900;margin-bottom:8px;background:rgba(255,214,0,.12);border-radius:10px;padding:8px 10px;border:1px solid rgba(255,214,0,.3);">🏆 ALL-TIME CHAMPION<br><span style="font-size:20px;color:#fff;">'+globalBestTap.name+'</span><br><span style="font-size:18px;color:#FFD600;">'+globalBestTap.score+' taps</span>'+(isChamp?' <span style="font-size:13px;color:#4ADE80;">(you!)</span>':'')+'</div>';
+  }
+  if(player.best_tap_score){
+    statusHtml+='<div style="font-size:14px;color:rgba(255,255,255,.8);font-weight:800;margin-bottom:6px;">Your best: <span style="color:#FFD600;font-size:16px;">'+player.best_tap_score+'</span> taps</div>';
+  }
+  statusHtml+='<div style="font-size:17px;font-weight:800;color:#fff;">Tap the 🐼 fast!</div><div style="font-size:12px;color:rgba(255,255,255,.5);margin-top:3px;">Tap START to begin</div>';
+  document.getElementById('tapStatus').style.display='block';
+  document.getElementById('tapStatus').innerHTML=statusHtml;
+  showScreen('s-tap');
+}
+function startTapGame(){
+  tapScore=0;tapSeconds=10;tapRunning=true;
+  document.getElementById('tapStatus').style.display='none';
+  document.getElementById('pandaTarget').style.display='block';
+  document.getElementById('tapStartBtn').style.display='none';
+  document.getElementById('tapCount').textContent='0';
+  movePanda();
+  tapTimer=setInterval(()=>{
+    tapSeconds--;
+    document.getElementById('tapTime').textContent=tapSeconds;
+    if(tapSeconds<=3) document.getElementById('tapTime').style.color='#EF4444';
+    if(tapSeconds<=0){clearInterval(tapTimer);endTapGame();}
+  },1000);
+}
+function movePanda(){
+  if(!tapRunning) return;
+  const track=document.getElementById('tapGame');
+  const tw=Math.max((track.offsetWidth||300)-60,100);
+  const th=Math.max((track.offsetHeight||200)-60,100);
+  document.getElementById('pandaTarget').style.left=Math.random()*tw+'px';
+  document.getElementById('pandaTarget').style.top=Math.random()*th+'px';
+}
+function tapPanda(){
+  if(!tapRunning) return;
+  tapScore++;
+  document.getElementById('tapCount').textContent=tapScore;
+  movePanda();
+}
+function endTapGame(){
+  if(!tapRunning&&tapScore===0) return;
+  tapRunning=false;
+  document.getElementById('tapTime').style.color='#fff';
+  document.getElementById('pandaTarget').style.display='none';
+  const isNewBest=!player.best_tap_score||tapScore>player.best_tap_score;
+  if(isNewBest) player.best_tap_score=tapScore;
+  const prevGlobalTap=globalBestTap.score||0;
+  const isGlobalTapBest=tapScore>prevGlobalTap;
+  if(isGlobalTapBest) globalBestTap={score:tapScore,name:player.name};
+  let tapResultHtml='';
+  if(isGlobalTapBest){
+    tapResultHtml='<span style="font-size:18px;font-weight:900;color:#FFD600;">🏆 ALL-TIME RECORD!</span><br><span style="font-size:22px;font-weight:900;color:#fff;">'+tapScore+' taps!</span><br><span style="font-size:14px;">You are the Panda Champion!</span>';
+  } else if(isNewBest){
+    tapResultHtml='<span style="font-size:18px;font-weight:900;color:#FFD600;">⭐ Personal best!</span><br><span style="font-size:22px;font-weight:900;color:#fff;">'+tapScore+' taps</span>'+(prevGlobalTap?'<br><span style="font-size:13px;">Champion: <strong>'+globalBestTap.name+'</strong> ('+prevGlobalTap+')</span>':'');
+  } else {
+    tapResultHtml='<span style="font-size:22px;font-weight:900;color:#fff;">'+tapScore+' taps!</span>'+(prevGlobalTap?'<br><span style="font-size:13px;color:#FFD600;">Champion: <strong>'+globalBestTap.name+'</strong> ('+prevGlobalTap+')</span>':'');
+  }
+  tapResultHtml+='<br><span style="font-size:16px;color:var(--y);font-weight:800;">'+tapScore+' pts earned!</span>';
+  document.getElementById('tapStatus').style.display='block';
+  document.getElementById('tapStatus').innerHTML=tapResultHtml;
+  document.getElementById('tapStartBtn').style.display='block';
+  document.getElementById('tapStartBtn').textContent='See my '+tapScore+' pts! 🎉';
+  document.getElementById('tapStartBtn').disabled=false;
+  document.getElementById('tapStartBtn').onclick=()=>saveAndShowResult(tapScore,'tap');
+  const updates={game_points:Math.min((player.game_points||0)+tapScore,999)};
+  if(isNewBest) updates.best_tap_score=tapScore;
+  savePoints(tapScore,'tap');
+}
+
+// ══ MEMORY MATCH ══
+function goMemory(){
+  if(todayPlayed.memory){showAlreadyPlayed('memory');return;}
+  memMatched=0;memMoves=0;memStarted=false;memSeconds=0;memLock=false;
+  if(memTimerInt) clearInterval(memTimerInt);
+  document.getElementById('memMoves').textContent='0';
+  document.getElementById('memTime').textContent='0s';
+  document.getElementById('memPairs').textContent='0/4';
+  const hintEl=document.getElementById('memBestHint');
+  const bestTime=player.best_memory_time;
+  if(hintEl){
+    hintEl.style.display='block';
+    let html='';
+    if(globalBestMemory.time){
+      const isChamp=globalBestMemory.name===player.name;
+      html+='<div style="margin-bottom:4px;">🏆 All-time fastest: <strong>'+globalBestMemory.name+'</strong> in <strong>'+globalBestMemory.time+'s</strong>'+(isChamp?' (you!)':'')+'</div>';
+    }
+    if(bestTime){
+      html+='<div style="font-size:14px;font-weight:800;">⏱️ Your best: <span style="color:#FFD600;font-size:16px;font-weight:900;">'+bestTime+'s</span>';
+      if(globalBestMemory.time&&bestTime>globalBestMemory.time) html+=' · Beat <span style="color:#FFD600;font-weight:900;">'+globalBestMemory.time+'s</span> to be champion!';
+      html+='</div><div style="font-size:13px;color:rgba(255,255,255,.6);margin-top:2px;">Beat your best for <span style="color:#FFD600;font-weight:800;">+2 bonus pts!</span></div>';
+    } else {
+      html+='🧠 Earn <strong>8 pts</strong> + <strong>+2 bonus</strong> if you set the fastest time!';
+    }
+    hintEl.innerHTML=html;
+  }
+  const targetTime=globalBestMemory.time||(bestTime||null);
+  document.getElementById('memStartBtn').style.display='block';
+  document.getElementById('memStartBtn').textContent=targetTime?'START! Beat '+targetTime+'s 🏆':'START! Set the first record! 🧠';
+  document.getElementById('memStartBtn').disabled=false;
+  document.getElementById('memStartBtn').onclick=startMemory;
+  buildMemGrid(false);
+  showScreen('s-memory');
+}
+function buildMemGrid(reveal){
+  const pairs=[...MEM_EMOJIS.slice(0,4),...MEM_EMOJIS.slice(0,4)].sort(()=>Math.random()-.5);
+  memCards=pairs;
+  const grid=document.getElementById('memGrid');
+  grid.innerHTML=pairs.map((e,i)=>`<div class="mem-card${reveal?' flipped':''}" id="mc${i}" onclick="flipCard(${i})">${reveal?e:'🐼'}</div>`).join('');
+}
+function startMemory(){
+  memStarted=true;memSeconds=0;
+  document.getElementById('memStartBtn').style.display='none';
+  buildMemGrid(false);
+  memTimerInt=setInterval(()=>{
+    memSeconds++;
+    document.getElementById('memTime').textContent=memSeconds+'s';
+  },1000);
+}
+function flipCard(i){
+  if(!memStarted||memLock) return;
+  const card=document.getElementById('mc'+i);
+  if(!card||card.classList.contains('flipped')||card.classList.contains('matched')) return;
+  card.classList.add('flipped');
+  card.textContent=memCards[i];
+  memFlipped.push(i);
+  if(memFlipped.length===2){
+    memLock=true;memMoves++;
+    document.getElementById('memMoves').textContent=memMoves;
+    const[a,b]=memFlipped;
+    if(memCards[a]===memCards[b]){
+      document.getElementById('mc'+a).classList.add('matched');
+      document.getElementById('mc'+b).classList.add('matched');
+      memMatched++;
+      document.getElementById('memPairs').textContent=memMatched+'/4';
+      memFlipped=[];memLock=false;
+      if(memMatched===4) setTimeout(endMemory,400);
+    } else {
+      setTimeout(()=>{
+        document.getElementById('mc'+a).classList.remove('flipped');
+        document.getElementById('mc'+b).classList.remove('flipped');
+        document.getElementById('mc'+a).textContent='🐼';
+        document.getElementById('mc'+b).textContent='🐼';
+        memFlipped=[];memLock=false;
+      },900);
+    }
+  }
+}
+function endMemory(){
+  clearInterval(memTimerInt);memStarted=false;
+  const prevBest=player.best_memory_time||null;
+  const prevGlobal=globalBestMemory.time||null;
+  // +2 bonus ONLY if beat personal best (faster time = lower number)
+  const isPersonalBest=!prevBest||memSeconds<prevBest;
+  const isGlobalBest=!prevGlobal||memSeconds<prevGlobal;
+  const pts=8+(isPersonalBest?2:0); // flat 8 + 2 ONLY if personal best beaten
+  if(isPersonalBest) player.best_memory_time=memSeconds;
+  if(isGlobalBest) globalBestMemory={time:memSeconds,name:player.name};
+  const hintEl=document.getElementById('memBestHint');
+  if(hintEl){
+    hintEl.style.display='block';
+    if(isGlobalBest){
+      hintEl.innerHTML='<span style="font-size:18px;font-weight:900;">🏆 ALL-TIME RECORD: '+memSeconds+'s!</span><br><span style="font-size:14px;">You are the fastest kid ever! +2 bonus!</span>';
+      hintEl.style.background='rgba(22,163,74,.2)';hintEl.style.borderColor='rgba(22,163,74,.5)';hintEl.style.color='#4ADE80';
+    } else if(isPersonalBest&&prevBest){
+      hintEl.innerHTML='<span style="font-size:17px;font-weight:900;">⭐ Personal best: '+memSeconds+'s!</span><br><span style="font-size:13px;">(was '+prevBest+'s) +2 bonus!'+(prevGlobal?' Champion: '+globalBestMemory.name+' ('+prevGlobal+'s)':'')+'</span>';
+      hintEl.style.background='rgba(22,163,74,.2)';hintEl.style.borderColor='rgba(22,163,74,.5)';hintEl.style.color='#4ADE80';
+    } else if(isPersonalBest){
+      hintEl.innerHTML='<span style="font-size:17px;font-weight:900;">⭐ First record: '+memSeconds+'s!</span><br><span style="font-size:13px;">+2 bonus earned!</span>';
+      hintEl.style.background='rgba(22,163,74,.2)';hintEl.style.borderColor='rgba(22,163,74,.5)';hintEl.style.color='#4ADE80';
+    } else {
+      // NOT beaten — flat 8 pts only, clear message
+      hintEl.innerHTML='<span style="font-size:16px;font-weight:900;">⏱️ '+memSeconds+'s</span><br><span style="font-size:13px;">Beat your best <strong>'+(prevBest||memSeconds)+'s</strong> next time for +2 bonus!</span>';
+      hintEl.style.background='rgba(255,214,0,.15)';hintEl.style.borderColor='rgba(255,214,0,.3)';hintEl.style.color='var(--y)';
+    }
+  }
+  document.getElementById('memStartBtn').style.display='block';
+  document.getElementById('memStartBtn').textContent='See my '+pts+' pts! 🎉';
+  document.getElementById('memStartBtn').disabled=false;
+  document.getElementById('memStartBtn').onclick=()=>saveAndShowResult(pts,'memory');
+  savePoints(pts,'memory',isPersonalBest?memSeconds:null);
+}
+
+// ══ RESULT & PROFILE ══
+function renderProfile(){
+  const pts=player.game_points||0;
+  document.getElementById('profileName').textContent=player.name||'Player';
+  document.getElementById('totalPts').textContent=pts+' pts';
+  drawMilestoneTrack('milestoneTrack',pts);
+  // Compact tier: current + next only
+  const curTier=TIERS.slice().reverse().find(t=>pts>=t.pts)||null;
+  const nextTier=TIERS.find(t=>pts<t.pts)||null;
+  let tierHtml='';
+  if(curTier){
+    tierHtml+=`<div style="display:flex;align-items:center;gap:8px;padding:6px;background:${curTier.color}22;border-radius:10px;border:1px solid ${curTier.color}44;margin-bottom:5px;">
+      <div style="font-size:22px;">${curTier.icon}</div>
+      <div><div style="font-size:12px;font-weight:800;color:${curTier.color};">Level ${curTier.level} · ${curTier.badge}</div>
+      <div style="font-size:11px;color:#16A34A;">✅ ${curTier.reward}</div></div>
+    </div>`;
+  }
+  if(nextTier){
+    const needed=nextTier.pts-pts;
+    tierHtml+=`<div style="display:flex;align-items:center;gap:8px;padding:6px;background:#F9FAFB;border-radius:10px;border:1px dashed #E5E7EB;">
+      <div style="font-size:18px;filter:grayscale(.5);">${nextTier.icon}</div>
+      <div><div style="font-size:12px;font-weight:800;color:#6B7280;">Next: Level ${nextTier.level} · ${nextTier.badge}</div>
+      <div style="font-size:11px;color:#FF8C00;font-weight:700;">⚡ ${needed} more points!</div></div>
+    </div>`;
+  }
+  if(!curTier&&!nextTier){
+    tierHtml='<div style="font-size:12px;color:#6B7280;text-align:center;padding:6px;">Start playing to earn levels!</div>';
+  }
+  document.getElementById('tierList').innerHTML=tierHtml;
+  refreshGameCards();
+}
+
+function drawMilestoneTrack(containerId,pts){
+  const el=document.getElementById(containerId);
+  if(!el) return;
+  const MAX=300;
+  const pct=Math.min((pts/MAX)*100,100);
+  const tiers=TIERS;
+  const cps=tiers.map(t=>{
+    const l=(t.pts/MAX)*100;
+    const done=pts>=t.pts;
+    return`<div style="position:absolute;top:0;left:calc(${l}% - 8px);font-size:13px;filter:${done?'none':'grayscale(1) opacity(.25)'};" title="${t.badge}">${t.icon}</div>`;
+  }).join('');
+  el.innerHTML=`<div style="position:relative;height:44px;margin-bottom:2px;">
+    <div style="position:absolute;top:18px;left:0;right:0;height:5px;background:rgba(0,0,0,.08);border-radius:99px;"></div>
+    <div style="position:absolute;top:18px;left:0;height:5px;width:${pct}%;background:linear-gradient(90deg,#FFD600,#FF8C00);border-radius:99px;transition:width 1s;"></div>
+    ${cps}
+    <div style="position:absolute;top:0;left:calc(${Math.min(pct,96)}% - 8px);font-size:15px;">🐼</div>
+  </div>`;
+}
+
+function showResult(pts){saveAndShowResult(pts,'');}
+async function saveAndShowResult(pts,gameType){
+  const prevTotal=player.game_points||0;
+  const newTotal=Math.min(prevTotal+pts,999);
+  // Update player pts (savePoints already updated, just refresh display)
+  player.game_points=newTotal;
+  document.getElementById('resultEmoji').textContent=pts>=15?'🤩':pts>=10?'🎉':'😊';
+  document.getElementById('resultLabel').textContent='You earned';
+  document.getElementById('resultPts').textContent='+'+pts;
+  document.getElementById('resultTotal').textContent=newTotal+' pts';
+  drawMilestoneTrack('resultMilestoneTrack',newTotal);
+  // Reward banner
+  const tier=TIERS.slice().reverse().find(t=>newTotal>=t.pts)||null;
+  const next=TIERS.find(t=>newTotal<t.pts)||null;
+  const bannerEl=document.getElementById('rewardBanner');
+  if(tier){
+    const justUnlocked=TIERS.slice().reverse().find(t=>newTotal>=t.pts&&prevTotal<t.pts);
+    if(justUnlocked){
+      bannerEl.innerHTML=`<div style="background:linear-gradient(135deg,${justUnlocked.color},${justUnlocked.color}88);border-radius:10px;padding:8px 12px;text-align:center;margin-top:6px;display:flex;align-items:center;gap:10px;">
+        <div style="font-size:30px;">${justUnlocked.icon}</div>
+        <div style="text-align:left;">
+          <div style="font-size:10px;font-weight:800;color:#fff;opacity:.8;text-transform:uppercase;letter-spacing:1px;">Level ${justUnlocked.level} Unlocked!</div>
+          <div style="font-size:16px;font-weight:900;color:#fff;">${justUnlocked.badge}</div>
+          <div style="font-size:11px;color:#fff;opacity:.85;">${justUnlocked.reward} — show staff! 🎀</div>
+        </div>
+      </div>`;
+    } else {
+      bannerEl.innerHTML=`<div style="background:#F0FDF4;border-radius:10px;padding:8px 12px;margin-top:6px;display:flex;align-items:center;gap:8px;">
+        <div style="font-size:24px;">${tier.icon}</div>
+        <div><div style="font-size:10px;color:#16A34A;font-weight:700;text-transform:uppercase;">Current Level</div>
+        <div style="font-size:14px;font-weight:800;color:#15803D;">${tier.badge}</div></div>
+      </div>`;
+    }
+  } else {bannerEl.innerHTML='';}
+  if(next){
+    bannerEl.innerHTML+=`<div style="text-align:center;padding:5px 8px;color:#6B7280;font-size:11px;background:#F9FAFB;border-radius:8px;margin-top:4px;">${next.pts-newTotal}pts → ${next.icon} Level ${next.level}: ${next.badge}</div>`;
+  }
+  renderRemainingGames();
+  showScreen('s-result');
+  if(pts>=10) setTimeout(launchConfetti,300);
+  await loadSidebarLb();
+}
+
 function goProfile(){
   renderProfile();
   showScreen('s-profile');
-  loadSidebarLb(); // refresh sidebar with latest rank
+  loadSidebarLb();
 }
+
 function goLeaderboard(){prevScreen=document.querySelector('.screen.active')?.id||'s-profile';loadLeaderboard();showScreen('s-lb');}
 function goStaff(){showScreen('s-staff');}
 
@@ -684,555 +1256,48 @@ async function fetchGlobalBests(){
 }
 
 async function checkTodaySessions(){
+  // Check if player has played in last 30 days (1 month cooldown)
+  // If yes — block all games with "come back after next haircut" message
+  if(!player.id) return;
   try{
-    const today=new Date().toISOString().split('T')[0];
-    const rows=await sb('game_sessions','GET',null,
-      'select=game_type&customer_id=eq.'+player.id+
-      '&created_at=gte.'+today+'T00:00:00');
+    const thirtyDaysAgo=new Date(Date.now()-30*24*60*60*1000).toISOString();
+    const sessions=await fetch(
+      SB_URL+'/rest/v1/game_sessions?select=game_type,created_at&customer_id=eq.'+player.id+'&order=created_at.desc&limit=10',
+      {headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}}
+    ).then(r=>r.json());
+
+    // Find most recent session
+    const lastSession=sessions&&sessions.length?sessions[0]:null;
+    const lastPlayed=lastSession?new Date(lastSession.created_at):null;
+
+    if(lastPlayed&&(Date.now()-lastPlayed.getTime())<30*24*60*60*1000){
+      // Played within last 30 days — mark all as played
+      todayPlayed={spin:true,tap:true,memory:true};
+      // Store last played date for message
+      player._lastGameDate=lastPlayed;
+    } else {
+      // Not played in 30+ days OR never played — fresh session
+      todayPlayed={spin:false,tap:false,memory:false};
+      player._lastGameDate=null;
+    }
+
+    // Check what games played in this current session (since last 30-day reset)
+    // If within cooldown period, keep all blocked
+    if(!todayPlayed.spin){
+      // Within the current active session, check what was played today
+      const today=new Date().toISOString().split('T')[0];
+      sessions.filter(s=>s.created_at.startsWith(today)).forEach(s=>{
+        if(s.game_type==='spin') todayPlayed.spin=true;
+        if(s.game_type==='tap') todayPlayed.tap=true;
+        if(s.game_type==='memory') todayPlayed.memory=true;
+      });
+    }
+  }catch(e){
+    console.warn('Session check error:',e.message);
     todayPlayed={spin:false,tap:false,memory:false};
-    rows.forEach(r=>{if(r.game_type) todayPlayed[r.game_type]=true;});
-  }catch(e){console.warn('Session check error:',e);}
-}
-
-function allGamesPlayedToday(){
-  return todayPlayed.spin&&todayPlayed.tap&&todayPlayed.memory;
-}
-
-// == PROFILE ==
-function renderRemainingGames(){
-  const el=document.getElementById('remainingGames');
-  if(!el) return;
-  const gameInfo={
-    spin:{icon:'🎡',name:'Spin',fn:'goSpin()'},
-    tap:{icon:'🐼',name:'Tap Panda',fn:'goTapPanda()'},
-    memory:{icon:'🧠',name:'Memory',fn:'goMemory()'},
-  };
-  const remaining=Object.entries(gameInfo).filter(([k])=>!todayPlayed[k]);
-  if(!remaining.length){
-    el.innerHTML=`<div style="background:rgba(255,255,255,.1);border-radius:10px;padding:8px;text-align:center;font-size:12px;color:rgba(255,255,255,.7);">
-      🐼 All 3 games done today! Come back next visit.
-    </div>`;
-    return;
-  }
-  el.innerHTML=`<div style="font-size:11px;font-weight:700;color:rgba(255,255,255,.6);margin-bottom:4px;text-align:center;">Play another game →</div>
-  <div style="display:grid;grid-template-columns:${remaining.length===1?'1fr':'1fr 1fr'};gap:6px;">
-    ${remaining.map(([k,g])=>`
-      <button onclick="${g.fn}" style="background:linear-gradient(135deg,var(--bd),var(--b));border:2px solid rgba(255,255,255,.2);border-radius:10px;padding:8px;text-align:center;cursor:pointer;color:#fff;font-family:'Baloo 2',cursive;font-size:14px;font-weight:800;">
-        ${g.icon} ${g.name}
-      </button>`).join('')}
-  </div>`;
-}
-
-function refreshGameCards(){
-  const games=['spin','tap','memory'];
-  const all=allGamesPlayedToday();
-  // Show/hide all done card
-  const allDone=document.getElementById('allDoneCard');
-  const gameGrid=document.getElementById('gameGrid');
-  if(allDone&&gameGrid){
-    allDone.style.display=all?'block':'none';
-    gameGrid.style.display=all?'none':'grid';
-  }
-  if(all) return;
-  // Update individual card states
-  games.forEach(g=>{
-    const card=document.getElementById('gc-'+g);
-    const desc=document.getElementById('gd-'+g);
-    if(!card) return;
-    if(todayPlayed[g]){
-      card.style.opacity='.45';
-      card.style.pointerEvents='none';
-      card.style.border='2px solid rgba(22,163,74,.5)';
-      if(desc) desc.innerHTML='✅ Done today!';
-    } else {
-      card.style.opacity='1';
-      card.style.pointerEvents='auto';
-      card.style.border='3px solid transparent';
-      if(desc){
-        const defaults={spin:'2 spins, best wins',tap:'10 seconds!',memory:'Quick pairs!'};
-        desc.textContent=defaults[g];
-      }
-    }
-  });
-}
-
-function showAlreadyPlayed(game){
-  // Show panda saying already played
-  const overlay=document.createElement('div');
-  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:3000;display:flex;align-items:center;justify-content:center;padding:20px;';
-  const gameNames={spin:'Spin Wheel',tap:'Tap Panda',memory:'Memory Match'};
-  overlay.innerHTML=`
-    <div style="background:#fff;border-radius:24px;padding:32px 24px;max-width:320px;width:100%;text-align:center;">
-      <div style="font-size:72px;margin-bottom:8px;animation:bounce-anim 1s infinite;">🐼</div>
-      <div style="font-family:'Baloo 2',cursive;font-size:22px;font-weight:800;color:#0D47A1;margin-bottom:6px;">Already played!</div>
-      <div style="font-size:14px;color:#6B7280;line-height:1.6;margin-bottom:20px;">
-        You've already played <strong>${gameNames[game]||game}</strong> today.<br>
-        Try another game or come back after your next haircut! 🎈
-      </div>
-      <button id="ov-close" style="width:100%;padding:13px;background:linear-gradient(135deg,#FFD600,#FF8C00);border:none;border-radius:12px;font-family:'Baloo 2',cursive;font-size:18px;font-weight:800;color:#0D47A1;cursor:pointer;">Got it! 🐼</button>
-    </div>`;
-  document.body.appendChild(overlay);
-  document.getElementById('ov-close').addEventListener('click',()=>document.body.removeChild(overlay));
-  overlay.addEventListener('click',e=>{if(e.target===overlay)document.body.removeChild(overlay);});
-}
-
-function drawMilestoneTrack(pts, containerId){
-  const el=document.getElementById(containerId);
-  if(!el) return;
-  const MAX=300;
-  const pct=Math.min((pts/MAX)*100,100);
-  const tiers=[
-    {pts:50,icon:'🌟'},{pts:100,icon:'🏅'},{pts:150,icon:'🦸'},
-    {pts:200,icon:'⭐'},{pts:250,icon:'🔥'},{pts:300,icon:'🐉'}
-  ];
-  el.innerHTML=`
-    <div style="position:relative;height:44px;margin-bottom:2px;">
-      <!-- Track -->
-      <div style="position:absolute;top:20px;left:0;right:0;height:10px;background:#E5E7EB;border-radius:99px;overflow:hidden;">
-        <div style="width:${pct}%;height:100%;background:linear-gradient(90deg,#FFD600,#FF8C00);border-radius:99px;transition:width .8s cubic-bezier(.175,.885,.32,1.275);"></div>
-      </div>
-      <!-- Start dot -->
-      <div style="position:absolute;top:17px;left:0;width:16px;height:16px;background:#9CA3AF;border-radius:50%;border:2px solid #fff;"></div>
-      <!-- Milestone markers -->
-      ${tiers.map(t=>{
-        const pos=Math.min((t.pts/MAX)*100,100);
-        const done=pts>=t.pts;
-        return`<div style="position:absolute;top:0;left:calc(${pos}% - 18px);text-align:center;width:36px;">
-          <div style="font-size:${done?'26':'22'}px;line-height:1;filter:${done?'none':'grayscale(1) opacity(.5)'};">${t.icon}</div>
-          <div style="position:absolute;top:14px;left:50%;transform:translateX(-50%);width:12px;height:12px;background:${done?'#16A34A':'#9CA3AF'};border-radius:50%;border:2px solid #fff;"></div>
-          <div style="font-size:9px;font-weight:700;color:${done?'#16A34A':'#9CA3AF'};margin-top:18px;white-space:nowrap;">${t.pts}pts</div>
-        </div>`;
-      }).join('')}
-      <!-- Player dot -->
-      <div style="position:absolute;top:13px;left:calc(${pct}% - 10px);width:20px;height:20px;background:var(--bd);border-radius:50%;border:3px solid var(--y);box-shadow:0 0 8px rgba(255,214,0,.6);transition:left .8s cubic-bezier(.175,.885,.32,1.275);display:flex;align-items:center;justify-content:center;font-size:10px;">🐼</div>
-    </div>
-    <!-- Points label -->
-    <div style="text-align:center;font-size:11px;color:#6B7280;margin-top:2px;">${pts} pts earned</div>
-  `;
-}
-
-function renderProfile(){
-  const pts=player.game_points||0;
-  document.getElementById('profileName').textContent=player.name||'Player';
-  document.getElementById('totalPts').textContent=pts+' pts';
-  drawMilestoneTrack(pts,'milestoneTrack');
-  // Simple tier list
-  // Update game card states
-  refreshGameCards();
-  // Show only current level + next level (compact for tablet)
-  const curTier=TIERS.slice().reverse().find(t=>pts>=t.pts)||null;
-  const nextTier=TIERS.find(t=>pts<t.pts)||null;
-  let tierHtml='';
-  if(curTier){
-    tierHtml+=`<div style="display:flex;align-items:center;gap:8px;padding:6px;background:${curTier.color}22;border-radius:10px;border:1px solid ${curTier.color}44;margin-bottom:6px;">
-      <div style="font-size:24px;">${curTier.icon}</div>
-      <div><div style="font-size:12px;font-weight:800;color:${curTier.color};">Level ${curTier.level} · ${curTier.badge}</div>
-      <div style="font-size:11px;color:#16A34A;">✅ ${curTier.reward}</div></div>
-    </div>`;
-  } else {
-    tierHtml+=`<div style="font-size:12px;color:#6B7280;text-align:center;padding:4px;">No level yet — start playing!</div>`;
-  }
-  if(nextTier){
-    const needed=nextTier.pts-pts;
-    tierHtml+=`<div style="display:flex;align-items:center;gap:8px;padding:6px;background:#F9FAFB;border-radius:10px;border:1px dashed #E5E7EB;">
-      <div style="font-size:20px;filter:grayscale(.5);">${nextTier.icon}</div>
-      <div><div style="font-size:12px;font-weight:800;color:#6B7280;">Next: Level ${nextTier.level} · ${nextTier.badge}</div>
-      <div style="font-size:11px;color:#FF8C00;font-weight:700;">⚡ ${needed} more points!</div></div>
-    </div>`;
-  }
-  document.getElementById('tierList').innerHTML=tierHtml;
-}
-
-// ==========================================
-// SPIN WHEEL — 2 spins, best of 2
-// ==========================================
-const SEGS=[
-  {pts:8, color:'#3B82F6'},{pts:9, color:'#8B5CF6'},{pts:10,color:'#EC4899'},
-  {pts:11,color:'#22C55E'},{pts:12,color:'#F97316'},{pts:13,color:'#EAB308'},
-  {pts:14,color:'#14B8A6'},{pts:15,color:'#FFD600'},{pts:8, color:'#EF4444'},
-  {pts:10,color:'#F59E0B'},{pts:12,color:'#10B981'},{pts:9, color:'#6366F1'},
-];
-let spinCount=0,bestSpinPts=0,spinAngle=0,isSpinning=false;
-const cvs=document.getElementById('wCanvas');
-const ctx=cvs.getContext('2d');
-const CX=125,CY=125,R=114;
-
-function drawWheel(rot=0){
-  ctx.clearRect(0,0,300,300);
-  const slice=(Math.PI*2)/SEGS.length;
-  SEGS.forEach((s,i)=>{
-    const start=rot+i*slice;
-    ctx.beginPath();ctx.moveTo(CX,CY);ctx.arc(CX,CY,R,start,start+slice);ctx.closePath();
-    ctx.fillStyle=s.color;ctx.fill();
-    ctx.strokeStyle='rgba(255,255,255,.6)';ctx.lineWidth=2;ctx.stroke();
-    ctx.save();ctx.translate(CX,CY);ctx.rotate(start+slice/2);
-    ctx.textAlign='right';ctx.fillStyle='#fff';ctx.font='bold 13px Nunito,sans-serif';
-    ctx.shadowColor='rgba(0,0,0,.5)';ctx.shadowBlur=3;
-    ctx.fillText(s.pts+'pts',R-8,5);ctx.restore();
-  });
-  ctx.beginPath();ctx.arc(CX,CY,30,0,Math.PI*2);
-  ctx.fillStyle='#fff';ctx.fill();
-  ctx.font='24px serif';ctx.textAlign='center';ctx.textBaseline='middle';
-  ctx.shadowBlur=0;ctx.fillText('🐼',CX,CY);
-}
-drawWheel(0);
-
-function goSpin(){
-  if(todayPlayed.spin){showAlreadyPlayed('spin');return;}
-  if(spinCount>=2){spinCount=0;bestSpinPts=0;}
-  updateSpinUI();
-  drawWheel(spinAngle);
-  showScreen('s-spin');
-}
-
-function updateSpinUI(){
-  const btn=document.getElementById('spinBtn');
-  const lbl=document.getElementById('spinChanceLabel');
-  const skip=document.getElementById('spinSkipLabel');
-  const best=document.getElementById('bestSoFar');
-  if(spinCount===0){
-    lbl.textContent='Spin 1 of 2 — get the highest score!';
-    btn.disabled=false;btn.textContent='SPIN! 🎡';
-    skip.textContent='';best.textContent='—';
-  } else if(spinCount===1){
-    lbl.textContent='Spin 2 of 2 — can you beat '+bestSpinPts+' pts?';
-    btn.disabled=false;btn.textContent='SPIN AGAIN! 🎡';
-    skip.textContent='Happy with '+bestSpinPts+' pts? Tap below to keep it.';
-    best.textContent=bestSpinPts+' pts';
-    // Add skip button dynamically
-    if(!document.getElementById('skipBtn')){
-      const sb2=document.createElement('button');
-      sb2.id='skipBtn';sb2.className='btn btn-ghost';
-      sb2.style.cssText='margin-top:6px;font-size:14px;padding:9px;';
-      sb2.textContent='Keep '+bestSpinPts+' pts & finish';
-      sb2.onclick=()=>finishSpin(bestSpinPts);
-      document.getElementById('s-spin').insertBefore(sb2,document.querySelector('#s-spin .btn-ghost:last-child'));
-    } else {
-      document.getElementById('skipBtn').textContent='Keep '+bestSpinPts+' pts & finish';
-    }
   }
 }
 
-function startSpin(){
-  if(isSpinning||spinCount>=2)return;
-  isSpinning=true;
-  document.getElementById('spinBtn').disabled=true;
-  document.getElementById('spinBtn').textContent='Spinning...';
-  if(document.getElementById('skipBtn')) document.getElementById('skipBtn').style.display='none';
-  const segIdx=Math.floor(Math.random()*SEGS.length);
-  const wonPts=SEGS[segIdx].pts;
-  const segAngle=(Math.PI*2)/SEGS.length;
-  const target=Math.PI*1.5-(segIdx*segAngle+segAngle/2);
-  const spins=(6+Math.floor(Math.random()*3))*Math.PI*2;
-  const final=spins+(target-spinAngle%(Math.PI*2));
-  const dur=4200;const t0=performance.now();const r0=spinAngle;
-  const ease=t=>1-Math.pow(1-t,4);
-  function anim(now){
-    const t=Math.min((now-t0)/dur,1);
-    spinAngle=r0+final*ease(t);
-    drawWheel(spinAngle);
-    if(t<1){requestAnimationFrame(anim);}
-    else{
-      isSpinning=false;spinCount++;
-      pandaReact(wonPts);
-      if(wonPts>bestSpinPts) bestSpinPts=wonPts;
-      if(spinCount>=2){
-        setTimeout(()=>finishSpin(bestSpinPts),900);
-      } else {
-        updateSpinUI();
-        if(document.getElementById('skipBtn')) document.getElementById('skipBtn').style.display='block';
-      }
-    }
-  }
-  requestAnimationFrame(anim);
-}
-
-function pandaReact(pts){
-  const el=document.getElementById('pandaReact');
-  if(pts>=15){el.textContent='🔥🐼🔥';el.style.animation='jump .4s 3';}
-  else if(pts>=10){el.textContent='🥳🐼🎉';el.style.animation='jump .4s 2';}
-  else if(pts>=5){el.textContent='😊🐼';el.style.animation='';}
-  else{el.textContent='😅🐼';el.style.animation='shake .4s 2';}
-}
-
-function finishSpin(pts){
-  if(document.getElementById('skipBtn')) document.getElementById('skipBtn').remove();
-  // Auto-save immediately
-  savePoints(pts,'spin');
-  showResult(pts);
-}
-
-// ==========================================
-// TAP PANDA GAME
-// ==========================================
-let tapRunning=false,tapScore=0,tapTimer=null,tapSeconds=10;
-// Memory vars
-const MEM_EMOJIS=['🐼','🦁','🐸','🦊']; // 4 pairs = 8 cards
-let memCards=[],memFlipped=[],memMatched=0,memMoves=0,memStarted=false,memTimerInt=null,memSeconds=0,memLock=false;
-let tapBestScore=0;
-
-function goTapPanda(){
-  if(todayPlayed.tap){showAlreadyPlayed('tap');return;}
-  tapScore=0;tapSeconds=10;tapRunning=false;
-  document.getElementById('tapCount').textContent='0';
-  document.getElementById('tapTime').textContent='10';
-  document.getElementById('tapTime').style.color='#fff';
-  document.getElementById('tapBest').textContent=player.best_tap_score||'--';
-  document.getElementById('tapStartBtn').style.display='block';
-  document.getElementById('tapStartBtn').textContent='START! 🐼';
-  document.getElementById('tapStartBtn').disabled=false;
-  document.getElementById('tapStartBtn').onclick=startTapGame;
-  document.getElementById('pandaTarget').style.display='none';
-  if(tapTimer) clearInterval(tapTimer);
-  // Build status with global + personal best
-  let statusHtml='';
-  if(globalBestTap.score){
-    const isChamp=globalBestTap.name===player.name;
-    statusHtml+='<div style="font-size:16px;color:#FFD600;font-weight:900;margin-bottom:8px;background:rgba(255,214,0,.12);border-radius:10px;padding:8px 10px;border:1px solid rgba(255,214,0,.3);">🏆 ALL-TIME CHAMPION<br><span style="font-size:20px;color:#fff;">'+globalBestTap.name+'</span><br><span style="font-size:18px;color:#FFD600;">'+globalBestTap.score+' taps</span>'+(isChamp?' <span style="font-size:13px;color:#4ADE80;">(thats you!)</span>':'')+'</div>';
-  }
-  if(player.best_tap_score){
-    statusHtml+='<div style="font-size:14px;color:rgba(255,255,255,.8);font-weight:800;margin-bottom:6px;">Your best: <span style="color:#FFD600;font-size:16px;">'+player.best_tap_score+'</span> taps</div>';
-  }
-  statusHtml+='<div style="font-size:17px;font-weight:800;color:#fff;">Tap the 🐼 fast!</div>';
-  statusHtml+='<div style="font-size:12px;color:rgba(255,255,255,.5);margin-top:3px;">Tap START to begin</div>';
-  document.getElementById('tapStatus').style.display='block';
-  document.getElementById('tapStatus').innerHTML=statusHtml;
-  showScreen('s-tap');
-}
-
-function startTapGame(){
-  tapScore=0;tapSeconds=10;tapRunning=true;
-  const tapPlayerId=player.id; // capture player ID at game start
-  document.getElementById('tapCount').textContent='0';
-  document.getElementById('tapTime').textContent='10';
-  document.getElementById('tapStatus').style.display='none';
-  document.getElementById('tapStartBtn').style.display='none';
-  const panda=document.getElementById('pandaTarget');
-  panda.style.display='block';
-  movePanda();
-  tapTimer=setInterval(()=>{
-    tapSeconds--;
-    document.getElementById('tapTime').textContent=tapSeconds;
-    if(tapSeconds<=3) document.getElementById('tapTime').style.color='#FF6B9D';
-    if(tapSeconds<=0){
-      clearInterval(tapTimer);
-      tapRunning=false;
-      panda.style.display='none';
-      endTapGame();
-    }
-  },1000);
-}
-
-function movePanda(){
-  if(!tapRunning) return;
-  const el=document.getElementById('pandaTarget');
-  const track=document.getElementById('tapGame');
-  const tw=Math.max(track.offsetWidth-60,100),th=Math.max(track.offsetHeight-60,100);
-  el.style.left=Math.floor(Math.random()*tw)+'px';
-  el.style.top=Math.floor(Math.random()*th)+'px';
-}
-
-document.getElementById('pandaTarget').addEventListener('click',()=>{
-  if(!tapRunning)return;
-  tapScore++;
-  document.getElementById('tapCount').textContent=tapScore;
-  // Flash
-  const el=document.getElementById('pandaTarget');
-  el.style.transform='scale(1.4)';
-  setTimeout(()=>el.style.transform='scale(1)',150);
-  // Burst effect
-  const burst=document.createElement('div');
-  burst.textContent='⭐';
-  burst.style.cssText='position:absolute;font-size:20px;pointer-events:none;animation:fall .6s ease-out forwards;left:'+el.style.left+';top:'+el.style.top;
-  document.getElementById('tapGame').appendChild(burst);
-  setTimeout(()=>burst.remove(),600);
-  movePanda();
-});
-
-function endTapGame(){
-  if(!tapRunning&&tapScore===0) return; // guard against phantom fires
-  document.getElementById('tapTime').style.color='#fff';
-  // Points based on taps
-  const pts=tapScore; // 1 tap = 1 point, no cap
-  const isNewBest=!player.best_tap_score||tapScore>player.best_tap_score;
-  if(isNewBest) player.best_tap_score=tapScore;
-  const prevGlobalTap=globalBestTap.score||0;
-  const isGlobalTapBest=tapScore>prevGlobalTap;
-  if(isGlobalTapBest) globalBestTap={score:tapScore,name:player.name};
-  let tapResultHtml='';
-  if(isGlobalTapBest){
-    tapResultHtml='<span style="font-size:18px;font-weight:900;color:#FFD600;">🏆 ALL-TIME RECORD!</span><br><span style="font-size:22px;font-weight:900;color:#fff;">'+tapScore+' taps!</span><br><span style="font-size:14px;">You are the Panda Champion!</span>';
-  } else if(isNewBest){
-    tapResultHtml='<span style="font-size:18px;font-weight:900;color:#FFD600;">⭐ Personal best!</span><br><span style="font-size:22px;font-weight:900;color:#fff;">'+tapScore+' taps</span>'+(prevGlobalTap?'<br><span style="font-size:13px;">Champion: <strong>'+globalBestTap.name+'</strong> ('+prevGlobalTap+')</span>':'');
-  } else {
-    tapResultHtml='<span style="font-size:22px;font-weight:900;color:#fff;">'+tapScore+' taps!</span>'+(prevGlobalTap?'<br><span style="font-size:13px;color:#FFD600;">Champion: <strong>'+globalBestTap.name+'</strong> ('+prevGlobalTap+')</span>':'');
-  }
-  tapResultHtml+='<br><span style="font-size:16px;color:var(--y);font-weight:800;">'+pts+' point'+(pts!==1?'s':'')+'</span>';
-  document.getElementById('tapStatus').innerHTML=tapResultHtml;
-  document.getElementById('tapStatus').style.display='block';
-  document.getElementById('tapStartBtn').style.display='block';
-  document.getElementById('tapStartBtn').textContent='See my '+pts+' pts! 🎉';
-  document.getElementById('tapStartBtn').disabled=false;
-  document.getElementById('tapStartBtn').onclick=()=>showResult(pts);
-  // Auto-save immediately — points saved even if kid walks away
-  savePoints(pts,'tap');
-}
-
-// ==========================================
-// ==========================================
-
-function goMemory(){
-  if(todayPlayed.memory){showAlreadyPlayed('memory');return;}
-  memMatched=0;memMoves=0;memStarted=false;memSeconds=0;memLock=false;
-  if(memTimerInt) clearInterval(memTimerInt);
-  document.getElementById('memMoves').textContent='0';
-  document.getElementById('memTime').textContent='0s';
-  document.getElementById('memPairs').textContent='0/4';
-  const bestTime=player.best_memory_time;
-  const hintEl=document.getElementById('memBestHint');
-  if(hintEl){
-    hintEl.style.display='block';
-    let html='';
-    // Global best (all kids)
-    if(globalBestMemory.time){
-      const isChamp=globalBestMemory.name===player.name;
-      html+='<div style="font-size:15px;font-weight:900;color:#FFD600;background:rgba(255,214,0,.12);border-radius:10px;padding:8px 10px;border:1px solid rgba(255,214,0,.3);margin-bottom:6px;">🏆 ALL-TIME CHAMPION<br><span style="font-size:18px;color:#fff;">'+globalBestMemory.name+'</span><br><span style="font-size:17px;color:#FFD600;">'+globalBestMemory.time+'s — fastest ever!</span>'+(isChamp?' <span style="font-size:12px;color:#4ADE80;">(thats you!)</span>':'')+'</div>';
-    }
-    // Player's own best
-    if(bestTime){
-      const beatGlobal=globalBestMemory.time&&bestTime<globalBestMemory.time;
-      html+='<div style="font-size:14px;font-weight:800;color:rgba(255,255,255,.85);">⏱️ Your best: <span style="color:#FFD600;font-size:16px;font-weight:900;">'+bestTime+'s</span>';
-      if(beatGlobal) html+=' 🏆 You hold the record!';
-      else if(globalBestMemory.time) html+=' · Beat <span style="color:#FFD600;font-weight:900;">'+globalBestMemory.time+'s</span> to be champion!';
-      html+='</div><div style="font-size:13px;color:rgba(255,255,255,.6);margin-top:2px;">Beat your best for <span style="color:#FFD600;font-weight:800;">+2 bonus pts!</span></div>';
-    } else {
-      html+='🧠 Earn <strong>8 pts</strong> + <strong>+2 bonus</strong> if you set the fastest time!';
-    }
-    hintEl.innerHTML=html;
-  }
-  document.getElementById('memStartBtn').style.display='block';
-  const targetTime=globalBestMemory.time||(bestTime||null);
-  document.getElementById('memStartBtn').textContent=targetTime?'START! Beat '+targetTime+'s 🏆':'START! Set the first record! 🧠';
-  document.getElementById('memStartBtn').disabled=false;
-  document.getElementById('memStartBtn').onclick=startMemory;
-  buildMemGrid(false);
-  showScreen('s-memory');
-}
-
-function buildMemGrid(reveal=false){
-  // 8 cards (4 pairs) + 1 center panda = 9 cells for 3x3
-  const pairs=[...MEM_EMOJIS,...MEM_EMOJIS].sort(()=>Math.random()-.5);
-  memCards=pairs;memFlipped=[];
-  const cells=[];
-  // Insert panda in center (index 4)
-  pairs.forEach((e,i)=>{
-    if(i===4) cells.push('__PANDA__');
-    cells.push(e);
-  });
-  // Trim to 9
-  const grid=cells.slice(0,9);
-  memCards=grid;
-  document.getElementById('memGrid').innerHTML=grid.map((e,i)=>{
-    if(e==='__PANDA__') return`<div class="mem-card center-panda" style="font-size:40px;">🐼</div>`;
-    return`<div class="mem-card ${reveal?'flipped':'hidden-face'}" id="mc${i}" onclick="memTap(${i})" data-emoji="${e}">
-      <span style="font-size:36px;">${reveal?e:'❓'}</span>
-    </div>`;
-  }).join('');
-}
-
-function startMemory(){
-  document.getElementById('memStartBtn').style.display='none';
-  // Show all cards briefly for 2 seconds
-  buildMemGrid(true);
-  let cd=3;
-  document.getElementById('memTime').textContent='Ready in 3s';
-  const c=setInterval(()=>{
-    cd--;
-    document.getElementById('memTime').textContent=cd>0?'Ready in '+cd+'s':'Go!';
-    if(cd<=0){
-      clearInterval(c);
-      buildMemGrid(false);
-      memStarted=true;
-      memTimerInt=setInterval(()=>{memSeconds++;document.getElementById('memTime').textContent=memSeconds+'s';},1000);
-    }
-  },1000);
-}
-
-function memTap(idx){
-  if(!memStarted||memLock)return;
-  const card=document.getElementById('mc'+idx);
-  if(!card||card.classList.contains('matched')||card.classList.contains('flipped')) return;
-  card.classList.add('flipped');
-  card.querySelector('span').textContent=memCards[idx];
-  memFlipped.push(idx);
-  if(memFlipped.length===2){
-    memLock=true;memMoves++;
-    document.getElementById('memMoves').textContent=memMoves;
-    const [a,b]=memFlipped;
-    if(memCards[a]===memCards[b]){
-      document.getElementById('mc'+a).classList.add('matched');
-      document.getElementById('mc'+b).classList.add('matched');
-      memMatched++;
-      document.getElementById('memPairs').textContent=memMatched+'/4';
-      memFlipped=[];memLock=false;
-      if(memMatched===4) setTimeout(endMemory,400);
-    } else {
-      setTimeout(()=>{
-        const ca=document.getElementById('mc'+a);
-        const cb=document.getElementById('mc'+b);
-        if(ca){ca.classList.remove('flipped');ca.querySelector('span').textContent='❓';}
-        if(cb){cb.classList.remove('flipped');cb.querySelector('span').textContent='❓';}
-        memFlipped=[];memLock=false;
-      },700);
-    }
-  }
-}
-
-function endMemory(){
-  clearInterval(memTimerInt);memStarted=false;
-  const prevBest=player.best_memory_time||null;
-  const prevGlobal=globalBestMemory.time||null;
-  // Beat own best OR global best = bonus
-  const isPersonalBest=!prevBest||memSeconds<prevBest;
-  const isGlobalBest=!prevGlobal||memSeconds<prevGlobal;
-  const isNewBest=isPersonalBest; // save if personal best
-  const pts=8+(isNewBest?2:0);
-  if(isNewBest) player.best_memory_time=memSeconds;
-  if(isGlobalBest){
-    globalBestMemory={time:memSeconds,name:player.name};
-  }
-  const hintEl=document.getElementById('memBestHint');
-  if(hintEl){
-    hintEl.style.display='block';
-    if(isGlobalBest){
-      hintEl.innerHTML='<span style="font-size:18px;font-weight:900;">🏆 ALL-TIME RECORD: '+memSeconds+'s!</span><br><span style="font-size:14px;">You are the fastest kid ever! +2 bonus earned!</span>';
-      hintEl.style.background='rgba(22,163,74,.2)';
-      hintEl.style.borderColor='rgba(22,163,74,.5)';
-      hintEl.style.color='#4ADE80';
-    } else if(isPersonalBest&&prevBest){
-      hintEl.innerHTML='<span style="font-size:17px;font-weight:900;">⭐ Personal best: '+memSeconds+'s!</span><br><span style="font-size:13px;">(was '+prevBest+'s) +2 bonus! Champion: '+globalBestMemory.name+' ('+prevGlobal+'s)</span>';
-      hintEl.style.background='rgba(22,163,74,.2)';
-      hintEl.style.borderColor='rgba(22,163,74,.5)';
-      hintEl.style.color='#4ADE80';
-    } else if(isPersonalBest){
-      hintEl.innerHTML='⭐ <strong>First record: '+memSeconds+'s!</strong> +2 bonus! Champion: '+(prevGlobal?globalBestMemory.name+' ('+prevGlobal+'s)':'No one yet!');
-      hintEl.style.background='rgba(22,163,74,.2)';
-      hintEl.style.borderColor='rgba(22,163,74,.5)';
-      hintEl.style.color='#4ADE80';
-    } else {
-      const target=prevGlobal?globalBestMemory.name+' ('+prevGlobal+'s)':'your own best';
-      hintEl.innerHTML='<span style="font-size:16px;font-weight:900;">⏱️ '+memSeconds+'s</span><br><span style="font-size:13px;">Beat <strong>'+target+'</strong> to be champion & get +2 bonus!</span>';
-      hintEl.style.background='rgba(255,214,0,.15)';
-      hintEl.style.borderColor='rgba(255,214,0,.3)';
-      hintEl.style.color='var(--y)';
-    }
-  }
-  document.getElementById('memStartBtn').style.display='block';
-  document.getElementById('memStartBtn').textContent='See my '+pts+' pts! 🎉';
-  document.getElementById('memStartBtn').disabled=false;
-  document.getElementById('memStartBtn').onclick=()=>showResult(pts);
-  savePoints(pts,'memory',isNewBest?memSeconds:null);
-}
 
 async function savePoints(pts,gameType,bestMemTime=null){
   const newTotal=Math.min((player.game_points||0)+pts,999);
