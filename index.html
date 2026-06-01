@@ -173,12 +173,12 @@ const DC={
   girlWAExpiry:'Hi! 🐼 {name}\'s MiniCuts loyalty passport expires soon. She\'s earned those stamps — book before they expire! 💇‍♀️',
   boyWALapsed:'Hey! 🐼 We miss {name} at MiniCuts! It\'s been a while since his last visit. Pop in for a fresh cut — his stamps are waiting! ✂️',
   girlWALapsed:'Hey! 🐼 We miss {name} at MiniCuts! It\'s been a while since her last visit. Book a visit — her stamps are waiting! 💇‍♀️',
-  boyWAReady:'🎉 Great news! {name} has earned a FREE haircut at MiniCuts! Bring him in anytime to redeem. See you soon! 🐼✂️',
-  girlWAReady:'🎉 Great news! {name} has earned a FREE haircut at MiniCuts! Bring her in anytime to redeem. See you soon! 🐼💇‍♀️',
+  boyWAReady:'🎉 Great news! {name} has earned a special gift at MiniCuts! Bring him in anytime to redeem. See you soon! 🐼✂️',
+  girlWAReady:'🎉 Great news! {name} has earned a special gift at MiniCuts! Bring her in anytime to redeem. See you soon! 🐼💇‍♀️',
   boyWABirthday:'🎂 Happy Birthday to {name}! Wishing him a wonderful day from all of us at MiniCuts 🐼 Come in for a special birthday haircut!',
   girlWABirthday:'🎂 Happy Birthday to {name}! Wishing her a wonderful day from all of us at MiniCuts 🐼 Come in for a special birthday haircut!',
   user:'admin', pass:'minicuts123', resetCode:'MINICUTS2025',
-  afterServiceMsg:'Hi {parent}!\n\nThank you for visiting MiniCuts - we loved having {name} with us today!\n\nStamps: {stamps} collected - just {needed} more for a FREE haircut!\n{game_points}\n\nCheck your loyalty passport:\n{passport_link}\n\nIf you enjoyed your visit, a Google review means the world to us:\nhttps://share.google/xpTR5fVOVbt4pwg8X\n\nSee you soon!\nMiniCuts DSO'
+  afterServiceMsg:'Hi {parent}!\n\nThank you for visiting MiniCuts - we loved having {name} with us today!\n\nStamps: {stamps} collected - just {needed} more for a special gift!\n{game_points}\n\nCheck your loyalty passport:\n{passport_link}\n\nIf you enjoyed your visit, a Google review means the world to us:\nhttps://share.google/xpTR5fVOVbt4pwg8X\n\nSee you soon!\nMiniCuts DSO'
 };
 let CFG=loadCfg();
 function loadCfg(){try{return Object.assign({},DC,JSON.parse(localStorage.getItem('mc_cfg')||'{}'));}catch(e){return{...DC};}}
@@ -250,7 +250,7 @@ function isExp(c){if(!c.expiry_date||!c.first_stamp_date)return false;return new
 function dLeft(c){if(!c.expiry_date)return null;return Math.ceil((new Date(c.expiry_date)-new Date())/864e5);}
 function getStatus(c){
   if(isExp(c))return{label:'Expired',cls:'bg-err'};
-  if((c.stamps||0)>=paidNeeded())return{label:'Free Cut Ready 🎁',cls:'bg-y'};
+  if((c.stamps||0)>=paidNeeded())return{label:'Special Gift Ready 🎁',cls:'bg-y'};
   if(isExpiringSoon(c))return{label:'Expiring Soon ⏰',cls:'bg-warn'};
   if(isLapsed(c))return{label:'Lapsed 😴',cls:'bg-warn'};
   return{label:'Active',cls:'bg-ok'};
@@ -449,7 +449,7 @@ async function archiveCycle(customerId,stamps,firstStampDate,expiryDate,endedBy)
           <button class="tab-btn" onclick="switchMissYouTab('tab-lapsed',this)">😴 Lapsed <span id="MY_T_LAPSED" class="badge bg-err" style="margin-left:4px;"></span></button>
           <button class="tab-btn" onclick="switchMissYouTab('tab-expiry',this)">⏰ Expiring <span id="MY_T_EXPIRY" class="badge bg-warn" style="margin-left:4px;"></span></button>
           <button class="tab-btn" onclick="switchMissYouTab('tab-bday',this)">🎂 Birthdays <span id="MY_T_BDAY" class="badge bg-p" style="margin-left:4px;"></span></button>
-          <button class="tab-btn" onclick="switchMissYouTab('tab-freecut',this)">🎁 Free Cut <span id="MY_T_FREE" class="badge bg-y" style="margin-left:4px;"></span></button>
+          <button class="tab-btn" onclick="switchMissYouTab('tab-freecut',this)">🎁 Special Gift <span id="MY_T_FREE" class="badge bg-y" style="margin-left:4px;"></span></button>
           <button class="tab-btn" onclick="switchMissYouTab('tab-waiting',this)">⏳ Waiting <span id="MY_T_WAITING" class="badge bg-b" style="margin-left:4px;"></span></button>
           <button class="tab-btn" onclick="switchMissYouTab('tab-returned',this)">✅ Returned <span id="MY_T_RET" class="badge bg-ok" style="margin-left:4px;"></span></button>
           <button class="tab-btn" onclick="switchMissYouTab('tab-dnd',this)">🔕 DND <span id="MY_T_DND" class="badge bg-err" style="margin-left:4px;"></span></button>
@@ -475,9 +475,9 @@ async function archiveCycle(customerId,stamps,firstStampDate,expiryDate,endedBy)
             <div style="font-size:12px;color:var(--muted);margin-bottom:12px;padding:8px 12px;background:var(--pinkl);border-radius:8px;">🎂 Birthdays this week — send a birthday wish and invite them in for a special haircut!</div>
             <div id="MY_BDAY_LIST"></div>
           </div>
-          <!-- Tab: Free Cut Ready -->
+          <!-- Tab: Special Gift Ready -->
           <div id="tab-freecut" class="tab-pane">
-            <div style="font-size:12px;color:var(--muted);margin-bottom:12px;padding:8px 12px;background:var(--yl);border-radius:8px;">🎁 These customers have earned their free haircut! Remind them to come in and claim it.</div>
+            <div style="font-size:12px;color:var(--muted);margin-bottom:12px;padding:8px 12px;background:var(--yl);border-radius:8px;">🎁 These customers have earned their special gift! Remind them to come in and claim it.</div>
             <div id="MY_FREE_LIST"></div>
           </div>
           <!-- Tab: Waiting -->
@@ -580,9 +580,9 @@ async function archiveCycle(customerId,stamps,firstStampDate,expiryDate,endedBy)
         <div class="card" style="max-width:420px;text-align:center;">
           <div style="font-size:40px;margin-bottom:8px;">🐼</div>
           <div style="font-family:var(--fh);font-size:18px;font-weight:800;margin-bottom:4px;">MiniCuts Loyalty Passport</div>
-          <div style="color:var(--muted);font-size:13px;margin-bottom:18px;">Scan to register &amp; earn stamps for a FREE haircut!</div>
+          <div style="color:var(--muted);font-size:13px;margin-bottom:18px;">Scan to register &amp; earn stamps for a special gift!</div>
           <div id="SalonQR" style="display:flex;justify-content:center;margin-bottom:14px;"></div>
-          <div style="font-size:12px;color:var(--muted);margin-bottom:16px;">📱 Scan with your phone camera · No app download needed<br>✂️ ${paidNeeded()} paid haircuts = 1 FREE haircut · 🌟 4.9 ⭐ DSO's favourite kids salon</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:16px;">📱 Scan with your phone camera · No app download needed<br>✂️ ${paidNeeded()} paid haircuts = 1 special gift · 🌟 4.9 ⭐ DSO's favourite kids salon</div>
           <button class="btn bp" onclick="window.print()">🖨 Print QR Card</button>
           <button class="btn bg2" style="margin-left:8px;" onclick="window.open('?customer=1','_blank')">👁 Preview Customer Page</button>
         </div>
@@ -594,7 +594,7 @@ async function archiveCycle(customerId,stamps,firstStampDate,expiryDate,endedBy)
         <div style="color:var(--muted);font-size:13.5px;margin-bottom:22px;">Configure loyalty rules and credentials</div>
         <div class="card" style="max-width:540px;margin-bottom:18px;">
           <div style="font-family:var(--fh);font-size:16px;font-weight:800;margin-bottom:14px;">Loyalty Rules</div>
-          <div class="cr"><div><div style="font-size:13.5px;font-weight:700;">Total visits for free haircut</div><div style="font-size:12px;color:var(--muted);">e.g. 6 = 5 paid + 6th FREE · 8 = 7 paid + 8th FREE</div></div><input class="ci" type="number" id="CFS" min="1" max="20" value="5"></div>
+          <div class="cr"><div><div style="font-size:13.5px;font-weight:700;">Total visits for special gift</div><div style="font-size:12px;color:var(--muted);">e.g. 6 = 5 paid + 6th earns Special Gift · 8 = 7 paid + 8th earns Special Gift</div></div><input class="ci" type="number" id="CFS" min="1" max="20" value="5"></div>
           <div class="cr"><div><div style="font-size:13.5px;font-weight:700;">Boy passport validity (months)</div><div style="font-size:12px;color:var(--muted);">From first stamp in cycle</div></div><input class="ci" type="number" id="CFB" min="1" max="36" value="12"></div>
           <div class="cr"><div><div style="font-size:13.5px;font-weight:700;">Girl passport validity (months)</div><div style="font-size:12px;color:var(--muted);">From first stamp in cycle</div></div><input class="ci" type="number" id="CFG2" min="1" max="36" value="15"></div>
           <div class="cr"><div><div style="font-size:13.5px;font-weight:700;">Staff username</div></div><input class="ci" type="text" id="CFU" value="admin" style="width:130px;"></div>
@@ -627,14 +627,14 @@ async function archiveCycle(customerId,stamps,firstStampDate,expiryDate,endedBy)
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
             <div>
               <div style="font-size:12px;font-weight:700;color:var(--b);margin-bottom:8px;">👦 Boys</div>
-              <div class="fg"><label class="fl">Free cut ready</label><textarea class="fi" id="CFB_WR" rows="2" style="resize:vertical;"></textarea></div>
+              <div class="fg"><label class="fl">Special gift ready</label><textarea class="fi" id="CFB_WR" rows="2" style="resize:vertical;"></textarea></div>
               <div class="fg"><label class="fl">Expiry reminder</label><textarea class="fi" id="CFB_WE" rows="2" style="resize:vertical;"></textarea></div>
               <div class="fg"><label class="fl">Win-back (lapsed)</label><textarea class="fi" id="CFB_WL" rows="2" style="resize:vertical;"></textarea></div>
               <div class="fg"><label class="fl">Birthday</label><textarea class="fi" id="CFB_WB" rows="2" style="resize:vertical;"></textarea></div>
             </div>
             <div>
               <div style="font-size:12px;font-weight:700;color:var(--pink);margin-bottom:8px;">👧 Girls</div>
-              <div class="fg"><label class="fl">Free cut ready</label><textarea class="fi" id="CFG_WR" rows="2" style="resize:vertical;"></textarea></div>
+              <div class="fg"><label class="fl">Special gift ready</label><textarea class="fi" id="CFG_WR" rows="2" style="resize:vertical;"></textarea></div>
               <div class="fg"><label class="fl">Expiry reminder</label><textarea class="fi" id="CFG_WE" rows="2" style="resize:vertical;"></textarea></div>
               <div class="fg"><label class="fl">Win-back (lapsed)</label><textarea class="fi" id="CFG_WL" rows="2" style="resize:vertical;"></textarea></div>
               <div class="fg"><label class="fl">Birthday</label><textarea class="fi" id="CFG_WB" rows="2" style="resize:vertical;"></textarea></div>
@@ -651,7 +651,7 @@ async function archiveCycle(customerId,stamps,firstStampDate,expiryDate,endedBy)
             <textarea class="fi" id="CF_AS_MSG" rows="8" style="resize:vertical;font-size:12.5px;line-height:1.6;"></textarea>
           </div>
           <div style="font-size:11px;color:var(--muted);margin-top:6px;margin-bottom:10px;">
-            💡 <strong>{parent}</strong> = parent name · <strong>{name}</strong> = child name · <strong>{stamps}</strong> = current stamps · <strong>{needed}</strong> = stamps needed for free cut · <strong>{game_points}</strong> = game points · <strong>{passport_link}</strong> = unique passport URL
+            💡 <strong>{parent}</strong> = parent name · <strong>{name}</strong> = child name · <strong>{stamps}</strong> = current stamps · <strong>{needed}</strong> = stamps needed for special gift · <strong>{game_points}</strong> = game points · <strong>{passport_link}</strong> = unique passport URL
           </div>
           <button class="btn bp bsm" onclick="saveConfig()">Save Message</button>
           <button class="btn bg2 bsm" style="margin-left:8px;" onclick="resetASMsg()">Reset to Default</button>
@@ -917,7 +917,7 @@ async function loadAfterService(){
       const st=parseInt(c.stamps)||0;
       const pN=paidNeeded();
       const portalUrl='https://yasmint2825.github.io/minicuts-loyalty/?customer=1&lookup='+encodeURIComponent(c.mobile);
-      const stampLine=st>=pN?'FREE haircut ready - come claim it!':'just '+(pN-st)+' more for a FREE haircut!';
+      const stampLine=st>=pN?'special gift ready - come claim it!':'just '+(pN-st)+' more for a special gift!';
       const gameLine=(c.game_points||0)>0?'Game points: '+c.game_points+' pts - keep playing!':'';
       // Use configurable template with placeholder replacement
       const template=CFG.afterServiceMsg||DC.afterServiceMsg;
@@ -994,7 +994,7 @@ async function renderDash(){
       <div class="sc"><div class="si" style="background:#EFF6FF;">👨‍👩‍👧</div><div><div class="sl">Total Customers</div><div class="sv">${total}</div></div></div>
       <div class="sc"><div class="si" style="background:#F0FDF4;">✅</div><div><div class="sl">Active Passports</div><div class="sv">${active}</div></div></div>
       <div class="sc"><div class="si" style="background:#FEFCE8;">🎁</div><div><div class="sl">Rewards Ready</div><div class="sv">${ready}</div></div></div>
-      <div class="sc"><div class="si" style="background:#FFF7ED;">✂️</div><div><div class="sl">Free Cuts Given</div><div class="sv">${redeemed}</div></div></div>`;
+      <div class="sc"><div class="si" style="background:#FFF7ED;">✂️</div><div><div class="sl">Special Gifts Given</div><div class="sv">${redeemed}</div></div></div>`;
     document.getElementById('RV').innerHTML=visits.length?visits.map(v=>`
       <div class="hi"><div class="hic ${v.type}">${v.type==='free'?'🎁':v.type==='expired'?'⏰':'✂️'}</div>
       <div style="flex:1;"><div style="font-size:13.5px;font-weight:700;">${v.customers?.name||'—'}</div><div style="font-size:11.5px;color:var(--muted);">${fmtDate(v.created_at)} · ${v.customers?.mobile||''}</div></div>
@@ -1004,7 +1004,7 @@ async function renderDash(){
     document.getElementById('RL').innerHTML=rewards.length?rewards.map(c=>`
       <div class="hi"><div class="hic free">🎁</div>
       <div style="flex:1;"><div style="font-size:13.5px;font-weight:700;">${c.name}</div><div style="font-size:11.5px;color:var(--muted);">${c.mobile}</div></div>
-      <button class="btn bs bsm" onclick="redeemFree('${c.id}')">🎁 Give FREE Cut</button></div>`).join('')
+      <button class="btn bs bsm" onclick="redeemFree('${c.id}')">🎁 Give Special Gift 🎁</button></div>`).join('')
       :'<div style="text-align:center;padding:20px;color:var(--muted);font-size:13.5px;">No rewards ready 🐼</div>';
 
     // ── Outreach counts for dashboard widgets ──
@@ -1064,7 +1064,7 @@ async function loadCustomers(){
     if(dashFilter){
       const banner=document.getElementById('cust-filter-banner');
       banner.style.display='flex';
-      const labels={total:'All customers',active:'Active passports only',rewards:'Rewards ready — free haircut due'};
+      const labels={total:'All customers',active:'Active passports only',rewards:'Rewards ready — special gift due'};
       document.getElementById('cust-filter-label').textContent=labels[dashFilter]||'';
     } else {
       document.getElementById('cust-filter-banner').style.display='none';
@@ -1082,7 +1082,7 @@ function renderCT(data){
   const rows=data.map(c=>{
     const s=getStatus(c);const st=c.stamps||0;
     const dots=Array.from({length:paidNeeded()},(_,i)=>`<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${i<st?'var(--b)':'var(--border)'};margin-right:2px;" title="Stamp ${i+1}"></span>`).join('')
-      +'<span style="display:inline-block;font-size:11px;margin-left:3px;" title="6th = FREE">→🎁</span>';
+      +'<span style="display:inline-block;font-size:11px;margin-left:3px;" title="Special Gift">→🎁</span>';
     return`<tr>
       <td><strong>${c.name}</strong><div style="font-size:11.5px;color:var(--muted);">${c.parent||''}</div></td>
       <td>${c.mobile}</td>
@@ -1095,7 +1095,7 @@ function renderCT(data){
         <button class="btn bp bsm" onclick="viewProfile('${c.id}')">View</button>
         <button class="btn bg2 bsm" onclick="openEditM('${c.id}')" title="Edit">✏️</button>
         ${st>=paidNeeded()&&!getStatus(c).label.includes('Expired')?
-          `<button class="btn bs bsm" onclick="redeemFree('${c.id}')">🎁 FREE</button>`:
+          `<button class="btn bs bsm" onclick="redeemFree('${c.id}')">🎁 Give Gift</button>`:
           `<button class="btn by bsm" id="sb-${c.id}" onclick="addStampQ('${c.id}')">+Stamp</button>`}
         <button class="btn bg2 bsm" onclick="openQR('${c.id}')">QR</button>
       </div></td></tr>`;
@@ -1156,7 +1156,7 @@ function renderProfile(c,visits,cycles){
   const visitHtml=visits.length?visits.map(v=>{
     const icon=v.type==='free'?'🎁':v.type==='expired'?'⏰':'✂️';
     const cls=v.type==='free'?'free':v.type==='expired'?'expired':'paid';
-    const label=v.type==='free'?'Free Haircut Redeemed':v.type==='expired'?'Cycle Expired':'Paid Haircut';
+    const label=v.type==='free'?'Special Gift Redeemed 🎁':v.type==='expired'?'Cycle Expired':'Paid Haircut';
     const stampInfo=v.stamp_count_after!=null?` · Stamp ${v.stamp_count_after}/${paidNeeded()}`:'';
     const expiryInfo=v.cycle_expiry?` · Cycle expires ${fmtDate(v.cycle_expiry)}`:'';
     return`<div class="hi"><div class="hic ${cls}">${icon}</div>
@@ -1171,8 +1171,8 @@ function renderProfile(c,visits,cycles){
   // Build follow-up message - passed to buildFollowupSection
   const portalUrl='https://yasmint2825.github.io/minicuts-loyalty/?customer=1&lookup='+encodeURIComponent(c.mobile);
   const pN=paid;
-  const stampLine=st>=pN?'FREE haircut ready - come claim it!':
-    'Stamps: '+st+' of '+pN+' - just '+(pN-st)+' more for a free haircut!';
+  const stampLine=st>=pN?'special gift ready - come claim it!':
+    'Stamps: '+st+' of '+pN+' - just '+(pN-st)+' more for a special gift!';
   const gameLine=(c.game_points||0)>0?'Game points: '+c.game_points+' pts - keep playing!':'Ask us about our Game Zone next visit!';
   const followupMsg='Hi '+(c.parent?c.parent:c.name)+'!\n\nThank you for visiting MiniCuts - '+c.name+' looked amazing!\n\n'+stampLine+'\n'+gameLine+'\n\nCheck your loyalty passport:\n'+portalUrl+'\n\nIf you enjoyed your visit, a Google review means the world to us:\nhttps://share.google/xpTR5fVOVbt4pwg8X\n\nSee you soon!\nMiniCuts DSO';
   const followupSent=c.followup_sent_at;
@@ -1192,7 +1192,7 @@ function renderProfile(c,visits,cycles){
           `<button class="btn bg2 bsm" onclick="toggleDND('${c.id}',true,'${c.name}')" title="Mark as Do Not Disturb" style="border-color:var(--err);color:var(--err);">🔕 DND</button>`
         }
         <button class="btn bg2 bsm" onclick="openQR('${c.id}')">📱 QR</button>
-        ${st>=paid&&!exp?`<button class="btn bs bsm" onclick="redeemFree('${c.id}')">🎁 Give FREE Haircut</button>`:''}
+        ${st>=paid&&!exp?`<button class="btn bs bsm" onclick="redeemFree('${c.id}')">🎁 Give Special Gift 🎁</button>`:''}
         ${!exp&&st<paid?`<button class="btn by bsm" onclick="addStamp('${c.id}')">✂️ Add Stamp</button>`:(!exp&&st>=paid?'':'')}
         ${exp?`<button class="btn bp bsm" onclick="renewCard('${c.id}')">♻️ Renew Card</button>`:''}
       </div>
@@ -1205,21 +1205,21 @@ function renderProfile(c,visits,cycles){
             <div class="pf"><div class="pfl">Mobile</div><div class="pfv">${c.mobile}</div></div>
             <div class="pf"><div class="pfl">Gender</div><div class="pfv">${c.gender==='girl'?'👧 Girl':'👦 Boy'}</div></div>
             <div class="pf"><div class="pfl">Valid Until</div><div class="pfv">${c.expiry_date?fmtDate(c.expiry_date):'—'}</div></div>
-            <div class="pf"><div class="pfl">Free Cuts Given</div><div class="pfv">${c.redemptions||0}</div></div>
+            <div class="pf"><div class="pfl">Special Gifts Given</div><div class="pfv">${c.redemptions||0}</div></div>
           </div>
-          <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;opacity:.65;margin-bottom:8px;">Stamp Passport — ${st}/${paid} paid · visit ${CFG.stampsNeeded} = FREE haircut</div>
+          <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;opacity:.65;margin-bottom:8px;">Stamp Passport — ${st}/${paid} paid · visit ${CFG.stampsNeeded} = special gift</div>
           <div class="stamps-row">${sc}
             <span style="opacity:.4;font-size:13px;margin:0 3px;">→</span>
-            <div class="sc2 free" style="${st>=paid?'animation:si .4s cubic-bezier(.175,.885,.32,1.275);box-shadow:0 0 20px rgba(255,214,0,.7);':'opacity:.5;border-style:dashed;'}" title="Visit ${CFG.stampsNeeded} = FREE haircut">🎁</div>
+            <div class="sc2 free" style="${st>=paid?'animation:si .4s cubic-bezier(.175,.885,.32,1.275);box-shadow:0 0 20px rgba(255,214,0,.7);':'opacity:.5;border-style:dashed;'}" title="Visit ${CFG.stampsNeeded} = special gift">🎁</div>
           </div>
           <div style="display:flex;gap:7px;align-items:center;margin-top:4px;">
             ${Array.from({length:paid},(_,i)=>`<div style="width:50px;text-align:center;font-size:9.5px;color:rgba(255,255,255,${i<st?'.85':'.35'});">${i<st?'Paid':''}</div>`).join('')}
             <span style="width:16px;"></span>
-            <div style="width:58px;text-align:center;font-size:9.5px;font-weight:700;color:rgba(255,255,255,${st>=paid?'.95':'.5'});">FREE CUT</div>
+            <div style="width:58px;text-align:center;font-size:9.5px;font-weight:700;color:rgba(255,255,255,${st>=paid?'.95':'.5'});">GIFT 🎁</div>
           </div>
           <div class="pb"><div class="pf2" style="width:${pct}%"></div></div>
-          <div class="pt"><span>${st}/${paid} paid stamps</span><span>${paid-st>0?(paid-st)+' more → visit ${CFG.stampsNeeded} is FREE!':'🎉 Give FREE haircut now!'}</span></div>
-          ${st>=paid&&!exp?`<div class="rb"><div style="font-size:22px;">🎁</div><div><div style="color:var(--bd);font-weight:800;font-size:13.5px;">Click 🎁 Give FREE Haircut button above!</div><div style="color:var(--bd);font-size:11.5px;opacity:.8;">Card resets after redemption</div></div></div>`:''}
+          <div class="pt"><span>${st}/${paid} paid stamps</span><span>${paid-st>0?(paid-st)+' more stamps → visit ${CFG.stampsNeeded} is FREE!':'🎉 Give special gift now!'}</span></div>
+          ${st>=paid&&!exp?`<div class="rb"><div style="font-size:22px;">🎁</div><div><div style="color:var(--bd);font-weight:800;font-size:13.5px;">Click 🎁 Give Special Gift 🎁 button above!</div><div style="color:var(--bd);font-size:11.5px;opacity:.8;">Card resets after redemption</div></div></div>`:''}
           ${exp?`<div style="background:rgba(220,38,38,.2);border-radius:9px;padding:9px 13px;margin-top:11px;font-size:12.5px;font-weight:700;color:#FCA5A5;">⚠ Passport expired · ${fmtDate(c.expiry_date)}</div>`:(d!==null&&d<=30?`<div style="background:rgba(217,119,6,.2);border-radius:9px;padding:9px 13px;margin-top:11px;font-size:12.5px;font-weight:700;color:#FCD34D;">⏰ Expiring in ${d} days</div>`:'')}
         </div>
       </div>
@@ -1266,7 +1266,7 @@ function buildCycleHistory(cycles,currentStamps,c){
     rows.push(...cycles.map((cy,i)=>{
       const cls=cy.ended_by==='redeemed'?'redeemed':cy.ended_by==='expired'?'expired':'reset';
       const icon=cy.ended_by==='redeemed'?'🎁':cy.ended_by==='expired'?'⏰':'🔄';
-      const label=cy.ended_by==='redeemed'?'Free Haircut Redeemed':cy.ended_by==='expired'?'Cycle Expired':'Manual Reset';
+      const label=cy.ended_by==='redeemed'?'Special Gift Redeemed 🎁':cy.ended_by==='expired'?'Cycle Expired':'Manual Reset';
       const badgeCls=cy.ended_by==='redeemed'?'bg-ok':cy.ended_by==='expired'?'bg-err':'bg-warn';
       let dots='';
       for(let j=0;j<paidNeeded();j++) dots+=`<div class="csd ${j<cy.stamps_earned?'on':''}">${j<cy.stamps_earned?'🐼':'✦'}</div>`;
@@ -1296,7 +1296,7 @@ async function addStamp(id){
     if(isExp(c)){toast('Passport expired. Please renew first.','error');return;}
     const currentStamps=parseInt(c.stamps)||0;
     const paid=paidNeeded();
-    if(currentStamps>=paid){toast('All '+paid+' stamps collected — use Give FREE Haircut button!','error');return;}
+    if(currentStamps>=paid){toast('All '+paid+' stamps collected — use Give Special Gift 🎁 button!','error');return;}
     const ns=currentStamps+1;
     const now=new Date().toISOString();
     const months=c.gender==='girl'?CFG.girlMonths:CFG.boyMonths;
@@ -1306,9 +1306,9 @@ async function addStamp(id){
     await sb('visits','POST',{customer_id:id,type:'paid',stamp_count_after:ns,cycle_expiry:expiry});
     // Detect if this customer returned after a nudge
     if(c.nudge_sent_at&&(!c.last_visit_date||new Date(c.last_visit_date)<new Date(c.nudge_sent_at))){
-      toast('🎉 '+c.name+' returned after nudge! Stamp '+ns+'/'+paid+' added.'+(ns>=paid?' FREE haircut ready!':''));
+      toast('🎉 '+c.name+' returned after nudge! Stamp '+ns+'/'+paid+' added.'+(ns>=paid?' special gift ready!':''));
     } else {
-      toast('✅ Stamp '+ns+'/'+paid+' added for '+c.name+(ns>=paid?' 🎁 FREE haircut ready!':''));
+      toast('✅ Stamp '+ns+'/'+paid+' added for '+c.name+(ns>=paid?' 🎁 special gift ready!':''));
     }
     if(curPID===id) viewProfile(id);
     renderDash();
@@ -1333,7 +1333,7 @@ async function redeemFree(id){
     await archiveCycle(id,c.stamps,c.first_stamp_date,c.expiry_date,'redeemed');
     await sb('customers','PATCH',{stamps:0,first_stamp_date:null,expiry_date:null,redemptions:(c.redemptions||0)+1},'id=eq.'+id);
     await sb('visits','POST',{customer_id:id,type:'free',stamp_count_after:0,cycle_expiry:c.expiry_date});
-    toast('🎉 FREE haircut given to '+c.name+'! Card reset to 0.');
+    toast('🎉 special gift given to '+c.name+'! Card reset to 0.');
     if(curPID===id) viewProfile(id);
     renderDash();
     if(document.getElementById('page-customers').classList.contains('active')) setTimeout(loadCustomers,300);
@@ -1455,8 +1455,8 @@ async function renderMissYou(){
       return thisYear>=weekStart&&thisYear<=weekEnd;
     });
 
-    // ── Tab 5: Free cut ready ──
-    // freeCut: ready for free cut, not DND, not already nudged today
+    // ── Tab 5: Special gift ready ──
+    // freeCut: ready for special gift, not DND, not already nudged today
     const todayStr=new Date().toISOString().split('T')[0];
     const freeCut=custs.filter(c=>{
       if((c.stamps||0)<paidNeeded()) return false;
@@ -1548,8 +1548,8 @@ async function renderMissYou(){
       :'<div style="text-align:center;padding:24px;color:var(--muted);">No birthdays this week</div>';
 
     document.getElementById('MY_FREE_LIST').innerHTML=freeCut.length
-      ?freeCut.map(c=>nudgeRow(c,'ready',c.stamps+'/'+paidNeeded()+' stamps — free cut ready!')).join('')
-      :'<div style="text-align:center;padding:24px;color:var(--muted);">No free cuts ready</div>';
+      ?freeCut.map(c=>nudgeRow(c,'ready',c.stamps+'/'+paidNeeded()+' stamps — special gift ready!')).join('')
+      :'<div style="text-align:center;padding:24px;color:var(--muted);">No special gifts ready</div>';
 
     document.getElementById('MY_WAITING').innerHTML=waiting.length?waiting.map(c=>{
       const daysAgo=Math.round((now2-new Date(c.nudge_sent_at))/(1000*60*60*24));
@@ -1703,13 +1703,13 @@ function cancelNudge(id){
 function sendWA(id,mobile,gender,name,stamps,paid,msgType='lapsed'){
   // Store msgs in closure-safe variables
   const msgs={
-    '🎁 Free Haircut Ready': getWAMsg({name,gender},'ready'),
+    '🎁 Special Gift Ready': getWAMsg({name,gender},'ready'),
     '⏰ Expiry Reminder':    getWAMsg({name,gender},'expiry'),
     '😴 Win-back':           getWAMsg({name,gender},'lapsed'),
     '🎂 Birthday':           getWAMsg({name,gender},'birthday')
   };
   // Pre-select the right message type
-  const typeMap={ready:'🎁 Free Haircut Ready',expiry:'⏰ Expiry Reminder',lapsed:'😴 Win-back',birthday:'🎂 Birthday'};
+  const typeMap={ready:'🎁 Special Gift Ready',expiry:'⏰ Expiry Reminder',lapsed:'😴 Win-back',birthday:'🎂 Birthday'};
   const preSelected=msgType&&typeMap[msgType]?typeMap[msgType]:null;
   // Create modal
   const overlay=document.createElement('div');
@@ -1834,8 +1834,8 @@ async function sendFollowup(id,mobile,name){
     const st=parseInt(c.stamps)||0;
     const pN=paidNeeded();
     const portalUrl='https://yasmint2825.github.io/minicuts-loyalty/?customer=1&lookup='+encodeURIComponent(c.mobile);
-    const stampLine=st>=pN?'🎁 Your FREE haircut is ready — come in and claim it!':
-      'You have '+st+' stamp'+(st!==1?'s':'')+' — just '+(pN-st)+' more for a FREE haircut!';
+    const stampLine=st>=pN?'🎁 Your special gift is ready — come in and claim it!':
+      'You have '+st+' stamp'+(st!==1?'s':'')+' — just '+(pN-st)+' more for a special gift!';
     const gameLine=(c.game_points||0)>0?'Game points: '+c.game_points+' pts':'Ask us about our Game Zone next visit!';
     const msg='Hi '+(c.parent||c.name)+'!\n\nThank you for visiting MiniCuts — '+c.name+' looked amazing!\n\n'+stampLine+'\n'+gameLine+'\n\nCheck your loyalty passport here:\n'+portalUrl+'\n\nIf you enjoyed your visit, a Google review means the world to us:\nhttps://share.google/xpTR5fVOVbt4pwg8X\n\nSee you soon!\nMiniCuts DSO';
     openWA(mobile,msg);
@@ -1936,7 +1936,7 @@ function buildCard(c){
   let circles='';
   for(let i=0;i<pN;i++) circles+=`<div class="cs3 ${i<st?'on':''}">${i<st?'🐼':'✦'}</div>`;
   const rem=pN-st;
-  const cta=exp?'Passport expired — visit us to renew!':st===0?'Start collecting! Every haircut = 1 stamp 🐼':st>=pN?'🎉 Your FREE haircut is ready! Show this to your stylist.':rem===1?'Just 1 more stamp — visit '+CFG.stampsNeeded+' is FREE! 🎉':rem+' more stamps — visit '+CFG.stampsNeeded+' is FREE!';
+  const cta=exp?'Passport expired — visit us to renew!':st===0?'Start collecting! Every haircut = 1 stamp 🐼':st>=pN?'🎉 Your special gift is ready! Show this to your stylist.':rem===1?'Just 1 more stamp → your Special Gift 🎁 is almost ready!':rem+' more stamps → Special Gift 🎁!';
   return`<div class="ccard">
     <div style="display:flex;align-items:center;gap:11px;margin-bottom:16px;">
       <div style="width:44px;height:44px;background:var(--y);border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:22px;">🐼</div>
@@ -1954,7 +1954,7 @@ function buildCard(c){
     <div style="height:7px;background:rgba(255,255,255,.15);border-radius:99px;overflow:hidden;margin-bottom:9px;"><div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#FFD600,#FF8C00);border-radius:99px;"></div></div>
     <div style="text-align:center;font-size:14.5px;font-weight:800;margin-bottom:4px;">${cta}</div>
     ${c.expiry_date&&!exp?`<div style="text-align:center;font-size:11.5px;opacity:.65;">Valid until ${fmtDate(c.expiry_date)}${d!==null&&d<=60?' · '+d+' days left':''}</div>`:''}
-    <div style="background:rgba(255,255,255,.12);border-radius:10px;padding:11px;text-align:center;font-size:12px;opacity:.85;margin-top:14px;">✂️ Every paid haircut = 1 stamp &nbsp;·&nbsp; 🎁 After ${pN} stamps your <strong>visit ${CFG.stampsNeeded} is FREE!</strong></div>
+    <div style="background:rgba(255,255,255,.12);border-radius:10px;padding:11px;text-align:center;font-size:12px;opacity:.85;margin-top:14px;">✂️ Every paid haircut = 1 stamp &nbsp;·&nbsp; 🎁 After ${pN} stamps your <strong>visit ${CFG.stampsNeeded} = <strong>Special Gift 🎁</strong>!</div>
     ${(c.game_points||0)>0?`
     <div style="background:rgba(255,255,255,.15);border-radius:10px;padding:12px;margin-top:10px;">
       <div style="font-size:12px;font-weight:800;color:rgba(255,255,255,.8);margin-bottom:8px;text-align:center;">🎮 Game Zone Points</div>
@@ -1994,7 +1994,7 @@ function buildCustomerHistory(visits,c){
     const isPaid=v.type==='paid';const isFree=v.type==='free';
     if(!isPaid&&!isFree) return '';
     const icon=isFree?'🎁':'✂️';
-    const label=isFree?'Free Haircut Redeemed':'Paid Haircut';
+    const label=isFree?'Special Gift Redeemed 🎁':'Paid Haircut';
     const bg=isFree?'#FFF9D6':'#E3F0FF';
     const col=isFree?'#92400E':'#1565C0';
     const badge=isFree?'🎁 Free':'✂️ Paid';
