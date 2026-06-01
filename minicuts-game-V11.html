@@ -25,34 +25,25 @@
     if(!response.ok) throw new Error('Could not load V10 file: HTTP ' + response.status);
     let html = await response.text();
 
-    // Fix 1: broken inline onclick escaping on the Register button.
     html = html.replace(
       'onclick="goToRegister(\\\'\\\',\\\'\\\',\\\'Register below!\\\')"',
       'onclick="goToRegister(\'\', \'\', \'Register below!\')"'
     );
 
-    // Fix 2: add parent mobile validation before Supabase registration insert.
     html = html.replace(
       'if(!name){showRegMsg("Please enter child\'s name",false);return;}\n   \n   if(!dob){',
       'if(!name){showRegMsg("Please enter child\'s name",false);return;}\n   if(mobile.length<7){showRegMsg("Please enter valid parent mobile",false);return;}\n   \n   if(!dob){'
     );
 
-    // Fix 3: inject missing registration/login helper functions.
     const helperScript = `
-var regGender = window.regGender || 'boy';
+window.regGender = window.regGender || 'boy';
 function setRegGender(g){
-  regGender = g;
   window.regGender = g;
+  try{ regGender = g; }catch(e){}
   var boy = document.getElementById('regBoy');
   var girl = document.getElementById('regGirl');
-  if(boy){
-    boy.style.borderColor = g === 'boy' ? '#FFD600' : '#E5E7EB';
-    boy.style.background = g === 'boy' ? '#FFF7CC' : '#fff';
-  }
-  if(girl){
-    girl.style.borderColor = g === 'girl' ? '#FFD600' : '#E5E7EB';
-    girl.style.background = g === 'girl' ? '#FFF7CC' : '#fff';
-  }
+  if(boy){ boy.style.borderColor = g === 'boy' ? '#FFD600' : '#E5E7EB'; boy.style.background = g === 'boy' ? '#FFF7CC' : '#fff'; }
+  if(girl){ girl.style.borderColor = g === 'girl' ? '#FFD600' : '#E5E7EB'; girl.style.background = g === 'girl' ? '#FFF7CC' : '#fff'; }
 }
 function showRegMsg(msg,ok){
   var el = document.getElementById('regMsg');
@@ -71,12 +62,14 @@ function showLoginMsg(msg,ok){
   el.style.color = ok === 'ok' || ok === true ? '#166534' : '#DC2626';
 }
 `;
-    html = html.replace('<script>\nwindow.onerror', '<script>\n' + helperScript + '\nwindow.onerror');
 
-    html = html.replace(
-      '<title>MiniCuts Game Zone 🐼</title>',
-      '<title>MiniCuts Game Zone 🐼 - Fixed Test</title>'
-    );
+    if(html.includes('window.onerror')){
+      html = html.replace('window.onerror', helperScript + '\nwindow.onerror');
+    } else {
+      html = html.replace('<script>', '<script>\n' + helperScript);
+    }
+
+    html = html.replace('<title>MiniCuts Game Zone 🐼</title>','<title>MiniCuts Game Zone 🐼 - Fixed Test</title>');
 
     document.open();
     document.write(html);
