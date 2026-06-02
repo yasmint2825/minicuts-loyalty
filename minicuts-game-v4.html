@@ -261,10 +261,10 @@ body{display:flex;font-family:'Nunito',sans-serif;}
   </div>
   <div class="card" id="gameSelectCard" style="padding:10px 12px;">
     <div id="gameProgressBar" style="display:flex;align-items:center;gap:8px;margin-bottom:7px;">
-      <div style="flex:1;background:rgba(0,0,0,.12);border-radius:99px;height:9px;overflow:hidden;">
-        <div id="gameProgressFill" style="height:100%;width:0%;background:linear-gradient(90deg,#FFD600,#FF8C00);border-radius:99px;transition:width .5s ease;"></div>
+      <div style="flex:1;background:rgba(255,255,255,.2);border-radius:99px;height:9px;overflow:hidden;border:1px solid rgba(255,255,255,.1);">
+        <div id="gameProgressFill" style="height:100%;width:0%;background:linear-gradient(90deg,#FFD600,#FF8C00);border-radius:99px;transition:width .6s ease;display:block;"></div>
       </div>
-      <div id="gameProgressLabel" style="font-size:11px;font-weight:800;color:#6B7280;white-space:nowrap;flex-shrink:0;">0/3</div>
+      <div id="gameProgressLabel" style="font-size:12px;font-weight:900;color:#FFD600;white-space:nowrap;flex-shrink:0;">0/3 games</div>
     </div>
     <div id="gamePrompt" style="text-align:center;margin-bottom:8px;min-height:20px;"></div>
     <div class="game-grid" id="gameGrid">
@@ -294,7 +294,7 @@ body{display:flex;font-family:'Nunito',sans-serif;}
     </div>
   </div>
   <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;">
-    <button class="btn" onclick="goLeaderboard()" style="background:linear-gradient(135deg,#10B981,#059669);color:#fff;border:none;padding:9px;font-size:13px;">🏆 Scores</button>
+    <button class="btn" onclick="goLeaderboard()" style="background:linear-gradient(135deg,#10B981,#059669);color:#fff;border:none;padding:9px;font-size:13px;">🏆 View Leaderboard</button>
     <button class="btn btn-ghost" onclick="newPlayer()" style="font-size:13px;padding:9px;border-color:var(--y);color:var(--y);">👶 New</button>
     <button class="btn btn-ghost" onclick="goHome()" style="font-size:13px;padding:9px;">🏠 Exit</button>
   </div>
@@ -304,7 +304,7 @@ body{display:flex;font-family:'Nunito',sans-serif;}
 <div class="screen" id="s-spin">
   <div class="home-bar" style="margin-top:6px;">
     <div>
-      <div style="font-size:11px;color:rgba(255,255,255,.65);" id="spinChanceLabel">Spin 1 of 2</div>
+      <div style="font-size:11px;color:rgba(255,255,255,.65);" id="spinChanceLabel">1 spin — good luck! 🎡</div>
       <div style="font-size:11px;color:rgba(255,255,255,.45);">Best: <strong id="bestSoFar" style="color:var(--y);">—</strong></div>
     </div>
     <span id="pandaReact" style="font-size:32px;">🐼</span>
@@ -366,7 +366,7 @@ body{display:flex;font-family:'Nunito',sans-serif;}
   </div>
   <div id="remainingGames" style="margin-bottom:6px;"></div>
   <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;">
-    <button class="btn" onclick="goLeaderboard()" style="background:linear-gradient(135deg,#10B981,#059669);color:#fff;border:none;padding:9px;font-size:13px;">🏆 Scores</button>
+    <button class="btn" onclick="goLeaderboard()" style="background:linear-gradient(135deg,#10B981,#059669);color:#fff;border:none;padding:9px;font-size:13px;">🏆 View Leaderboard</button>
     <button class="btn btn-ghost" onclick="newPlayer()" style="font-size:13px;padding:9px;border-color:var(--y);color:var(--y);">👶 New</button>
     <button class="btn btn-ghost" onclick="goHome()" style="font-size:13px;padding:9px;">🏠 Done</button>
   </div>
@@ -612,8 +612,11 @@ function refreshGameCards(){
   const pct=Math.round((playedCount/3)*100);
   const fill=document.getElementById('gameProgressFill');
   const lbl=document.getElementById('gameProgressLabel');
-  if(fill) fill.style.width=pct+'%';
-  if(lbl) lbl.textContent=playedCount+'/3 games';
+  if(fill){fill.style.width=pct+'%';fill.style.display='block';}
+  if(lbl){
+    lbl.textContent=playedCount+'/3 games';
+    lbl.style.color=playedCount===0?'rgba(255,255,255,.5)':playedCount===3?'#4ADE80':'#FFD600';
+  }
 
   // Prompt messages
   const prompt=document.getElementById('gamePrompt');
@@ -1460,10 +1463,7 @@ function renderSidebar(){
   const rankEl=document.getElementById('sideRankBadge');
   if(player.id&&myPts>0){
     const rankTxt=myRank>0?'Your rank: #'+myRank:'Not ranked yet';
-    rankEl.innerHTML=`<div class="rank-badge">
-      <div class="rank-badge-txt">${rankTxt}</div>
-      <div style="font-size:10px;color:rgba(255,214,0,.7);">${myPts} pts total</div>
-    </div>`;
+    rankEl.innerHTML='<div class="rank-badge"><div class="rank-badge-txt">'+rankTxt+'</div><div style="font-size:10px;color:rgba(255,214,0,.7);">'+myPts+' pts total</div></div>';
   } else {
     rankEl.innerHTML='';
   }
@@ -1480,7 +1480,7 @@ function renderSidebar(){
     const next=TIERS_SB.find(t=>pts<t.pts);
     if(!next) return 'All rewards unlocked! 🎉';
     const needed=next.pts-pts;
-    return `${needed}pts → ${next.icon} ${next.label}`;
+    return needed+'pts → '+next.icon+' '+next.label;
   }
 
   if(!sidebarData.length){
@@ -1547,8 +1547,8 @@ function renderSidebar(){
 
 // Refresh sidebar every 30 seconds
 setInterval(loadSidebarLb,30000);
-// Initial load
-setTimeout(loadSidebarLb,1000);
+// Initial load (delayed so DOM ready)
+setTimeout(loadSidebarLb,1500);
 
 async function fetchLb(){
   // Direct fetch — no wrapper — to isolate any issues
