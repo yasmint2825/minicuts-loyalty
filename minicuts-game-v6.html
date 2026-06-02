@@ -1846,37 +1846,10 @@ function launchConfetti(){
   }
 
   function patchSidebar(){
-    window.loadSidebarLb = async function(){
-      try{
-        await refreshCurrentPlayer();
-        const rows = await sb('customers','GET',null,'select=id,name,mobile,game_points&order=game_points.desc&limit=10');
-        sidebarData = rows || [];
-        const listEl = $('sideLbList');
-        if(listEl){
-          if(!sidebarData.length) listEl.innerHTML='<div style="text-align:center;padding:16px;color:rgba(255,255,255,.35);font-size:11px;">No scores yet<br>Play to be first! 🎮</div>';
-          else{
-            const medals=['🥇','🥈','🥉'];
-            listEl.innerHTML = sidebarData.map((c,i) => {
-              const pts=c.game_points||0;
-              const isMe=(player && player.id && c.id===player.id);
-              const icon=medals[i] || '#'+(i+1);
-              return `<div style="display:flex;align-items:flex-start;gap:7px;padding:7px 6px;margin-bottom:5px;border-radius:9px;background:${isMe?'rgba(255,214,0,.16)':'rgba(255,255,255,.055)'};border:1px solid ${isMe?'rgba(255,214,0,.35)':'rgba(255,255,255,.06)'};"><div style="font-size:15px;width:24px;text-align:center;font-weight:900;color:#FFD600;">${icon}</div><div style="flex:1;min-width:0;"><div class="sb-name">${c.name||'Player'}${isMe?' ⭐':''}</div>${miniBar(pts)}</div><div class="sb-pts">${pts}</div></div>`;
-            }).join('');
-          }
-        }
-        const rankEl=$('sideRankBadge');
-        if(rankEl){
-          rankEl.innerHTML='<div class="rank-badge"><div class="rank-badge-txt">Calculating global rank...</div></div>';
-          const r = await calculateGlobalRank();
-          if(r) rankEl.innerHTML='<div class="rank-badge"><div class="rank-badge-txt">Global rank: #'+r.rank+' of '+r.total+'</div><div style="font-size:10px;color:rgba(255,214,0,.7);">'+r.points+' pts total</div></div>';
-        }
-        renderRankMini();
-      }catch(e){ console.warn('Sidebar error:',e.message); }
-    };
-    window.renderSidebar=()=>loadSidebarLb();
+    // Sidebar rendering handled by main loadSidebarLb — do not override
   }
 
-  function patchMemory(){
+    function patchMemory(){
     window.buildMemGrid=function(reveal){
       const symbols=['🌟','🎡','🎈','🍭'];
       const pairs=symbols.concat(symbols).sort(()=>Math.random()-.5);
