@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MiniCuts Smart Hair Care Guide</title>
+  <style>
+    :root {
+      --yellow: #FFD84D;
+      --blue: #1E4FBF;
+      --light-blue: #EAF4FF;
+      --soft-blue: #F7FBFF;
+      --sky: #DCEEFF;
+      --dark: #14213D;
+      --text: #334155;
+      --muted: #64748B;
+      --white: #FFFFFF;
+      --green: #16A34A;
+      --orange: #F97316;
+      --shadow: 0 18px 40px rgba(30, 79, 191, 0.13);
+      --soft-shadow: 0 10px 26px rgba(20, 33, 61, 0.08);
+      --radius: 24px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: Inter, Arial, sans-serif;
+      color: var(--dark);
+      background:
+        radial-gradient(circle at top left, rgba(255,216,77,0.45), transparent 34%),
+        radial-gradient(circle at top right, rgba(30,79,191,0.18), transparent 32%),
+        linear-gradient(180deg, var(--light-blue), #fff 42%, var(--soft-blue));
+      min-height: 100vh;
+    }
+
+    a { color: inherit; text-decoration: none; }
+    button, a.btn { -webkit-tap-highlight-color: transparent; }
+
+    .app-shell { width: min(1160px, 100%); margin: 0 auto; padding: 18px 14px 92px; }
+    .hero {
+      background: linear-gradient(135deg, rgba(255,255,255,0.96), rgba(255,248,211,0.94));
+      border: 1px solid rgba(255,255,255,0.85);
+      border-radius: 30px;
+      padding: 18px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      position: relative;
+    }
+    .hero:before {
+      content: "";
+      position: absolute;
+      right: -85px;
+      top: -90px;
+      width: 210px;
+      height: 210px;
+      background: var(--yellow);
+      border-radius: 999px;
+      opacity: 0.42;
+    }
+    .brand-row, .hero-content, .card-header, .quiz-actions, .cta-buttons, .result-chip-row, .tabs, .mini-tabs {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .brand-row { justify-content: space-between; position: relative; z-index: 1; }
+    .logo-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 12px;
+      background: var(--blue);
+      color: #fff;
+      border-radius: 999px;
+      font-weight: 800;
+      box-shadow: var(--soft-shadow);
+      font-size: 13px;
+    }
+    .panda-face {
+      width: 28px;
+      height: 28px;
+      background: #fff;
+      color: var(--blue);
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-size: 12px;
+      box-shadow: inset 0 0 0 3px var(--yellow);
+    }
+    .status-badge {
+      background: rgba(30,79,191,0.1);
+      color: var(--blue);
+      border: 1px solid rgba(30,79,191,0.14);
+      padding: 8px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+    .hero-content { flex-direction: column; align-items: stretch; margin-top: 24px; position: relative; z-index: 1; }
+    .hero h1 { font-size: clamp(30px, 7vw, 58px); line-height: 0.96; margin: 0 0 14px; letter-spacing: -1.3px; }
+    .hero p { color: var(--text); font-size: 16px; line-height: 1.55; margin: 0; }
+    .hero-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px; }
+    .hero-card {
+      background: #fff;
+      border-radius: var(--radius);
+      padding: 14px;
+      box-shadow: var(--soft-shadow);
+      display: grid;
+      gap: 12px;
+    }
+    .mini-metric {
+      display: grid;
+      grid-template-columns: 46px 1fr;
+      gap: 12px;
+      align-items: center;
+      padding: 12px;
+      border-radius: 18px;
+      background: linear-gradient(135deg, #F8FBFF, #FFF8D6);
+      border: 1px solid rgba(30,79,191,0.08);
+    }
+    .mini-metric strong { display: block; font-size: 14px; margin-bottom: 3px; }
+    .mini-metric span { display: block; color: var(--muted); font-size: 12px; line-height: 1.35; }
+    .icon-bubble {
+      width: 44px;
+      height: 44px;
+      border-radius: 16px;
+      display: grid;
+      place-items: center;
+      background: var(--yellow);
+      color: var(--blue);
+      font-weight: 900;
+      box-shadow: 0 10px 20px rgba(255,216,77,0.32);
+      flex: 0 0 auto;
+    }
+
+    .section-grid { display: grid; gap: 16px; margin-top: 16px; }
+    .card {
+      background: rgba(255,255,255,0.96);
+      border: 1px solid rgba(30,79,191,0.09);
+      border-radius: var(--radius);
+      padding: 17px;
+      box-shadow: var(--soft-shadow);
+    }
+    .card-header { justify-content: space-between; align-items: flex-start; margin-bottom: 15px; }
+    .eyebrow {
+      color: var(--blue);
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      font-size: 11px;
+      margin-bottom: 6px;
+    }
+    h2, h3 { margin: 0; letter-spacing: -.3px; }
+    h2 { font-size: 24px; }
+    h3 { font-size: 20px; }
+    .small-text { margin: 7px 0 0; color: var(--muted); font-size: 13px; line-height: 1.45; }
+
+    .btn {
+      min-height: 46px;
+      border: 0;
+      border-radius: 16px;
+      padding: 12px 15px;
+      font-weight: 900;
+      font-size: 14px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: transform .18s ease, box-shadow .18s ease, opacity .18s ease;
+      text-align: center;
+    }
+    .btn:hover { transform: translateY(-1px); }
+    .btn:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+    .btn-primary { background: var(--yellow); color: var(--dark); box-shadow: 0 12px 22px rgba(255,216,77,.34); }
+    .btn-blue { background: var(--blue); color: #fff; box-shadow: 0 12px 22px rgba(30,79,191,.22); }
+    .btn-light { background: #F1F5F9; color: var(--dark); }
+
+    .progress-wrap { margin: 14px 0 18px; }
+    .progress-top { display: flex; justify-content: space-between; color: var(--muted); font-size: 12px; font-weight: 800; margin-bottom: 7px; }
+    .progress-bar { height: 10px; background: #E8EEF7; border-radius: 999px; overflow: hidden; }
+    .progress-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--blue), var(--yellow)); border-radius: 999px; transition: width .25s ease; }
+    .question-title { font-size: 21px; margin-bottom: 14px; }
+    .option-grid { display: grid; gap: 10px; }
+    .option-btn {
+      width: 100%;
+      min-height: 50px;
+      text-align: left;
+      padding: 14px;
+      border: 2px solid #E6EEF8;
+      background: #fff;
+      color: var(--dark);
+      border-radius: 17px;
+      font-weight: 850;
+      cursor: pointer;
+      transition: border .18s ease, background .18s ease, transform .18s ease;
+    }
+    .option-btn:hover { transform: translateY(-1px); border-color: rgba(30,79,191,.35); }
+    .option-btn.selected { border-color: var(--blue); background: #EDF5FF; box-shadow: inset 0 0 0 1px rgba(30,79,191,.08); }
+    .quiz-actions { justify-content: space-between; margin-top: 16px; }
+    .quiz-actions .btn { flex: 1; }
+
+    .result-card { display: none; margin-top: 18px; padding: 18px; border-radius: 22px; background: linear-gradient(135deg, #F7FBFF, #FFF7D1); border: 1px solid rgba(30,79,191,.12); }
+    .result-card.active { display: block; animation: pop .25s ease; }
+    @keyframes pop { from { opacity: 0; transform: scale(.98); } to { opacity: 1; transform: scale(1); } }
+    .result-chip-row { flex-wrap: wrap; margin: 12px 0; }
+    .chip { background: #fff; color: var(--blue); border: 1px solid rgba(30,79,191,.16); border-radius: 999px; padding: 8px 10px; font-size: 12px; font-weight: 850; }
+    .tips-list, .reason-list { padding: 0; margin: 12px 0; list-style: none; display: grid; gap: 10px; }
+    .tips-list li, .reason-list li { background: #fff; padding: 12px 12px 12px 38px; border-radius: 16px; color: var(--text); position: relative; line-height: 1.45; }
+    .tips-list li:before { content: "✓"; position: absolute; left: 13px; top: 11px; color: var(--green); font-weight: 900; }
+    .reason-list li:before { content: "→"; position: absolute; left: 14px; top: 11px; color: var(--blue); font-weight: 900; }
+    .suggestion-box, .reason-box, .warning-box {
+      border-radius: 18px;
+      padding: 14px;
+      margin-top: 12px;
+      border: 1px solid rgba(30,79,191,.12);
+      background: #fff;
+    }
+    .suggestion-box strong, .reason-box strong, .warning-box strong { display: block; margin-bottom: 6px; color: var(--blue); }
+    .suggestion-box p, .reason-box p, .warning-box p { margin: 0; color: var(--text); line-height: 1.45; font-size: 14px; }
+    .warning-box { background: #FFF7ED; border-color: rgba(249,115,22,.2); }
+    .warning-box strong { color: #C2410C; }
+
+    .tabs, .mini-tabs { flex-wrap: wrap; margin: 12px 0; }
+    .tab-btn, .mini-tab-btn {
+      border: 1px solid rgba(30,79,191,.15);
+      background: #fff;
+      border-radius: 999px;
+      padding: 9px 12px;
+      cursor: pointer;
+      font-weight: 900;
+      color: var(--blue);
+    }
+    .tab-btn.active, .mini-tab-btn.active { background: var(--blue); color: #fff; }
+    .routine-panel, .style-panel { display: none; }
+    .routine-panel.active, .style-panel.active { display: block; animation: pop .2s ease; }
+
+    .daily-tip { min-height: 120px; border-radius: 22px; background: linear-gradient(135deg, var(--blue), #3E70E5); color: #fff; padding: 18px; display: flex; gap: 12px; align-items: flex-start; font-size: 16px; line-height: 1.5; margin-bottom: 14px; }
+    .reminder-options { display: grid; gap: 10px; }
+    .reminder-btn { border: 2px solid #E6EEF8; background: #fff; min-height: 48px; border-radius: 16px; padding: 12px; text-align: left; font-weight: 850; color: var(--dark); cursor: pointer; }
+    .reminder-btn.active { border-color: var(--blue); background: #EDF5FF; }
+    .reminder-result { display: none; margin-top: 12px; padding: 14px; background: #F0FDF4; border: 1px solid rgba(22,163,74,.2); color: #166534; border-radius: 16px; font-weight: 850; line-height: 1.45; }
+    .reminder-result.active { display: block; }
+
+    .myth-list { display: grid; gap: 10px; }
+    .myth-card { border: 1px solid #E6EEF8; border-radius: 18px; background: #fff; overflow: hidden; }
+    .myth-question { width: 100%; background: #fff; border: 0; padding: 15px; display: flex; justify-content: space-between; align-items: center; gap: 12px; font-weight: 900; text-align: left; color: var(--dark); cursor: pointer; }
+    .myth-answer { display: none; padding: 0 15px 15px; color: var(--text); line-height: 1.45; }
+    .myth-card.open .myth-answer { display: block; }
+
+    .cta-card { margin-top: 16px; background: linear-gradient(135deg, var(--blue), #315FD0); color: #fff; overflow: hidden; position: relative; }
+    .cta-card:after { content: "🐼"; position: absolute; right: 18px; bottom: -8px; font-size: 84px; opacity: .18; }
+    .cta-card .eyebrow, .cta-card .small-text { color: rgba(255,255,255,.82); }
+    .cta-content { position: relative; z-index: 1; }
+    .cta-buttons { flex-direction: column; align-items: stretch; margin-top: 16px; }
+
+    .disclaimer {
+      margin-top: 16px;
+      background: #fff;
+      border: 1px dashed rgba(30,79,191,.3);
+      border-radius: 20px;
+      padding: 14px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    .footer-note { text-align: center; color: var(--muted); font-size: 12px; margin: 18px 0 0; }
+    .floating-nav { position: fixed; left: 12px; right: 12px; bottom: 12px; z-index: 5; background: rgba(255,255,255,.94); border: 1px solid rgba(30,79,191,.12); box-shadow: var(--shadow); border-radius: 999px; padding: 8px; display: grid; grid-template-columns: repeat(4,1fr); gap: 6px; backdrop-filter: blur(10px); }
+    .floating-nav a { padding: 10px 6px; border-radius: 999px; text-align: center; font-weight: 900; font-size: 12px; color: var(--blue); }
+    .floating-nav a:first-child { background: var(--yellow); color: var(--dark); }
+
+    @media (min-width: 740px) {
+      .app-shell { padding: 28px 20px 40px; }
+      .hero { padding: 28px; }
+      .hero-content { display: grid; grid-template-columns: 1.2fr .8fr; align-items: center; }
+      .section-grid { grid-template-columns: 1.25fr .75fr; align-items: start; }
+      .option-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .cta-buttons { flex-direction: row; }
+      .floating-nav { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app-shell">
+    <section class="hero">
+      <div class="brand-row">
+        <div class="logo-pill"><div class="panda-face">●</div><span>MiniCuts Kids Salon</span></div>
+        <div class="status-badge">Parent Smart Guide</div>
+      </div>
+      <div class="hero-content">
+        <div class="hero-copy">
+          <h1>Smart Hair Care Guide for Parents</h1>
+          <p>Answer a few quick questions and get practical hair care guidance for your child — with separate support for daily care, boys’ styling, girls’ long-hair care and salon comfort.</p>
+          <div class="hero-actions">
+            <a href="#quiz" class="btn btn-primary">Start Quick Guide</a>
+            <a href="#routines" class="btn btn-secondary btn-light">Browse Routines</a>
+          </div>
+        </div>
+        <div class="hero-card" aria-label="Guide highlights">
+          <div class="mini-metric"><div class="icon-bubble">✂️</div><div><strong>Personalized mini consultation</strong><span>Hair type, age, concern, gender routine and comfort preference.</span></div></div>
+          <div class="mini-metric"><div class="icon-bubble">💙</div><div><strong>Explains the reason</strong><span>Parents see what to do and why it helps.</span></div></div>
+          <div class="mini-metric"><div class="icon-bubble">🐼</div><div><strong>MiniCuts friendly</strong><span>Warm, playful and safe for Dubai families.</span></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-grid">
+      <article class="card quiz-card" id="quiz">
+        <div class="card-header">
+          <div><div class="eyebrow">Interactive Quiz</div><h2>Find the right routine</h2><p class="small-text">Tap your answers. Your child’s guide appears as a friendly MiniCuts-style recommendation.</p></div>
+          <div class="icon-bubble">🪄</div>
+        </div>
+        <div class="progress-wrap">
+          <div class="progress-top"><span id="stepLabel">Step 1 of 6</span><span id="progressPercent">17%</span></div>
+          <div class="progress-bar" aria-hidden="true"><div class="progress-fill" id="progressFill"></div></div>
+        </div>
+        <div id="quizStage">
+          <h3 class="question-title" id="questionText"></h3>
+          <div class="option-grid" id="optionGrid"></div>
+          <div class="quiz-actions"><button class="btn btn-light" id="backBtn" type="button">Back</button><button class="btn btn-blue" id="nextBtn" type="button">Next</button></div>
+        </div>
+        <div class="result-card" id="resultCard" aria-live="polite">
+          <div class="eyebrow">Your MiniCuts Guide</div>
+          <h2 id="resultTitle">Personalized Hair Routine</h2>
+          <div class="result-chip-row" id="resultChips"></div>
+          <ul class="tips-list" id="resultTips"></ul>
+          <div class="reason-box"><strong>Why this helps</strong><p id="resultReason"></p></div>
+          <div class="suggestion-box"><strong>MiniCuts Suggestion</strong><p id="resultSuggestion"></p></div>
+          <div class="warning-box" id="careAlert"><strong>Parent safety note</strong><p id="careAlertText"></p></div>
+          <div class="quiz-actions"><button class="btn btn-light" id="restartBtn" type="button">Retake Quiz</button><a href="#cta" class="btn btn-blue">Ask Stylist</a></div>
+        </div>
+      </article>
+
+      <aside class="card tip-card" id="tips">
+        <div class="card-header"><div><div class="eyebrow">Daily Hair Tip</div><h3>Tip of the Day</h3><p class="small-text">A fresh parent-friendly tip every time they visit.</p></div><div class="icon-bubble">💡</div></div>
+        <div class="daily-tip" id="dailyTip"><span>✨</span><span>Use lukewarm water instead of hot water for kids’ hair wash.</span></div>
+        <button class="btn btn-primary" id="newTipBtn" type="button">Show Another Tip</button>
+      </aside>
+
+      <aside class="card" id="reminder">
+        <div class="card-header"><div><div class="eyebrow">Haircut Reminder</div><h3>Is it time for a haircut?</h3><p class="small-text">Choose when your child had the last haircut.</p></div><div class="icon-bubble">📅</div></div>
+        <div class="reminder-options" id="reminderOptions"></div>
+        <div class="reminder-result" id="reminderResult"></div>
+      </aside>
+    </section>
+
+    <section class="card" style="margin-top:16px;" id="routines">
+      <div class="card-header"><div><div class="eyebrow">Parent Routine Library</div><h2>Boys and girls need different styling help</h2><p class="small-text">The basic care is similar, but daily styling problems can be different. Pick what parents need today.</p></div><div class="icon-bubble">🧴</div></div>
+      <div class="tabs" id="routineTabs"></div>
+      <div id="routinePanels"></div>
+    </section>
+
+    <section class="card" style="margin-top:16px;" id="styles">
+      <div class="card-header"><div><div class="eyebrow">Quick Style Fixes</div><h2>Common parent questions</h2><p class="small-text">Simple salon-friendly guidance for boys’ spikes, soft shiny hair and school mornings.</p></div><div class="icon-bubble">⭐</div></div>
+      <div class="mini-tabs" id="styleTabs"></div>
+      <div id="stylePanels"></div>
+    </section>
+
+    <section class="card" style="margin-top:16px;" id="myths">
+      <div class="card-header"><div><div class="eyebrow">Mini Hair Myth Buster</div><h2>Fun facts for parents</h2><p class="small-text">Tap each myth to reveal a simple answer.</p></div><div class="icon-bubble">🔎</div></div>
+      <div class="myth-list" id="mythList"></div>
+    </section>
+
+    <section class="card cta-card" id="cta">
+      <div class="cta-content">
+        <div class="eyebrow">MiniCuts Care</div>
+        <h2>Need help choosing the right haircut?</h2>
+        <p class="small-text">Our stylists can help parents choose a style that suits the child’s hair, age, comfort, school routine and preferred look.</p>
+        <div class="cta-buttons">
+          <a class="btn btn-primary" href="tel:043408082">Ask MiniCuts Stylist</a>
+          <a class="btn btn-light" href="#quiz">Try Guide Again</a>
+          <a class="btn btn-blue" href="#">Check Loyalty Rewards</a>
+        </div>
+      </div>
+    </section>
+
+    <div class="disclaimer">
+      <strong>* Important:</strong> This page is only a general hair care and styling guide for parents. It is not medical advice and does not diagnose or treat scalp or hair conditions. If your child has severe itching, redness, swelling, wounds, infection, sudden/unusual hair fall, heavy flakes, pain, or if the issue continues despite gentle care, please consult a pediatrician or dermatologist.
+    </div>
+
+    <nav class="floating-nav" aria-label="Quick navigation"><a href="#quiz">Guide</a><a href="#routines">Care</a><a href="#styles">Style</a><a href="#myths">Myths</a></nav>
+    <p class="footer-note">MiniCuts Kids Salon • Caring tips for parents • Guide only, not medical advice.</p>
+  </main>
+
+  <script>
+    // MiniCuts Smart Hair Care Guide v2
+    // Single HTML file with local JavaScript. Easy to connect later to MiniCuts loyalty/game app.
+
+    const quizQuestions = [
+      { key: "childProfile", question: "Who are you choosing tips for?", options: ["Boy", "Girl", "Both / General"] },
+      { key: "hairType", question: "What is your child’s hair type?", options: ["Straight", "Wavy", "Curly", "Thick", "Fine"] },
+      { key: "ageGroup", question: "What is your child’s age group?", options: ["1–3 years", "4–7 years", "8–12 years", "Teen"] },
+      { key: "concern", question: "What is the main hair concern?", options: ["Dry hair", "Frizzy hair", "Tangled hair", "Dandruff/flakes", "Hair fall", "Difficult to manage", "Spikes not staying", "Want soft & shiny hair"] },
+      { key: "washFrequency", question: "How often do you wash your child’s hair?", options: ["Daily", "2–3 times a week", "Once a week", "Only when needed"] },
+      { key: "dislike", question: "What does your child dislike most during hair care?", options: ["Hair wash", "Combing", "Haircut", "Blow dry", "Sitting still"] }
+    ];
+
+    const recommendationMap = {
+      "Tangled hair": {
+        title: "Tangle-Free Hair Routine",
+        tips: ["Use a wide-tooth comb or detangling brush.", "Start from the ends first, then move upward slowly.", "Use a mild conditioner mainly on the ends if the hair is long or dry.", "Avoid tight ponytails or clips for long hours."],
+        reason: "Most painful tangles become worse when brushing starts from the scalp. Starting at the ends reduces pulling, and conditioner on the hair length gives more slip, making combing calmer for the child.",
+        suggestion: "Book a gentle trim every 6–8 weeks to reduce knots, dry ends and split ends."
+      },
+      "Dry hair": {
+        title: "Soft & Hydrated Hair Routine",
+        tips: ["Use lukewarm water, not hot water.", "Choose a mild kids shampoo and avoid over-washing.", "Apply conditioner on the hair ends, not heavily on the scalp.", "Pat dry with a towel instead of rubbing strongly."],
+        reason: "Hot water, rough towel drying and frequent washing can remove natural oils from the hair and scalp. Gentle washing plus conditioner on the ends helps hair feel softer without making the scalp oily.",
+        suggestion: "Ask our stylist for a soft trim and simple wash routine suitable for your child’s hair type."
+      },
+      "Frizzy hair": {
+        title: "Frizz-Control Hair Routine",
+        tips: ["Use a soft towel and gently squeeze hair dry.", "Comb when hair is slightly damp, not fully dry.", "For suitable hair types, use a small amount of child-friendly leave-in conditioner.", "Keep the haircut shaped so the ends do not look rough."],
+        reason: "Frizz often increases when hair is rubbed, dried harshly or left with uneven dry ends. A smoother drying routine and regular shaping can make hair look neater with less effort.",
+        suggestion: "A layered or shaped cut can help reduce puffiness and improve daily manageability."
+      },
+      "Dandruff/flakes": {
+        title: "Gentle Scalp Care Routine",
+        tips: ["Massage shampoo gently into the scalp with fingertips.", "Rinse well so shampoo does not remain on the scalp.", "Avoid scratching flakes harshly.", "Use anti-dandruff products only as per label guidance or doctor advice."],
+        reason: "Flakes can worsen when the scalp is irritated, scratched or not rinsed well. Gentle scalp washing helps remove buildup, while avoiding harsh scratching protects the skin.",
+        suggestion: "Ask our stylist if the flakes look like product buildup. If flakes are heavy, itchy, red or persistent, consult a doctor."
+      },
+      "Hair fall": {
+        title: "Gentle Handling Routine",
+        tips: ["Avoid tight ponytails, tight braids or styles that pull the scalp.", "Do not force knots out; detangle slowly from the ends.", "Use a soft brush and avoid harsh towel rubbing.", "Watch for sudden, patchy or unusual hair fall."],
+        reason: "Some breakage happens from pulling, tight hairstyles and rough brushing. Gentle handling reduces unnecessary breakage, but sudden or unusual hair fall should be checked medically.",
+        suggestion: "A simple, easy-maintenance haircut may reduce pulling, tangling and daily stress on hair."
+      },
+      "Difficult to manage": {
+        title: "Easy Morning Routine",
+        tips: ["Choose a haircut that matches school mornings and your child’s comfort.", "Keep hair slightly damp before combing difficult areas.", "Use simple school-friendly styles instead of complicated daily styling.", "Trim regularly so hair keeps its shape."],
+        reason: "Hair becomes difficult when the cut does not match the child’s hair texture or the family’s daily routine. A practical haircut can save time and reduce morning stress.",
+        suggestion: "Our stylist can recommend a low-maintenance haircut based on your child’s hair type and routine."
+      },
+      "Spikes not staying": {
+        title: "Boys’ Spikes & Shape Guide",
+        tips: ["Start with towel-dried hair, not dripping wet hair.", "Use a tiny amount of child-friendly styling product if parents are comfortable.", "Push hair upward from the roots, then shape the tips lightly.", "Keep the top length suitable; very long top hair may fall flat."],
+        reason: "Spikes need support at the root and the right top length. Too much water or too much product can weigh the hair down, while the right cut makes styling easier even with minimal product.",
+        suggestion: "Ask for a textured top, short sides or a soft faux-hawk style if your child likes spiky hair."
+      },
+      "Want soft & shiny hair": {
+        title: "Soft & Shiny Hair Guide",
+        tips: ["Rinse shampoo completely until hair feels clean, not slippery with product.", "Use conditioner only on mid-lengths and ends when needed.", "Avoid very hot water and rough towel drying.", "Trim dry ends so hair reflects light better and looks healthier."],
+        reason: "Hair looks shinier when the outer surface is smoother. Gentle washing, proper rinsing, conditioner on the ends and regular trims help reduce roughness.",
+        suggestion: "Ask MiniCuts for a soft trim and child-friendly finishing routine for a neat, shiny look."
+      }
+    };
+
+    const dailyTips = [
+      "Massage shampoo gently into the scalp; avoid rubbing the full hair length harshly.",
+      "Rinse well after shampoo so product does not remain on the scalp.",
+      "Use lukewarm water instead of hot water for kids’ hair wash.",
+      "Start detangling from the ends first to reduce painful pulling.",
+      "For school days, choose soft hairstyles that do not pull the scalp.",
+      "Curly or frizzy hair is often easier to detangle when slightly damp.",
+      "Too much styling product can make boys’ spikes fall flat; use a tiny amount only if suitable.",
+      "A trim every 6–8 weeks helps reduce split ends and keeps the style fresh.",
+      "For soft and shiny hair, gentle drying matters as much as shampoo choice.",
+      "If flakes, redness or itching continue, it is better to check with a doctor."
+    ];
+
+    const reminderData = [
+      { label: "Less than 4 weeks ago", result: "Still fresh! Maintain with gentle brushing and simple styling." },
+      { label: "4–6 weeks ago", result: "Good time to shape and maintain the look, especially for school cuts and boys’ short styles." },
+      { label: "6–8 weeks ago", result: "Ideal time for a fresh trim to reduce rough ends and keep the haircut neat." },
+      { label: "More than 8 weeks ago", result: "Hair may start losing shape. A haircut is recommended if it looks heavy, uneven or hard to manage." }
+    ];
+
+    const routines = [
+      { title: "Boys’ Daily Care", icon: "🧢", items: ["Short hair still needs gentle scalp washing; focus shampoo on the scalp.", "For spikes, keep top length practical and avoid heavy product.", "School cuts usually stay neat when shaped every 4–6 weeks.", "If the crown stands up, a textured cut can help it sit better."], reason: "Boys’ styling problems are often about shape, top length and morning speed rather than long detangling." },
+      { title: "Girls’ Long Hair Care", icon: "🎀", items: ["Detangle from the ends before moving upward.", "Use mild conditioner on the ends when hair is dry or tangled.", "Avoid tight styles for long hours to reduce scalp pulling.", "Trim dry ends regularly so long hair looks healthier."], reason: "Girls’ long-hair concerns are often tangles, dry ends and tight styling. Gentle detangling and regular trims make daily care easier." },
+      { title: "Curly / Wavy Hair", icon: "〰️", items: ["Avoid rough towel drying because it can increase frizz.", "Detangle gently when slightly damp.", "Use a small amount of suitable leave-in conditioner if parents already use one safely.", "Choose layered shaping to reduce puffiness."], reason: "Curly and wavy hair can look dry or frizzy when brushed harshly or dried roughly. Gentle handling protects the curl pattern." },
+      { title: "Sensitive Salon Child", icon: "🐼", items: ["Choose a simple cut that can be completed faster.", "Use cartoons, toys or comfort breaks during the visit.", "Tell the stylist what the child dislikes: wash, combing, blow dry or sitting still.", "Celebrate small wins after the haircut."], reason: "A calm salon experience starts with knowing the child’s comfort trigger. The haircut can then be adjusted to reduce stress." }
+    ];
+
+    const styleFixes = [
+      { title: "Manage Boys’ Spikes", items: ["Start with towel-dried hair.", "Lift hair from the roots before shaping the tips.", "Use very little product if suitable; too much makes hair heavy.", "Ask for textured top if spikes fall flat quickly."], reason: "Spikes stay better when the haircut supports the style. Very long or heavy top hair usually falls down quickly." },
+      { title: "Make Hair Soft", items: ["Avoid hot water.", "Use mild kids shampoo.", "Condition the ends when needed.", "Pat dry instead of rubbing."], reason: "Softness improves when hair keeps some natural moisture and the ends are not dried out by heat or rough handling." },
+      { title: "Make Hair Shiny", items: ["Rinse shampoo properly.", "Keep dry ends trimmed.", "Use gentle brushing, not forceful pulling.", "Avoid product buildup."], reason: "Shine comes from smoother hair surface. Clean rinsing and neat ends help hair reflect light better." },
+      { title: "School Morning Control", items: ["Keep a spray bottle for light dampening.", "Use simple clips or soft bands.", "Choose a cut that does not need daily heat styling.", "Book trims before the style becomes hard to manage."], reason: "The best kids’ haircut is one that looks good even on busy school mornings." }
+    ];
+
+    const myths = [
+      { myth: "Cutting hair makes it grow faster.", answer: "Not exactly. Hair grows from the roots, but regular trims help remove dry ends and keep hair looking healthy." },
+      { myth: "Kids don’t need conditioner.", answer: "Some kids with dry, curly or long hair may benefit from mild conditioner on the hair ends. It depends on hair type." },
+      { myth: "Daily shampoo is always better.", answer: "Not always. Some children need frequent washing, but over-washing can make dry hair or scalp feel worse." },
+      { myth: "More product means better spikes.", answer: "Usually no. Too much product can weigh hair down. The right cut and a tiny amount of product work better." },
+      { myth: "Dandruff is always just dryness.", answer: "Not always. Flakes can come from different scalp reasons. If it is itchy, red, heavy or persistent, check with a doctor." }
+    ];
+
+    let currentStep = 0;
+    const answers = {};
+    const questionText = document.getElementById("questionText");
+    const optionGrid = document.getElementById("optionGrid");
+    const stepLabel = document.getElementById("stepLabel");
+    const progressPercent = document.getElementById("progressPercent");
+    const progressFill = document.getElementById("progressFill");
+    const backBtn = document.getElementById("backBtn");
+    const nextBtn = document.getElementById("nextBtn");
+    const resultCard = document.getElementById("resultCard");
+    const quizStage = document.getElementById("quizStage");
+    const resultTitle = document.getElementById("resultTitle");
+    const resultChips = document.getElementById("resultChips");
+    const resultTips = document.getElementById("resultTips");
+    const resultReason = document.getElementById("resultReason");
+    const resultSuggestion = document.getElementById("resultSuggestion");
+    const careAlertText = document.getElementById("careAlertText");
+    const restartBtn = document.getElementById("restartBtn");
+
+    function renderQuizStep() {
+      const step = quizQuestions[currentStep];
+      const percent = Math.round(((currentStep + 1) / quizQuestions.length) * 100);
+      questionText.textContent = step.question;
+      stepLabel.textContent = `Step ${currentStep + 1} of ${quizQuestions.length}`;
+      progressPercent.textContent = `${percent}%`;
+      progressFill.style.width = `${percent}%`;
+      optionGrid.innerHTML = "";
+      step.options.forEach(option => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "option-btn";
+        button.textContent = option;
+        if (answers[step.key] === option) button.classList.add("selected");
+        button.addEventListener("click", () => { answers[step.key] = option; renderQuizStep(); });
+        optionGrid.appendChild(button);
+      });
+      backBtn.disabled = currentStep === 0;
+      nextBtn.textContent = currentStep === quizQuestions.length - 1 ? "Show My Guide" : "Next";
+      nextBtn.disabled = !answers[step.key];
+    }
+
+    function showResult() {
+      const concern = answers.concern || "Difficult to manage";
+      const result = recommendationMap[concern] || recommendationMap["Difficult to manage"];
+      resultTitle.textContent = result.title;
+      resultChips.innerHTML = "";
+      resultTips.innerHTML = "";
+      [answers.childProfile, answers.hairType, answers.ageGroup, answers.concern, answers.washFrequency, answers.dislike].forEach(value => {
+        if (!value) return;
+        const chip = document.createElement("span"); chip.className = "chip"; chip.textContent = value; resultChips.appendChild(chip);
+      });
+      result.tips.forEach(tip => { const li = document.createElement("li"); li.textContent = tip; resultTips.appendChild(li); });
+      let profileLine = "";
+      if (answers.childProfile === "Boy") profileLine = " For boys, the haircut shape and top length can make daily styling much easier.";
+      if (answers.childProfile === "Girl") profileLine = " For girls, focus on gentle detangling, soft bands and regular trimming of dry ends.";
+      let comfortLine = "";
+      if (answers.dislike === "Haircut") comfortLine = " Since your child dislikes haircuts, try a simple style, shorter visits and comfort distractions like cartoons or toys.";
+      if (answers.dislike === "Combing") comfortLine = " Since combing is difficult, detangling from the ends can make the routine calmer.";
+      if (answers.dislike === "Sitting still") comfortLine = " Since sitting still is hard, choose low-maintenance cuts that can be completed faster.";
+      if (answers.dislike === "Blow dry") comfortLine = " Since blow dry is uncomfortable, towel-dry gently and keep styling simple.";
+      if (answers.dislike === "Hair wash") comfortLine = " Since hair wash is disliked, use a calm routine and avoid water that is too hot or too cold.";
+      resultReason.textContent = result.reason + profileLine;
+      resultSuggestion.textContent = result.suggestion + comfortLine;
+      careAlertText.textContent = "If there is severe itching, redness, swelling, wounds, infection, sudden hair fall, heavy flakes or the issue continues, please check with a pediatrician or dermatologist.";
+      quizStage.style.display = "none";
+      resultCard.classList.add("active");
+      resultCard.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+
+    backBtn.addEventListener("click", () => { if (currentStep > 0) { currentStep--; renderQuizStep(); } });
+    nextBtn.addEventListener("click", () => { const step = quizQuestions[currentStep]; if (!answers[step.key]) return; if (currentStep === quizQuestions.length - 1) showResult(); else { currentStep++; renderQuizStep(); } });
+    restartBtn.addEventListener("click", () => { currentStep = 0; Object.keys(answers).forEach(key => delete answers[key]); resultCard.classList.remove("active"); quizStage.style.display = "block"; renderQuizStep(); });
+
+    const dailyTip = document.getElementById("dailyTip");
+    document.getElementById("newTipBtn").addEventListener("click", () => {
+      const randomTip = dailyTips[Math.floor(Math.random() * dailyTips.length)];
+      dailyTip.innerHTML = `<span>✨</span><span>${randomTip}</span>`;
+    });
+
+    const reminderOptions = document.getElementById("reminderOptions");
+    reminderData.forEach(item => {
+      const button = document.createElement("button"); button.className = "reminder-btn"; button.type = "button"; button.textContent = item.label;
+      button.addEventListener("click", () => { document.querySelectorAll(".reminder-btn").forEach(btn => btn.classList.remove("active")); button.classList.add("active"); const resultBox = document.getElementById("reminderResult"); resultBox.textContent = item.result; resultBox.classList.add("active"); });
+      reminderOptions.appendChild(button);
+    });
+
+    function buildTabSection(data, tabEl, panelEl, panelClass, btnClass) {
+      data.forEach((entry, index) => {
+        const btn = document.createElement("button"); btn.className = `${btnClass}${index === 0 ? " active" : ""}`; btn.type = "button"; btn.textContent = `${entry.icon ? entry.icon + " " : ""}${entry.title}`; tabEl.appendChild(btn);
+        const panel = document.createElement("div"); panel.className = `${panelClass}${index === 0 ? " active" : ""}`;
+        panel.innerHTML = `<ul class="tips-list">${entry.items.map(item => `<li>${item}</li>`).join("")}</ul><div class="reason-box"><strong>Why this helps</strong><p>${entry.reason}</p></div>`;
+        panelEl.appendChild(panel);
+        btn.addEventListener("click", () => { tabEl.querySelectorAll("button").forEach(b => b.classList.remove("active")); panelEl.querySelectorAll(`.${panelClass}`).forEach(p => p.classList.remove("active")); btn.classList.add("active"); panel.classList.add("active"); });
+      });
+    }
+    buildTabSection(routines, document.getElementById("routineTabs"), document.getElementById("routinePanels"), "routine-panel", "tab-btn");
+    buildTabSection(styleFixes, document.getElementById("styleTabs"), document.getElementById("stylePanels"), "style-panel", "mini-tab-btn");
+
+    const mythList = document.getElementById("mythList");
+    myths.forEach(item => {
+      const card = document.createElement("div"); card.className = "myth-card";
+      card.innerHTML = `<button class="myth-question" type="button"><span>${item.myth}</span><span>+</span></button><div class="myth-answer">${item.answer}</div>`;
+      card.querySelector("button").addEventListener("click", () => card.classList.toggle("open"));
+      mythList.appendChild(card);
+    });
+
+    renderQuizStep();
+  </script>
+</body>
+</html>
