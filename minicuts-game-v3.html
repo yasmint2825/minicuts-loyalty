@@ -510,26 +510,40 @@ function showAlreadyPlayed(game){
   loadPlayerRank();
 }
 
-async function loadPlayerRank(){
-  try{
-    const all=await fetch(SB_URL+'/rest/v1/customers?select=id,game_points&order=game_points.desc&limit=500',
-      {headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}}).then(r=>r.json());
-    const ranked=(all||[]).filter(c=>(c.game_points||0)>0);
-    const myIdx=ranked.findIndex(c=>c.id===player.id);
-    const el=document.getElementById('playerRankBadge');
-    if(!el) return;
+function loadPlayerRank(){
+  // Use already-fetched sidebarData for instant rank - no extra DB call
+  const el=document.getElementById('playerRankBadge');
+  if(!el) return;
+  const pts=Number(player.game_points)||0;
+  if(pts===0){
+    el.textContent='Play a game to get ranked! 🎮';
+    el.style.display='block';
+    return;
+  }
+  // If sidebarData available, use it immediately
+  if(sidebarData&&sidebarData.length){
+    const myIdx=sidebarData.findIndex(c=>c.mobile===player.mobile);
     if(myIdx>=0){
       const r=myIdx+1;
       const medal=r===1?'🥇 ':r===2?'🥈 ':r===3?'🥉 ':'';
-      el.textContent=medal+'Rank #'+r+' of '+ranked.length+' players';
+      el.textContent=medal+'Rank #'+r+' of '+sidebarData.length+'+';
       el.style.display='block';
-    } else if((player.game_points||0)===0){
-      el.textContent='Play a game to get ranked! 🎮';
-      el.style.display='block';
-    } else {
-      el.style.display='none';
+      return;
     }
-  }catch(e){console.warn('rank:',e.message);}
+  }
+  // Fallback: light query just for rank
+  fetch(SB_URL+'/rest/v1/customers?select=id,game_points&order=game_points.desc&limit=100',
+    {headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}})
+  .then(r=>r.json()).then(all=>{
+    const ranked=(all||[]).filter(c=>(c.game_points||0)>0);
+    const myIdx=ranked.findIndex(c=>c.id===player.id);
+    if(myIdx>=0){
+      const r=myIdx+1;
+      const medal=r===1?'🥇 ':r===2?'🥈 ':r===3?'🥉 ':'';
+      el.textContent=medal+'Rank #'+r+' of '+ranked.length;
+      el.style.display='block';
+    }
+  }).catch(e=>console.warn('rank:',e.message));
 }
 
 function renderRemainingGames(){
@@ -1417,7 +1431,7 @@ function showResult(pts){
 let sidebarData=[];
 async function loadSidebarLb(){
   try{
-    const sUrl=SB_URL+'/rest/v1/customers?select=name,mobile,game_points&order=game_points.desc&limit=20';
+    const sUrl=SB_URL+'/rest/v1/customers?select=id,name,mobile,game_points&order=game_points.desc&limit=20';
     const sRes=await fetch(sUrl,{headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}});
     if(!sRes.ok) throw new Error('HTTP '+sRes.status);
     const allData=await sRes.json();
@@ -1497,37 +1511,31 @@ function renderSidebar(){
       {pts:300,icon:'🐉', trackPct:100,   label:'L6'},
     ];
     const currentLevel=TIERS_SB.slice().reverse().find(t=>pts>=t.pts)||null;
-    const roadHtml=`
-      <div style="position:relative;height:38px;margin:6px 0 2px;padding:0 2px;">
-        <!-- Track background -->
-        <div style="position:absolute;top:16px;left:0;right:0;height:8px;background:rgba(255,255,255,.08);border-radius:99px;"></div>
-        <!-- Colored progress fill with glow -->
-        <div style="position:absolute;top:16px;left:0;width:${pct}%;height:8px;background:linear-gradient(90deg,${rc.bar});border-radius:99px;box-shadow:0 0 10px ${rc.glow};transition:width .7s ease;"></div>
-        <!-- Checkpoint markers -->
-        ${checkpoints.map(cp=>{
-          const done=pts>=cp.pts;
-          const left='calc('+cp.trackPct+'% - 12px)';
-          return`
-            <div style="position:absolute;top:8px;left:${left};font-size:${done?'22':'17'}px;line-height:1;filter:${done?'none':'grayscale(1) opacity(.2)'};z-index:3;">${cp.icon}</div>
-            <div style="position:absolute;top:30px;left:${left};font-size:9px;color:rgba(255,255,255,${done?.6:.25});font-weight:700;width:24px;text-align:center;">${cp.label}</div>
-          `;
-        }).join('')}
-        <!-- 🐼 player marker -->
-        <div style="position:absolute;top:8px;left:calc(${Math.min(pct,93)}% - 10px);font-size:18px;line-height:1;z-index:5;filter:drop-shadow(0 2px 4px rgba(0,0,0,.8));">🐼</div>
-      </div>`;
+    const cpHtml=checkpoints.map(cp=>{
+      const done=pts>=cp.pts;
+      const left='calc('+cp.trackPct+'% - 12px)';
+      return'<div style="position:absolute;top:8px;left:'+left+';font-size:'+(done?'22':'17')+'px;line-height:1;filter:'+(done?'none':'grayscale(1) opacity(.2)')+';z-index:3;">'+cp.icon+'</div>'+
+             '<div style="position:absolute;top:30px;left:'+left+';font-size:9px;color:rgba(255,255,255,'+(done?'.6':'.25')+');font-weight:700;width:24px;text-align:center;">'+cp.label+'</div>';
+    }).join('');
+    const roadHtml='<div style="position:relative;height:38px;margin:6px 0 2px;padding:0 2px;">'+
+      '<div style="position:absolute;top:16px;left:0;right:0;height:8px;background:rgba(255,255,255,.08);border-radius:99px;"></div>'+
+      '<div style="position:absolute;top:16px;left:0;width:'+pct+'%;height:8px;background:linear-gradient(90deg,'+rc.bar+');border-radius:99px;box-shadow:0 0 10px '+rc.glow+';transition:width .7s ease;"></div>'+
+      cpHtml+
+      '<div style="position:absolute;top:8px;left:calc('+Math.min(pct,93)+'% - 10px);font-size:18px;line-height:1;z-index:5;filter:drop-shadow(0 2px 4px rgba(0,0,0,.8));">🐼</div>'+
+    '</div>';
 
-    return`<div style="background:${isMe?'rgba(255,255,255,.07)':'rgba(255,255,255,.02)'};border:${isMe?'1.5px solid '+rc.glow:'1px solid rgba(255,255,255,.05)'};border-radius:14px;padding:10px 10px 14px;margin-bottom:10px;">
-      <div style="display:flex;align-items:center;gap:7px;margin-bottom:2px;">
-        <div style="font-family:'Baloo 2',cursive;font-size:16px;font-weight:800;color:rgba(255,255,255,.8);width:24px;text-align:center;flex-shrink:0;">${medals[i]||'#'+(i+1)}</div>
-        <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,${rc.bar});display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;flex-shrink:0;box-shadow:0 0 8px ${rc.glow};">${init}</div>
-        <div style="flex:1;min-width:0;">
-          <div style="font-size:12px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.name||'Player'}${isMe?' 👈':''}</div>
-          <div style="font-size:10px;color:rgba(255,255,255,.5);margin-top:1px;">${currentLevel?currentLevel.icon+' '+currentLevel.label:'No level yet'}</div>
-        </div>
-        <div style="font-family:'Baloo 2',cursive;font-size:14px;font-weight:800;color:transparent;background:linear-gradient(90deg,${rc.bar});-webkit-background-clip:text;background-clip:text;">${pts}pts</div>
-      </div>
-      ${roadHtml}
-    </div>`;
+    return'<div style="background:'+(isMe?'rgba(255,255,255,.07)':'rgba(255,255,255,.02)')+';border:'+(isMe?'1.5px solid '+rc.glow:'1px solid rgba(255,255,255,.05)')+';border-radius:14px;padding:10px 10px 14px;margin-bottom:10px;">'+
+      '<div style="display:flex;align-items:center;gap:7px;margin-bottom:2px;">'+
+        '<div style="font-family:Baloo2,cursive;font-size:16px;font-weight:800;color:rgba(255,255,255,.8);width:24px;text-align:center;flex-shrink:0;">'+(medals[i]||'#'+(i+1))+'</div>'+
+        '<div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,'+rc.bar+');display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;flex-shrink:0;box-shadow:0 0 8px '+rc.glow+';">'+init+'</div>'+
+        '<div style="flex:1;min-width:0;">'+
+          '<div style="font-size:12px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+(c.name||'Player')+(isMe?' 👈':'')+'</div>'+
+          '<div style="font-size:10px;color:rgba(255,255,255,.5);margin-top:1px;">'+(currentLevel?currentLevel.icon+' '+currentLevel.label:'No level yet')+'</div>'+
+        '</div>'+
+        '<div style="font-family:Baloo2,cursive;font-size:14px;font-weight:800;color:transparent;background:linear-gradient(90deg,'+rc.bar+');-webkit-background-clip:text;background-clip:text;">'+pts+'pts</div>'+
+      '</div>'+
+      roadHtml+
+    '</div>';
   }).join('');
 }
 
