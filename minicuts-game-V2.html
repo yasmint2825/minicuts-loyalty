@@ -111,6 +111,23 @@ body{display:flex;font-family:'Nunito',sans-serif;}
 .home-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
 .home-btn{background:rgba(255,255,255,.14);border:1.5px solid rgba(255,255,255,.25);color:#fff;padding:5px 10px;border-radius:99px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;cursor:pointer;}
 .sub{color:rgba(255,255,255,.75);font-size:11px;text-align:center;margin-bottom:8px;}
+
+/* Staff PIN overlay */
+#pinOverlay{position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:99999;display:none;align-items:center;justify-content:center;}
+#pinOverlay.show{display:flex;}
+.pin-box{background:#fff;border-radius:20px;padding:24px 20px;width:260px;text-align:center;}
+.pin-title{font-family:'Baloo 2',cursive;font-size:18px;font-weight:800;color:#0D47A1;margin-bottom:4px;}
+.pin-sub{font-size:12px;color:#6B7280;margin-bottom:14px;}
+.pin-dots{display:flex;justify-content:center;gap:10px;margin-bottom:14px;}
+.pin-dot{width:13px;height:13px;border-radius:50%;background:#E5E7EB;transition:background .15s;}
+.pin-dot.on{background:#0D47A1;}
+.pin-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px;}
+.pin-key{padding:12px;background:#F3F4F6;border:none;border-radius:10px;font-size:18px;font-weight:800;cursor:pointer;font-family:'Baloo 2',cursive;color:#1A1A2E;}
+.pin-key:active{background:#E5E7EB;}
+.pin-del{background:#FEE2E2;color:#DC2626;}
+.pin-err{color:#DC2626;font-size:12px;font-weight:700;min-height:16px;margin-bottom:6px;}
+.pin-cancel{background:none;border:none;color:#9CA3AF;font-size:12px;cursor:pointer;}
+@keyframes pinShake{0%,100%{transform:translateX(0);}25%{transform:translateX(-6px);}75%{transform:translateX(6px);}}
 </style>
 </head>
 <body>
@@ -167,11 +184,11 @@ body{display:flex;font-family:'Nunito',sans-serif;}
     <div id="loginMsg" style="display:none;margin-top:8px;padding:8px;border-radius:8px;font-size:12px;font-weight:700;text-align:center;"></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid #F3F4F6;">
       <button class="btn btn-b" onclick="goToRegister(\'\',\'\',\'Register below!\')" style="font-size:13px;padding:9px;">📝 Register</button>
-      <button class="btn btn-ghost" onclick="goLeaderboard()" style="font-size:13px;padding:9px;">🏆 Scores</button>
+      <button class="btn" onclick="goLeaderboard()" style="font-size:13px;padding:9px;background:linear-gradient(135deg,#10B981,#059669);color:#fff;border:none;font-weight:800;">🏆 View Leaderboard</button>
     </div>
   </div>
   <div style="text-align:center;margin-top:6px;">
-    <button onclick="goStaff()" style="background:none;border:none;color:rgba(255,255,255,.2);font-size:11px;cursor:pointer;font-family:'Nunito',sans-serif;">Staff</button>
+    <button onclick="goStaff()" style="background:none;border:none;color:rgba(255,255,255,.15);font-size:10px;cursor:pointer;font-family:'Nunito',sans-serif;">🔐 Staff</button>
   </div>
 </div>
 
@@ -217,6 +234,7 @@ body{display:flex;font-family:'Nunito',sans-serif;}
     <div>
       <div style="font-size:10px;color:rgba(255,255,255,.6);">Welcome back,</div>
       <div class="brand" id="profileName" style="font-size:18px;line-height:1.1;text-align:left;">Player</div>
+      <div id="playerRankBadge" style="display:none;font-size:11px;font-weight:800;color:#FFD600;margin-top:2px;"></div>
     </div>
     <div style="display:flex;align-items:center;gap:6px;">
       <span class="pts-badge" id="totalPts">0 pts</span>
@@ -469,13 +487,37 @@ function showAlreadyPlayed(game){
     const daysAgo=Math.floor((Date.now()-player._lastGameDate.getTime())/(1000*60*60*24));
     const daysLeft=Math.max(1,30-daysAgo);
     if(prompt){
-      prompt.textContent='Games available after your next haircut! ✂️';
+      prompt.textContent='🎮 Games will be available after your next haircut!';
       prompt.style.fontSize='13px';
       prompt.style.color='rgba(255,255,255,.65)';
       prompt.style.textShadow='none';
     }
   }
+  // Show rank
   refreshGameCards();
+  // Load rank asynchronously
+  loadPlayerRank();
+}
+
+async function loadPlayerRank(){
+  try{
+    const all=await fetch(SB_URL+'/rest/v1/customers?select=id,game_points&order=game_points.desc&limit=200',
+      {headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}}).then(r=>r.json());
+    const ranked=all.filter(c=>(c.game_points||0)>0);
+    const myIdx=ranked.findIndex(c=>c.id===player.id);
+    const rankEl=document.getElementById('playerRankBadge');
+    if(rankEl){
+      if(myIdx>=0){
+        const rank=myIdx+1;
+        const medal=rank===1?'🥇':rank===2?'🥈':rank===3?'🥉':'';
+        rankEl.textContent=medal+(medal?' ':'')+' Rank #'+rank+' of '+ranked.length;
+        rankEl.style.display='block';
+      } else if((player.game_points||0)===0){
+        rankEl.textContent='Play a game to get ranked!';
+        rankEl.style.display='block';
+      } else { rankEl.style.display='none'; }
+    }
+  }catch(e){console.warn('rank:',e.message);}
 }
 
 function renderRemainingGames(){
@@ -897,29 +939,31 @@ function endTapGame(){
   tapRunning=false;
   document.getElementById('tapTime').style.color='#fff';
   document.getElementById('pandaTarget').style.display='none';
-  const isNewBest=!player.best_tap_score||tapScore>player.best_tap_score;
-  if(isNewBest) player.best_tap_score=tapScore;
   const prevGlobalTap=globalBestTap.score||0;
-  const isGlobalTapBest=tapScore>prevGlobalTap;
+  const isGlobalTapBest=tapScore>prevGlobalTap; // GLOBAL best = +2 bonus
+  const isPersonalTapBest=!player.best_tap_score||tapScore>player.best_tap_score;
+  if(isPersonalTapBest) player.best_tap_score=tapScore;
   if(isGlobalTapBest) globalBestTap={score:tapScore,name:player.name};
+  const tapBonus=isGlobalTapBest?2:0; // +2 ONLY for all-time global record
+  const pts=tapScore+tapBonus;
   let tapResultHtml='';
   if(isGlobalTapBest){
-    tapResultHtml='<span style="font-size:18px;font-weight:900;color:#FFD600;">🏆 ALL-TIME RECORD!</span><br><span style="font-size:22px;font-weight:900;color:#fff;">'+tapScore+' taps!</span><br><span style="font-size:14px;">You are the Panda Champion!</span>';
-  } else if(isNewBest){
-    tapResultHtml='<span style="font-size:18px;font-weight:900;color:#FFD600;">⭐ Personal best!</span><br><span style="font-size:22px;font-weight:900;color:#fff;">'+tapScore+' taps</span>'+(prevGlobalTap?'<br><span style="font-size:13px;">Champion: <strong>'+globalBestTap.name+'</strong> ('+prevGlobalTap+')</span>':'');
+    tapResultHtml='<span style="font-size:18px;font-weight:900;color:#FFD600;">🏆 ALL-TIME RECORD! +2 BONUS!</span><br><span style="font-size:22px;font-weight:900;color:#fff;">'+tapScore+' taps!</span><br><span style="font-size:14px;">You are the Panda Champion! 🎉</span>';
+    setTimeout(launchConfetti,200);
+  } else if(isPersonalTapBest){
+    tapResultHtml='<span style="font-size:16px;font-weight:900;color:#FFD600;">⭐ Personal best: '+tapScore+' taps!</span>'+(prevGlobalTap?'<br><span style="font-size:12px;color:rgba(255,255,255,.7);">Beat champion '+globalBestTap.name+' ('+prevGlobalTap+') for +2 bonus!</span>':'');
   } else {
-    tapResultHtml='<span style="font-size:22px;font-weight:900;color:#fff;">'+tapScore+' taps!</span>'+(prevGlobalTap?'<br><span style="font-size:13px;color:#FFD600;">Champion: <strong>'+globalBestTap.name+'</strong> ('+prevGlobalTap+')</span>':'');
+    tapResultHtml='<span style="font-size:22px;font-weight:900;color:#fff;">'+tapScore+' taps!</span>'+(prevGlobalTap?'<br><span style="font-size:12px;color:#FFD600;">Champion: '+globalBestTap.name+' ('+prevGlobalTap+') — beat them for +2 bonus!</span>':'');
   }
-  tapResultHtml+='<br><span style="font-size:16px;color:var(--y);font-weight:800;">'+tapScore+' pts earned!</span>';
+  tapResultHtml+='<br><span style="font-size:16px;color:var(--y);font-weight:800;">'+pts+' pts earned!'+(tapBonus?' (+2 global bonus!)':'')+'</span>';
   document.getElementById('tapStatus').style.display='block';
   document.getElementById('tapStatus').innerHTML=tapResultHtml;
   document.getElementById('tapStartBtn').style.display='block';
-  document.getElementById('tapStartBtn').textContent='See my '+tapScore+' pts! 🎉';
+  document.getElementById('tapStartBtn').textContent='See my '+pts+' pts! 🎉';
   document.getElementById('tapStartBtn').disabled=false;
-  document.getElementById('tapStartBtn').onclick=()=>saveAndShowResult(tapScore,'tap');
-  const updates={game_points:Math.min((player.game_points||0)+tapScore,999)};
-  if(isNewBest) updates.best_tap_score=tapScore;
-  savePoints(tapScore,'tap');
+  document.getElementById('tapStartBtn').onclick=()=>saveAndShowResult(pts,'tap');
+  if(isPersonalTapBest){const u={};u.best_tap_score=tapScore;try{sb('customers','PATCH',u,'id=eq.'+player.id);}catch(e){}}
+  savePoints(pts,'tap');
 }
 
 // ══ MEMORY MATCH ══
@@ -1007,27 +1051,29 @@ function endMemory(){
   clearInterval(memTimerInt);memStarted=false;
   const prevBest=player.best_memory_time||null;
   const prevGlobal=globalBestMemory.time||null;
-  // +2 bonus ONLY if beat personal best (faster time = lower number)
   const isPersonalBest=!prevBest||memSeconds<prevBest;
-  const isGlobalBest=!prevGlobal||memSeconds<prevGlobal;
-  const pts=8+(isPersonalBest?2:0); // flat 8 + 2 ONLY if personal best beaten
+  const isGlobalBest=!prevGlobal||memSeconds<prevGlobal; // GLOBAL best = bonus
+  const pts=8+(isGlobalBest?2:0); // +2 ONLY if ALL-TIME global best beaten
   if(isPersonalBest) player.best_memory_time=memSeconds;
-  if(isGlobalBest) globalBestMemory={time:memSeconds,name:player.name};
+  if(isGlobalBest){
+    globalBestMemory={time:memSeconds,name:player.name};
+    setTimeout(launchConfetti,200); // global record = celebration!
+  }
   const hintEl=document.getElementById('memBestHint');
   if(hintEl){
     hintEl.style.display='block';
     if(isGlobalBest){
-      hintEl.innerHTML='<span style="font-size:18px;font-weight:900;">🏆 ALL-TIME RECORD: '+memSeconds+'s!</span><br><span style="font-size:14px;">You are the fastest kid ever! +2 bonus!</span>';
+      hintEl.innerHTML='<span style="font-size:18px;font-weight:900;">🏆 ALL-TIME RECORD: '+memSeconds+'s! +2 BONUS!</span><br><span style="font-size:14px;">You are the fastest ever! 🎉</span>';
       hintEl.style.background='rgba(22,163,74,.2)';hintEl.style.borderColor='rgba(22,163,74,.5)';hintEl.style.color='#4ADE80';
     } else if(isPersonalBest&&prevBest){
-      hintEl.innerHTML='<span style="font-size:17px;font-weight:900;">⭐ Personal best: '+memSeconds+'s!</span><br><span style="font-size:13px;">(was '+prevBest+'s) +2 bonus!'+(prevGlobal?' Champion: '+globalBestMemory.name+' ('+prevGlobal+'s)':'')+'</span>';
+      hintEl.innerHTML='<span style="font-size:16px;font-weight:900;">⭐ Personal best: '+memSeconds+'s!</span><br><span style="font-size:12px;">Beat the all-time record ('+prevGlobal+'s by '+globalBestMemory.name+') for +2 bonus!</span>';
       hintEl.style.background='rgba(22,163,74,.2)';hintEl.style.borderColor='rgba(22,163,74,.5)';hintEl.style.color='#4ADE80';
     } else if(isPersonalBest){
       hintEl.innerHTML='<span style="font-size:17px;font-weight:900;">⭐ First record: '+memSeconds+'s!</span><br><span style="font-size:13px;">+2 bonus earned!</span>';
       hintEl.style.background='rgba(22,163,74,.2)';hintEl.style.borderColor='rgba(22,163,74,.5)';hintEl.style.color='#4ADE80';
     } else {
       // NOT beaten — flat 8 pts only, clear message
-      hintEl.innerHTML='<span style="font-size:16px;font-weight:900;">⏱️ '+memSeconds+'s</span><br><span style="font-size:13px;">Beat your best <strong>'+(prevBest||memSeconds)+'s</strong> next time for +2 bonus!</span>';
+      hintEl.innerHTML='<span style="font-size:16px;font-weight:900;">⏱️ '+memSeconds+'s</span><br><span style="font-size:12px;">Beat all-time record ('+prevGlobal+'s by '+globalBestMemory.name+') for +2 bonus!</span>';
       hintEl.style.background='rgba(255,214,0,.15)';hintEl.style.borderColor='rgba(255,214,0,.3)';hintEl.style.color='var(--y)';
     }
   }
@@ -1218,7 +1264,9 @@ async function doRegister(){
     await fetchGlobalBests();
     setTimeout(()=>goProfile(),1200);
   }catch(e){
-    showRegMsg('Error: '+e.message,false);
+    const msg=e&&e.message?e.message:'Registration failed. Please check your details and try again.';
+    showRegMsg('❌ '+msg,false);
+    console.error('Register error:',e);
   }finally{
     if(btn){btn.disabled=false;btn.textContent='Register & Play! 🎮';}
   }
@@ -1255,7 +1303,7 @@ async function checkTodaySessions(){
   if(!player.id) return;
   try{
     const sessions=await fetch(
-      SB_URL+'/rest/v1/game_sessions?select=game_type,created_at&customer_id=eq.'+player.id+'&order=created_at.desc&limit=50',
+      SB_URL+'/rest/v1/game_sessions?select=game_type,created_at&customer_id=eq.'+player.id+'&order=created_at.desc&limit=100',
       {headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}}
     ).then(r=>r.json());
 
@@ -1265,26 +1313,39 @@ async function checkTodaySessions(){
       return;
     }
 
-    // Step 1: Check what was played TODAY (same calendar day)
+    // Check if ALL 3 games played within last 30 days (one cycle)
+    const THIRTY=30*24*60*60*1000;
+    const now=Date.now();
+
+    // Find most recent of each game type
+    const lastSpin   = sessions.find(s=>s.game_type==='spin');
+    const lastTap    = sessions.find(s=>s.game_type==='tap');
+    const lastMemory = sessions.find(s=>s.game_type==='memory');
+
+    // If all 3 played and all within last 30 days → block
+    if(lastSpin&&lastTap&&lastMemory){
+      const oldest=Math.min(
+        new Date(lastSpin.created_at).getTime(),
+        new Date(lastTap.created_at).getTime(),
+        new Date(lastMemory.created_at).getTime()
+      );
+      if(now-oldest<THIRTY){
+        // Still in cooldown - block all
+        todayPlayed={spin:true,tap:true,memory:true};
+        player._lastGameDate=new Date(oldest);
+        return;
+      }
+    }
+
+    // Otherwise: check what was played TODAY only
     const todayStr=new Date().toISOString().split('T')[0];
-    const todaySessions=sessions.filter(s=>s.created_at&&s.created_at.startsWith(todayStr));
     todayPlayed={spin:false,tap:false,memory:false};
-    todaySessions.forEach(s=>{
+    sessions.filter(s=>s.created_at&&s.created_at.startsWith(todayStr)).forEach(s=>{
       if(s.game_type==='spin')   todayPlayed.spin=true;
       if(s.game_type==='tap')    todayPlayed.tap=true;
       if(s.game_type==='memory') todayPlayed.memory=true;
     });
-
-    // Step 2: If all 3 played today, check 30-day cooldown for NEXT visit
-    // If all 3 played but NOT today -> still show remaining games
-    const allPlayedToday=todayPlayed.spin&&todayPlayed.tap&&todayPlayed.memory;
-    if(allPlayedToday){
-      // Find the earliest of today's sessions
-      const earliest=todaySessions.sort((a,b)=>new Date(a.created_at)-new Date(b.created_at))[0];
-      player._lastGameDate=earliest?new Date(earliest.created_at):new Date();
-    } else {
-      player._lastGameDate=null;
-    }
+    player._lastGameDate=null;
 
   }catch(e){
     console.warn('Session check error:',e.message);
@@ -1592,49 +1653,143 @@ function showMobileRoadmap(){
   const pts=player&&player.game_points?Number(player.game_points):0;
   const MAX=300;
   const pct=Math.min((pts/MAX)*100,100);
-  // Road
   const cps=TIERS.map(t=>{
     const l=(t.pts/MAX)*100;
     const done=pts>=t.pts;
-    return`<span style="position:absolute;left:calc(${l}% - 10px);top:-6px;font-size:18px;filter:${done?'none':'grayscale(1) opacity(.3)'};">${t.icon}</span>`;
+    return'<span style="position:absolute;left:calc('+l+'% - 10px);top:-6px;font-size:18px;filter:'+(done?'none':'grayscale(1) opacity(.3)')+';">'+t.icon+'</span>';
   }).join('');
   const curTier=TIERS.slice().reverse().find(t=>pts>=t.pts)||null;
   const nextTier=TIERS.find(t=>pts<t.pts)||null;
-  cont.innerHTML=`
-    <div style="text-align:center;margin-bottom:12px;">
-      <span style="font-family:'Baloo 2',cursive;font-size:36px;font-weight:900;color:#FFD600;">${pts}</span>
-      <span style="color:rgba(255,255,255,.7);font-size:16px;"> pts</span>
-    </div>
-    <!-- Road -->
-    <div style="position:relative;height:32px;margin:16px 8px 28px;">
-      <div style="position:absolute;top:12px;left:0;right:0;height:6px;background:rgba(255,255,255,.15);border-radius:99px;"></div>
-      <div style="position:absolute;top:12px;left:0;height:6px;width:${pct}%;background:linear-gradient(90deg,#FFD600,#FF8C00);border-radius:99px;"></div>
-      ${cps}
-      <span style="position:absolute;left:calc(${Math.min(pct,95)}% - 10px);top:-4px;font-size:20px;">🐼</span>
-    </div>
-    ${curTier?`<div style="background:rgba(255,255,255,.1);border-radius:12px;padding:12px;margin-bottom:8px;display:flex;align-items:center;gap:10px;">
-      <div style="font-size:28px;">${curTier.icon}</div>
-      <div><div style="font-size:11px;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.5px;">Current Level</div>
-      <div style="font-family:'Baloo 2',cursive;font-size:18px;font-weight:800;color:#FFD600;">${curTier.badge}</div>
-      <div style="font-size:12px;color:rgba(255,255,255,.7);">${curTier.reward}</div></div>
-    </div>`:'<div style="text-align:center;color:rgba(255,255,255,.6);margin-bottom:8px;">Play games to earn your first level!</div>'}
-    ${nextTier?`<div style="background:rgba(255,255,255,.06);border:1px dashed rgba(255,255,255,.2);border-radius:12px;padding:12px;display:flex;align-items:center;gap:10px;">
-      <div style="font-size:24px;filter:grayscale(.5);">${nextTier.icon}</div>
-      <div><div style="font-size:11px;color:rgba(255,255,255,.5);">Next Level</div>
-      <div style="font-size:16px;font-weight:800;color:rgba(255,255,255,.8);">${nextTier.badge}</div>
-      <div style="font-size:13px;color:#FFD600;font-weight:700;">⚡ ${nextTier.pts-pts} more pts!</div></div>
-    </div>`:''}
-    <div style="margin-top:12px;">
-      ${TIERS.map(t=>{
+  // How to play section
+  const howToPlay='<div style="margin-bottom:16px;background:rgba(255,255,255,.06);border-radius:14px;padding:14px;">'+
+    '<div style="font-family:Baloo2,cursive;font-size:16px;font-weight:800;color:#FFD600;margin-bottom:10px;">🎮 How to Play</div>'+
+    '<div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:8px;"><div style="font-size:20px;flex-shrink:0;">🎡</div><div><div style="font-size:13px;font-weight:800;color:#fff;">Spin Wheel</div><div style="font-size:11px;color:rgba(255,255,255,.6);">1 spin · Win 8-15 pts!</div></div></div>'+
+    '<div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:8px;"><div style="font-size:20px;flex-shrink:0;">🐼</div><div><div style="font-size:13px;font-weight:800;color:#fff;">Tap Panda</div><div style="font-size:11px;color:rgba(255,255,255,.6);">10 seconds · 1 tap = 1 pt · Beat global record = +2 bonus!</div></div></div>'+
+    '<div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:8px;"><div style="font-size:20px;flex-shrink:0;">🧠</div><div><div style="font-size:13px;font-weight:800;color:#fff;">Memory Match</div><div style="font-size:11px;color:rgba(255,255,255,.6);">Match pairs · 8 pts · Beat global fastest = +2 bonus!</div></div></div>'+
+    '<div style="text-align:center;font-size:11px;color:rgba(255,255,255,.4);padding:6px;background:rgba(255,255,255,.04);border-radius:8px;">⚡ All 3 games · 1 each per visit · Resets every 30 days</div>'+
+  '</div>';
+  cont.innerHTML=howToPlay+
+    '<div style="text-align:center;margin-bottom:12px;">'+
+      '<span style="font-family:Baloo2,cursive;font-size:36px;font-weight:900;color:#FFD600;">'+pts+'</span>'+
+      '<span style="color:rgba(255,255,255,.7);font-size:16px;"> pts</span>'+
+    '</div>';
+    '<div style="position:relative;height:32px;margin:16px 8px 28px;">'+
+      '<div style="position:absolute;top:12px;left:0;right:0;height:6px;background:rgba(255,255,255,.15);border-radius:99px;"></div>'+
+      '<div style="position:absolute;top:12px;left:0;height:6px;width:'+pct+'%;background:linear-gradient(90deg,#FFD600,#FF8C00);border-radius:99px;"></div>'+
+      cps+
+      '<span style="position:absolute;left:calc('+Math.min(pct,95)+'% - 10px);top:-4px;font-size:20px;">🐼</span>'+
+    '</div>'+
+    (curTier?
+      '<div style="background:rgba(255,255,255,.1);border-radius:12px;padding:12px;margin-bottom:8px;display:flex;align-items:center;gap:10px;">'+
+        '<div style="font-size:28px;">'+curTier.icon+'</div>'+
+        '<div><div style="font-size:11px;color:rgba(255,255,255,.6);text-transform:uppercase;">Current Level</div>'+
+        '<div style="font-family:Baloo2,cursive;font-size:18px;font-weight:800;color:#FFD600;">'+curTier.badge+'</div>'+
+        '<div style="font-size:12px;color:rgba(255,255,255,.7);">'+curTier.reward+'</div></div>'+
+      '</div>'
+    :'<div style="text-align:center;color:rgba(255,255,255,.6);margin-bottom:8px;">Play games to earn your first level!</div>')+
+    (nextTier?
+      '<div style="background:rgba(255,255,255,.06);border:1px dashed rgba(255,255,255,.2);border-radius:12px;padding:12px;display:flex;align-items:center;gap:10px;margin-bottom:12px;">'+
+        '<div style="font-size:24px;filter:grayscale(.5);">'+nextTier.icon+'</div>'+
+        '<div><div style="font-size:11px;color:rgba(255,255,255,.5);">Next Level</div>'+
+        '<div style="font-size:16px;font-weight:800;color:rgba(255,255,255,.8);">'+nextTier.badge+'</div>'+
+        '<div style="font-size:13px;color:#FFD600;font-weight:700;">⚡ '+(nextTier.pts-pts)+' more pts!</div></div>'+
+      '</div>'
+    :'')+
+    '<div style="margin-top:4px;">'+
+      TIERS.map(t=>{
         const done=pts>=t.pts;
-        return`<div style="display:flex;align-items:center;gap:8px;padding:8px;border-radius:10px;background:${done?'rgba(255,214,0,.12)':'rgba(255,255,255,.04)'};margin-bottom:4px;border:1px solid ${done?'rgba(255,214,0,.3)':'rgba(255,255,255,.06)'};">
-          <div style="font-size:20px;filter:${done?'none':'grayscale(.6)'};">${t.icon}</div>
-          <div style="flex:1;"><div style="font-size:13px;font-weight:800;color:${done?'#FFD600':'rgba(255,255,255,.6)'};">Level ${t.level} · ${t.badge}</div>
-          <div style="font-size:11px;color:rgba(255,255,255,.5);">${t.pts} pts · ${t.reward}</div></div>
-          ${done?'<div style="font-size:16px;">✅</div>':'<div style="font-size:12px;color:rgba(255,255,255,.3);">${t.pts}pts</div>'}
-        </div>`;
-      }).join('')}
-    </div>`;
+        return'<div style="display:flex;align-items:center;gap:8px;padding:8px;border-radius:10px;background:'+(done?'rgba(255,214,0,.12)':'rgba(255,255,255,.04)')+';margin-bottom:4px;border:1px solid '+(done?'rgba(255,214,0,.3)':'rgba(255,255,255,.06)')+';">'+
+          '<div style="font-size:20px;filter:'+(done?'none':'grayscale(.6)')+';">'+t.icon+'</div>'+
+          '<div style="flex:1;"><div style="font-size:13px;font-weight:800;color:'+(done?'#FFD600':'rgba(255,255,255,.6)')+';">Level '+t.level+' · '+t.badge+'</div>'+
+          '<div style="font-size:11px;color:rgba(255,255,255,.5);">'+t.pts+' pts · '+t.reward+'</div></div>'+
+          (done?'<div style="font-size:16px;">✅</div>':'<div style="font-size:12px;color:rgba(255,255,255,.3);">'+t.pts+'pts</div>')+
+        '</div>';
+      }).join('')+
+    '</div>';
   overlay.style.display='block';
 }
+
+// ══ STAFF PIN ══
+const _STAFF_PIN='2025'; // change this to your PIN
+let _pinBuf='';
+let _pinCb=null;
+
+function goStaff(){
+  _pinBuf='';
+  _pinUpdate();
+  document.getElementById('pinErr').textContent='';
+  document.getElementById('pinOverlay').classList.add('show');
+  _pinCb=()=>showScreen('s-staff');
+}
+
+function pinKey(d){
+  if(_pinBuf.length>=4) return;
+  _pinBuf+=d;
+  _pinUpdate();
+  if(_pinBuf.length===4) setTimeout(_pinCheck,120);
+}
+
+function pinDel(){
+  _pinBuf=_pinBuf.slice(0,-1);
+  _pinUpdate();
+  document.getElementById('pinErr').textContent='';
+}
+
+function _pinUpdate(){
+  for(let i=0;i<4;i++){
+    const d=document.getElementById('pd'+i);
+    if(d) d.classList.toggle('on',i<_pinBuf.length);
+  }
+}
+
+function _pinCheck(){
+  if(_pinBuf===_STAFF_PIN){
+    document.getElementById('pinOverlay').classList.remove('show');
+    _pinBuf='';_pinUpdate();
+    if(_pinCb) _pinCb();
+  } else {
+    document.getElementById('pinErr').textContent='Wrong PIN — try again';
+    _pinBuf='';_pinUpdate();
+    const box=document.getElementById('pinBox');
+    box.style.animation='pinShake .4s';
+    setTimeout(()=>box.style.animation='',400);
+  }
+}
+
+function pinCancel(){
+  document.getElementById('pinOverlay').classList.remove('show');
+  _pinBuf='';_pinUpdate();
+}
+
 </script>
+<!-- STAFF PIN OVERLAY -->
+<div id="pinOverlay">
+  <div class="pin-box" id="pinBox">
+    <div class="pin-title">🔐 Staff Access</div>
+    <div class="pin-sub">Enter 4-digit staff PIN</div>
+    <div class="pin-dots">
+      <div class="pin-dot" id="pd0"></div>
+      <div class="pin-dot" id="pd1"></div>
+      <div class="pin-dot" id="pd2"></div>
+      <div class="pin-dot" id="pd3"></div>
+    </div>
+    <div class="pin-grid">
+      <button class="pin-key" onclick="pinKey('1')">1</button>
+      <button class="pin-key" onclick="pinKey('2')">2</button>
+      <button class="pin-key" onclick="pinKey('3')">3</button>
+      <button class="pin-key" onclick="pinKey('4')">4</button>
+      <button class="pin-key" onclick="pinKey('5')">5</button>
+      <button class="pin-key" onclick="pinKey('6')">6</button>
+      <button class="pin-key" onclick="pinKey('7')">7</button>
+      <button class="pin-key" onclick="pinKey('8')">8</button>
+      <button class="pin-key" onclick="pinKey('9')">9</button>
+      <div></div>
+      <button class="pin-key" onclick="pinKey('0')">0</button>
+      <button class="pin-key pin-del" onclick="pinDel()">⌫</button>
+    </div>
+    <div class="pin-err" id="pinErr"></div>
+    <button class="pin-cancel" onclick="pinCancel()">Cancel</button>
+  </div>
+</div>
+</body>
+</html>
