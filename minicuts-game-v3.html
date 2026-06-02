@@ -260,7 +260,13 @@ body{display:flex;font-family:'Nunito',sans-serif;}
     <div id="tierList"></div>
   </div>
   <div class="card" id="gameSelectCard" style="padding:10px 12px;">
-    <div id="gamePrompt" style="text-align:center;margin-bottom:8px;"></div>
+    <div id="gameProgressBar" style="display:flex;align-items:center;gap:8px;margin-bottom:7px;">
+      <div style="flex:1;background:rgba(0,0,0,.12);border-radius:99px;height:9px;overflow:hidden;">
+        <div id="gameProgressFill" style="height:100%;width:0%;background:linear-gradient(90deg,#FFD600,#FF8C00);border-radius:99px;transition:width .5s ease;"></div>
+      </div>
+      <div id="gameProgressLabel" style="font-size:11px;font-weight:800;color:#6B7280;white-space:nowrap;flex-shrink:0;">0/3</div>
+    </div>
+    <div id="gamePrompt" style="text-align:center;margin-bottom:8px;min-height:20px;"></div>
     <div class="game-grid" id="gameGrid">
       <div class="game-card" id="gc-spin" onclick="goSpin()">
         <div id="gc-spin-badge" style="display:none;position:absolute;top:-6px;right:-6px;background:#FFD600;color:#0D47A1;font-size:9px;font-weight:800;padding:2px 6px;border-radius:99px;z-index:2;">PLAY!</div>
@@ -1431,7 +1437,7 @@ function showResult(pts){
 let sidebarData=[];
 async function loadSidebarLb(){
   try{
-    const sUrl=SB_URL+'/rest/v1/customers?select=id,name,mobile,game_points&order=game_points.desc&limit=20';
+    const sUrl=SB_URL+'/rest/v1/customers?select=id,name,mobile,game_points&order=game_points.desc&limit=15';
     const sRes=await fetch(sUrl,{headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}});
     if(!sRes.ok) throw new Error('HTTP '+sRes.status);
     const allData=await sRes.json();
@@ -1515,9 +1521,9 @@ function renderSidebar(){
       const done=pts>=cp.pts;
       const left='calc('+cp.trackPct+'% - 12px)';
       return'<div style="position:absolute;top:8px;left:'+left+';font-size:'+(done?'22':'17')+'px;line-height:1;filter:'+(done?'none':'grayscale(1) opacity(.2)')+';z-index:3;">'+cp.icon+'</div>'+
-             '<div style="position:absolute;top:30px;left:'+left+';font-size:9px;color:rgba(255,255,255,'+(done?'.6':'.25')+');font-weight:700;width:24px;text-align:center;">'+cp.label+'</div>';
+             '<div style="position:absolute;top:32px;left:'+left+';font-size:8px;color:rgba(255,255,255,'+(done?'.65':'.2')+');font-weight:700;width:24px;text-align:center;">'+cp.label+'</div>';
     }).join('');
-    const roadHtml='<div style="position:relative;height:38px;margin:6px 0 2px;padding:0 2px;">'+
+    const roadHtml='<div style="position:relative;height:44px;margin:6px 0 2px;padding:0 2px;">'+
       '<div style="position:absolute;top:16px;left:0;right:0;height:8px;background:rgba(255,255,255,.08);border-radius:99px;"></div>'+
       '<div style="position:absolute;top:16px;left:0;width:'+pct+'%;height:8px;background:linear-gradient(90deg,'+rc.bar+');border-radius:99px;box-shadow:0 0 10px '+rc.glow+';transition:width .7s ease;"></div>'+
       cpHtml+
