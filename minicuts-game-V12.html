@@ -252,7 +252,7 @@ body{display:flex;font-family:'Nunito',sans-serif;}
     <div>
       <div style="font-size:10px;color:rgba(255,255,255,.6);">Welcome back,</div>
       <div class="brand" id="profileName" style="font-size:18px;line-height:1.1;text-align:left;">Player</div>
-      <div id="playerRankBadge" style="display:none;font-size:12px;font-weight:800;color:#FFD600;margin-top:2px;"></div>
+      <div id="playerRankBadge" style="display:none!important;"></div>
     </div>
     <div style="display:flex;align-items:center;gap:6px;">
       <span class="pts-badge" id="totalPts">0 pts</span>
@@ -498,6 +498,7 @@ function newPlayer(){
   resetAllGameState();
   document.getElementById('loginName').value='';
   document.getElementById('loginMobile').value='';
+  document.getElementById('loginMsg').style.display='none';
   player={id:null,name:'',mobile:'',game_points:0,game_spins:0};
   document.getElementById('loginName').focus();
   showScreen('s-login');
@@ -609,14 +610,19 @@ function refreshGameCards(){
 
   const prompt=document.getElementById('gamePrompt');
 
-  // If NOT stamped today — show lock banner, grey out grid
+  // If NOT stamped today — show kid-friendly locked banner
   if(!stamped){
     if(prompt){
-      prompt.innerHTML='<div style="background:rgba(220,38,38,.15);border:1px solid rgba(220,38,38,.3);border-radius:10px;padding:8px 12px;font-size:13px;font-weight:800;color:#FCA5A5;text-align:center;">✂️ Get your stamp today to unlock games!</div>';
+      prompt.innerHTML='<div style="text-align:center;padding:6px 4px;">'
+        +'<div style="font-size:32px;margin-bottom:4px;">🔒✂️</div>'
+        +'<div style="font-family:\'Baloo 2\',cursive;font-size:15px;font-weight:900;color:#FFD600;text-shadow:1px 1px 0 rgba(0,0,0,.3);">Games unlock after your next haircut!</div>'
+        +'<div style="font-size:12px;color:rgba(255,255,255,.65);margin-top:4px;">Visit MiniCuts, get your ✂️ stamp, then come back to play 🐼</div>'
+        +'</div>';
+      prompt.style.fontSize='';prompt.style.fontWeight='';prompt.style.color='';prompt.style.textShadow='';
     }
     document.getElementById('gameGrid').style.display='grid';
-    document.getElementById('gameGrid').style.opacity='0.35';
-    document.getElementById('gameGrid').style.pointerEvents='auto'; // allow clicks → gate shows
+    document.getElementById('gameGrid').style.opacity='0.3';
+    document.getElementById('gameGrid').style.pointerEvents='auto';
     document.getElementById('allDoneCard').style.display='none';
     return;
   }
@@ -711,6 +717,7 @@ function goHome(){
   resetAllGameState();
   document.getElementById('loginName').value='';
   document.getElementById('loginMobile').value='';
+  document.getElementById('loginMsg').style.display='none';
   player={id:null,name:'',mobile:'',game_points:0,game_spins:0};
   showScreen('s-login');
 }
@@ -1205,22 +1212,22 @@ function showStampGate(){
   overlay.style.cssText='position:fixed;inset:0;background:rgba(13,71,161,.92);z-index:9000;display:flex;align-items:center;justify-content:center;padding:20px;';
   overlay.innerHTML=`
     <div style="background:#fff;border-radius:22px;padding:28px 24px;max-width:320px;width:100%;text-align:center;">
-      <div style="font-size:56px;margin-bottom:10px;">✂️</div>
-      <div style="font-family:'Baloo 2',cursive;font-size:22px;font-weight:900;color:#0D47A1;margin-bottom:8px;">Visit MiniCuts First!</div>
-      <div style="font-size:14px;color:#6B7280;line-height:1.6;margin-bottom:18px;">
-        Games unlock after your haircut today.<br>
-        <strong style="color:#0D47A1;">Get your stamp from staff</strong>, then come back to play! 🐼
+      <div style="font-size:64px;margin-bottom:8px;animation:bounce-anim 1s infinite;">🐼</div>
+      <div style="font-family:'Baloo 2',cursive;font-size:24px;font-weight:900;color:#0D47A1;margin-bottom:8px;">Oops! Not yet! 🎮</div>
+      <div style="font-size:15px;color:#374151;line-height:1.7;margin-bottom:16px;">
+        Your games will unlock <strong style="color:#FF8C00;">after your next haircut</strong> at MiniCuts! ✂️<br>
+        Ask the staff for your stamp — then come back and play! 🌟
       </div>
-      <div style="background:#EFF6FF;border-radius:12px;padding:12px;margin-bottom:18px;font-size:13px;font-weight:800;color:#1565C0;">
-        🎮 1 stamp today = all 3 games unlocked!
+      <div style="background:linear-gradient(135deg,#EFF6FF,#FFF7CC);border-radius:12px;padding:12px;margin-bottom:18px;font-size:13px;font-weight:800;color:#0D47A1;border:1.5px solid rgba(255,214,0,.5);">
+        🎁 Spin · Tap Panda · Memory — all 3 unlock with 1 stamp!
       </div>
       <button onclick="document.getElementById('stampGateOverlay').remove();goProfile();"
         style="width:100%;padding:13px;background:linear-gradient(135deg,#FFD600,#FF8C00);border:none;border-radius:12px;font-family:'Baloo 2',cursive;font-size:18px;font-weight:800;color:#0D47A1;cursor:pointer;margin-bottom:8px;">
-        Got it! 🐼
+        OK, got it! 🐼
       </button>
       <button onclick="document.getElementById('stampGateOverlay').remove();goHome();"
         style="width:100%;padding:10px;background:transparent;border:1.5px solid #E5E7EB;border-radius:12px;font-family:'Baloo 2',cursive;font-size:14px;font-weight:800;color:#9CA3AF;cursor:pointer;">
-        🏠 Back to start
+        🏠 Go back
       </button>
     </div>`;
   document.body.appendChild(overlay);
@@ -1631,32 +1638,41 @@ async function loadLeaderboard(){
     const MAX=300;
     el.innerHTML=data.map((c,i)=>{
       const pts=c.game_points||0;
-      const pct=Math.min((pts/MAX)*100,100);
+      const overallPct=Math.min((pts/MAX)*100,100);
       const init=(c.name||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
       const tier=TIERS.slice().reverse().find(t=>pts>=t.pts)||null;
       const nextTier=TIERS.find(t=>pts<t.pts)||null;
       const isMe=player&&c.id===player.id;
-      const cps=TIERS.map(t=>{
-        const l=(t.pts/MAX)*100;
+      // Fixed positions so no icon is ever clipped
+      const tierPositions=[0,20,37,54,71,87];
+      const tierDots=TIERS.map((t,ti)=>{
+        const left=tierPositions[ti];
         const done=pts>=t.pts;
-        return'<span style="position:absolute;left:calc('+l+'% - 8px);top:-4px;font-size:13px;filter:'+(done?'none':'grayscale(1) opacity(.25)')+';">'+t.icon+'</span>';
+        return`<div style="position:absolute;left:${left}%;top:50%;transform:translate(-50%,-50%);text-align:center;z-index:3;">
+          <div style="width:24px;height:24px;border-radius:50%;background:${done?'#FFF2B8':'#F3F4F6'};border:2px solid ${done?'#FF8C00':'#D1D5DB'};display:flex;align-items:center;justify-content:center;font-size:13px;" title="${t.badge}">${t.icon}</div>
+        </div>`;
       }).join('');
       return'<div style="padding:10px;margin-bottom:8px;border-radius:14px;background:'+(isMe?'#EFF6FF':'#F9FAFB')+';border:'+(isMe?'2px solid #1565C0':'1px solid #E5E7EB')+';">'+
-        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">'+
+        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">'+
           '<div style="font-size:20px;width:28px;text-align:center;flex-shrink:0;">'+(medals[i]||'#'+(i+1))+'</div>'+
           '<div style="width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#1565C0,#0D47A1);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#FFD600;flex-shrink:0;">'+init+'</div>'+
           '<div style="flex:1;min-width:0;">'+
             '<div style="font-size:13px;font-weight:800;color:#1A1A2E;">'+c.name+(isMe?' <span style="font-size:10px;color:#1565C0;">(you)</span>':'')+'</div>'+
-            '<div style="font-size:11px;color:'+(tier?tier.color:'#9CA3AF')+';font-weight:700;">'+(tier?tier.icon+' '+tier.badge:'No level yet')+'</div>'+
+            '<div style="font-size:11px;color:'+(tier?tier.color:'#9CA3AF')+';font-weight:700;">'+(tier?tier.icon+' '+tier.badge:'🐼 Starter — keep going!')+'</div>'+
           '</div>'+
-          '<div style="font-family:Baloo2,cursive;font-size:20px;font-weight:900;color:#0D47A1;flex-shrink:0;">'+pts+'<span style="font-size:10px;color:#6B7280;font-family:sans-serif;"> pts</span></div>'+
+          '<div style="font-family:\'Baloo 2\',cursive;font-size:20px;font-weight:900;color:#0D47A1;flex-shrink:0;">'+pts+'<span style="font-size:10px;color:#6B7280;font-family:sans-serif;"> pts</span></div>'+
         '</div>'+
-        '<div style="position:relative;height:18px;margin:0 4px;">'+
-          '<div style="position:absolute;top:6px;left:0;right:0;height:4px;background:#E5E7EB;border-radius:99px;"></div>'+
-          '<div style="position:absolute;top:6px;left:0;height:4px;width:'+pct+'%;background:linear-gradient(90deg,#FFD600,#FF8C00);border-radius:99px;"></div>'+
-          cps+'<span style="position:absolute;left:calc('+Math.min(pct,96)+'% - 7px);top:-2px;font-size:13px;">🐼</span>'+
+        // Full 0→300 progress bar with all 6 tiers
+        '<div style="position:relative;height:24px;margin:0 2px 4px;">'+
+          '<div style="position:absolute;top:50%;left:0;right:0;height:6px;background:#E5E7EB;border-radius:99px;transform:translateY(-50%);"></div>'+
+          '<div style="position:absolute;top:50%;left:0;height:6px;width:'+overallPct+'%;background:linear-gradient(90deg,#FFD600,#FF8C00);border-radius:99px;transform:translateY(-50%);max-width:100%;"></div>'+
+          tierDots+
+          '<div style="position:absolute;top:50%;left:calc('+Math.min(overallPct,96)+'%);transform:translate(-50%,-60%);font-size:14px;z-index:4;">🐼</div>'+
         '</div>'+
-        (nextTier?'<div style="text-align:right;font-size:10px;color:#9CA3AF;margin-top:3px;">'+(nextTier.pts-pts)+' pts → '+nextTier.icon+' '+nextTier.badge+'</div>':'<div style="text-align:right;font-size:10px;color:#16A34A;margin-top:3px;">🐉 Max level!</div>')+
+        '<div style="display:flex;justify-content:space-between;font-size:9px;color:#9CA3AF;margin:0 2px;">'+
+          '<span>0</span><span>50</span><span>100</span><span>150</span><span>200</span><span>250</span><span>300</span>'+
+        '</div>'+
+        (nextTier?'<div style="text-align:right;font-size:10px;color:#FF8C00;font-weight:700;margin-top:4px;">⚡ '+(nextTier.pts-pts)+' pts to '+nextTier.icon+' '+nextTier.badge+'</div>':'<div style="text-align:right;font-size:10px;color:#16A34A;font-weight:700;margin-top:4px;">🐉 Max level reached!</div>')+
       '</div>';
     }).join('');
   }catch(e){
@@ -1714,12 +1730,10 @@ function launchConfetti(){
     const p=new URLSearchParams(location.search);
     const mobile=p.get('mobile')||localStorage.getItem('mc_cust_mobile')||'';
     if(!mobile) return;
-    // Pre-fill the mobile field so manual login is easy if auto-login fails
-    const lm=document.getElementById('loginMobile');
-    if(lm) lm.value=mobile;
+    // Do NOT pre-fill the field — keeps screen clean
     // Fetch all children under this mobile
     const rows=await sb('customers','GET',null,'select=*&mobile=eq.'+encodeURIComponent(mobile)+'&limit=10');
-    if(!rows||!rows.length) return; // unknown mobile — leave login screen
+    if(!rows||!rows.length) return; // unknown mobile — leave login screen blank
     if(rows.length===1){
       // Single child — log straight in
       resetAllGameState();
@@ -1829,11 +1843,17 @@ function launchConfetti(){
   }
 
   function addRoadmap(){
-    const nameEl = $('profileName');
-    if(!nameEl || !window.player) return;
+    if(!window.player || !window.player.id) return;
+    // Remove any existing roadmap
     const old = $('v17Roadmap');
     if(old) old.remove();
-    nameEl.insertAdjacentHTML('afterend', roadmapHtml(Number(player.game_points||0)));
+    // Insert BEFORE the game select card — clean single block between header and games
+    const gameCard = $('gameSelectCard');
+    if(gameCard){
+      const div=document.createElement('div');
+      div.innerHTML=roadmapHtml(Number(player.game_points||0));
+      gameCard.parentNode.insertBefore(div.firstChild, gameCard);
+    }
     renderRankMini();
   }
 
