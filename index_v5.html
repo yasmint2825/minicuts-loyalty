@@ -225,10 +225,16 @@ function isExpiringSoon(c){
   if(!c.expiry_date||isExp(c)) return false;
   return dLeft(c)<=expiryWarnDays(c);
 }
+function openGamesPage(){
+  const mobile=localStorage.getItem('mc_cust_mobile')||'';
+  const url='./minicuts-game.html'+(mobile?'?mobile='+encodeURIComponent(mobile):'');
+  window.open(url,'_blank');
+}
+
 function getWAMsg(c,type){
   const g=c.gender==='girl'?'girl':'boy';
-  const key=g+(type==='expiry'?'WAExpiry':type==='lapsed'?'WALapsed':type==='ready'?'WAReady':'WABirthday');
-  const tmpl=CFG[key]||'Hi! Your MiniCuts loyalty passport needs attention.';
+  const key=g+(type==='expiry'?'WAExpiry':type==='lapsed'?'WALapsed':type==='ready'?'WAReady':type==='nudge'?'WANudge':'WABirthday');
+  const tmpl=CFG[key]||DC[key]||'Hi! Your MiniCuts loyalty passport needs attention.';
   return tmpl.replace(/{name}/g,c.name);
 }
 function openWA(mobile,msg){
@@ -380,9 +386,9 @@ async function archiveCycle(customerId,stamps,firstStampDate,expiryDate,endedBy)
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
           <div>
             <div style="font-family:var(--fh);font-size:21px;font-weight:800;">📋 Today's Customers</div>
-            <div style="color:var(--muted);font-size:13px;margin-top:2px;">One-tap stamp · Stamped customers move to After-Service Alert</div>
+            <div style="color:var(--muted);font-size:13px;margin-top:2px;">One-tap stamp · Stamped customers stay removed · <span style="color:var(--ok);font-weight:700;">🔄 Auto-refreshes every 30s</span></div>
           </div>
-          <button class="btn bp" onclick="loadToday()" style="padding:8px 16px;font-size:13px;">↻ Refresh</button>
+          <button class="btn bp" onclick="loadToday()" style="padding:8px 16px;font-size:13px;">↻ Refresh Now</button>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
           <input type="text" id="todayNameFilter"   placeholder="🔍 Filter by name..."   oninput="renderToday()" style="padding:9px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:13px;outline:none;font-family:var(--fb);">
@@ -665,6 +671,7 @@ async function archiveCycle(customerId,stamps,firstStampDate,expiryDate,endedBy)
               <div style="font-size:12px;font-weight:700;color:var(--b);margin-bottom:8px;">👦 Boys</div>
               <div class="fg"><label class="fl">Free Hair Wash ready 🚿</label><textarea class="fi" id="CFB_WR" rows="2" style="resize:vertical;"></textarea></div>
               <div class="fg"><label class="fl">Expiry reminder</label><textarea class="fi" id="CFB_WE" rows="2" style="resize:vertical;"></textarea></div>
+              <div class="fg"><label class="fl">🔔 Nudge (gentle reminder)</label><textarea class="fi" id="CFB_WN" rows="2" style="resize:vertical;"></textarea></div>
               <div class="fg"><label class="fl">Win-back (lapsed)</label><textarea class="fi" id="CFB_WL" rows="2" style="resize:vertical;"></textarea></div>
               <div class="fg"><label class="fl">Birthday</label><textarea class="fi" id="CFB_WB" rows="2" style="resize:vertical;"></textarea></div>
             </div>
@@ -672,6 +679,7 @@ async function archiveCycle(customerId,stamps,firstStampDate,expiryDate,endedBy)
               <div style="font-size:12px;font-weight:700;color:var(--pink);margin-bottom:8px;">👧 Girls</div>
               <div class="fg"><label class="fl">Free Hair Wash ready 🚿</label><textarea class="fi" id="CFG_WR" rows="2" style="resize:vertical;"></textarea></div>
               <div class="fg"><label class="fl">Expiry reminder</label><textarea class="fi" id="CFG_WE" rows="2" style="resize:vertical;"></textarea></div>
+              <div class="fg"><label class="fl">🔔 Nudge (gentle reminder)</label><textarea class="fi" id="CFG_WN" rows="2" style="resize:vertical;"></textarea></div>
               <div class="fg"><label class="fl">Win-back (lapsed)</label><textarea class="fi" id="CFG_WL" rows="2" style="resize:vertical;"></textarea></div>
               <div class="fg"><label class="fl">Birthday</label><textarea class="fi" id="CFG_WB" rows="2" style="resize:vertical;"></textarea></div>
             </div>
@@ -718,14 +726,6 @@ async function archiveCycle(customerId,stamps,firstStampDate,expiryDate,endedBy)
     </div>
     <div class="fg"><label class="fl">Current Stamps</label><input class="fi" type="number" id="EST" min="0" max="10"></div>
     <div class="fg"><label class="fl">Date of Birth</label><input class="fi" type="date" id="EDOB"></div>
-    <div style="margin-bottom:12px;">
-              <label style="font-size:12px;font-weight:700;color:var(--muted);display:block;margin-bottom:4px;">💬 Nudge message — Boys (31-60 days) <span style="color:var(--ok);font-size:11px;">gentle reminder</span></label>
-              <textarea id="cfg_boyWANudge" class="fi" rows="2" style="font-size:12px;resize:vertical;" oninput="saveCfgNudge()"></textarea>
-            </div>
-            <div style="margin-bottom:12px;">
-              <label style="font-size:12px;font-weight:700;color:var(--muted);display:block;margin-bottom:4px;">💬 Nudge message — Girls (31-60 days)</label>
-              <textarea id="cfg_girlWANudge" class="fi" rows="2" style="font-size:12px;resize:vertical;" oninput="saveCfgNudge()"></textarea>
-            </div>
             <div class="fg"><label class="fl">Notes</label><input class="fi" type="text" id="ENO"></div>
     <div class="mf">
       <button class="btn bg2" onclick="closeM('EM')">Cancel</button>
@@ -760,9 +760,14 @@ async function archiveCycle(customerId,stamps,firstStampDate,expiryDate,endedBy)
       localStorage.setItem('mc_cust_mobile',lookupMobile);
       renderCP(lookupMobile);
     } else {
-      // Fresh URL (?customer=1 only) — clear any saved mobile, show blank lookup
-      localStorage.removeItem('mc_cust_mobile');
-      renderCP('');
+      // ?customer=1 only — check if previously logged in
+      const savedMobile=localStorage.getItem('mc_cust_mobile')||'';
+      if(savedMobile){
+        // Auto-restore — no need to re-enter number
+        renderCP(savedMobile);
+      } else {
+        renderCP('');
+      }
     }
     return;
   }
@@ -873,14 +878,12 @@ function syncCfgInputs(){
   document.getElementById('CFG_WR').value=CFG.girlWAReady||DC.girlWAReady;
   document.getElementById('CFB_WE').value=CFG.boyWAExpiry||DC.boyWAExpiry;
   document.getElementById('CFG_WE').value=CFG.girlWAExpiry||DC.girlWAExpiry;
+  document.getElementById('CFB_WN').value=CFG.boyWANudge||DC.boyWANudge;
+  document.getElementById('CFG_WN').value=CFG.girlWANudge||DC.girlWANudge;
   document.getElementById('CFB_WL').value=CFG.boyWALapsed||DC.boyWALapsed;
   document.getElementById('CFG_WL').value=CFG.girlWALapsed||DC.girlWALapsed;
   document.getElementById('CFB_WB').value=CFG.boyWABirthday||DC.boyWABirthday;
   document.getElementById('CFG_WB').value=CFG.girlWABirthday||DC.girlWABirthday;
-  const n=document.getElementById('cfg_boyWANudge');
-  const n2=document.getElementById('cfg_girlWANudge');
-  if(n) n.value=CFG.boyWANudge||DC.boyWANudge||'';
-  if(n2) n2.value=CFG.girlWANudge||DC.girlWANudge||'';
 }
 
 // ══ AUTH ══
@@ -912,8 +915,9 @@ function doLogout(){
 
 // ══ NAV ══
 function showPage(id,btn){
+  stopTodayAutoRefresh(); // always clear on navigation
   if(id==='today') setTimeout(loadToday,60);
-  if(id==='today') setTimeout(loadToday,80);
+  if(id==='today') setTimeout(startTodayAutoRefresh,500);
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.ni').forEach(n=>n.classList.remove('active'));
   document.getElementById('page-'+id).classList.add('active');
@@ -1587,7 +1591,7 @@ async function renderMissYou(){
 
     // Render each tab
     document.getElementById('MY_NUDGE_LIST').innerHTML=toNudge.length
-      ?toNudge.map(c=>nudgeRow(c,'lapsed',Math.round(weeksSinceVisit(c)||0)+'wks since visit')).join('')
+      ?toNudge.map(c=>nudgeRow(c,'nudge',Math.round(weeksSinceVisit(c)||0)+'wks since visit')).join('')
       :'<div style="text-align:center;padding:24px;color:var(--ok);font-weight:700;">🎉 All done! No nudges needed today.</div>';
 
     document.getElementById('MY_LAPSED_LIST').innerHTML=lapsed.length
@@ -1766,13 +1770,14 @@ function cancelNudge(id){
 function sendWA(id,mobile,gender,name,stamps,paid,msgType='lapsed'){
   // Store msgs in closure-safe variables
   const msgs={
+    '🔔 Nudge (gentle reminder)': getWAMsg({name,gender},'nudge'),
     '🎁 Special Gift Ready': getWAMsg({name,gender},'ready'),
     '⏰ Expiry Reminder':    getWAMsg({name,gender},'expiry'),
     '😴 Win-back':           getWAMsg({name,gender},'lapsed'),
     '🎂 Birthday':           getWAMsg({name,gender},'birthday')
   };
   // Pre-select the right message type
-  const typeMap={ready:'🎁 Special Gift Ready',expiry:'⏰ Expiry Reminder',lapsed:'😴 Win-back',birthday:'🎂 Birthday'};
+  const typeMap={nudge:'🔔 Nudge (gentle reminder)',ready:'🎁 Special Gift Ready',expiry:'⏰ Expiry Reminder',lapsed:'😴 Win-back',birthday:'🎂 Birthday'};
   const preSelected=msgType&&typeMap[msgType]?typeMap[msgType]:null;
   // Create modal
   const overlay=document.createElement('div');
@@ -2117,13 +2122,13 @@ function buildLookupHtml(msg){
       '🐼 New? Register Here →'+
     '</button>'+
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">'+
-      '<a href="./minicuts-game.html" target="_blank" style="display:flex;flex-direction:column;align-items:center;padding:12px 8px;background:linear-gradient(135deg,#0D47A1,#1565C0);border-radius:12px;text-decoration:none;gap:4px;">'+
+      '<a href="javascript:void(0)" onclick="openGamesPage()" style="display:flex;flex-direction:column;align-items:center;padding:12px 8px;background:linear-gradient(135deg,#FF6B00,#FF8C00);border-radius:12px;text-decoration:none;gap:4px;box-shadow:0 4px 12px rgba(255,107,0,.35);">'+
         '<span style="font-size:26px;">&#x1F3AE;</span>'+
-        '<span style="font-family:var(--fh);font-size:13px;font-weight:800;color:#FFD600;">Play Games</span>'+
+        '<span style="font-family:var(--fh);font-size:12px;font-weight:800;color:#fff;text-align:center;line-height:1.3;">Play Quick Games &amp; Win</span>'+
       '</a>'+
       '<a href="./minicuts_hair_care_guide_v2.html" target="_blank" style="display:flex;flex-direction:column;align-items:center;padding:12px 8px;background:linear-gradient(135deg,#16A34A,#15803D);border-radius:12px;text-decoration:none;gap:4px;">'+
         '<span style="font-size:26px;">&#x1F4D6;</span>'+
-        '<span style="font-family:var(--fh);font-size:13px;font-weight:800;color:#fff;">Parent Guide</span>'+
+        '<span style="font-family:var(--fh);font-size:12px;font-weight:800;color:#fff;text-align:center;line-height:1.3;">Smart Parent Guide</span>'+
       '</a>'+
     '</div>'+
     '<div style="text-align:center;font-size:11px;color:var(--muted);padding-top:10px;border-top:1px solid var(--border);">'+
@@ -2309,6 +2314,8 @@ function saveConfig(){
   CFG.girlWAReady=document.getElementById('CFG_WR').value||DC.girlWAReady;
   CFG.boyWAExpiry=document.getElementById('CFB_WE').value||DC.boyWAExpiry;
   CFG.girlWAExpiry=document.getElementById('CFG_WE').value||DC.girlWAExpiry;
+  CFG.boyWANudge=document.getElementById('CFB_WN').value||DC.boyWANudge;
+  CFG.girlWANudge=document.getElementById('CFG_WN').value||DC.girlWANudge;
   CFG.boyWALapsed=document.getElementById('CFB_WL').value||DC.boyWALapsed;
   CFG.girlWALapsed=document.getElementById('CFG_WL').value||DC.girlWALapsed;
   CFG.boyWABirthday=document.getElementById('CFB_WB').value||DC.boyWABirthday;
@@ -2331,22 +2338,46 @@ async function exportCSV(){
 
 // ══ TODAY'S CUSTOMERS ══
 var todayData=[];
+var todayStampedIds=new Set(); // tracks IDs stamped this session — survives refresh
+var todayAutoRefreshTimer=null;
 
-async function loadToday(){
-  document.getElementById('todayList').innerHTML='<div class="loading">Loading...</div>';
+function startTodayAutoRefresh(){
+  stopTodayAutoRefresh();
+  todayAutoRefreshTimer=setInterval(()=>{
+    // Only refresh if Today page is still active
+    if(document.getElementById('page-today')?.classList.contains('active')){
+      loadToday(true); // silent=true — no loading spinner on auto-refresh
+    } else {
+      stopTodayAutoRefresh();
+    }
+  },30000); // every 30 seconds
+}
+function stopTodayAutoRefresh(){
+  if(todayAutoRefreshTimer){clearInterval(todayAutoRefreshTimer);todayAutoRefreshTimer=null;}
+}
+
+async function loadToday(silent=false){
+  if(!silent) document.getElementById('todayList').innerHTML='<div class="loading" style="text-align:center;padding:20px;color:var(--muted);">Loading...</div>';
   try{
     const today=new Date().toISOString().split('T')[0];
+    // Fetch customers registered today OR with last_visit today
     const rows=await sbFresh('customers','select=*&or=(created_at.gte.'+today+'T00:00:00,last_visit_date.gte.'+today+'T00:00:00)&order=created_at.desc');
-    todayData=rows||[];
+    // Exclude any IDs stamped this session (prevents re-appearance after stamp)
+    todayData=(rows||[]).filter(c=>!todayStampedIds.has(c.id));
     renderToday();
-    // Stats
+    // Stats — count against full rows (before session filter) for accuracy
+    const allToday=rows||[];
     const statsEl=document.getElementById('todayStats');
-    const newToday=todayData.filter(c=>c.created_at&&c.created_at.startsWith(today));
-    const visited=todayData.filter(c=>c.last_visit_date&&c.last_visit_date.startsWith(today));
+    const newToday=allToday.filter(c=>c.created_at&&c.created_at.startsWith(today));
+    const visited=allToday.filter(c=>c.last_visit_date&&c.last_visit_date.startsWith(today));
+    // Show last-refreshed time
+    const now=new Date();
+    const hhmm=now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
     if(statsEl) statsEl.innerHTML=
       '<div style="background:#EFF6FF;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;color:#1565C0;">📝 '+newToday.length+' New Today</div>'+
-      '<div style="background:#F0FDF4;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;color:#16A34A;">✂️ '+visited.length+' Visited</div>'+
-      '<div style="background:#FFF7ED;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;color:#D97706;">👥 '+todayData.length+' Total</div>';
+      '<div style="background:#F0FDF4;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;color:#16A34A;">✂️ '+visited.length+' Stamped</div>'+
+      '<div style="background:#FFF7ED;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;color:#D97706;">👥 '+allToday.length+' Total</div>'+
+      '<div style="background:#F3F4F6;border-radius:8px;padding:6px 12px;font-size:12px;color:var(--muted);">🔄 '+hhmm+'</div>';
   }catch(e){document.getElementById('todayList').innerHTML='<div style="color:red;padding:12px;">Error: '+e.message+'</div>';}
 }
 
@@ -2399,6 +2430,9 @@ async function todayStampRow(btn){
   const id=row.dataset.id;
   btn.disabled=true; btn.textContent='Stamping...';
   await addStamp(id);
+  // Remember this ID — exclude from list even after auto-refresh
+  todayStampedIds.add(id);
+  todayData=todayData.filter(c=>c.id!==id);
   row.style.transition='opacity .4s,transform .4s';
   row.style.opacity='0';
   row.style.transform='translateX(40px)';
