@@ -816,17 +816,18 @@ function showAutoResetWarning(){
 function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
 function goBack(){showScreen(prevScreen);}
 async function goProfile(){
-  // Always re-fetch the player's live data from DB so stamp status is never stale
+  // Always re-fetch stamp status live — catches stamps given after the player logged in
   if(player.id){
     try{
-      const fresh=await sb('customers','GET',null,'select=stamps,last_visit_date,game_points,game_spins&id=eq.'+player.id);
+      const fresh=await sb('customers','GET',null,
+        'select=stamps,last_visit_date,game_points,game_spins&id=eq.'+player.id);
       if(fresh&&fresh[0]){
-        player.stamps=fresh[0].stamps;
-        player.last_visit_date=fresh[0].last_visit_date;
-        player.game_points=fresh[0].game_points;
-        player.game_spins=fresh[0].game_spins;
+        player.stamps        = fresh[0].stamps;
+        player.last_visit_date = fresh[0].last_visit_date;
+        player.game_points   = fresh[0].game_points;
+        player.game_spins    = fresh[0].game_spins;
       }
-    }catch(e){ /* fail silently — use cached data */ }
+    }catch(e){ /* use cached data if fetch fails */ }
   }
   renderProfile();
   showScreen('s-profile');
@@ -925,11 +926,12 @@ function drawWheel(angle){
   ctx.textAlign='center';ctx.textBaseline='middle';
   ctx.fillText('🐼',CX,CY);
 }
+// Re-fetches stamp status live before allowing any game — catches stamps given while page is open
 async function checkAndPlay(gameFn){
-  // Re-fetch stamp status live before gating — catches the case where staff just stamped
   if(player.id){
     try{
-      const fresh=await sb('customers','GET',null,'select=stamps,last_visit_date&id=eq.'+player.id);
+      const fresh=await sb('customers','GET',null,
+        'select=stamps,last_visit_date&id=eq.'+player.id);
       if(fresh&&fresh[0]){
         player.stamps=fresh[0].stamps;
         player.last_visit_date=fresh[0].last_visit_date;
@@ -943,15 +945,15 @@ async function checkAndPlay(gameFn){
 function goSpin(){
   checkAndPlay(()=>{
     if(todayPlayed.spin){showAlreadyPlayed('spin');return;}
-    spinCount=0;bestSpinPts=0;
-    document.getElementById('spinChanceLabel').textContent='One spin — good luck!';
-    document.getElementById('bestSoFar').textContent='—';
-    document.getElementById('pandaReact').textContent='🐼';
-    document.getElementById('spinBtn').textContent='SPIN! 🎡';
-    document.getElementById('spinBtn').disabled=false;
-    document.getElementById('spinSkipLabel').textContent='';
-    initWheel();
-    showScreen('s-spin');
+  spinCount=0;bestSpinPts=0;
+  document.getElementById('spinChanceLabel').textContent='One spin — good luck!';
+  document.getElementById('bestSoFar').textContent='—';
+  document.getElementById('pandaReact').textContent='🐼';
+  document.getElementById('spinBtn').textContent='SPIN! 🎡';
+  document.getElementById('spinBtn').disabled=false;
+  document.getElementById('spinSkipLabel').textContent='';
+  initWheel();
+  showScreen('s-spin');
   });
 }
 function startSpin(){playGameVoice('spin');
@@ -1000,10 +1002,10 @@ function goTapPanda(){
   checkAndPlay(()=>{
     if(todayPlayed.tap){showAlreadyPlayed('tap');return;}
     tapScore=0;tapSeconds=10;tapRunning=false;
-    document.getElementById('tapCount').textContent='0';
-    document.getElementById('tapTime').textContent='10';
-    document.getElementById('tapTime').style.color='#fff';
-    document.getElementById('tapBest').textContent=player.best_tap_score||'--';
+  document.getElementById('tapCount').textContent='0';
+  document.getElementById('tapTime').textContent='10';
+  document.getElementById('tapTime').style.color='#fff';
+  document.getElementById('tapBest').textContent=player.best_tap_score||'--';
   document.getElementById('tapStartBtn').style.display='block';
   document.getElementById('tapStartBtn').textContent='START! 🐼';
   document.getElementById('tapStartBtn').disabled=false;
@@ -1024,8 +1026,7 @@ function goTapPanda(){
   showScreen('s-tap');
   });
 }
-function startTapGame(){
-  playGameVoice('tap');
+function startTapGame(){playGameVoice('tap');
   tapScore=0;tapSeconds=10;tapRunning=true;
   soundStart();
   document.getElementById('tapStatus').style.display='none';
@@ -1091,7 +1092,7 @@ function endTapGame(){
 function goMemory(){
   checkAndPlay(()=>{
     if(todayPlayed.memory){showAlreadyPlayed('memory');return;}
-  memMatched=0;memMoves=0;memStarted=false;memSeconds=0;memLock=false;
+    memMatched=0;memMoves=0;memStarted=false;memSeconds=0;memLock=false;
   if(memTimerInt) clearInterval(memTimerInt);
   document.getElementById('memMoves').textContent='0';
   document.getElementById('memTime').textContent='0s';
@@ -1237,23 +1238,16 @@ function renderProfile(){
       <div style="font-size:8px;font-weight:800;color:${done?'#FF8C00':'#94A3B8'};margin-top:2px;">${l.pts}</div>
     </div>`;
   }).join('');
-  const rmHtml=`<div id="v17Roadmap" style="background:linear-gradient(135deg,#FFF9E6,#fff);border:2px solid rgba(255,214,0,.6);border-radius:16px;padding:14px 14px 18px;margin-bottom:8px;box-shadow:0 4px 16px rgba(0,0,0,.08);">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+  // Build roadmap card — renderRoadmap handles clean layout (icons above bar, no overlap)
+  const rmHtml=`<div id="v17Roadmap" style="background:linear-gradient(135deg,#FFF9E6,#fff);border:2px solid rgba(255,214,0,.6);border-radius:16px;padding:14px 14px 14px;margin-bottom:8px;box-shadow:0 4px 16px rgba(0,0,0,.08);">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
       <div>
         <div style="font-size:13px;font-weight:900;color:#0D47A1;">${cur.icon} Level ${cur.level} · ${cur.badge}</div>
         <div style="font-size:11px;color:#FF8C00;font-weight:700;margin-top:2px;">${pts} pts total</div>
       </div>
       <div id="v17RankMini" style="font-size:11px;font-weight:900;color:#1565C0;background:#EAF2FF;border-radius:99px;padding:5px 10px;white-space:nowrap;">Rank loading...</div>
     </div>
-    <div style="position:relative;height:58px;padding:0 2px;">
-      <div style="position:absolute;top:28px;left:0;right:0;height:8px;background:#E2E8F0;border-radius:99px;"></div>
-      <div style="position:absolute;top:28px;left:0;width:${overallPct}%;height:8px;background:linear-gradient(90deg,#FFD600,#FF8C00);border-radius:99px;max-width:100%;"></div>
-      ${dots}
-      <div style="position:absolute;top:12px;left:${pandaLeft}%;transform:translateX(-50%);font-size:18px;z-index:5;">🐼</div>
-    </div>
-    <div style="font-size:12px;font-weight:800;color:#0D47A1;text-align:center;background:#F0F7FF;border-radius:8px;padding:6px;margin-top:4px;">
-      ${nxt?`${nxt.pts-pts} more points → ${nxt.icon} Level ${nxt.level}: ${nxt.badge}`:'🐉 Maximum level reached — you\'re a Dragon Warrior!'}
-    </div>
+    <div id="v17RoadmapTrack" style="padding:0 4px;"></div>
   </div>`;
 
   const gameCard=document.getElementById('gameSelectCard');
@@ -1261,6 +1255,8 @@ function renderProfile(){
     const tmp=document.createElement('div');
     tmp.innerHTML=rmHtml;
     gameCard.parentNode.insertBefore(tmp.firstChild,gameCard);
+    const trackEl=document.getElementById('v17RoadmapTrack');
+    if(trackEl) renderRoadmap(trackEl, pts);
   }
 
   // Load rank async
@@ -1285,22 +1281,22 @@ function renderProfile(){
 function drawMilestoneTrack(containerId,pts){
   const el=document.getElementById(containerId);
   if(!el) return;
-  renderRoadmap(el,pts);
+  // Delegate to shared renderRoadmap — clean layout, no overlap
+  renderRoadmap(el, pts);
 }
 
 
 function hasStampedToday(){
   if(!player.last_visit_date) return false;
-  // Use local date (not UTC) — Dubai is UTC+4, toISOString() gives UTC which can be wrong day
+  // Use device local date — avoids UTC+4 Dubai timezone mismatch
   const now=new Date();
   const localToday=now.getFullYear()+'-'+
     String(now.getMonth()+1).padStart(2,'0')+'-'+
     String(now.getDate()).padStart(2,'0');
-  // last_visit_date may be full ISO timestamp or just a date string
-  const visitDate=new Date(player.last_visit_date);
-  const localVisit=visitDate.getFullYear()+'-'+
-    String(visitDate.getMonth()+1).padStart(2,'0')+'-'+
-    String(visitDate.getDate()).padStart(2,'0');
+  const v=new Date(player.last_visit_date);
+  const localVisit=v.getFullYear()+'-'+
+    String(v.getMonth()+1).padStart(2,'0')+'-'+
+    String(v.getDate()).padStart(2,'0');
   return localVisit===localToday;
 }
 
@@ -1503,10 +1499,9 @@ async function checkTodaySessions(){
     ).then(r=>r.json());
 
     todayPlayed={spin:false,tap:false,memory:false};
-
     if(!sessions||!sessions.length){ player._lastGameDate=null; return; }
 
-    // Use LOCAL date (Dubai = UTC+4) so a 10pm visit isn't treated as next day
+    // Build local today string — avoids UTC+4 Dubai timezone mismatch
     const now=new Date();
     const localToday=now.getFullYear()+'-'+
       String(now.getMonth()+1).padStart(2,'0')+'-'+
@@ -1514,7 +1509,6 @@ async function checkTodaySessions(){
 
     sessions.forEach(s=>{
       if(!s.created_at) return;
-      // Convert session UTC timestamp to local date for comparison
       const d=new Date(s.created_at);
       const localDate=d.getFullYear()+'-'+
         String(d.getMonth()+1).padStart(2,'0')+'-'+
@@ -1720,49 +1714,66 @@ async function fetchLb(){
 }
 
 
-function renderRoadmap(containerEl, pts){
-  var MAX=300;
-  var LVLS=[
-    {pts:50,icon:'🌟',label:'L1 Explorer'},
-    {pts:100,icon:'🏅',label:'L2 Adventurer'},
-    {pts:150,icon:'🦸',label:'L3 Hero'},
-    {pts:200,icon:'⭐',label:'L4 Superstar'},
-    {pts:250,icon:'🔥',label:'L5 Legend'},
-    {pts:300,icon:'🐉',label:'L6 Dragon'}
+// ── SHARED: render a full 0→300 roadmap into any container div ──
+function renderRoadmap(containerEl, pts, opts){
+  opts = opts || {};
+  var MAX = 300;
+  var LVLS = [
+    {pts:50,  icon:'🌟', label:'L1 Explorer'},
+    {pts:100, icon:'🏅', label:'L2 Adventurer'},
+    {pts:150, icon:'🦸', label:'L3 Hero'},
+    {pts:200, icon:'⭐', label:'L4 Superstar'},
+    {pts:250, icon:'🔥', label:'L5 Legend'},
+    {pts:300, icon:'🐉', label:'L6 Dragon'}
   ];
-  var pct=Math.min(pts/MAX*100,100);
-  var POS=[2,19.6,37.2,54.8,72.4,90];
-  var iconsHtml=LVLS.map(function(l,i){
-    var done=pts>=l.pts;
-    var isNext=!done&&(i===0||pts>=LVLS[i-1].pts);
+  var pct = Math.min(pts / MAX * 100, 100);
+  // Icon positions: evenly spaced, kept 2%–96% so they never clip edges
+  var POS = [2, 19.6, 37.2, 54.8, 72.4, 90];
+
+  // ── top row: 6 level badges ──
+  var iconsHtml = LVLS.map(function(l, i){
+    var done = pts >= l.pts;
+    var isNext = !done && (i === 0 || pts >= LVLS[i-1].pts);
     return '<div style="position:absolute;left:'+POS[i]+'%;top:0;transform:translateX(-50%);text-align:center;width:30px;z-index:3;">'
       +'<div style="width:26px;height:26px;border-radius:50%;margin:0 auto;'
       +'background:'+(done?'linear-gradient(135deg,#FFD600,#FF8C00)':isNext?'#EFF6FF':'#F1F5F9')
       +';border:2.5px solid '+(done?'#FF8C00':isNext?'#93C5FD':'#D1D5DB')
       +';display:flex;align-items:center;justify-content:center;font-size:12px;'
-      +'filter:'+(done?'none':'grayscale(.6) opacity(.55)')+';">'
-      +l.icon+'</div>'
-      +'<div style="font-size:7px;font-weight:800;color:'+(done?'#FF8C00':'#94A3B8')+';margin-top:2px;">'+l.pts+'</div>'
+      +'box-shadow:'+(done?'0 2px 6px rgba(255,140,0,.45)':'none')
+      +';filter:'+(done?'none':'grayscale(.6) opacity(.55)')+';">'
+      +l.icon
+      +'</div>'
+      +'<div style="font-size:7px;font-weight:800;color:'+(done?'#FF8C00':'#94A3B8')+';margin-top:2px;white-space:nowrap;">'
+      +l.pts
+      +'</div>'
     +'</div>';
   }).join('');
-  var pandaPct=Math.min(pct,96.5);
-  var curLvl=null;
-  for(var i=LVLS.length-1;i>=0;i--){if(pts>=LVLS[i].pts){curLvl=LVLS[i];break;}}
-  var nxtLvl=LVLS.find(function(l){return pts<l.pts;})||null;
-  containerEl.innerHTML=
-    '<div style="position:relative;height:34px;margin:0;">'
-      +iconsHtml
+
+  // ── panda position ──
+  var pandaPct = Math.min(pct, 96.5);
+
+  // ── pts label ──
+  var curLvl = null;
+  for(var i = LVLS.length-1; i >= 0; i--){ if(pts >= LVLS[i].pts){ curLvl = LVLS[i]; break; } }
+  var nxtLvl = LVLS.find(function(l){ return pts < l.pts; }) || null;
+
+  containerEl.innerHTML =
+    // level icons row (top: 26px tall — icon 26px + label 8px)
+    '<div style="position:relative;height:34px;margin:0 0 0;">'
+      + iconsHtml
     +'</div>'
+    // track row (bar + panda: 28px tall)
     +'<div style="position:relative;height:28px;margin:0 0 4px;">'
       +'<div style="position:absolute;top:8px;left:0;right:0;height:8px;background:#E2E8F0;border-radius:99px;overflow:hidden;">'
         +'<div style="height:100%;width:'+pct+'%;background:linear-gradient(90deg,#FFD600,#FF8C00);border-radius:99px;transition:width .6s;"></div>'
       +'</div>'
       +'<div style="position:absolute;top:0;left:calc('+pandaPct+'% - 10px);font-size:20px;line-height:1;z-index:4;">🐼</div>'
     +'</div>'
+    // status line
     +'<div style="font-size:11px;font-weight:800;color:#0D47A1;text-align:center;background:#F0F7FF;border-radius:8px;padding:5px 8px;margin-top:2px;">'
       +(nxtLvl
-        ?'<span style="color:#FF8C00;">'+(nxtLvl.pts-pts)+' pts</span> to go → '+nxtLvl.icon+' '+nxtLvl.label
-        :'🐉 Dragon Warrior — maximum level!')
+        ? '<span style="color:#FF8C00;">'+(nxtLvl.pts-pts)+' pts</span> to go → '+nxtLvl.icon+' '+nxtLvl.label
+        : '🐉 Dragon Warrior — maximum level!')
     +'</div>';
 }
 
@@ -1771,7 +1782,12 @@ async function loadLeaderboard(){
   if(!el) return;
   el.innerHTML='<div class="load"><div class="spin-a"></div> Loading...</div>';
   try{
-    const data=await fetchLb();
+    // Fetch top 20 (not just 10) to show fuller leaderboard
+    const url=SB_URL+'/rest/v1/customers?select=id,name,game_points&order=game_points.desc&limit=20';
+    const r=await fetch(url,{headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const allData=await r.json();
+    const data=(allData||[]).filter(c=>(c.game_points||0)>0);
     const medals=['🥇','🥈','🥉'];
     if(!data||!data.length){
       el.innerHTML='<div style="text-align:center;padding:24px;"><div style="font-size:36px;">🎮</div><div style="font-size:14px;font-weight:700;color:#6B7280;margin-top:8px;">No scores yet — be the first!</div></div>';
@@ -1800,23 +1816,44 @@ async function loadLeaderboard(){
         </div>`;
       }).join('');
       const pandaLeft=Math.min(pct,96);
+      // Build a row for each of the 6 levels showing done/locked clearly
+      const levelRows=TIER_DATA.map(t=>{
+        const done=pts>=t.pts;
+        const isCurrentLevel=curTier&&curTier.label===t.label;
+        const ptsToThis=Math.max(0,t.pts-pts);
+        return `<div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid ${done?'rgba(255,140,0,.1)':'rgba(0,0,0,.04)'};">
+          <div style="font-size:${done?'18':'14'}px;width:22px;text-align:center;filter:${done?'none':'grayscale(1) opacity(.3)'};">${t.icon}</div>
+          <div style="flex:1;">
+            <div style="font-size:11px;font-weight:${done?'800':'600'};color:${done?'#FF8C00':'#94A3B8'};">${t.label} · ${t.pts}pts</div>
+          </div>
+          ${done
+            ?'<span style="font-size:10px;background:#DCFCE7;color:#16A34A;padding:2px 7px;border-radius:20px;font-weight:800;">✓ Unlocked</span>'
+            :`<span style="font-size:10px;color:#94A3B8;font-weight:700;">+${ptsToThis} pts</span>`}
+        </div>`;
+      }).join('');
+
+      // Build roadmap container and render into it
       const roadmapId='rm-'+c.id;
-      return `<div style="padding:12px;margin-bottom:10px;border-radius:14px;background:${isMe?'#EFF6FF':'#F9FAFB'};border:${isMe?'2.5px solid #1565C0':'1px solid #E5E7EB'};">
+      const card=`<div style="padding:12px;margin-bottom:10px;border-radius:14px;background:${isMe?'#EFF6FF':'#F9FAFB'};border:${isMe?'2.5px solid #1565C0':'1px solid #E5E7EB'};">
+        <!-- name + pts row -->
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
           <div style="font-size:22px;width:28px;text-align:center;flex-shrink:0;">${medals[i]||'#'+(i+1)}</div>
           <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#1565C0,#0D47A1);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#FFD600;flex-shrink:0;">${init}</div>
           <div style="flex:1;min-width:0;">
             <div style="font-size:14px;font-weight:800;color:#1A1A2E;">${c.name||'Player'}${isMe?' <span style="font-size:10px;background:#1565C0;color:#fff;padding:2px 6px;border-radius:4px;margin-left:4px;">YOU</span>':''}</div>
-            <div style="font-size:11px;font-weight:700;color:${curTier?'#FF8C00':'#94A3B8'};">${curTier?curTier.icon+' '+curTier.label:'🐼 Just starting!'} · ${pts} pts</div>
+            <div style="font-size:11px;font-weight:700;color:${curTier?'#FF8C00':'#94A3B8'};">${curTier?curTier.icon+' '+curTier.label+' · '+pts+' pts':'🐼 '+pts+' pts — just starting!'}</div>
           </div>
           <div style="text-align:right;flex-shrink:0;">
             <div style="font-size:26px;font-weight:900;color:#0D47A1;font-family:'Baloo 2',cursive;line-height:1;">${pts}</div>
             <div style="font-size:9px;color:#94A3B8;font-weight:600;">pts</div>
           </div>
         </div>
+        <!-- ROADMAP: icons above bar, no overlap -->
         <div id="${roadmapId}" style="padding:0 4px;margin-bottom:4px;"></div>
       </div>`;
+      return card;
     }).join('');
+    // Render roadmaps after inserting HTML
     data.forEach(function(c){
       const el=document.getElementById('rm-'+c.id);
       if(el) renderRoadmap(el, c.game_points||0);
@@ -1894,7 +1931,7 @@ function launchConfetti(){
       await fetchGlobalBests();
       goProfile();
     } else {
-      // Multiple children under same mobile — do NOT pre-fill
+      // Multiple children under same mobile — do NOT pre-fill, leave screen blank
       // Do NOT show any message — user hasn't asked to log in yet
     }
   }catch(e){ console.warn('Auto-login error:',e.message); }
@@ -1970,8 +2007,29 @@ function launchConfetti(){
   }
 
   function miniBar(points){
-    const i = levelInfo(points);
-    return `<div class="v17-mini-bar"><div class="v17-mini-fill" style="width:${i.pct}%"></div></div><div class="v17-mini-txt">L${i.current.level} ${i.current.badge}${i.next ? ' · '+i.needed+' pts to L'+i.next.level : ' · Max'}</div>`;
+    // Shows OVERALL progress (0→300) with all 6 level icons — not just within-level
+    var MAX=300, pts=Number(points||0);
+    var LVLS=[
+      {pts:50,icon:'🌟'},{pts:100,icon:'🏅'},{pts:150,icon:'🦸'},
+      {pts:200,icon:'⭐'},{pts:250,icon:'🔥'},{pts:300,icon:'🐉'}
+    ];
+    var pct=Math.min(pts/MAX*100,100);
+    var curLvl=null; for(var k=LVLS.length-1;k>=0;k--){if(pts>=LVLS[k].pts){curLvl=LVLS[k];break;}}
+    var nxtLvl=LVLS.find(function(l){return pts<l.pts;})||null;
+    // 6 tiny icons
+    var icons=LVLS.map(function(l){
+      var done=pts>=l.pts;
+      return '<div style="flex:1;text-align:center;font-size:'+(done?'12':'9')+'px;filter:'+(done?'none':'grayscale(1) opacity(.2)')+';">'+l.icon+'</div>';
+    }).join('');
+    return '<div style="display:flex;gap:0;margin:2px 0 1px;">'+icons+'</div>'
+      +'<div style="position:relative;height:5px;background:rgba(255,255,255,.12);border-radius:99px;overflow:hidden;margin-bottom:3px;">'
+        +'<div style="height:100%;width:'+pct+'%;background:linear-gradient(90deg,#FFD600,#FF8C00);border-radius:99px;"></div>'
+      +'</div>'
+      +'<div style="font-size:9px;color:rgba(255,255,255,.5);">'
+        +(curLvl?curLvl.icon:' ')
+        +' '+pts+' pts'
+        +(nxtLvl?' · '+(nxtLvl.pts-pts)+' to next':' · Max! 🐉')
+      +'</div>';
   }
   window.v17MiniBar = miniBar;
 
@@ -2173,6 +2231,7 @@ function launchConfetti(){
       requestAnimationFrame(animate);
     };
     const btn=$('spinBtn'); if(btn){btn.disabled=false;btn.textContent='SPIN! 🎡';btn.onclick=startSpin;}
+    // Also patch goSpin to re-check gate (patchSpin runs after goSpin is defined)
     // goSpin already uses checkAndPlay which re-fetches stamp live — no extra wrapping needed
   }
 
