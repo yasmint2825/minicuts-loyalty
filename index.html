@@ -147,6 +147,13 @@ tbody td{padding:12px 15px;font-size:13.5px;color:var(--text)}
 .cp .tab-btn{padding:7px 12px;font-size:12.5px;}
 @media(max-width:900px){.sb{transform:translateX(-100%)}.sb.open{transform:translateX(0)}.main{margin-left:0}.sr{grid-template-columns:1fr 1fr}.fr{grid-template-columns:1fr}}
 @media(max-width:600px){.sr{grid-template-columns:1fr}.content{padding:14px}.topbar{padding:0 14px}}
+/* ── Phone prefix ── */
+/* ── UAE Phone Picker ── */
+.ph-wrap{display:flex;gap:0;align-items:stretch;}
+.ph-pfx{appearance:none;-webkit-appearance:none;background:#F0F7FF url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%231565C0' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 8px center;border:1.5px solid var(--border);border-right:none;border-radius:var(--rs) 0 0 var(--rs);padding:0 26px 0 10px;font-size:14px;font-weight:700;color:#1565C0;cursor:pointer;flex-shrink:0;min-width:78px;height:44px;}
+.ph-pfx:focus{outline:none;border-color:var(--b);box-shadow:0 0 0 3px rgba(21,101,192,.1);}
+.ph-num{flex:1;height:44px;border:1.5px solid var(--border);border-left:none;border-radius:0 var(--rs) var(--rs) 0;background:#fff;color:var(--text);font-size:14px;padding:0 12px;font-family:var(--fb);}
+.ph-num:focus{outline:none;border-color:var(--b);box-shadow:0 0 0 3px rgba(21,101,192,.1);}
 /* ── DOB Picker ── */
 .dob-row{display:grid;grid-template-columns:1fr 1.8fr 1fr;gap:8px;}
 .dob-row select{appearance:none;-webkit-appearance:none;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236B7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 10px center;padding-right:28px;cursor:pointer;}
@@ -154,7 +161,37 @@ tbody td{padding:12px 15px;font-size:13.5px;color:var(--text)}
 .dob-err{border-color:#DC2626!important;box-shadow:0 0 0 3px rgba(220,38,38,.1)!important;}
 </style>
 <script>
-// ── DOB PICKER HELPERS ──
+// ── UAE PHONE HELPERS ──
+const UAE_PFXS=['050','051','052','054','055','056','058','059','060'];
+function phPfxOpts(sel='055'){return UAE_PFXS.map(p=>`<option value="${p}"${p===sel?' selected':''}>${p}</option>`).join('');}
+function getPhone(pfxId,numId){
+  const pfx=(document.getElementById(pfxId)?.value||'055').replace(/\D/g,'');
+  const num=(document.getElementById(numId)?.value||'').trim().replace(/\D/g,'');
+  if(!num) return '';
+  return '971'+pfx.slice(1)+num;
+}
+function phoneValid(numId){return((document.getElementById(numId)?.value||'').replace(/\D/g,'')).length===7;}
+function splitPhone(mobile){
+  let s=String(mobile||'').replace(/\D/g,'');
+  if(s.startsWith('971'))s=s.slice(3);
+  else if(s.startsWith('00971'))s=s.slice(5);
+  if(s.length===9)return{pfx:'0'+s.slice(0,2),num:s.slice(2)};
+  return{pfx:'055',num:s};
+}
+function setPhoneField(pfxId,numId,mobile){
+  const p=splitPhone(mobile);
+  const ps=document.getElementById(pfxId),ns=document.getElementById(numId);
+  if(ps)ps.value=UAE_PFXS.includes(p.pfx)?p.pfx:'055';
+  if(ns)ns.value=p.num||'';
+}
+// Build inline phone HTML for dynamically generated forms (string context)
+function phHtml(pfxId,numId,storedMobile,placeholder){
+  const p=splitPhone(storedMobile||'');
+  const sel=UAE_PFXS.includes(p.pfx)?p.pfx:'055';
+  return `<div class="ph-wrap"><select class="ph-pfx" id="${pfxId}">${phPfxOpts(sel)}</select>`+
+    `<input class="ph-num" type="tel" id="${numId}" placeholder="${placeholder||'1234567'}" maxlength="7" value="${p.num||''}"></div>`;
+}
+
 function makeDobRow(prefix,required){
   const req=required?'<span style="color:#DC2626;font-weight:900;"> *</span>':'';
   const days=Array.from({length:31},(_,i)=>`<option value="${String(i+1).padStart(2,'0')}">${i+1}</option>`).join('');
@@ -656,9 +693,13 @@ async function archiveCycle(customerId,stamps,firstStampDate,expiryDate,endedBy)
         <div class="card" style="max-width:540px;">
           <div class="fr">
             <div class="fg"><label class="fl">Child's Name *</label><input class="fi" type="text" id="NC1" placeholder="e.g. Zara"></div>
-            <div class="fg"><label class="fl">Mobile Number *</label><input class="fi" type="tel" id="NC2" placeholder="e.g. 0501234567"></div>
+            <div class="fg"><label class="fl">Mobile Number *</label>
+              <div class="ph-wrap">
+                <select class="ph-pfx" id="NC2_PFX"><option value="050">050</option><option value="051">051</option><option value="052">052</option><option value="054">054</option><option value="055" selected>055</option><option value="056">056</option><option value="058">058</option><option value="059">059</option><option value="060">060</option></select>
+                <input class="ph-num" type="tel" id="NC2" placeholder="1234567" maxlength="7">
+              </div>
+            </div>
           </div>
-          <div class="fg"><label class="fl">Parent / Guardian Name (optional)</label><input class="fi" type="text" id="NC3" placeholder="e.g. Sara Ahmed"></div>
           <div class="fg"><label class="fl">Gender *</label>
             <div class="gt"><button class="gb boy active" id="NCB" onclick="setG('boy')">👦 Boy</button><button class="gb girl" id="NCG" onclick="setG('girl')">👧 Girl</button></div>
           </div>
@@ -671,6 +712,7 @@ async function archiveCycle(customerId,stamps,firstStampDate,expiryDate,endedBy)
               <select class="fi" id="NC6_Y"><option value="">Year</option></select>
             </div>
           </div>
+          <div class="fg"><label class="fl">Parent / Guardian Name (optional)</label><input class="fi" type="text" id="NC3" placeholder="e.g. Sara Ahmed"></div>
           <div class="fg"><label class="fl">Notes (optional)</label><input class="fi" type="text" id="NC5" placeholder="e.g. Special needs, preferred stylist"></div>
           <div style="display:flex;gap:9px;margin-top:6px;">
             <button class="btn bp" onclick="createC()">Create Passport 🐼</button>
@@ -801,9 +843,13 @@ async function archiveCycle(customerId,stamps,firstStampDate,expiryDate,endedBy)
     <input type="hidden" id="EID">
     <div class="fr">
       <div class="fg"><label class="fl">Child's Name</label><input class="fi" type="text" id="EN"></div>
-      <div class="fg"><label class="fl">Mobile</label><input class="fi" type="tel" id="EP"></div>
+      <div class="fg"><label class="fl">Mobile</label>
+        <div class="ph-wrap">
+          <select class="ph-pfx" id="EP_PFX"><option value="050">050</option><option value="051">051</option><option value="052">052</option><option value="054">054</option><option value="055" selected>055</option><option value="056">056</option><option value="058">058</option><option value="059">059</option><option value="060">060</option></select>
+          <input class="ph-num" type="tel" id="EP" placeholder="1234567" maxlength="7">
+        </div>
+      </div>
     </div>
-    <div class="fg"><label class="fl">Parent Name (optional)</label><input class="fi" type="text" id="EPR"></div>
     <div class="fg"><label class="fl">Gender</label>
       <div class="gt"><button class="gb boy active" id="EGB" onclick="setEG('boy')">👦 Boy</button><button class="gb girl" id="EGG" onclick="setEG('girl')">👧 Girl</button></div>
     </div>
@@ -816,7 +862,8 @@ async function archiveCycle(customerId,stamps,firstStampDate,expiryDate,endedBy)
         <select class="fi" id="EDOB_Y"><option value="">Year</option></select>
       </div>
     </div>
-            <div class="fg"><label class="fl">Notes</label><input class="fi" type="text" id="ENO"></div>
+    <div class="fg"><label class="fl">Parent Name (optional)</label><input class="fi" type="text" id="EPR"></div>
+    <div class="fg"><label class="fl">Notes</label><input class="fi" type="text" id="ENO"></div>
     <div class="mf">
       <button class="btn bg2" onclick="closeM('EM')">Cancel</button>
       <button class="btn bp" onclick="saveEdit()">Save Changes</button>
@@ -866,8 +913,8 @@ async function archiveCycle(customerId,stamps,firstStampDate,expiryDate,endedBy)
   // ── Auto-restore staff session ──
   try{
     const sess=JSON.parse(localStorage.getItem('mc_session')||'null');
-    // Session valid for 7 days
-    if(sess&&sess.user&&(Date.now()-sess.ts)<7*24*60*60*1000){
+    // Session valid for 8 hours (expires overnight — must re-login each day)
+    if(sess&&sess.user&&(Date.now()-sess.ts)<8*60*60*1000){
       // Re-validate against current config
       if(sess.user===CFG.user){
         showStaffPanel(sess.user);
@@ -1270,17 +1317,16 @@ function renderCT(data){
       <td><span class="badge ${s.cls}">${s.label}</span>${c.dnd?' <span class="badge bg-err" style="font-size:10px;">🔕 DND</span>':''}</td>
       <td style="font-size:12px;color:var(--muted);white-space:nowrap;">${fmtDate(c.created_at)||'—'}</td>
       <td style="font-size:12px;color:var(--muted);white-space:nowrap;">${fmtDate(c.last_visit_date)||'—'}</td>
-      <td><div style="display:flex;gap:5px;flex-wrap:wrap;">
-        <button class="btn bp bsm" onclick="viewProfile('${c.id}')">View</button>
-        <button class="btn bg2 bsm" onclick="openEditM('${c.id}')" title="Edit">✏️</button>
-          `+(c.dnd?`<button class="btn bg2 bsm" onclick="toggleDND('${c.id}',false,'${c.name}')" style="border-color:var(--ok);color:var(--ok);">↩ Re-enable</button>`:`<button class="btn bg2 bsm" onclick="toggleDND('${c.id}',true,'${c.name}')" style="background:#FEE2E2;color:#DC2626;border:1px solid #FCA5A5;">📵 DND</button>`)+`
+      <td><div style="display:flex;gap:4px;flex-wrap:nowrap;align-items:center;">
+        <button class="btn bp bsm" onclick="viewProfile('${c.id}')" title="View profile" style="padding:5px 8px;font-size:14px;line-height:1;">👁</button>
+        <button class="btn bg2 bsm" onclick="openEditM('${c.id}')" title="Edit" style="padding:5px 8px;font-size:14px;line-height:1;">✏️</button>
+          `+(c.dnd?`<button class="btn bg2 bsm" onclick="toggleDND('${c.id}',false,'${c.name}')" title="Re-enable" style="border-color:var(--ok);color:var(--ok);padding:5px 8px;font-size:14px;line-height:1;">↩</button>`:`<button class="btn bg2 bsm" onclick="toggleDND('${c.id}',true,'${c.name}')" title="DND" style="background:#FEE2E2;color:#DC2626;border:1px solid #FCA5A5;padding:5px 8px;font-size:14px;line-height:1;">🔕</button>`)+`
         ${st>=paidNeeded()&&!getStatus(c).label.includes('Expired')?
-          `<button class="btn bs bsm" onclick="redeemFree('${c.id}')">🚿 Give Free Wash</button>`:
-          `<button class="btn by bsm" id="sb-${c.id}" onclick="addStampQ('${c.id}')">+Stamp</button>`}
-        <button class="btn bg2 bsm" onclick="openQR('${c.id}')">QR</button>
+          `<button class="btn bs bsm" onclick="redeemFree('${c.id}')" title="Give Free Wash" style="padding:5px 8px;font-size:14px;line-height:1;">🚿</button>`:
+          `<button class="btn by bsm" id="sb-${c.id}" onclick="addStampQ('${c.id}')" title="Add stamp" style="padding:5px 8px;font-size:13px;font-weight:800;line-height:1;">+✂</button>`}
       </div></td></tr>`;
   }).join('');
-  document.getElementById('CT').innerHTML=`<div class="tw"><table><thead><tr><th>Name</th><th>Mobile</th><th>Gender</th><th>Stamps</th><th>Status</th><th>Registered</th><th>Last Visit</th><th>Actions</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  document.getElementById('CT').innerHTML=`<div class="tw"><table><thead><tr><th>Name</th><th>Mobile</th><th>Gender</th><th>Stamps</th><th>Status</th><th>Registered</th><th>Last Visit</th><th style="width:130px;">Actions</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 function searchC(){
   const q=(document.getElementById('CS')?.value||'').trim().toLowerCase();
@@ -1537,15 +1583,22 @@ let ncG='boy';
 function setG(g){ncG=g;document.getElementById('NCB').classList.toggle('active',g==='boy');document.getElementById('NCG').classList.toggle('active',g==='girl');}
 async function createC(){
   const name=document.getElementById('NC1').value.trim();
-  const phone=document.getElementById('NC2').value.trim();
+  const phone=getPhone('NC2_PFX','NC2');
+  const phoneNum=(document.getElementById('NC2')?.value||'').trim().replace(/\D/g,'');
   const parent=document.getElementById('NC3').value.trim();
   const notes=document.getElementById('NC5').value.trim();
   const dob=getDob('NC6');
   const stamps=parseInt(document.getElementById('NC4').value)||0;
-  if(!name||!phone){toast('Name and mobile required.','error');return;}
+  if(!name||!phoneNum){toast('Name and mobile required.','error');return;}
+  if(phoneNum.length!==7){toast('⛔ Mobile must be 7 digits after the prefix (e.g. 1234567)','error');document.getElementById('NC2').focus();return;}
   if(!dob){toast('⛔ Date of birth is required!','error');highlightDobErr('NC6');return;}
   try{
-    const ex=await sb('customers','GET',null,'select=id,name&mobile=eq.'+encodeURIComponent(phone));
+    const phoneAlt='0'+phone.slice(3);
+    const [exA,exB]=await Promise.all([
+      sb('customers','GET',null,'select=id,name&mobile=eq.'+encodeURIComponent(phone)),
+      sb('customers','GET',null,'select=id,name&mobile=eq.'+encodeURIComponent(phoneAlt))
+    ]);
+    const ex=[...(exA||[]),...(exB||[])];
     const exactDup=ex.find(r=>r.name.trim().toLowerCase()===name.toLowerCase());
     if(exactDup){toast('Duplicate: '+name+' already has a passport under this mobile number.','error');return;}
     const now=new Date().toISOString();
@@ -1569,7 +1622,7 @@ async function createC(){
     setTimeout(loadAfterService,500); // refresh alert list
   }catch(e){toast('Error: '+e.message,'error');}
 }
-function clearNC(){['NC1','NC2','NC3','NC5'].forEach(id=>document.getElementById(id).value='');document.getElementById('NC4').value='0';['NC6_D','NC6_M','NC6_Y'].forEach(id=>document.getElementById(id).value='');ncG='boy';setG('boy');}
+function clearNC(){['NC1','NC2','NC3','NC5'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});document.getElementById('NC4').value='0';['NC6_D','NC6_M','NC6_Y'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});const pfx=document.getElementById('NC2_PFX');if(pfx)pfx.value='055';ncG='boy';setG('boy');}
 
 // ══ EDIT ══
 let egG='boy';
@@ -1577,7 +1630,7 @@ async function openEditM(id){
   const c=(await sb('customers','GET',null,'select=*&id=eq.'+id))[0];
   document.getElementById('EID').value=id;
   document.getElementById('EN').value=c.name;
-  document.getElementById('EP').value=c.mobile;
+  setPhoneField('EP_PFX','EP',c.mobile);
   document.getElementById('EPR').value=c.parent||'';
   setDob('EDOB',c.dob||'');
   document.getElementById('ENO').value=c.notes||'';
@@ -1587,7 +1640,9 @@ async function openEditM(id){
 function setEG(g){egG=g;document.getElementById('EGB').classList.toggle('active',g==='boy');document.getElementById('EGG').classList.toggle('active',g==='girl');}
 async function saveEdit(){
   const id=document.getElementById('EID').value;
-  const u={name:document.getElementById('EN').value.trim(),mobile:document.getElementById('EP').value.trim(),parent:document.getElementById('EPR').value.trim(),notes:document.getElementById('ENO').value.trim(),dob:getDob('EDOB'),gender:egG,stamps:parseInt(document.getElementById('EST').value)||0};
+  const epNum=(document.getElementById('EP')?.value||'').trim().replace(/\D/g,'');
+  if(epNum&&epNum.length!==7){toast('⛔ Mobile must be 7 digits after the prefix','error');return;}
+  const u={name:document.getElementById('EN').value.trim(),mobile:epNum?getPhone('EP_PFX','EP'):'',parent:document.getElementById('EPR').value.trim(),notes:document.getElementById('ENO').value.trim(),dob:getDob('EDOB'),gender:egG,stamps:parseInt(document.getElementById('EST').value)||0};
   try{
     await sb('customers','PATCH',u,'id=eq.'+id);
     closeM('EM');toast('Customer updated!');
@@ -2103,7 +2158,13 @@ async function renderCP(prefMobile){
     try{
       // Always fetch ALL children under this mobile — ignore gender filter
       // This ensures families with multiple kids all see their passports
-      const res=await sb('customers','GET',null,'select=*&mobile=eq.'+encodeURIComponent(prefMobile)+'&order=name.asc');
+      const prefMobileAlt='0'+prefMobile.slice(3);
+      const [rA,rB]=await Promise.all([
+        sb('customers','GET',null,'select=*&mobile=eq.'+encodeURIComponent(prefMobile)+'&order=name.asc'),
+        sb('customers','GET',null,'select=*&mobile=eq.'+encodeURIComponent(prefMobileAlt)+'&order=name.asc')
+      ]);
+      const seenIds=new Set();
+      const res=[...(rA||[]),...(rB||[])].filter(c=>{if(seenIds.has(c.id))return false;seenIds.add(c.id);return true;});
       if(res.length){
         const parts=await Promise.all(res.map(async c=>{
           const visits=await sb('visits','GET',null,'select=*&customer_id=eq.'+c.id+'&order=created_at.desc');
@@ -2226,16 +2287,34 @@ function toggleCustHist(uid){
 
 function buildLookupHtml(msg){
   const saved=localStorage.getItem('mc_cust_mobile')||'';
-  const msgBlock=msg?'<div style="background:#FEF3C7;border:1px solid #F59E0B;border-radius:10px;padding:8px 12px;font-size:13px;font-weight:700;color:#92400E;margin-bottom:12px;text-align:center;">'+msg+'</div>':'';
+  const msgBlock=msg?`<div style="background:#FEF3C7;border:1px solid #F59E0B;border-radius:10px;padding:8px 12px;font-size:13px;font-weight:700;color:#92400E;margin-bottom:12px;text-align:center;">${msg}</div>`:'';
   return '<div class="cbox">'+
     '<div style="text-align:center;margin-bottom:18px;">'+
       '<div style="font-size:40px;margin-bottom:6px;">&#x1F43C;</div>'+
       '<div style="font-family:var(--fh);font-size:20px;font-weight:900;">MiniCuts Loyalty Club</div>'+
       '<div style="font-size:12px;color:var(--muted);margin-top:4px;">Same login for Loyalty + MiniCuts Games</div>'+
     '</div>'+
-    '<input class="fi" type="tel" id="CML" placeholder="Your mobile number" value="'+saved+'" '+
-      'style="margin-bottom:10px;font-size:15px;text-align:center;">'+
+    '<div class="fg" style="margin-bottom:10px;"><label style="font-size:12px;font-weight:700;color:#6B7280;display:block;margin-bottom:5px;">Parent Mobile</label>'+phHtml('CML_PFX','CML',saved,'1234567')+'</div>'+
     msgBlock+
+    '<button class="btn bp" onclick="custLookup()" style="width:100%;padding:12px;font-size:15px;font-weight:800;margin-bottom:10px;">'+
+      '&#x1F50D; Check My Stamps &amp; Rewards'+
+    '</button>'+
+    '<button onclick="showReg()" style="width:100%;padding:11px;border:2px solid var(--y);border-radius:var(--rs);background:var(--yl);color:#92400E;font-family:var(--fb);font-weight:800;font-size:14px;cursor:pointer;margin-bottom:14px;">'+
+      '🐼 New? Register Here →'+
+    '</button>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">'+
+      '<a href="javascript:void(0)" onclick="openGamesPage()" style="display:flex;flex-direction:column;align-items:center;padding:12px 8px;background:linear-gradient(135deg,#FF6B00,#FF8C00);border-radius:12px;text-decoration:none;gap:4px;box-shadow:0 4px 12px rgba(255,107,0,.35);">'+
+        '<span style="font-size:26px;">&#x1F3AE;</span>'+
+        '<span style="font-family:var(--fh);font-size:12px;font-weight:800;color:#fff;text-align:center;line-height:1.3;">Play Quick Games &amp; Win</span>'+
+      '</a>'+
+      '<a href="./minicuts_hair_care_guide_v2.html" target="_blank" style="display:flex;flex-direction:column;align-items:center;padding:12px 8px;background:linear-gradient(135deg,#16A34A,#15803D);border-radius:12px;text-decoration:none;gap:4px;">'+
+        '<span style="font-size:26px;">&#x1F4D6;</span>'+
+        '<span style="font-family:var(--fh);font-size:12px;font-weight:800;color:#fff;text-align:center;line-height:1.3;">Smart Parent Guide</span>'+
+      '</a>'+
+    '</div>'+
+    '<div style="text-align:center;font-size:11px;color:var(--muted);padding-top:10px;border-top:1px solid var(--border);">'+
+      '&#x1F510; One account for Loyalty + Games Club</div>'+
+  '</div>';
     '<button class="btn bp" onclick="custLookup()" style="width:100%;padding:12px;font-size:15px;font-weight:800;margin-bottom:10px;">'+
       '&#x1F50D; Check My Stamps &amp; Rewards'+
     '</button>'+
@@ -2270,8 +2349,12 @@ function buildRegister(pf=''){
     <div style="font-family:'Baloo 2',cursive;font-size:17px;font-weight:800;margin-bottom:3px;">🐼 Join MiniCuts Loyalty!</div>
     <div style="font-size:13px;color:#6B7280;margin-bottom:14px;">Register to start earning stamps</div>
     <div class="fg"><label class="fl">Child's Name *</label><input class="fi" type="text" id="CRN" placeholder="e.g. Zara"></div>
-    <div class="fg"><label class="fl">Mobile Number *</label><input class="fi" type="tel" id="CRP" placeholder="e.g. 0501234567" value="${pf}"></div>
-    <div class="fg"><label class="fl">Parent Name (optional)</label><input class="fi" type="text" id="CRPR" placeholder="e.g. Sara Ahmed"></div>
+    <div class="fg"><label class="fl">Mobile Number *</label>
+      ${phHtml('CRP_PFX','CRP',pf,'1234567')}
+    </div>
+    <div class="fg"><label class="fl">Gender *</label>
+      <div class="gt"><button class="gb boy active" id="CRB" onclick="setCRG('boy')">👦 Boy</button><button class="gb girl" id="CRG2" onclick="setCRG('girl')">👧 Girl</button></div>
+    </div>
     <div class="fg">
       <label class="fl">Date of Birth <span style="color:#DC2626;font-weight:900;">*</span></label>
       <div class="dob-row">
@@ -2280,9 +2363,7 @@ function buildRegister(pf=''){
         <select class="fi" id="CRDOB_Y"><option value="">Year</option>${Array.from({length:20},(_,i)=>`<option value="${new Date().getFullYear()-i}">${new Date().getFullYear()-i}</option>`).join('')}</select>
       </div>
     </div>
-    <div class="fg"><label class="fl">Gender *</label>
-      <div class="gt"><button class="gb boy active" id="CRB" onclick="setCRG('boy')">👦 Boy</button><button class="gb girl" id="CRG2" onclick="setCRG('girl')">👧 Girl</button></div>
-    </div>
+    <div class="fg"><label class="fl">Parent Name (optional)</label><input class="fi" type="text" id="CRPR" placeholder="e.g. Sara Ahmed"></div>
     <button class="btn bp" style="width:100%;justify-content:center;padding:13px;margin-top:6px;" onclick="custRegister()">Create My Passport 🐼</button>
     <div style="text-align:center;margin-top:12px;font-size:13px;color:#6B7280;">Already registered? <a href="javascript:void(0)" onclick="showLookup()" style="color:#1565C0;font-weight:700;">Check stamps →</a></div>
   </div>`;
@@ -2309,14 +2390,21 @@ function showLookup(){
 }
 
 async function custLookup(){
-  const phone=(document.getElementById('CML')||document.getElementById('CPP'))?.value.trim();
-  if(!phone||phone.length<7) return;
+  const rawNum=((document.getElementById('CML'))?.value||'').trim().replace(/\D/g,'');
+  if(!rawNum||rawNum.length<7) return;
+  const phone=getPhone('CML_PFX','CML');
   const area=document.getElementById('CPA');
   area.innerHTML='<div class="load"><div class="spin"></div></div>';
   try{
     localStorage.setItem('mc_cust_mobile',phone);
     // Fetch ALL children under this mobile number, sorted by name
-    const res=await sb('customers','GET',null,'select=*&mobile=eq.'+encodeURIComponent(phone)+'&order=name.asc');
+    const phoneAlt2='0'+phone.slice(3);
+    const [sA,sB]=await Promise.all([
+      sb('customers','GET',null,'select=*&mobile=eq.'+encodeURIComponent(phone)+'&order=name.asc'),
+      sb('customers','GET',null,'select=*&mobile=eq.'+encodeURIComponent(phoneAlt2)+'&order=name.asc')
+    ]);
+    const seenS=new Set();
+    const res=[...(sA||[]),...(sB||[])].filter(c=>{if(seenS.has(c.id))return false;seenS.add(c.id);return true;});
     if(res.length){
       const parts=await Promise.all(res.map(async c=>{
         const visits=await sb('visits','GET',null,'select=*&customer_id=eq.'+c.id+'&order=created_at.desc');
@@ -2332,10 +2420,12 @@ async function custLookup(){
 
 async function custRegister(){
   const name=document.getElementById('CRN').value.trim();
-  const phone=document.getElementById('CRP').value.trim();
+  const phoneNum=(document.getElementById('CRP')?.value||'').trim().replace(/\D/g,'');
+  const phone=getPhone('CRP_PFX','CRP');
   const parent=document.getElementById('CRPR').value.trim();
   const dob=getDob('CRDOB');
-  if(!name||!phone){alert('Please enter name and mobile.');return;}
+  if(!name||!phoneNum){alert('Please enter name and mobile.');return;}
+  if(phoneNum.length!==7){alert('⛔ Mobile must be 7 digits after the prefix (e.g. 1234567)');document.getElementById('CRP').focus();return;}
   if(!dob){
     highlightDobErr('CRDOB');
     alert('Date of birth is required! 🎂');return;

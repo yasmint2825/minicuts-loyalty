@@ -7,24 +7,26 @@
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800;900&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;user-select:none;}
+input,select,textarea{user-select:text;-webkit-user-select:text;cursor:text;}
+select{cursor:pointer;}
 :root{--y:#FFD600;--b:#1565C0;--bd:#0D47A1;--bm:#1976D2;--ok:#16A34A;--err:#DC2626;}
-html,body{height:100vh;overflow:hidden;background:linear-gradient(160deg,var(--bd),var(--bm) 60%,#1E40AF);}
+html,body{height:100%;height:100dvh;overflow:hidden;background:linear-gradient(160deg,var(--bd),var(--bm) 60%,#1E40AF);}
 body{display:flex;font-family:'Nunito',sans-serif;}
 
 /* ── 3 COLUMN LAYOUT ── */
-.layout{display:flex;width:100%;height:100vh;overflow:hidden;}
+.layout{display:flex;width:100%;height:100%;overflow:hidden;}
 
 /* LEFT: rules + levels */
-.left-panel{width:210px;flex-shrink:0;background:rgba(0,0,0,.28);border-right:1px solid rgba(255,255,255,.1);padding:12px 10px;overflow-y:auto;height:100vh;}
+.left-panel{width:210px;flex-shrink:0;background:rgba(0,0,0,.28);border-right:1px solid rgba(255,255,255,.1);padding:12px 10px;overflow-y:auto;height:100%;}
 .left-panel::-webkit-scrollbar{width:0;}
 @media(max-width:900px){.left-panel{display:none;}}
 
 /* CENTRE: game - fills remaining space, no scroll visible */
-.game-area{flex:1;display:flex;justify-content:center;align-items:flex-start;overflow-y:auto;overflow-x:hidden;height:100vh;padding:10px 8px;}
+.game-area{flex:1;display:flex;justify-content:center;align-items:flex-start;overflow-y:auto;overflow-x:hidden;height:100%;padding:10px 8px;}
 .game-area::-webkit-scrollbar{width:0;}
 
 /* RIGHT: leaderboard */
-.lb-sidebar{width:250px;flex-shrink:0;background:rgba(0,0,0,.3);border-left:1px solid rgba(255,255,255,.1);padding:12px 10px;overflow-y:auto;height:100vh;}
+.lb-sidebar{width:250px;flex-shrink:0;background:rgba(0,0,0,.3);border-left:1px solid rgba(255,255,255,.1);padding:12px 10px;overflow-y:auto;height:100%;}
 .lb-sidebar::-webkit-scrollbar{width:0;}
 @media(max-width:700px){.lb-sidebar{display:none;}}
 
@@ -109,7 +111,8 @@ body{display:flex;font-family:'Nunito',sans-serif;}
 .mob-nav button{flex:1;padding:10px 6px;border:none;border-radius:10px;font-family:'Baloo 2',cursive;font-size:13px;font-weight:800;cursor:pointer;}
 .mob-lb{background:linear-gradient(135deg,#10B981,#059669);color:#fff;}
 .mob-road{background:rgba(255,255,255,.15);color:#FFD600;border:1.5px solid rgba(255,214,0,.4);}
-@media(max-width:900px){.mob-nav{display:flex!important;}.game-area{padding-bottom:70px;}}
+@media(max-width:900px){.mob-nav{display:flex!important;}.game-area{padding-bottom:72px!important;}}
+@media(max-width:480px){.card{padding:10px!important;}.btn{font-size:14px!important;padding:9px!important;}.brand{font-size:22px!important;}.ph-pfx{min-width:68px!important;}.game-emoji{font-size:24px!important;}.spin-wrap{width:210px!important;height:210px!important;}#wCanvas{width:210px!important;height:210px!important;}#tapGame{height:160px!important;}}
 #pinOverlay{position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:99999;display:none;align-items:center;justify-content:center;}
 #pinOverlay.show{display:flex;}
 .pin-box{background:#fff;border-radius:20px;padding:24px 20px;width:260px;text-align:center;}
@@ -125,7 +128,49 @@ body{display:flex;font-family:'Nunito',sans-serif;}
 .pin-err{color:#DC2626;font-size:12px;font-weight:700;min-height:16px;margin-bottom:6px;}
 .pin-cancel{background:none;border:none;color:#9CA3AF;font-size:12px;cursor:pointer;}
 @keyframes pinShake{0%,100%{transform:translateX(0);}25%{transform:translateX(-7px);}75%{transform:translateX(7px);}}
+/* ── UAE Phone Picker ── */
+.ph-wrap{display:flex;gap:6px;align-items:stretch;width:100%;}
+.ph-pfx{appearance:none;-webkit-appearance:none;background:#0D47A1 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23FFD600' stroke-width='1.8' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 8px center;border:2px solid #FFD600;border-radius:10px;padding:0 26px 0 10px;font-size:14px;font-weight:800;color:#FFD600;cursor:pointer;flex-shrink:0;min-width:80px;height:48px;font-family:'Baloo 2',cursive;touch-action:manipulation;}
+.ph-pfx:focus{outline:none;border-color:#FFD600;}
+.ph-num{flex:1;height:48px;border:2px solid #FFD600;border-radius:10px;background:rgba(255,255,255,.15);color:#fff;font-size:15px;font-weight:700;padding:0 14px;font-family:'Nunito',sans-serif;cursor:text;pointer-events:auto;-webkit-user-select:text;user-select:text;touch-action:manipulation;-webkit-appearance:none;appearance:none;}
+.ph-num::placeholder{color:rgba(255,255,255,.55);font-weight:500;}
+.ph-num:focus{outline:none;border-color:#FFD600;background:rgba(255,255,255,.22);}
+/* Light variant for white-background cards (register screen) */
+.ph-wrap.light .ph-pfx{background:#F9FAFB;border:2px solid #E5E7EB;color:#374151;}
+.ph-wrap.light .ph-num{background:#fff;border:2px solid #E5E7EB;color:#1A1A2E;}
+.ph-wrap.light .ph-num::placeholder{color:#9CA3AF;}
+.ph-wrap.light .ph-pfx:focus{border-color:#D1D5DB;outline:none;}
+.ph-wrap.light .ph-num:focus{border-color:#D1D5DB;background:#fff;}
 </style>
+<script>
+// ── UAE PHONE HELPERS ──
+const UAE_PFXS=['050','051','052','054','055','056','058','059','060'];
+function phPfxOpts(sel='055'){return UAE_PFXS.map(p=>`<option value="${p}"${p===sel?' selected':''}>${p}</option>`).join('');}
+// Read ph-pfx select + ph-num input → "971XXXXXXXXX"
+function getFullMobile(pfxId,numId){
+  const pfx=(document.getElementById(pfxId)?.value||'055').replace(/\D/g,'');
+  const num=(document.getElementById(numId)?.value||'').trim().replace(/\D/g,'');
+  if(!num) return '';
+  return '971'+pfx.slice(1)+num; // 971 + 5X + 7digits
+}
+// Validate 7-digit number part
+function phNumValid(numId){return((document.getElementById(numId)?.value||'').replace(/\D/g,'')).length===7;}
+// Split stored "971XXXXXXXXX" → {pfx:"055",num:"1234567"}
+function splitMobile(mobile){
+  let s=String(mobile||'').replace(/\D/g,'');
+  if(s.startsWith('971'))s=s.slice(3);
+  else if(s.startsWith('00971'))s=s.slice(5);
+  if(s.length===9)return{pfx:'0'+s.slice(0,2),num:s.slice(2)};
+  return{pfx:'055',num:s};
+}
+// Set ph-pfx + ph-num from stored mobile string
+function setMobileFields(pfxId,numId,mobile){
+  const p=splitMobile(mobile);
+  const ps=document.getElementById(pfxId),ns=document.getElementById(numId);
+  if(ps)ps.value=UAE_PFXS.includes(p.pfx)?p.pfx:'055';
+  if(ns)ns.value=p.num||'';
+}
+</script>
 </head>
 <body>
 <div class="layout">
@@ -178,13 +223,20 @@ body{display:flex;font-family:'Nunito',sans-serif;}
       <div style="font-size:11px;color:rgba(255,255,255,.75);margin-top:2px;">Your stamps and game points are all linked</div>
     </div>
     <input class="fi" type="text" id="loginName" placeholder="Child's name" maxlength="20" style="margin-bottom:8px;" onkeydown="if(event.key==='Enter')doLogin()">
-    <input class="fi" type="tel" id="loginMobile" placeholder="Parent mobile" maxlength="15" style="margin-bottom:10px;" onkeydown="if(event.key==='Enter')doLogin()">
+    <div style="margin-bottom:10px;">
+      <div style="font-size:11px;font-weight:700;color:#6B7280;margin-bottom:5px;">Parent Mobile</div>
+      <div class="ph-wrap light">
+        <select class="ph-pfx" id="loginPfx"><option value="050">050</option><option value="051">051</option><option value="052">052</option><option value="054">054</option><option value="055" selected>055</option><option value="056">056</option><option value="058">058</option><option value="059">059</option><option value="060">060</option></select>
+        <input class="ph-num" type="tel" id="loginMobile" placeholder="1234567" maxlength="7" inputmode="numeric" autocomplete="tel" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+    </div>
     <button class="btn btn-y" id="loginBtn" onclick="doLogin()">Let's Play! 🎮</button>
     <div id="loginMsg" style="display:none;margin-top:8px;padding:8px;border-radius:8px;font-size:12px;font-weight:700;text-align:center;"></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid #F3F4F6;">
       <button class="btn btn-b" onclick="goToRegister(\'\',\'\',\'Register below!\')" style="font-size:13px;padding:9px;">📝 Register</button>
-      <button class="btn" onclick="goLeaderboard()" style="font-size:13px;padding:9px;background:linear-gradient(135deg,#10B981,#059669);color:#fff;border:none;font-weight:800;">🏆 View Leaderboard</button>
+      <button class="btn" onclick="goLeaderboard()" style="font-size:13px;padding:9px;background:linear-gradient(135deg,#10B981,#059669);color:#fff;border:none;font-weight:800;">🏆 Leaderboard</button>
     </div>
+    <button onclick="checkLoyaltyPassport()" style="width:100%;margin-top:7px;padding:10px;background:linear-gradient(135deg,#7C3AED,#5B21B6);color:#fff;border:none;border-radius:11px;font-family:'Baloo 2',cursive;font-size:15px;font-weight:800;cursor:pointer;">🎫 Check My Loyalty Passport</button>
   </div>
   <div style="text-align:center;margin-top:6px;">
     <button onclick="goStaff()" style="background:none;border:none;color:rgba(255,255,255,.15);font-size:10px;cursor:pointer;font-family:'Nunito',sans-serif;">🔐 Staff</button>
@@ -219,8 +271,13 @@ body{display:flex;font-family:'Nunito',sans-serif;}
   <div class="card">
     <div style="background:#EFF6FF;border-radius:10px;padding:8px 12px;margin-bottom:10px;font-size:12px;color:#1565C0;line-height:1.5;">🐼 Not registered? Fill in details to start playing!</div>
     <input class="fi" type="text" id="regName" placeholder="Child's name *" maxlength="20" style="margin-bottom:7px;">
-    <input class="fi" type="tel" id="regMobile" placeholder="Parent mobile *" maxlength="15" style="margin-bottom:7px;">
-    <input class="fi" type="text" id="regParent" placeholder="Parent's name (optional)" maxlength="30" style="margin-bottom:7px;">
+    <div style="margin-bottom:10px;">
+      <div style="font-size:11px;font-weight:700;color:#6B7280;margin-bottom:5px;">Parent Mobile *</div>
+      <div class="ph-wrap light">
+        <select class="ph-pfx" id="regPfx"><option value="050">050</option><option value="051">051</option><option value="052">052</option><option value="054">054</option><option value="055" selected>055</option><option value="056">056</option><option value="058">058</option><option value="059">059</option><option value="060">060</option></select>
+        <input class="ph-num" type="tel" id="regMobile" placeholder="1234567" maxlength="7" inputmode="numeric" autocomplete="tel">
+      </div>
+    </div>
     <label style="font-size:11px;font-weight:700;color:#6B7280;display:block;margin-bottom:3px;">Date of Birth <span style="color:#DC2626;">*</span></label>
     <div style="display:grid;grid-template-columns:1fr 2fr 1.3fr;gap:6px;margin-bottom:10px;">
       <select id="dobDay" class="fi" style="padding:9px 6px;font-size:14px;appearance:auto;"><option value="">Day</option><option value="01">1</option><option value="02">2</option><option value="03">3</option><option value="04">4</option><option value="05">5</option><option value="06">6</option><option value="07">7</option><option value="08">8</option><option value="09">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option><option value="24">24</option><option value="25">25</option><option value="26">26</option><option value="27">27</option><option value="28">28</option><option value="29">29</option><option value="30">30</option><option value="31">31</option></select>
@@ -236,6 +293,7 @@ body{display:flex;font-family:'Nunito',sans-serif;}
       <select id="dobYear" class="fi" style="padding:9px 6px;font-size:14px;appearance:auto;">
         <option value="">Year</option><option value="2024">2024</option><option value="2023">2023</option><option value="2022">2022</option><option value="2021">2021</option><option value="2020">2020</option><option value="2019">2019</option><option value="2018">2018</option><option value="2017">2017</option><option value="2016">2016</option><option value="2015">2015</option><option value="2014">2014</option><option value="2013">2013</option><option value="2012">2012</option><option value="2011">2011</option><option value="2010">2010</option><option value="2009">2009</option><option value="2008">2008</option><option value="2007">2007</option><option value="2006">2006</option><option value="2005">2005</option><option value="2004">2004</option><option value="2003">2003</option><option value="2002">2002</option><option value="2001">2001</option><option value="2000">2000</option><option value="1999">1999</option><option value="1998">1998</option><option value="1997">1997</option><option value="1996">1996</option><option value="1995">1995</option><option value="1994">1994</option><option value="1993">1993</option><option value="1992">1992</option><option value="1991">1991</option><option value="1990">1990</option></select>
     </div>
+    <input class="fi" type="text" id="regParent" placeholder="Parent's name (optional)" maxlength="30" style="margin-bottom:7px;">
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
       <div id="regBoy" onclick="setRegGender('boy')" style="padding:10px;border-radius:10px;border:2px solid #E5E7EB;text-align:center;cursor:pointer;"><div style="font-size:24px;">👦</div><div style="font-size:12px;font-weight:700;">Boy</div></div>
       <div id="regGirl" onclick="setRegGender('girl')" style="padding:10px;border-radius:10px;border:2px solid #E5E7EB;text-align:center;cursor:pointer;"><div style="font-size:24px;">👧</div><div style="font-size:12px;font-weight:700;">Girl</div></div>
@@ -296,10 +354,10 @@ body{display:flex;font-family:'Nunito',sans-serif;}
     <button class="btn btn-ghost" onclick="newPlayer()" style="font-size:13px;padding:9px;border-color:var(--y);color:var(--y);">👶 New</button>
     <button class="btn btn-ghost" onclick="goHome()" style="font-size:13px;padding:9px;">🏠 Exit</button>
   </div>
-  <div id="loyaltyBar" style="background:#0D47A1;border-radius:14px;padding:12px 14px;margin-top:8px;border:2px solid rgba(255,214,0,.4);">
+  <div id="loyaltyBar" style="background:#0D47A1;border-radius:12px;padding:10px 12px;margin-top:6px;border:2px solid rgba(255,214,0,.4);">
     <div style="font-size:10px;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">✂️ Loyalty Stamps · Same Account</div>
     <div id="stampBarInfo" style="color:#FFD600;">Visit MiniCuts to earn stamps!</div>
-    <a href="./index_v5.html?customer=1" target="_blank" style="display:inline-block;margin-top:8px;background:#FFD600;color:#0D47A1;padding:6px 14px;border-radius:8px;font-size:12px;font-weight:800;text-decoration:none;">View My Loyalty Passport →</a>
+
   </div>
 </div>
 
@@ -368,10 +426,9 @@ body{display:flex;font-family:'Nunito',sans-serif;}
     <div id="rewardBanner"></div>
   </div>
   <div id="remainingGames" style="margin-bottom:6px;"></div>
-  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;">
-    <button class="btn" onclick="goLeaderboard()" style="background:linear-gradient(135deg,#10B981,#059669);color:#fff;border:none;padding:9px;font-size:13px;">🏆 Scores</button>
-    <button class="btn btn-ghost" onclick="newPlayer()" style="font-size:13px;padding:9px;border-color:var(--y);color:var(--y);">👶 New</button>
-    <button class="btn btn-ghost" onclick="goHome()" style="font-size:13px;padding:9px;">🏠 Done</button>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+    <button class="btn btn-y" onclick="goProfile()" style="font-size:14px;padding:11px;font-weight:900;">🎮 Play Next</button>
+    <button class="btn btn-ghost" onclick="goHome()" style="font-size:14px;padding:11px;">🏠 Done</button>
   </div>
 </div>
 
@@ -633,10 +690,9 @@ function refreshGameCards(){
   // If NOT stamped today — show kid-friendly locked banner
   if(!stamped){
     if(prompt){
-      prompt.innerHTML=`<div style="background:linear-gradient(135deg,#EFF6FF,#FFF7CC);border:2px solid rgba(255,214,0,.6);border-radius:14px;padding:14px 12px;text-align:center;margin:2px 0;">
-        <div style="font-size:36px;margin-bottom:6px;">🔒✂️</div>
-        <div style="font-family:'Baloo 2',cursive;font-size:16px;font-weight:900;color:#0D47A1;margin-bottom:6px;">Games unlock after the haircut!</div>
-        <div style="font-size:12px;color:#374151;line-height:1.5;">Get your LOYALTY ✂️ stamp from the staff — then come back here to play all 3 games! 🐼🎮</div>
+      prompt.innerHTML=`<div style="background:rgba(255,214,0,.12);border:1.5px solid rgba(255,214,0,.4);border-radius:10px;padding:7px 10px;text-align:center;display:flex;align-items:center;justify-content:center;gap:6px;">
+        <span style="font-size:16px;">🔒✂️</span>
+        <span style="font-family:'Baloo 2',cursive;font-size:13px;font-weight:800;color:#0D47A1;">Games unlock after your next haircut!</span>
       </div>`;
       prompt.style.cssText='';
     }
@@ -737,6 +793,7 @@ function goHome(){
   resetAllGameState();
   document.getElementById('loginName').value='';
   document.getElementById('loginMobile').value='';
+  if(document.getElementById('loginPfx')) document.getElementById('loginPfx').value='055';
   document.getElementById('loginMsg').style.display='none';
   player={id:null,name:'',mobile:'',game_points:0,game_spins:0};
   showScreen('s-login');
@@ -840,10 +897,10 @@ async function goProfile(){
     let dots='';
     for(let s=0;s<paid;s++){
       dots+=stamps>s
-        ?'<div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#FFD600,#FF8C00);display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 2px 6px rgba(255,214,0,.5);">✂️</div>'
-        :'<div style="width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.12);border:2px dashed rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-size:11px;color:rgba(255,255,255,.4);">'+(s+1)+'</div>';
+        ?'<div style="width:28px;height:28px;flex-shrink:0;display:flex;align-items:center;justify-content:center;filter:drop-shadow(2px 3px 5px rgba(0,0,0,.45));"><svg width="28" height="28" viewBox="0 0 52 44" xmlns="http://www.w3.org/2000/svg"><g transform="rotate(-9 26 22)"><rect x="2" y="4" width="48" height="36" rx="7" ry="7" fill="none" stroke="#FFD600" stroke-width="2" stroke-dasharray="4 2.5"/><rect x="5" y="7" width="42" height="30" rx="5" ry="5" fill="none" stroke="#FFD600" stroke-width="1" opacity=".55"/><circle cx="17" cy="11" r="4.5" fill="#FFD600"/><circle cx="17" cy="11" r="2.2" fill="#FF8C00"/><circle cx="35" cy="11" r="4.5" fill="#FFD600"/><circle cx="35" cy="11" r="2.2" fill="#FF8C00"/><circle cx="26" cy="24" r="11" fill="none" stroke="#FFD600" stroke-width="1.4"/><ellipse cx="21.5" cy="22" rx="4" ry="3.5" fill="#FFD600"/><circle cx="22.2" cy="21.2" r="1.4" fill="rgba(0,0,0,.55)"/><ellipse cx="30.5" cy="22" rx="4" ry="3.5" fill="#FFD600"/><circle cx="31.2" cy="21.2" r="1.4" fill="rgba(0,0,0,.55)"/><ellipse cx="26" cy="27" rx="2.2" ry="1.5" fill="#FF8C00"/><path d="M23 29.5 Q26 32.5 29 29.5" fill="none" stroke="#FF8C00" stroke-width="1.3" stroke-linecap="round"/></g></svg></div>'
+        :'<div style="width:28px;height:28px;flex-shrink:0;display:flex;align-items:center;justify-content:center;opacity:.4;"><svg width="28" height="28" viewBox="0 0 52 44" xmlns="http://www.w3.org/2000/svg"><g transform="rotate(0 26 22)"><rect x="2" y="4" width="48" height="36" rx="7" ry="7" fill="none" stroke="rgba(255,255,255,.22)" stroke-width="2" stroke-dasharray="4 2.5"/><rect x="5" y="7" width="42" height="30" rx="5" ry="5" fill="none" stroke="rgba(255,255,255,.22)" stroke-width="1" opacity=".55"/><circle cx="17" cy="11" r="4.5" fill="rgba(255,255,255,.22)"/><circle cx="17" cy="11" r="2.2" fill="rgba(255,255,255,.22)"/><circle cx="35" cy="11" r="4.5" fill="rgba(255,255,255,.22)"/><circle cx="35" cy="11" r="2.2" fill="rgba(255,255,255,.22)"/><circle cx="26" cy="24" r="11" fill="none" stroke="rgba(255,255,255,.22)" stroke-width="1.4"/><ellipse cx="21.5" cy="22" rx="4" ry="3.5" fill="rgba(255,255,255,.22)"/><circle cx="22.2" cy="21.2" r="1.4" fill="rgba(255,255,255,.1)"/><ellipse cx="30.5" cy="22" rx="4" ry="3.5" fill="rgba(255,255,255,.22)"/><circle cx="31.2" cy="21.2" r="1.4" fill="rgba(255,255,255,.1)"/><ellipse cx="26" cy="27" rx="2.2" ry="1.5" fill="rgba(255,255,255,.22)"/><path d="M23 29.5 Q26 32.5 29 29.5" fill="none" stroke="rgba(255,255,255,.22)" stroke-width="1.3" stroke-linecap="round"/></g></svg></div>';height:28px;flex-shrink:0;display:flex;align-items:center;justify-content:center;"><svg width="28" height="28" viewBox="0 0 44 44" xmlns="http://www.w3.org/2000/svg"><circle cx="22" cy="22" r="20" fill="rgba(255,255,255,.08)" stroke="rgba(255,255,255,.25)" stroke-width="2" stroke-dasharray="4 3"/><circle cx="22" cy="23" r="10" fill="none" stroke="rgba(255,255,255,.15)" stroke-width="1"/><circle cx="14" cy="14" r="4" fill="none" stroke="rgba(255,255,255,.15)" stroke-width="1"/><circle cx="30" cy="14" r="4" fill="none" stroke="rgba(255,255,255,.15)" stroke-width="1"/></svg></div>';
     }
-    dots+='<div style="width:30px;height:30px;border-radius:50%;'+(stamps>=paid?'background:linear-gradient(135deg,#22C55E,#16A34A);border:2px solid #4ADE80;box-shadow:0 2px 10px rgba(34,197,94,.5);':'background:rgba(255,255,255,.07);border:2px dashed rgba(255,255,255,.2);')+'display:flex;align-items:center;justify-content:center;font-size:15px;">🚿</div>';
+    dots+=(stamps>=paid?'<div style="width:28px;height:28px;flex-shrink:0;display:flex;align-items:center;justify-content:center;filter:drop-shadow(2px 3px 5px rgba(34,197,94,.4));"><svg width="28" height="28" viewBox="0 0 52 44" xmlns="http://www.w3.org/2000/svg"><g transform="rotate(-9 26 22)"><rect x="2" y="4" width="48" height="36" rx="7" ry="7" fill="rgba(34,197,94,.1)" stroke="#22C55E" stroke-width="2" stroke-dasharray="4 2.5"/><rect x="5" y="7" width="42" height="30" rx="5" ry="5" fill="none" stroke="#22C55E" stroke-width="1" opacity=".55"/><text x="26" y="30" text-anchor="middle" font-size="20" opacity="1">🚿</text></g></svg></div>':'<div style="width:28px;height:28px;flex-shrink:0;display:flex;align-items:center;justify-content:center;opacity:.4;"><svg width="28" height="28" viewBox="0 0 52 44" xmlns="http://www.w3.org/2000/svg"><g transform="rotate(0 26 22)"><rect x="2" y="4" width="48" height="36" rx="7" ry="7" fill="none" stroke="rgba(255,255,255,.22)" stroke-width="2" stroke-dasharray="4 2.5"/><rect x="5" y="7" width="42" height="30" rx="5" ry="5" fill="none" stroke="rgba(255,255,255,.22)" stroke-width="1" opacity=".55"/><text x="26" y="30" text-anchor="middle" font-size="20" opacity="0.25">🚿</text></g></svg></div>');height:28px;flex-shrink:0;display:flex;align-items:center;justify-content:center;"><svg width="28" height="28" viewBox="0 0 44 44" xmlns="http://www.w3.org/2000/svg"><circle cx="22" cy="22" r="20" fill="#22C55E" stroke="#166534" stroke-width="2.5"/><circle cx="22" cy="22" r="17" fill="none" stroke="#166534" stroke-width="1.2" stroke-dasharray="2 1.5"/><text x="22" y="28" text-anchor="middle" font-size="16">🚿</text></svg></div>':'<div style="width:28px;height:28px;flex-shrink:0;display:flex;align-items:center;justify-content:center;"><svg width="28" height="28" viewBox="0 0 44 44" xmlns="http://www.w3.org/2000/svg"><circle cx="22" cy="22" r="20" fill="rgba(255,255,255,.05)" stroke="rgba(255,255,255,.2)" stroke-width="2" stroke-dasharray="4 3"/><text x="22" y="28" text-anchor="middle" font-size="14" opacity="0.3">🚿</text></svg></div>');
     const statusText=stamps>=paid
       ?'<div style="font-size:12px;color:#4ADE80;font-weight:800;margin-top:6px;">🎉 Free Hair Wash ready! Show this to your stylist</div>'
       :'<div style="font-size:11px;color:rgba(255,255,255,.65);margin-top:6px;">'+(stamps===0?'Get your first stamp on your next visit!':'Just '+(paid-stamps)+' more haircut'+(paid-stamps>1?'s':'')+' → Free Hair Wash 🚿')+'</div>';
@@ -1080,12 +1137,9 @@ function endTapGame(){
   tapResultHtml+='<br><span style="font-size:16px;color:var(--y);font-weight:800;">'+pts+' pts!'+(tapBonus?' (+2 global record bonus!)':'')+'</span>';
   document.getElementById('tapStatus').style.display='block';
   document.getElementById('tapStatus').innerHTML=tapResultHtml;
-  document.getElementById('tapStartBtn').style.display='block';
-  document.getElementById('tapStartBtn').textContent='See my '+pts+' pts! 🎉';
-  document.getElementById('tapStartBtn').disabled=false;
-  document.getElementById('tapStartBtn').onclick=()=>saveAndShowResult(pts,'tap');
   if(isPersonalTapBest) sb('customers','PATCH',{best_tap_score:tapScore},'id=eq.'+player.id).catch(()=>{});
-  // saveAndShowResult calls savePoints — do NOT call here too (double points)
+  document.getElementById('tapStartBtn').style.display='none';
+  setTimeout(()=>saveAndShowResult(pts,'tap'),1200);
 }
 
 // ══ MEMORY MATCH ══
@@ -1200,10 +1254,8 @@ function endMemory(){
       hintEl.style.background='rgba(255,214,0,.15)';hintEl.style.borderColor='rgba(255,214,0,.3)';hintEl.style.color='var(--y)';
     }
   }
-  document.getElementById('memStartBtn').style.display='block';
-  document.getElementById('memStartBtn').textContent='See my '+pts+' pts! 🎉';
-  document.getElementById('memStartBtn').disabled=false;
-  document.getElementById('memStartBtn').onclick=()=>saveAndShowResult(pts,'memory');
+  document.getElementById('memStartBtn').style.display='none';
+  setTimeout(()=>saveAndShowResult(pts,'memory'),1500);
   // removed duplicate savePoints
 }
 
@@ -1328,26 +1380,154 @@ function showStampGate(){
   document.body.appendChild(overlay);
 }
 
+function loyaltyUrl(mobile){
+  var base=window.location.href.replace(/\/[^\/]*$/,'/');
+  return base+'index.html'+(mobile?'?mobile='+encodeURIComponent(mobile):'');
+}
+function openPassport(){
+  var m=(player&&player.mobile)||'';
+  var alt=m?'0'+m.replace(/^971/,''):m;
+  window.open(loyaltyUrl(alt),'_blank');
+}
+function checkLoyaltyPassport(){
+  var name=document.getElementById('loginName').value.trim();
+  var mobileNum=(document.getElementById('loginMobile')&&document.getElementById('loginMobile').value||'').trim().replace(/\D/g,'');
+  var mobile=getFullMobile('loginPfx','loginMobile');
+
+  if(!name){
+    document.getElementById('loginName').style.borderColor='#FF6B9D';
+    setTimeout(function(){document.getElementById('loginName').style.borderColor='#E5E7EB';},1500);
+    showLoginMsg('Please enter child name to check passport',false);
+    return;
+  }
+  if(mobileNum.length!==7){
+    showLoginMsg('Please enter parent mobile number to check passport',false);
+    document.getElementById('loginMobile').style.borderColor='#FF6B9D';
+    setTimeout(function(){document.getElementById('loginMobile').style.borderColor='#1565C0';},1500);
+    return;
+  }
+
+  var existing=document.getElementById('passportOverlay');
+  if(existing) existing.remove();
+  var overlay=document.createElement('div');
+  overlay.id='passportOverlay';
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
+  overlay.innerHTML='<div id="passportBox" style="background:#fff;border-radius:20px;padding:20px;width:100%;max-width:380px;max-height:90vh;overflow-y:auto;"><div style="text-align:center;padding:20px 0;"><div style="font-size:40px;">🎫</div><div style="font-family:\'Baloo 2\',cursive;font-size:16px;font-weight:800;color:#0D47A1;margin-top:8px;">Loading Passport...</div></div></div>';
+  document.body.appendChild(overlay);
+
+  var mAlt='0'+mobile.slice(3);
+  Promise.all([
+    sb('customers','GET',null,'select=*&mobile=eq.'+encodeURIComponent(mobile)+'&limit=10'),
+    sb('customers','GET',null,'select=*&mobile=eq.'+encodeURIComponent(mAlt)+'&limit=10')
+  ]).then(function(results){
+    var rA=results[0]||[], rB=results[1]||[];
+    var seen=new Set();
+    var byMobile=rA.concat(rB).filter(function(c){if(seen.has(c.id))return false;seen.add(c.id);return true;});
+    var match=byMobile.find(function(c){return c.name.trim().toLowerCase()===name.toLowerCase();});
+    var box=document.getElementById('passportBox');
+    if(!box) return;
+
+    if(!match){
+      var notFoundMsg=byMobile.length>0
+        ? '<div style="font-size:13px;color:#DC2626;font-weight:700;margin-top:8px;">Name not found on this number.<br>Registered names: <b>'+byMobile.map(function(c){return c.name;}).join(', ')+'</b></div>'
+        : '<div style="font-size:13px;color:#DC2626;font-weight:700;margin-top:8px;">No account found for this mobile number.<br>Please register first.</div>';
+      box.innerHTML=
+        '<div style="display:flex;justify-content:flex-end;"><button onclick="document.getElementById(\'passportOverlay\').remove()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#9CA3AF;">&#215;</button></div>'+
+        '<div style="text-align:center;padding:0 0 16px;">'+
+          '<div style="font-size:48px;">&#128533;</div>'+
+          '<div style="font-family:\'Baloo 2\',cursive;font-size:20px;font-weight:800;color:#DC2626;margin-top:8px;">Not Found</div>'+
+          notFoundMsg+
+          '<div style="font-size:12px;color:#6B7280;margin-top:12px;">Check the name and mobile number, or register below.</div>'+
+        '</div>'+
+        '<button onclick="document.getElementById(\'passportOverlay\').remove()" style="width:100%;padding:12px;background:#1565C0;color:#fff;border:none;border-radius:12px;font-family:\'Baloo 2\',cursive;font-size:16px;font-weight:800;cursor:pointer;">Close</button>';
+      return;
+    }
+
+    var stamps=Number(match.stamps)||0;
+    var pts=Number(match.game_points)||0;
+    var PAID=5;
+    var curTier=null;
+    for(var i=TIERS.length-1;i>=0;i--){if(pts>=TIERS[i].pts){curTier=TIERS[i];break;}}
+    var nextTier=null;
+    for(var j=0;j<TIERS.length;j++){if(pts<TIERS[j].pts){nextTier=TIERS[j];break;}}
+
+    var stampDots='';
+    for(var s=0;s<PAID;s++){
+      var done=stamps>s;
+      stampDots+=done?'<div style="width:50px;height:50px;flex-shrink:0;display:flex;align-items:center;justify-content:center;filter:drop-shadow(2px 3px 6px rgba(13,71,161,.35));"><svg width="50" height="50" viewBox="0 0 52 44" xmlns="http://www.w3.org/2000/svg"><g transform="rotate(-9 26 22)"><rect x="2" y="4" width="48" height="36" rx="7" ry="7" fill="rgba(255,214,0,.08)" stroke="#1565C0" stroke-width="2" stroke-dasharray="4 2.5"/><rect x="5" y="7" width="42" height="30" rx="5" ry="5" fill="none" stroke="#1565C0" stroke-width="1" opacity=".55"/><circle cx="17" cy="11" r="4.5" fill="#0D47A1"/><circle cx="17" cy="11" r="2.2" fill="#FFD600"/><circle cx="35" cy="11" r="4.5" fill="#0D47A1"/><circle cx="35" cy="11" r="2.2" fill="#FFD600"/><circle cx="26" cy="24" r="11" fill="none" stroke="#0D47A1" stroke-width="1.4"/><ellipse cx="21.5" cy="22" rx="4" ry="3.5" fill="#0D47A1"/><circle cx="22.2" cy="21.2" r="1.4" fill="rgba(255,255,255,.85)"/><ellipse cx="30.5" cy="22" rx="4" ry="3.5" fill="#0D47A1"/><circle cx="31.2" cy="21.2" r="1.4" fill="rgba(255,255,255,.85)"/><ellipse cx="26" cy="27" rx="2.2" ry="1.5" fill="#FFD600"/><path d="M23 29.5 Q26 32.5 29 29.5" fill="none" stroke="#FFD600" stroke-width="1.3" stroke-linecap="round"/></g></svg></div>':'<div style="width:50px;height:50px;flex-shrink:0;display:flex;align-items:center;justify-content:center;opacity:.45;"><svg width="50" height="50" viewBox="0 0 52 44" xmlns="http://www.w3.org/2000/svg"><g transform="rotate(0 26 22)"><rect x="2" y="4" width="48" height="36" rx="7" ry="7" fill="none" stroke="#C9D4E0" stroke-width="2" stroke-dasharray="4 2.5"/><rect x="5" y="7" width="42" height="30" rx="5" ry="5" fill="none" stroke="#C9D4E0" stroke-width="1" opacity=".55"/><circle cx="17" cy="11" r="4.5" fill="#C9D4E0"/><circle cx="17" cy="11" r="2.2" fill="#C9D4E0"/><circle cx="35" cy="11" r="4.5" fill="#C9D4E0"/><circle cx="35" cy="11" r="2.2" fill="#C9D4E0"/><circle cx="26" cy="24" r="11" fill="none" stroke="#C9D4E0" stroke-width="1.4"/><ellipse cx="21.5" cy="22" rx="4" ry="3.5" fill="#C9D4E0"/><circle cx="22.2" cy="21.2" r="1.4" fill="#E5EBF1"/><ellipse cx="30.5" cy="22" rx="4" ry="3.5" fill="#C9D4E0"/><circle cx="31.2" cy="21.2" r="1.4" fill="#E5EBF1"/><ellipse cx="26" cy="27" rx="2.2" ry="1.5" fill="#C9D4E0"/><path d="M23 29.5 Q26 32.5 29 29.5" fill="none" stroke="#C9D4E0" stroke-width="1.3" stroke-linecap="round"/></g></svg></div>';height:50px;flex-shrink:0;display:flex;align-items:center;justify-content:center;"><svg width="50" height="50" viewBox="0 0 44 44" xmlns="http://www.w3.org/2000/svg"><circle cx="22" cy="22" r="20" fill="#FFD600" stroke="#B45309" stroke-width="2.5"/><circle cx="22" cy="22" r="17" fill="none" stroke="#B45309" stroke-width="1.2" stroke-dasharray="2 1.5"/><circle cx="22" cy="23" r="10" fill="#fff"/><circle cx="14" cy="14" r="4.5" fill="#0D47A1"/><circle cx="14" cy="14" r="2.5" fill="#FFD600"/><circle cx="30" cy="14" r="4.5" fill="#0D47A1"/><circle cx="30" cy="14" r="2.5" fill="#FFD600"/><ellipse cx="18" cy="21" rx="3.5" ry="3" fill="#0D47A1"/><circle cx="18.5" cy="20.5" r="1.2" fill="#fff"/><ellipse cx="26" cy="21" rx="3.5" ry="3" fill="#0D47A1"/><circle cx="26.5" cy="20.5" r="1.2" fill="#fff"/><ellipse cx="22" cy="26" rx="2" ry="1.3" fill="#0D47A1"/><path d="M19.5 28 Q22 30.5 24.5 28" fill="none" stroke="#0D47A1" stroke-width="1.2" stroke-linecap="round"/></svg></div>':'<div style="width:50px;height:50px;flex-shrink:0;display:flex;align-items:center;justify-content:center;"><svg width="50" height="50" viewBox="0 0 44 44" xmlns="http://www.w3.org/2000/svg"><circle cx="22" cy="22" r="20" fill="#F3F4F6" stroke="#D1D5DB" stroke-width="2" stroke-dasharray="4 3"/><circle cx="22" cy="23" r="10" fill="none" stroke="#E5E7EB" stroke-width="1"/><circle cx="14" cy="14" r="4" fill="none" stroke="#E5E7EB" stroke-width="1"/><circle cx="30" cy="14" r="4" fill="none" stroke="#E5E7EB" stroke-width="1"/></svg></div>';
+    }
+    var washDone=stamps>=PAID;
+    stampDots+=washDone?'<div style="width:50px;height:50px;flex-shrink:0;display:flex;align-items:center;justify-content:center;filter:drop-shadow(2px 3px 5px rgba(22,163,74,.35));"><svg width="50" height="50" viewBox="0 0 52 44" xmlns="http://www.w3.org/2000/svg"><g transform="rotate(-9 26 22)"><rect x="2" y="4" width="48" height="36" rx="7" ry="7" fill="rgba(34,197,94,.1)" stroke="#16A34A" stroke-width="2" stroke-dasharray="4 2.5"/><rect x="5" y="7" width="42" height="30" rx="5" ry="5" fill="none" stroke="#16A34A" stroke-width="1" opacity=".55"/><text x="26" y="30" text-anchor="middle" font-size="20" opacity="1">🚿</text></g></svg></div>':'<div style="width:50px;height:50px;flex-shrink:0;display:flex;align-items:center;justify-content:center;opacity:.4;"><svg width="50" height="50" viewBox="0 0 52 44" xmlns="http://www.w3.org/2000/svg"><g transform="rotate(0 26 22)"><rect x="2" y="4" width="48" height="36" rx="7" ry="7" fill="none" stroke="#C9D4E0" stroke-width="2" stroke-dasharray="4 2.5"/><rect x="5" y="7" width="42" height="30" rx="5" ry="5" fill="none" stroke="#C9D4E0" stroke-width="1" opacity=".55"/><text x="26" y="30" text-anchor="middle" font-size="20" opacity="0.3">🚿</text></g></svg></div>';height:50px;flex-shrink:0;display:flex;align-items:center;justify-content:center;"><svg width="50" height="50" viewBox="0 0 44 44" xmlns="http://www.w3.org/2000/svg"><circle cx="22" cy="22" r="20" fill="#22C55E" stroke="#166534" stroke-width="2.5"/><circle cx="22" cy="22" r="17" fill="none" stroke="#166534" stroke-width="1.2" stroke-dasharray="2 1.5"/><text x="22" y="30" text-anchor="middle" font-size="20">🚿</text></svg></div>':'<div style="width:50px;height:50px;flex-shrink:0;display:flex;align-items:center;justify-content:center;position:relative;"><svg width="50" height="50" viewBox="0 0 44 44" xmlns="http://www.w3.org/2000/svg"><circle cx="22" cy="22" r="20" fill="#F3F4F6" stroke="#D1D5DB" stroke-width="2" stroke-dasharray="4 3"/><text x="22" y="30" text-anchor="middle" font-size="18" opacity="0.35">🚿</text></svg><span style="position:absolute;bottom:-2px;right:-2px;background:#D1D5DB;border-radius:99px;font-size:8px;padding:1px 4px;color:#fff;font-weight:800;line-height:1.4;">FREE</span></div>';
+
+    var stampsLeft=Math.max(0,PAID-stamps);
+    var stampMsg=stamps>=PAID
+      ? '<span style="color:#16A34A;font-weight:800;">&#127881; Free hair wash earned! Show to staff.</span>'
+      : '<span style="color:#92400E;">'+stampsLeft+' more haircut'+(stampsLeft!==1?'s':'')+' to earn Free Hair Wash &#128703;</span>';
+
+    var genderIcon=match.gender==='girl'?'&#128103;':'&#128102;';
+    var parentLine=match.parent?'<div style="font-size:12px;color:rgba(255,255,255,.75);margin-top:2px;">Parent: '+match.parent+'</div>':'';
+    var tierLine=curTier?'<div style="display:inline-block;background:rgba(255,255,255,.15);border-radius:99px;padding:2px 10px;font-size:12px;font-weight:800;color:#FFD600;margin-top:5px;">'+curTier.icon+' '+curTier.badge+'</div>':'';
+    var nextTierLine=nextTier?'<div style="font-size:12px;color:#2563EB;font-weight:700;margin-top:6px;">&#9889; '+(nextTier.pts-pts)+' more pts to reach '+nextTier.badge+'!</div>':'<div style="font-size:12px;color:#16A34A;font-weight:700;margin-top:6px;">&#127882; Max level reached!</div>';
+
+    box.innerHTML=
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">'+
+        '<div style="font-family:\'Baloo 2\',cursive;font-size:20px;font-weight:900;color:#0D47A1;">&#127987; My Passport</div>'+
+        '<button onclick="document.getElementById(\'passportOverlay\').remove()" style="background:none;border:none;font-size:24px;cursor:pointer;color:#9CA3AF;line-height:1;">&#215;</button>'+
+      '</div>'+
+      '<div style="background:linear-gradient(135deg,#0D47A1,#1976D2);border-radius:14px;padding:14px 16px;margin-bottom:12px;display:flex;align-items:center;gap:12px;">'+
+        '<div style="font-size:42px;line-height:1;">'+genderIcon+'</div>'+
+        '<div>'+
+          '<div style="font-family:\'Baloo 2\',cursive;font-size:22px;font-weight:900;color:#FFD600;line-height:1.1;">'+match.name+'</div>'+
+          parentLine+tierLine+
+        '</div>'+
+      '</div>'+
+      '<div style="background:#FFF7ED;border:2px solid #FED7AA;border-radius:14px;padding:14px;margin-bottom:12px;">'+
+        '<div style="font-family:\'Baloo 2\',cursive;font-size:14px;font-weight:800;color:#92400E;margin-bottom:10px;">&#9986;&#65039; Loyalty Stamps ('+stamps+'/'+PAID+')</div>'+
+        '<div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-bottom:10px;">'+stampDots+'</div>'+
+        '<div style="text-align:center;font-size:12px;font-weight:700;padding:6px;background:rgba(0,0,0,.04);border-radius:8px;">'+stampMsg+'</div>'+
+      '</div>'+
+      '<div style="background:#EFF6FF;border:2px solid #BFDBFE;border-radius:14px;padding:12px 14px;margin-bottom:14px;">'+
+        '<div style="font-family:\'Baloo 2\',cursive;font-size:14px;font-weight:800;color:#1565C0;margin-bottom:6px;">&#127918; Game Points</div>'+
+        '<div style="display:flex;align-items:center;gap:10px;">'+
+          '<div style="font-family:\'Baloo 2\',cursive;font-size:40px;font-weight:900;color:#1565C0;line-height:1;">'+pts+'</div>'+
+          '<div>'+
+            '<div style="font-size:12px;color:#6B7280;">total points</div>'+
+            (curTier?'<div style="font-size:13px;font-weight:800;color:#1565C0;margin-top:2px;">'+curTier.icon+' '+curTier.badge+'</div>':'<div style="font-size:12px;color:#9CA3AF;">Play games to earn points!</div>')+
+          '</div>'+
+        '</div>'+
+        nextTierLine+
+      '</div>'+
+      '<button onclick="document.getElementById(\'passportOverlay\').remove()" style="width:100%;padding:12px;background:linear-gradient(135deg,#1565C0,#0D47A1);color:#fff;border:none;border-radius:12px;font-family:\'Baloo 2\',cursive;font-size:16px;font-weight:800;cursor:pointer;">&#128060; Close</button>';
+
+  }).catch(function(e){
+    var box=document.getElementById('passportBox');
+    if(box) box.innerHTML='<div style="text-align:center;padding:16px 0;"><div style="font-size:40px;">&#9888;&#65039;</div><div style="font-size:14px;font-weight:700;color:#DC2626;margin-top:10px;">'+e.message+'</div></div><button onclick="document.getElementById(\'passportOverlay\').remove()" style="width:100%;padding:12px;background:#1565C0;color:#fff;border:none;border-radius:12px;font-family:\'Baloo 2\',cursive;font-size:16px;font-weight:800;cursor:pointer;margin-top:8px;">Close</button>';
+  });
+}
 async function doLogin(){
   const name=document.getElementById('loginName').value.trim();
-  const mobile=document.getElementById('loginMobile').value.trim();
+  const mobileNum=(document.getElementById('loginMobile')?.value||'').trim().replace(/\D/g,'');
+  const mobile=getFullMobile('loginPfx','loginMobile');
   document.getElementById('loginMsg').style.display='none';
   if(!name){
     document.getElementById('loginName').style.borderColor='#FF6B9D';
     setTimeout(()=>document.getElementById('loginName').style.borderColor='#E5E7EB',1200);
     return;
   }
-  if(mobile.length<7){
+  if(mobileNum.length!==7){
+    showLoginMsg('Please enter a valid 7-digit mobile number (e.g. 1234567) 📱',false);
     document.getElementById('loginMobile').style.borderColor='#FF6B9D';
-    setTimeout(()=>document.getElementById('loginMobile').style.borderColor='#E5E7EB',1200);
+    setTimeout(()=>document.getElementById('loginMobile').style.borderColor='rgba(255,255,255,.25)',1200);
     return;
   }
   const btn=document.getElementById('loginBtn');
   btn.disabled=true;btn.textContent='Checking...';
   try{
-    // Step 1: fetch ALL customers with this mobile
-    const byMobile=await sb('customers','GET',null,
-      'select=*&mobile=eq.'+encodeURIComponent(mobile)+'&limit=10');
+    // Search both 971XXXXXXXXX and 0XXXXXXXXX formats
+    const _mAlt='0'+mobile.slice(3);
+    const [_rA,_rB]=await Promise.all([sb('customers','GET',null,'select=*&mobile=eq.'+encodeURIComponent(mobile)+'&limit=10'),sb('customers','GET',null,'select=*&mobile=eq.'+encodeURIComponent(_mAlt)+'&limit=10')]);
+    const _seen=new Set();
+    const byMobile=[...(_rA||[]),...(_rB||[])].filter(c=>{if(_seen.has(c.id))return false;_seen.add(c.id);return true;});
 
     if(!byMobile.length){
       // Mobile not in system at all — take them straight to register, blank form
@@ -1399,7 +1579,7 @@ async function doLogin(){
 
 function goToRegister(name,mobile,msg){
   document.getElementById('regName').value=name||'';
-  document.getElementById('regMobile').value=mobile||'';
+  setMobileFields('regPfx','regMobile',mobile||'');
   const dd=document.getElementById('dobDay');if(dd) dd.value='';
   const dm=document.getElementById('dobMonth');if(dm) dm.value='';
   const dy=document.getElementById('dobYear');if(dy) dy.value='';
@@ -1417,7 +1597,8 @@ function goToRegister(name,mobile,msg){
 
 async function doRegister(){
   const name=document.getElementById('regName').value.trim();
-  const mobile=document.getElementById('regMobile').value.trim();
+  const mobileNum=(document.getElementById('regMobile')?.value||'').trim().replace(/\D/g,'');
+  const mobile=getFullMobile('regPfx','regMobile');
   const parent=document.getElementById('regParent').value.trim();
   const dobDay=document.getElementById('dobDay').value;
   const dobMonth=document.getElementById('dobMonth').value;
@@ -1427,7 +1608,7 @@ async function doRegister(){
 
   // Validate
   if(!name){showRegMsg("Please enter child's name 👦",false);return;}
-  if(!mobile||mobile.length<8){showRegMsg("Please enter a valid parent mobile 📱",false);return;}
+  if(mobileNum.length!==7){showRegMsg("Please enter a valid 7-digit mobile number (e.g. 1234567) 📱",false);return;}
   if(!dob){showRegMsg("Date of birth is required! 🎂",false);return;}
   if(!regGender){showRegMsg("Please select Boy or Girl",false);return;}
 
@@ -1593,17 +1774,17 @@ function showResult(pts){
 let sidebarData=[];
 async function loadSidebarLb(){
   try{
-    const sUrl=SB_URL+'/rest/v1/customers?select=name,mobile,game_points&order=game_points.desc&limit=20';
+    const sUrl=SB_URL+'/rest/v1/customers?select=id,name,mobile,game_points&order=game_points.desc&limit=20';
     const sRes=await fetch(sUrl,{headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}});
     if(!sRes.ok) throw new Error('HTTP '+sRes.status);
     const allData=await sRes.json();
-    const data=allData.filter(c=>(c.game_points||0)>0).slice(0,10);
+    const data=(allData||[]).filter(c=>(c.game_points||0)>0).slice(0,10);
     sidebarData=data;
     renderSidebar();
   }catch(e){
     console.warn('Sidebar lb error:',e.message);
     const sEl=document.getElementById('sideLbList');
-    if(sEl) sEl.innerHTML='<div style="text-align:center;padding:10px;color:rgba(255,100,100,.7);font-size:10px;">'+e.message+'</div>';
+    if(sEl) sEl.innerHTML='<div style="text-align:center;padding:16px;color:rgba(255,100,100,.7);font-size:11px;"><b>⚠️ Could not load</b><br>'+e.message+'<br><button onclick="loadSidebarLb()" style="margin-top:8px;padding:5px 12px;background:#1565C0;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:10px;">↻ Retry</button></div>';
   }
 }
 
@@ -1630,7 +1811,7 @@ function renderSidebar(){
 
   // Rank badge
   const myPts=player.game_points||0;
-  const myRank=sidebarData.findIndex(c=>c.mobile===player.mobile)+1;
+  const myRank=sidebarData.findIndex(c=>(player.id&&c.id===player.id)||(player.mobile&&c.mobile===player.mobile))+1;
   const rankEl=document.getElementById('sideRankBadge');
   if(rankEl){
     if(player.id&&myPts>0&&myRank>0){
@@ -1649,7 +1830,7 @@ function renderSidebar(){
   document.getElementById('sideLbList').innerHTML=sidebarData.map(function(c,i){
     var pts=c.game_points||0;
     var pct=Math.min((pts/MAX)*100,100);
-    var isMe=player.mobile&&c.mobile===player.mobile;
+    var isMe=(player.id&&c.id===player.id)||(player.mobile&&c.mobile===player.mobile);
     var init=(c.name||'?').split(' ').map(function(w){return w[0];}).join('').toUpperCase().slice(0,2);
     var rc=COLORS[i]||COLORS[0];
     var curTier=null;
@@ -1855,11 +2036,14 @@ async function loadLeaderboard(){
     }).join('');
     // Render roadmaps after inserting HTML
     data.forEach(function(c){
-      const el=document.getElementById('rm-'+c.id);
-      if(el) renderRoadmap(el, c.game_points||0);
+      try{
+        const rmEl=document.getElementById('rm-'+c.id);
+        if(rmEl) renderRoadmap(rmEl, c.game_points||0);
+      }catch(re){ console.warn('renderRoadmap err:',re.message); }
     });
   }catch(e){
-    el.innerHTML='<div style="color:#DC2626;padding:16px;font-size:12px;">Error: '+e.message+'<br><br><button onclick="loadLeaderboard()" style="padding:8px;background:#1565C0;color:#fff;border:none;border-radius:8px;cursor:pointer;">Retry</button></div>';
+    console.error('loadLeaderboard error:',e);
+    if(el) el.innerHTML='<div style="color:#DC2626;padding:16px;font-size:12px;text-align:center;"><div style="font-size:28px;margin-bottom:8px;">⚠️</div>Error loading leaderboard:<br><b>'+e.message+'</b><br><br><button onclick="loadLeaderboard()" style="padding:8px 16px;background:#1565C0;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:700;">↻ Retry</button></div>';
   }
 }
 
@@ -1994,7 +2178,6 @@ function launchConfetti(){
       .v17-level-desc{font-size:11px;line-height:1.3;color:#374151;margin-top:2px;}
       .v17-readable{font-size:12px!important;line-height:1.35!important;}
       @media(min-width:901px){
-        .layout{display:block!important;width:100%!important;height:100vh!important;overflow:hidden!important;}
         .left-panel{position:fixed!important;left:0!important;top:0!important;bottom:0!important;width:290px!important;height:100vh!important;z-index:20!important;box-shadow:6px 0 18px rgba(0,0,0,.12)!important;overflow-y:auto!important;padding:14px!important;}
         .lb-sidebar{position:fixed!important;right:0!important;top:0!important;bottom:0!important;width:260px!important;height:100vh!important;z-index:20!important;box-shadow:-6px 0 18px rgba(0,0,0,.12)!important;}
         .game-area{position:fixed!important;left:290px!important;right:260px!important;top:0!important;bottom:0!important;width:auto!important;height:100vh!important;display:flex!important;justify-content:center!important;align-items:flex-start!important;padding:10px 8px!important;overflow-y:auto!important;}
@@ -2116,11 +2299,14 @@ function launchConfetti(){
       if(btn.textContent && btn.textContent.includes('Register') && !btn.textContent.includes('Play')) btn.onclick=()=>goToRegister('', '', 'Register below!');
     });
     window.doRegister = async function(){
-      const name=$('regName').value.trim(), mobile=$('regMobile').value.trim(), parent=$('regParent').value.trim();
+      const name=$('regName').value.trim();
+      const mobileNum=($('regMobile')?.value||'').trim().replace(/\D/g,'');
+      const mobile=getFullMobile('regPfx','regMobile');
+      const parent=$('regParent').value.trim();
       const d=$('dobDay').value, m=$('dobMonth').value, y=$('dobYear').value;
       const dob=(y&&m&&d)?(y+'-'+m+'-'+d):null, gender=window.regGender||'boy';
       if(!name){showRegMsg("Please enter child's name",false);return;}
-      if(mobile.length<7){showRegMsg('Please enter valid parent mobile',false);return;}
+      if(mobileNum.length!==7){showRegMsg('Please enter a valid 7-digit mobile number 📱',false);return;}
       if(!dob){showRegMsg('Date of birth is required! 🎂',false);return;}
       const btn=document.querySelector('#s-register .btn-y');
       if(btn){btn.disabled=true;btn.style.opacity='.65';btn.style.pointerEvents='none';btn.textContent='Registering... 🐼';}
@@ -2192,8 +2378,19 @@ function launchConfetti(){
         if(isGlobalBest){ hintEl.innerHTML='<span style="font-size:18px;font-weight:900;">🏆 NEW ALL-TIME RECORD: '+memSeconds+'s!</span><br><span style="font-size:14px;">Fastest among all players. +2 bonus!</span>'; hintEl.style.background='rgba(22,163,74,.2)';hintEl.style.borderColor='rgba(22,163,74,.5)';hintEl.style.color='#4ADE80'; }
         else{ hintEl.innerHTML='<span style="font-size:16px;font-weight:900;">⏱️ Your time: '+memSeconds+'s</span><br><span style="font-size:13px;">All-time best is <strong>'+globalBestTime+'s</strong>'+(globalBestName?' by '+globalBestName:'')+'. Earned 8 pts.</span>'; hintEl.style.background='rgba(255,214,0,.15)';hintEl.style.borderColor='rgba(255,214,0,.3)';hintEl.style.color='var(--y)'; }
       }
-      const btn=$('memStartBtn'); if(btn){btn.style.display='block';btn.textContent='See my '+pts+' pts! 🎉';btn.disabled=false;btn.onclick=()=>saveAndShowResult(pts,'memory',isPersonalBest?memSeconds:null);}
-      // saveAndShowResult calls savePoints — removed duplicate call here
+      // Popup + auto-navigate like spin game — no button needed
+      const btn=$('memStartBtn'); if(btn) btn.style.display='none';
+      (function showMemPopup(earned){
+        const old=$('memPointsPopup'); if(old) old.remove();
+        const ov=document.createElement('div'); ov.id='memPointsPopup';
+        ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;';
+        const icon=isGlobalBest?'🏆':isPersonalBest?'⭐':'🧠';
+        const label=isGlobalBest?'New Record!':isPersonalBest?'Personal Best!':'Well Done!';
+        ov.innerHTML='<div style="background:#fff;border-radius:20px;padding:22px;max-width:290px;width:100%;text-align:center;animation:v17pop .16s ease-out;box-shadow:0 14px 40px rgba(0,0,0,.35);"><div style="font-size:46px;margin-bottom:2px;">'+icon+'</div><div style="font-family:Baloo 2,Nunito,sans-serif;font-size:20px;font-weight:900;color:#0D47A1;margin-bottom:0;">'+label+'</div><div style="font-family:Baloo 2,Nunito,sans-serif;font-size:46px;font-weight:900;color:#FF8C00;line-height:1;">+'+earned+'</div><div style="font-size:14px;font-weight:800;color:#1565C0;margin-top:4px;">points gained</div></div>';
+        document.body.appendChild(ov);
+        saveAndShowResult(earned,'memory',isPersonalBest?memSeconds:null);
+        setTimeout(()=>{const o=$('memPointsPopup');if(o)o.remove();},400);
+      })(pts);
     };
   }
 
@@ -2498,9 +2695,11 @@ function launchConfetti(){
   }
 
   function readForm(){
+    const mobileNum=(($('regMobile')&&$('regMobile').value)||'').trim().replace(/\D/g,'');
     return {
       name:(($('regName')&&$('regName').value)||'').trim(),
-      mobile:(($('regMobile')&&$('regMobile').value)||'').trim(),
+      mobileNum: mobileNum,
+      mobile: getFullMobile('regPfx','regMobile'),
       parent:(($('regParent')&&$('regParent').value)||'').trim(),
       day:($('dobDay')&&$('dobDay').value)||'',
       month:($('dobMonth')&&$('dobMonth').value)||'',
@@ -2512,7 +2711,7 @@ function launchConfetti(){
   function restoreForm(v){
     if(!v) return;
     if($('regName')) $('regName').value=v.name||'';
-    if($('regMobile')) $('regMobile').value=v.mobile||'';
+    setMobileFields('regPfx','regMobile',v.mobile||'');
     if($('regParent')) $('regParent').value=v.parent||'';
     if($('dobDay')) $('dobDay').value=v.day||'';
     if($('dobMonth')) $('dobMonth').value=v.month||'';
@@ -2523,7 +2722,7 @@ function launchConfetti(){
     var v=readForm();
     var dob=(v.year&&v.month&&v.day)?(v.year+'-'+v.month+'-'+v.day):null;
     if(!v.name){showRegMsg('Please enter child name',false);restoreForm(v);return;}
-    if(v.mobile.length<7){showRegMsg('Please enter valid parent mobile',false);restoreForm(v);return;}
+    if(v.mobileNum.length!==7){showRegMsg('Please enter a valid 7-digit mobile number',false);restoreForm(v);return;}
     if(!dob){showRegMsg('Date of birth is required!',false);restoreForm(v);return;}
     var btn=document.querySelector('#s-register .btn-y') || document.querySelector('#s-register button');
     if(btn){btn.disabled=true;btn.style.opacity='0.65';btn.style.pointerEvents='none';btn.textContent='Registering...';}
