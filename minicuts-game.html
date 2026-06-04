@@ -436,16 +436,8 @@ window.onerror=function(msg,src,line,col,err){
 };
 
 // == SUPABASE ==
-const SB_URL='https://flczmpscouzthbcostlg.supabase.co';
-const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZsY3ptcHNjb3V6dGhiY29zdGxnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NTEwNTcsImV4cCI6MjA5NjEyNzA1N30.IReZQIA7QS-Kk_iboRfSXtlACfBugotvIi2ETkQUlWg';
-// ⚠️ DEV FILE — points to DEV Supabase. Replace URL+KEY above after creating dev project.
-document.addEventListener('DOMContentLoaded',function(){
-  var b=document.createElement('div');
-  b.style.cssText='position:fixed;top:0;left:0;right:0;z-index:99999;background:#DC2626;color:#fff;text-align:center;font-size:12px;font-weight:800;padding:5px;letter-spacing:.04em;pointer-events:none;';
-  b.textContent='⚠️  DEV / TEST ENVIRONMENT — changes here do NOT affect live customer data';
-  document.body.prepend(b);
-  document.body.style.marginTop='28px';
-});
+const SB_URL='https://wtapyfgtwkjyjrjdnhkb.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind0YXB5Zmd0d2tqeWpyamRuaGtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0NDc3ODEsImV4cCI6MjA5NTAyMzc4MX0.y_-iPfb8Pcg9zh42h6RGVBsUVZm80LcA9sPlz_Gl_fA';
 async function sb(path,method='GET',body=null,params=''){
   const url=SB_URL+'/rest/v1/'+path+(params?'?'+params:'');
   const h={
@@ -823,7 +815,19 @@ function showAutoResetWarning(){
 
 function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
 function goBack(){showScreen(prevScreen);}
-function goProfile(){
+async function goProfile(){
+  // Always re-fetch the player's live data from DB so stamp status is never stale
+  if(player.id){
+    try{
+      const fresh=await sb('customers','GET',null,'select=stamps,last_visit_date,game_points,game_spins&id=eq.'+player.id);
+      if(fresh&&fresh[0]){
+        player.stamps=fresh[0].stamps;
+        player.last_visit_date=fresh[0].last_visit_date;
+        player.game_points=fresh[0].game_points;
+        player.game_spins=fresh[0].game_spins;
+      }
+    }catch(e){ /* fail silently — use cached data */ }
+  }
   renderProfile();
   showScreen('s-profile');
   loadSidebarLb();
@@ -921,18 +925,34 @@ function drawWheel(angle){
   ctx.textAlign='center';ctx.textBaseline='middle';
   ctx.fillText('🐼',CX,CY);
 }
-function goSpin(){
+async function checkAndPlay(gameFn){
+  // Re-fetch stamp status live before gating — catches the case where staff just stamped
+  if(player.id){
+    try{
+      const fresh=await sb('customers','GET',null,'select=stamps,last_visit_date&id=eq.'+player.id);
+      if(fresh&&fresh[0]){
+        player.stamps=fresh[0].stamps;
+        player.last_visit_date=fresh[0].last_visit_date;
+      }
+    }catch(e){}
+  }
   if(!hasStampedToday()){showStampGate();return;}
-  if(todayPlayed.spin){showAlreadyPlayed('spin');return;}
-  spinCount=0;bestSpinPts=0;
-  document.getElementById('spinChanceLabel').textContent='One spin — good luck!';
-  document.getElementById('bestSoFar').textContent='—';
-  document.getElementById('pandaReact').textContent='🐼';
-  document.getElementById('spinBtn').textContent='SPIN! 🎡';
-  document.getElementById('spinBtn').disabled=false;
-  document.getElementById('spinSkipLabel').textContent='';
-  initWheel();
-  showScreen('s-spin');
+  gameFn();
+}
+
+function goSpin(){
+  checkAndPlay(()=>{
+    if(todayPlayed.spin){showAlreadyPlayed('spin');return;}
+    spinCount=0;bestSpinPts=0;
+    document.getElementById('spinChanceLabel').textContent='One spin — good luck!';
+    document.getElementById('bestSoFar').textContent='—';
+    document.getElementById('pandaReact').textContent='🐼';
+    document.getElementById('spinBtn').textContent='SPIN! 🎡';
+    document.getElementById('spinBtn').disabled=false;
+    document.getElementById('spinSkipLabel').textContent='';
+    initWheel();
+    showScreen('s-spin');
+  });
 }
 function startSpin(){playGameVoice('spin');
   if(isSpinning) return;
@@ -977,13 +997,13 @@ function startSpin(){playGameVoice('spin');
 
 // ══ TAP PANDA ══
 function goTapPanda(){
-  if(!hasStampedToday()){showStampGate();return;}
-  if(todayPlayed.tap){showAlreadyPlayed('tap');return;}
-  tapScore=0;tapSeconds=10;tapRunning=false;
-  document.getElementById('tapCount').textContent='0';
-  document.getElementById('tapTime').textContent='10';
-  document.getElementById('tapTime').style.color='#fff';
-  document.getElementById('tapBest').textContent=player.best_tap_score||'--';
+  checkAndPlay(()=>{
+    if(todayPlayed.tap){showAlreadyPlayed('tap');return;}
+    tapScore=0;tapSeconds=10;tapRunning=false;
+    document.getElementById('tapCount').textContent='0';
+    document.getElementById('tapTime').textContent='10';
+    document.getElementById('tapTime').style.color='#fff';
+    document.getElementById('tapBest').textContent=player.best_tap_score||'--';
   document.getElementById('tapStartBtn').style.display='block';
   document.getElementById('tapStartBtn').textContent='START! 🐼';
   document.getElementById('tapStartBtn').disabled=false;
@@ -1002,8 +1022,8 @@ function goTapPanda(){
   document.getElementById('tapStatus').style.display='block';
   document.getElementById('tapStatus').innerHTML=statusHtml;
   showScreen('s-tap');
-}
-function startTapGame(){playGameVoice('tap');
+  });
+}playGameVoice('tap');
   tapScore=0;tapSeconds=10;tapRunning=true;
   soundStart();
   document.getElementById('tapStatus').style.display='none';
@@ -1067,8 +1087,8 @@ function endTapGame(){
 
 // ══ MEMORY MATCH ══
 function goMemory(){
-  if(!hasStampedToday()){showStampGate();return;}
-  if(todayPlayed.memory){showAlreadyPlayed('memory');return;}
+  checkAndPlay(()=>{
+    if(todayPlayed.memory){showAlreadyPlayed('memory');return;}
   memMatched=0;memMoves=0;memStarted=false;memSeconds=0;memLock=false;
   if(memTimerInt) clearInterval(memTimerInt);
   document.getElementById('memMoves').textContent='0';
@@ -1099,6 +1119,7 @@ function goMemory(){
   document.getElementById('memStartBtn').onclick=startMemory;
   buildMemGrid(false);
   showScreen('s-memory');
+  });
 }
 function buildMemGrid(reveal){
   const pairs=[...MEM_EMOJIS.slice(0,4),...MEM_EMOJIS.slice(0,4)].sort(()=>Math.random()-.5);
@@ -1267,10 +1288,18 @@ function drawMilestoneTrack(containerId,pts){
 
 
 function hasStampedToday(){
-  // Player must have last_visit_date = today to play games
   if(!player.last_visit_date) return false;
-  const today=new Date().toISOString().split('T')[0];
-  return player.last_visit_date.startsWith(today);
+  // Use local date (not UTC) — Dubai is UTC+4, toISOString() gives UTC which can be wrong day
+  const now=new Date();
+  const localToday=now.getFullYear()+'-'+
+    String(now.getMonth()+1).padStart(2,'0')+'-'+
+    String(now.getDate()).padStart(2,'0');
+  // last_visit_date may be full ISO timestamp or just a date string
+  const visitDate=new Date(player.last_visit_date);
+  const localVisit=visitDate.getFullYear()+'-'+
+    String(visitDate.getMonth()+1).padStart(2,'0')+'-'+
+    String(visitDate.getDate()).padStart(2,'0');
+  return localVisit===localToday;
 }
 
 function showStampGate(){
@@ -1470,33 +1499,29 @@ async function checkTodaySessions(){
       SB_URL+'/rest/v1/game_sessions?select=game_type,created_at&customer_id=eq.'+player.id+'&order=created_at.desc&limit=100',
       {headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}}
     ).then(r=>r.json());
-    if(!sessions||!sessions.length){
-      todayPlayed={spin:false,tap:false,memory:false};
-      player._lastGameDate=null; return;
-    }
-    const THIRTY=30*24*60*60*1000;
-    const now=Date.now();
-    const lastSpin=sessions.find(s=>s.game_type==='spin');
-    const lastTap=sessions.find(s=>s.game_type==='tap');
-    const lastMemory=sessions.find(s=>s.game_type==='memory');
-    if(lastSpin&&lastTap&&lastMemory){
-      const oldest=Math.min(
-        new Date(lastSpin.created_at).getTime(),
-        new Date(lastTap.created_at).getTime(),
-        new Date(lastMemory.created_at).getTime()
-      );
-      if(now-oldest<THIRTY){
-        todayPlayed={spin:true,tap:true,memory:true};
-        player._lastGameDate=new Date(oldest);
-        return;
-      }
-    }
-    const todayStr=new Date().toISOString().split('T')[0];
+
     todayPlayed={spin:false,tap:false,memory:false};
-    sessions.filter(s=>s.created_at&&s.created_at.startsWith(todayStr)).forEach(s=>{
-      if(s.game_type==='spin')   todayPlayed.spin=true;
-      if(s.game_type==='tap')    todayPlayed.tap=true;
-      if(s.game_type==='memory') todayPlayed.memory=true;
+
+    if(!sessions||!sessions.length){ player._lastGameDate=null; return; }
+
+    // Use LOCAL date (Dubai = UTC+4) so a 10pm visit isn't treated as next day
+    const now=new Date();
+    const localToday=now.getFullYear()+'-'+
+      String(now.getMonth()+1).padStart(2,'0')+'-'+
+      String(now.getDate()).padStart(2,'0');
+
+    sessions.forEach(s=>{
+      if(!s.created_at) return;
+      // Convert session UTC timestamp to local date for comparison
+      const d=new Date(s.created_at);
+      const localDate=d.getFullYear()+'-'+
+        String(d.getMonth()+1).padStart(2,'0')+'-'+
+        String(d.getDate()).padStart(2,'0');
+      if(localDate===localToday){
+        if(s.game_type==='spin')   todayPlayed.spin=true;
+        if(s.game_type==='tap')    todayPlayed.tap=true;
+        if(s.game_type==='memory') todayPlayed.memory=true;
+      }
     });
     player._lastGameDate=null;
   }catch(e){
@@ -2146,9 +2171,7 @@ function launchConfetti(){
       requestAnimationFrame(animate);
     };
     const btn=$('spinBtn'); if(btn){btn.disabled=false;btn.textContent='SPIN! 🎡';btn.onclick=startSpin;}
-    // Also patch goSpin to re-check gate (patchSpin runs after goSpin is defined)
-    const _origGoSpin=window.goSpin;
-    window.goSpin=function(){if(!hasStampedToday()){showStampGate();return;}_origGoSpin&&_origGoSpin();};
+    // goSpin already uses checkAndPlay which re-fetches stamp live — no extra wrapping needed
   }
 
   function patchResults(){ /* handled by main JS */ }
