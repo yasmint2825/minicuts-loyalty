@@ -142,6 +142,9 @@ tbody td{padding:12px 15px;font-size:13.5px;color:var(--text)}
 .tab-btn{padding:9px 18px;font-family:var(--fb);font-size:13.5px;font-weight:700;color:var(--muted);background:transparent;border:none;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;white-space:nowrap;transition:all .2s}
 .tab-btn.active{color:var(--b);border-bottom-color:var(--b)}
 .tab-pane{display:none}.tab-pane.active{display:block}
+/* Compact tabs for customer-facing page */
+.cp .tab-bar{gap:0;margin-bottom:12px;}
+.cp .tab-btn{padding:7px 12px;font-size:12.5px;}
 @media(max-width:900px){.sb{transform:translateX(-100%)}.sb.open{transform:translateX(0)}.main{margin-left:0}.sr{grid-template-columns:1fr 1fr}.fr{grid-template-columns:1fr}}
 @media(max-width:600px){.sr{grid-template-columns:1fr}.content{padding:14px}.topbar{padding:0 14px}}
 </style>
@@ -171,8 +174,10 @@ const DC={
   // WhatsApp message templates (use {name} placeholder)
   boyWAExpiry:'Hi! 🐼 Just a reminder that {name}\'s MiniCuts loyalty passport is expiring soon. Don\'t let those stamps go to waste! Book a haircut today 💈',
   girlWAExpiry:'Hi! 🐼 {name}\'s MiniCuts loyalty passport expires soon. She\'s earned those stamps — book before they expire! 💇‍♀️',
-  boyWALapsed:'Hey! 🐼 We miss {name} at MiniCuts! It\'s been a while since his last visit. Pop in for a fresh cut — his stamps are waiting! ✂️',
-  girlWALapsed:'Hey! 🐼 We miss {name} at MiniCuts! It\'s been a while since her last visit. Book a visit — her stamps are waiting! 💇‍♀️',
+  boyWANudge:'Hi! 🐼 Just checking in — {name} is due for a haircut at MiniCuts DSO! His stamps are waiting. Book anytime this week ✂️',
+  girlWANudge:'Hi! 🐼 Just checking in — {name} is due for a visit at MiniCuts DSO! Her stamps are waiting. Book anytime 💇‍♀️',
+  boyWALapsed:'Hey! 🐼 We really miss {name} at MiniCuts! It\'s been a while — pop in for a fresh cut and keep those stamps going! ✂️😊',
+  girlWALapsed:'Hey! 🐼 We really miss {name} at MiniCuts! It\'s been a while — come back for a lovely visit, her stamps are waiting! 💇‍♀️😊',
   boyWAReady:'🎉 Great news! {name} has earned a FREE Hair Wash 🚿 at MiniCuts! Bring him in anytime to redeem. See you soon! 🐼✂️',
   girlWAReady:'🎉 Great news! {name} has earned a FREE Hair Wash 🚿 at MiniCuts! Bring her in anytime to redeem. See you soon! 🐼💇‍♀️',
   boyWABirthday:'🎂 Happy Birthday to {name}! Wishing him a wonderful day from all of us at MiniCuts 🐼 Come in for a special birthday haircut!',
@@ -184,6 +189,17 @@ let CFG=loadCfg();
 function loadCfg(){try{return Object.assign({},DC,JSON.parse(localStorage.getItem('mc_cfg')||'{}'));}catch(e){return{...DC};}}
 function saveCfg(){localStorage.setItem('mc_cfg',JSON.stringify(CFG));}
 // Paid stamps needed = total - 1 (last visit is always free)
+function saveCfgNudge(){
+  try{
+    const cfg=window._CFG||{};
+    cfg.boyWANudge=document.getElementById('cfg_boyWANudge')?.value||cfg.boyWANudge||'';
+    cfg.girlWANudge=document.getElementById('cfg_girlWANudge')?.value||cfg.girlWANudge||'';
+    window._CFG=cfg;
+    localStorage.setItem('mc_cfg',JSON.stringify(cfg));
+    toast('Nudge templates saved ✅','ok');
+  }catch(e){}
+}
+
 function paidNeeded(){return Math.max(1,CFG.stampsNeeded-1);}
 // Lapsed = truly lost customer (boys 3mo / girls 6mo by default)
 function lapsedWeeks(c){return c.gender==='girl'?(CFG.girlLapsedWeeks||26):(CFG.boyLapsedWeeks||12);}
@@ -209,10 +225,16 @@ function isExpiringSoon(c){
   if(!c.expiry_date||isExp(c)) return false;
   return dLeft(c)<=expiryWarnDays(c);
 }
+function openGamesPage(){
+  const mobile=localStorage.getItem('mc_cust_mobile')||'';
+  const url='./minicuts-game.html'+(mobile?'?mobile='+encodeURIComponent(mobile):'');
+  window.open(url,'_blank');
+}
+
 function getWAMsg(c,type){
   const g=c.gender==='girl'?'girl':'boy';
-  const key=g+(type==='expiry'?'WAExpiry':type==='lapsed'?'WALapsed':type==='ready'?'WAReady':'WABirthday');
-  const tmpl=CFG[key]||'Hi! Your MiniCuts loyalty passport needs attention.';
+  const key=g+(type==='expiry'?'WAExpiry':type==='lapsed'?'WALapsed':type==='ready'?'WAReady':type==='nudge'?'WANudge':'WABirthday');
+  const tmpl=CFG[key]||DC[key]||'Hi! Your MiniCuts loyalty passport needs attention.';
   return tmpl.replace(/{name}/g,c.name);
 }
 function openWA(mobile,msg){
@@ -326,7 +348,8 @@ async function archiveCycle(customerId,stamps,firstStampDate,expiryDate,endedBy)
     <div class="sb-logo"><div class="sb-icon">🐼</div><div><div class="sb-txt">MiniCuts</div><div class="sb-sub">Loyalty Passport</div></div></div>
     <nav class="nav">
       <div class="nav-s">Main</div>
-      <button class="ni active" onclick="showPage('dashboard',this);closeSidebar()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Dashboard</button>
+      <button class="ni" onclick="showPage('dashboard',this);closeSidebar()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Dashboard</button>
+      <button class="ni" onclick="showPage('today',this);closeSidebar()" class="ni active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Today</button>
       <button class="ni" onclick="showPage('customers',this);closeSidebar()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Customers</button>
       <button class="ni" onclick="showPage('newcustomer',this);closeSidebar()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>New Customer</button>
       <div class="nav-s">Tools</div>
@@ -358,7 +381,26 @@ async function archiveCycle(customerId,stamps,firstStampDate,expiryDate,endedBy)
     <div class="content">
 
       <!-- DASHBOARD -->
-      <div class="page active" id="page-dashboard">
+      
+      <div class="page active" id="page-today">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+          <div>
+            <div style="font-family:var(--fh);font-size:21px;font-weight:800;">📋 Today's Customers</div>
+            <div style="color:var(--muted);font-size:13px;margin-top:2px;">One-tap stamp · Stamped customers stay removed · <span style="color:var(--ok);font-weight:700;">🔄 Auto-refreshes every 30s</span></div>
+          </div>
+          <button class="btn bp" onclick="loadToday()" style="padding:8px 16px;font-size:13px;">↻ Refresh Now</button>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+          <input type="text" id="todayNameFilter"   placeholder="🔍 Filter by name..."   oninput="renderToday()" style="padding:9px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:13px;outline:none;font-family:var(--fb);">
+          <input type="tel"  id="todayMobileFilter" placeholder="🔍 Filter by mobile..." oninput="renderToday()" style="padding:9px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:13px;outline:none;font-family:var(--fb);">
+        </div>
+        <div id="todayStats" style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;"></div>
+        <div id="todayList">
+          <div style="text-align:center;padding:40px;color:var(--muted);font-size:13px;">Tap ↻ Refresh to load today's customers</div>
+        </div>
+      </div>
+
+      <div class="page" id="page-dashboard">
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:18px;">
           <div><div style="font-family:var(--fh);font-size:21px;font-weight:800;">Welcome back! 🐼</div><div style="color:var(--muted);font-size:13.5px;">Loyalty overview — click any widget to filter customers</div></div>
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
@@ -382,16 +424,16 @@ async function archiveCycle(customerId,stamps,firstStampDate,expiryDate,endedBy)
           <div class="card">
             <div onclick="toggleSection('RV','RV_arrow')" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;margin-bottom:0;">
               <div style="font-family:var(--fh);font-size:16px;font-weight:800;">Recent Visits ✂️</div>
-              <span id="RV_arrow" style="font-size:18px;color:var(--muted);transition:transform .3s;">▾</span>
+              <span id="RV_arrow" style="font-size:18px;color:var(--muted);transition:transform .3s;transform:rotate(-90deg);">▾</span>
             </div>
-            <div id="RV" style="margin-top:14px;"></div>
+            <div id="RV" style="display:none;margin-top:14px;"></div>
           </div>
           <div class="card">
             <div onclick="toggleSection('RL','RL_arrow')" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;margin-bottom:0;">
               <div style="font-family:var(--fh);font-size:16px;font-weight:800;">Rewards Ready 🎁</div>
-              <span id="RL_arrow" style="font-size:18px;color:var(--muted);transition:transform .3s;">▾</span>
+              <span id="RL_arrow" style="font-size:18px;color:var(--muted);transition:transform .3s;transform:rotate(-90deg);">▾</span>
             </div>
-            <div id="RL" style="margin-top:14px;"></div>
+            <div id="RL" style="display:none;margin-top:14px;"></div>
           </div>
         </div>
         <!-- Outreach summary - numbers only, click to go to Miss You -->
@@ -629,6 +671,7 @@ async function archiveCycle(customerId,stamps,firstStampDate,expiryDate,endedBy)
               <div style="font-size:12px;font-weight:700;color:var(--b);margin-bottom:8px;">👦 Boys</div>
               <div class="fg"><label class="fl">Free Hair Wash ready 🚿</label><textarea class="fi" id="CFB_WR" rows="2" style="resize:vertical;"></textarea></div>
               <div class="fg"><label class="fl">Expiry reminder</label><textarea class="fi" id="CFB_WE" rows="2" style="resize:vertical;"></textarea></div>
+              <div class="fg"><label class="fl">🔔 Nudge (gentle reminder)</label><textarea class="fi" id="CFB_WN" rows="2" style="resize:vertical;"></textarea></div>
               <div class="fg"><label class="fl">Win-back (lapsed)</label><textarea class="fi" id="CFB_WL" rows="2" style="resize:vertical;"></textarea></div>
               <div class="fg"><label class="fl">Birthday</label><textarea class="fi" id="CFB_WB" rows="2" style="resize:vertical;"></textarea></div>
             </div>
@@ -636,6 +679,7 @@ async function archiveCycle(customerId,stamps,firstStampDate,expiryDate,endedBy)
               <div style="font-size:12px;font-weight:700;color:var(--pink);margin-bottom:8px;">👧 Girls</div>
               <div class="fg"><label class="fl">Free Hair Wash ready 🚿</label><textarea class="fi" id="CFG_WR" rows="2" style="resize:vertical;"></textarea></div>
               <div class="fg"><label class="fl">Expiry reminder</label><textarea class="fi" id="CFG_WE" rows="2" style="resize:vertical;"></textarea></div>
+              <div class="fg"><label class="fl">🔔 Nudge (gentle reminder)</label><textarea class="fi" id="CFG_WN" rows="2" style="resize:vertical;"></textarea></div>
               <div class="fg"><label class="fl">Win-back (lapsed)</label><textarea class="fi" id="CFG_WL" rows="2" style="resize:vertical;"></textarea></div>
               <div class="fg"><label class="fl">Birthday</label><textarea class="fi" id="CFG_WB" rows="2" style="resize:vertical;"></textarea></div>
             </div>
@@ -682,7 +726,7 @@ async function archiveCycle(customerId,stamps,firstStampDate,expiryDate,endedBy)
     </div>
     <div class="fg"><label class="fl">Current Stamps</label><input class="fi" type="number" id="EST" min="0" max="10"></div>
     <div class="fg"><label class="fl">Date of Birth</label><input class="fi" type="date" id="EDOB"></div>
-    <div class="fg"><label class="fl">Notes</label><input class="fi" type="text" id="ENO"></div>
+            <div class="fg"><label class="fl">Notes</label><input class="fi" type="text" id="ENO"></div>
     <div class="mf">
       <button class="btn bg2" onclick="closeM('EM')">Cancel</button>
       <button class="btn bp" onclick="saveEdit()">Save Changes</button>
@@ -716,9 +760,14 @@ async function archiveCycle(customerId,stamps,firstStampDate,expiryDate,endedBy)
       localStorage.setItem('mc_cust_mobile',lookupMobile);
       renderCP(lookupMobile);
     } else {
-      // Fresh URL (?customer=1 only) — clear any saved mobile, show blank lookup
-      localStorage.removeItem('mc_cust_mobile');
-      renderCP('');
+      // ?customer=1 only — check if previously logged in
+      const savedMobile=localStorage.getItem('mc_cust_mobile')||'';
+      if(savedMobile){
+        // Auto-restore — no need to re-enter number
+        renderCP(savedMobile);
+      } else {
+        renderCP('');
+      }
     }
     return;
   }
@@ -829,6 +878,8 @@ function syncCfgInputs(){
   document.getElementById('CFG_WR').value=CFG.girlWAReady||DC.girlWAReady;
   document.getElementById('CFB_WE').value=CFG.boyWAExpiry||DC.boyWAExpiry;
   document.getElementById('CFG_WE').value=CFG.girlWAExpiry||DC.girlWAExpiry;
+  document.getElementById('CFB_WN').value=CFG.boyWANudge||DC.boyWANudge;
+  document.getElementById('CFG_WN').value=CFG.girlWANudge||DC.girlWANudge;
   document.getElementById('CFB_WL').value=CFG.boyWALapsed||DC.boyWALapsed;
   document.getElementById('CFG_WL').value=CFG.girlWALapsed||DC.girlWALapsed;
   document.getElementById('CFB_WB').value=CFG.boyWABirthday||DC.boyWABirthday;
@@ -864,6 +915,9 @@ function doLogout(){
 
 // ══ NAV ══
 function showPage(id,btn){
+  stopTodayAutoRefresh(); // always clear on navigation
+  if(id==='today') setTimeout(loadToday,60);
+  if(id==='today') setTimeout(startTodayAutoRefresh,500);
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.ni').forEach(n=>n.classList.remove('active'));
   document.getElementById('page-'+id).classList.add('active');
@@ -981,6 +1035,7 @@ async function markASsent(id,name){
 }
 
 
+var dashFilter=null;
 function filterCustomersByWidget(type){
   dashFilter=type;
   const btn=document.querySelector('.ni[onclick*="customers"]');
@@ -1059,8 +1114,7 @@ async function renderDash(){
 }
 
 // ══ CUSTOMERS ══
-let dashFilter=null;
-let allC=[];
+var allC=[];
 async function loadCustomers(){
   document.getElementById('CT').innerHTML='<div class="load"><div class="spin"></div></div>';
   try{
@@ -1098,6 +1152,7 @@ function renderCT(data){
       <td><div style="display:flex;gap:5px;flex-wrap:wrap;">
         <button class="btn bp bsm" onclick="viewProfile('${c.id}')">View</button>
         <button class="btn bg2 bsm" onclick="openEditM('${c.id}')" title="Edit">✏️</button>
+          `+(c.dnd?`<button class="btn bg2 bsm" onclick="toggleDND('${c.id}',false,'${c.name}')" style="border-color:var(--ok);color:var(--ok);">↩ Re-enable</button>`:`<button class="btn bg2 bsm" onclick="toggleDND('${c.id}',true,'${c.name}')" style="background:#FEE2E2;color:#DC2626;border:1px solid #FCA5A5;">📵 DND</button>`)+`
         ${st>=paidNeeded()&&!getStatus(c).label.includes('Expired')?
           `<button class="btn bs bsm" onclick="redeemFree('${c.id}')">🚿 Give Free Wash</button>`:
           `<button class="btn by bsm" id="sb-${c.id}" onclick="addStampQ('${c.id}')">+Stamp</button>`}
@@ -1536,7 +1591,7 @@ async function renderMissYou(){
 
     // Render each tab
     document.getElementById('MY_NUDGE_LIST').innerHTML=toNudge.length
-      ?toNudge.map(c=>nudgeRow(c,'lapsed',Math.round(weeksSinceVisit(c)||0)+'wks since visit')).join('')
+      ?toNudge.map(c=>nudgeRow(c,'nudge',Math.round(weeksSinceVisit(c)||0)+'wks since visit')).join('')
       :'<div style="text-align:center;padding:24px;color:var(--ok);font-weight:700;">🎉 All done! No nudges needed today.</div>';
 
     document.getElementById('MY_LAPSED_LIST').innerHTML=lapsed.length
@@ -1693,7 +1748,15 @@ async function confirmNudgeSent(id,name,btn){
     // Refresh stats
     setTimeout(()=>{
       if(document.getElementById('page-missyou').classList.contains('active')) renderMissYou();
-      renderDash();
+      
+// Auto-set date range to 1 year
+(function(){
+  var f=document.getElementById('dash-from');
+  var t=document.getElementById('dash-to');
+  if(f&&!f.value){var d=new Date();d.setFullYear(d.getFullYear()-1);f.value=d.toISOString().split('T')[0];}
+  if(t&&!t.value){t.value=new Date().toISOString().split('T')[0];}
+})();
+renderDash();
     },600);
   }catch(e){toast('Could not record nudge: '+e.message,'error');}
 }
@@ -1707,13 +1770,14 @@ function cancelNudge(id){
 function sendWA(id,mobile,gender,name,stamps,paid,msgType='lapsed'){
   // Store msgs in closure-safe variables
   const msgs={
+    '🔔 Nudge (gentle reminder)': getWAMsg({name,gender},'nudge'),
     '🎁 Special Gift Ready': getWAMsg({name,gender},'ready'),
     '⏰ Expiry Reminder':    getWAMsg({name,gender},'expiry'),
     '😴 Win-back':           getWAMsg({name,gender},'lapsed'),
     '🎂 Birthday':           getWAMsg({name,gender},'birthday')
   };
   // Pre-select the right message type
-  const typeMap={ready:'🎁 Special Gift Ready',expiry:'⏰ Expiry Reminder',lapsed:'😴 Win-back',birthday:'🎂 Birthday'};
+  const typeMap={nudge:'🔔 Nudge (gentle reminder)',ready:'🎁 Special Gift Ready',expiry:'⏰ Expiry Reminder',lapsed:'😴 Win-back',birthday:'🎂 Birthday'};
   const preSelected=msgType&&typeMap[msgType]?typeMap[msgType]:null;
   // Create modal
   const overlay=document.createElement('div');
@@ -1924,13 +1988,17 @@ async function renderCP(prefMobile){
           const visits=await sb('visits','GET',null,'select=*&customer_id=eq.'+c.id+'&order=created_at.desc');
           return buildCard(c)+buildCustomerHistory(visits,c);
         }));
-        area.innerHTML=parts.join('<div style="height:14px;"></div>')+buildLookup('')+buildFooter();
+        // Build lookup HTML without auto-writing (pass skipWrite=true via temp override)
+        const lookupHtml=buildLookupHtml('');
+        area.innerHTML=parts.join('<div style="height:14px;"></div>')+lookupHtml+buildFooter();
+        // Attach enter key listener
+        setTimeout(()=>{const cml=document.getElementById('CML');if(cml){cml.addEventListener('keydown',function(e){if(e.key==='Enter')custLookup();});}},50);
         loadGameRanks(res); // load game rankings
       } else{area.innerHTML=buildRegister(prefMobile)+buildFooter();}
     }catch(e){area.innerHTML='<div style="color:red;padding:20px;">Error: '+e.message+'</div>';}
     return;
   }
-  area.innerHTML=buildLookup('')+buildFooter();
+  buildLookup('');
 }
 
 function buildCard(c){
@@ -2035,19 +2103,45 @@ function toggleCustHist(uid){
   arrow.style.transform=open?'rotate(0deg)':'rotate(180deg)';
 }
 
-function buildLookup(msg){
+function buildLookupHtml(msg){
   const saved=localStorage.getItem('mc_cust_mobile')||'';
-  return`<div class="cbox">
-    <div style="font-family:'Baloo 2',cursive;font-size:17px;font-weight:800;margin-bottom:3px;">Check your stamps</div>
-    <div style="font-size:13px;color:#6B7280;margin-bottom:14px;">Enter your mobile number</div>
-    ${msg?`<div style="background:#FEE2E2;color:#DC2626;padding:9px 13px;border-radius:8px;font-size:13px;font-weight:700;margin-bottom:12px;">${msg}</div>`:''}
-    <div style="display:flex;gap:9px;">
-      <input class="fi" type="tel" id="CPP" placeholder="05xxxxxxxx" value="${saved}" style="flex:1;" onkeydown="if(event.key==='Enter') custLookup()">
-      <button class="btn bp" onclick="custLookup()">Check</button>
-    </div>
-    ${saved?`<div style="text-align:center;margin-top:8px;font-size:12px;color:#6B7280;">Remembered from last visit · <a href="javascript:void(0)" onclick="localStorage.removeItem('mc_cust_mobile');document.getElementById('CPP').value=''" style="color:#DC2626;font-weight:700;">Clear</a></div>`:''}
-    <div style="text-align:center;margin-top:10px;font-size:13px;color:#6B7280;">New customer? <a href="javascript:void(0)" onclick="showReg()" style="color:#1565C0;font-weight:700;">Register here →</a></div>
-  </div>`;
+  const msgBlock=msg?'<div style="background:#FEF3C7;border:1px solid #F59E0B;border-radius:10px;padding:8px 12px;font-size:13px;font-weight:700;color:#92400E;margin-bottom:12px;text-align:center;">'+msg+'</div>':'';
+  return '<div class="cbox">'+
+    '<div style="text-align:center;margin-bottom:18px;">'+
+      '<div style="font-size:40px;margin-bottom:6px;">&#x1F43C;</div>'+
+      '<div style="font-family:var(--fh);font-size:20px;font-weight:900;">MiniCuts Loyalty Club</div>'+
+      '<div style="font-size:12px;color:var(--muted);margin-top:4px;">Same login for Loyalty + MiniCuts Games</div>'+
+    '</div>'+
+    '<input class="fi" type="tel" id="CML" placeholder="Your mobile number" value="'+saved+'" '+
+      'style="margin-bottom:10px;font-size:15px;text-align:center;">'+
+    msgBlock+
+    '<button class="btn bp" onclick="custLookup()" style="width:100%;padding:12px;font-size:15px;font-weight:800;margin-bottom:10px;">'+
+      '&#x1F50D; Check My Stamps &amp; Rewards'+
+    '</button>'+
+    '<button onclick="showReg()" style="width:100%;padding:11px;border:2px solid var(--y);border-radius:var(--rs);background:var(--yl);color:#92400E;font-family:var(--fb);font-weight:800;font-size:14px;cursor:pointer;margin-bottom:14px;">'+
+      '🐼 New? Register Here →'+
+    '</button>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">'+
+      '<a href="javascript:void(0)" onclick="openGamesPage()" style="display:flex;flex-direction:column;align-items:center;padding:12px 8px;background:linear-gradient(135deg,#FF6B00,#FF8C00);border-radius:12px;text-decoration:none;gap:4px;box-shadow:0 4px 12px rgba(255,107,0,.35);">'+
+        '<span style="font-size:26px;">&#x1F3AE;</span>'+
+        '<span style="font-family:var(--fh);font-size:12px;font-weight:800;color:#fff;text-align:center;line-height:1.3;">Play Quick Games &amp; Win</span>'+
+      '</a>'+
+      '<a href="./minicuts_hair_care_guide_v2.html" target="_blank" style="display:flex;flex-direction:column;align-items:center;padding:12px 8px;background:linear-gradient(135deg,#16A34A,#15803D);border-radius:12px;text-decoration:none;gap:4px;">'+
+        '<span style="font-size:26px;">&#x1F4D6;</span>'+
+        '<span style="font-family:var(--fh);font-size:12px;font-weight:800;color:#fff;text-align:center;line-height:1.3;">Smart Parent Guide</span>'+
+      '</a>'+
+    '</div>'+
+    '<div style="text-align:center;font-size:11px;color:var(--muted);padding-top:10px;border-top:1px solid var(--border);">'+
+      '&#x1F510; One account for Loyalty + Games Club</div>'+
+  '</div>';
+}
+
+function buildLookup(msg){
+  const html=buildLookupHtml(msg);
+  const cp=document.getElementById('CPA')||document.getElementById('CP');
+  if(cp) cp.innerHTML=html;
+  setTimeout(()=>{const cml=document.getElementById('CML');if(cml){cml.focus();cml.addEventListener('keydown',function(e){if(e.key==='Enter')custLookup();});}},50);
+  return html;
 }
 
 function buildRegister(pf=''){
@@ -2078,12 +2172,20 @@ function buildFooter(){
 
 let crG='boy';
 function setCRG(g){crG=g;document.getElementById('CRB').classList.toggle('active',g==='boy');document.getElementById('CRG2').classList.toggle('active',g==='girl');}
-function showReg(){document.getElementById('CPA').innerHTML=buildRegister('')+buildFooter();}
-function showLookup(){document.getElementById('CPA').innerHTML=buildLookup('')+buildFooter();}
+function showReg(){
+  const area=document.getElementById('CPA');
+  if(area) area.innerHTML=buildRegister('')+buildFooter();
+  else{buildLookup('');setTimeout(()=>{const a2=document.getElementById('CPA');if(a2)a2.innerHTML=buildRegister('')+buildFooter();},50);}
+}
+function showLookup(){
+  const area=document.getElementById('CPA');
+  if(area) area.innerHTML=buildLookup('')+buildFooter();
+  else buildLookup('');
+}
 
 async function custLookup(){
-  const phone=document.getElementById('CPP').value.trim();
-  if(phone.length<7) return;
+  const phone=(document.getElementById('CML')||document.getElementById('CPP'))?.value.trim();
+  if(!phone||phone.length<7) return;
   const area=document.getElementById('CPA');
   area.innerHTML='<div class="load"><div class="spin"></div></div>';
   try{
@@ -2095,10 +2197,12 @@ async function custLookup(){
         const visits=await sb('visits','GET',null,'select=*&customer_id=eq.'+c.id+'&order=created_at.desc');
         return buildCard(c)+buildCustomerHistory(visits,c);
       }));
-      area.innerHTML=parts.join('<div style="height:14px;"></div>')+buildLookup('')+buildFooter();
+      const lookupHtml=buildLookupHtml('');
+      area.innerHTML=parts.join('<div style="height:14px;"></div>')+lookupHtml+buildFooter();
+      setTimeout(()=>{const cml=document.getElementById('CML');if(cml) cml.addEventListener('keydown',function(e){if(e.key==='Enter')custLookup();});},50);
       loadGameRanks(res); // load game rankings
-    } else{area.innerHTML=buildLookup('No passport found for this number.')+buildRegister(phone)+buildFooter();}
-  }catch(e){area.innerHTML=buildLookup('Error: '+e.message)+buildFooter();}
+    } else{area.innerHTML=buildLookupHtml('No passport found for this number.')+buildRegister(phone)+buildFooter();}
+  }catch(e){area.innerHTML=buildLookupHtml('Error: '+e.message)+buildFooter();}
 }
 
 async function custRegister(){
@@ -2210,6 +2314,8 @@ function saveConfig(){
   CFG.girlWAReady=document.getElementById('CFG_WR').value||DC.girlWAReady;
   CFG.boyWAExpiry=document.getElementById('CFB_WE').value||DC.boyWAExpiry;
   CFG.girlWAExpiry=document.getElementById('CFG_WE').value||DC.girlWAExpiry;
+  CFG.boyWANudge=document.getElementById('CFB_WN').value||DC.boyWANudge;
+  CFG.girlWANudge=document.getElementById('CFG_WN').value||DC.girlWANudge;
   CFG.boyWALapsed=document.getElementById('CFB_WL').value||DC.boyWALapsed;
   CFG.girlWALapsed=document.getElementById('CFG_WL').value||DC.girlWALapsed;
   CFG.boyWABirthday=document.getElementById('CFB_WB').value||DC.boyWABirthday;
@@ -2229,6 +2335,122 @@ async function exportCSV(){
   const csv=[h.join(','),...rows].join('\n');
   const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='minicuts-customers.csv';a.click();
 }
+
+// ══ TODAY'S CUSTOMERS ══
+var todayData=[];
+var todayStampedIds=new Set(); // tracks IDs stamped this session — survives refresh
+var todayAutoRefreshTimer=null;
+
+function startTodayAutoRefresh(){
+  stopTodayAutoRefresh();
+  todayAutoRefreshTimer=setInterval(()=>{
+    // Only refresh if Today page is still active
+    if(document.getElementById('page-today')?.classList.contains('active')){
+      loadToday(true); // silent=true — no loading spinner on auto-refresh
+    } else {
+      stopTodayAutoRefresh();
+    }
+  },30000); // every 30 seconds
+}
+function stopTodayAutoRefresh(){
+  if(todayAutoRefreshTimer){clearInterval(todayAutoRefreshTimer);todayAutoRefreshTimer=null;}
+}
+
+async function loadToday(silent=false){
+  if(!silent) document.getElementById('todayList').innerHTML='<div class="loading" style="text-align:center;padding:20px;color:var(--muted);">Loading...</div>';
+  try{
+    const today=new Date().toISOString().split('T')[0];
+    // Fetch customers registered today OR with last_visit today
+    const rows=await sbFresh('customers','select=*&or=(created_at.gte.'+today+'T00:00:00,last_visit_date.gte.'+today+'T00:00:00)&order=created_at.desc');
+    // Exclude already-stamped today: last_visit_date is today (survives re-login)
+    // Also exclude IDs stamped this session (belt-and-suspenders)
+    todayData=(rows||[]).filter(c=>{
+      if(todayStampedIds.has(c.id)) return false;
+      if(c.last_visit_date&&c.last_visit_date.startsWith(today)) return false;
+      return true;
+    });
+    renderToday();
+    // Stats — count against full rows (before session filter) for accuracy
+    const allToday=rows||[];
+    const statsEl=document.getElementById('todayStats');
+    const newToday=allToday.filter(c=>c.created_at&&c.created_at.startsWith(today));
+    const visited=allToday.filter(c=>c.last_visit_date&&c.last_visit_date.startsWith(today));
+    // Show last-refreshed time
+    const now=new Date();
+    const hhmm=now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+    if(statsEl) statsEl.innerHTML=
+      '<div style="background:#EFF6FF;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;color:#1565C0;">📝 '+newToday.length+' New Today</div>'+
+      '<div style="background:#F0FDF4;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;color:#16A34A;">✂️ '+visited.length+' Stamped</div>'+
+      '<div style="background:#FFF7ED;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;color:#D97706;">👥 '+allToday.length+' Total</div>'+
+      '<div style="background:#F3F4F6;border-radius:8px;padding:6px 12px;font-size:12px;color:var(--muted);">🔄 '+hhmm+'</div>';
+  }catch(e){document.getElementById('todayList').innerHTML='<div style="color:red;padding:12px;">Error: '+e.message+'</div>';}
+}
+
+function renderToday(){
+  const el=document.getElementById('todayList');
+  if(!el) return;
+  const nameF=(document.getElementById('todayNameFilter')?.value||'').toLowerCase();
+  const mobF=(document.getElementById('todayMobileFilter')?.value||'').trim();
+  const today=new Date().toISOString().split('T')[0];
+  let data=[...todayData];
+  if(nameF) data=data.filter(c=>(c.name||'').toLowerCase().includes(nameF));
+  if(mobF)  data=data.filter(c=>(c.mobile||'').includes(mobF));
+  if(!data.length){
+    el.innerHTML='<div style="text-align:center;padding:24px;color:var(--muted);font-size:13px;">No customers found for today</div>';
+    return;
+  }
+  const paid=paidNeeded();
+  el.innerHTML=data.map(c=>{
+    const stamps=parseInt(c.stamps)||0;
+    const isNew=c.created_at&&c.created_at.startsWith(today);
+    const visited=c.last_visit_date&&c.last_visit_date.startsWith(today);
+    const stamped=visited||stamps>0;
+    const pct=Math.min((stamps/paid)*100,100);
+    const rowId='today-row-'+c.id;
+    return'<div id="'+rowId+'" data-id="'+c.id+'" data-mobile="'+c.mobile+'" data-gender="'+c.gender+'" style="display:flex;align-items:center;gap:10px;padding:10px 12px;margin-bottom:6px;border-radius:12px;background:'+(isNew?'#EFF6FF':'#F9FAFB')+';border:1px solid '+(isNew?'#BFDBFE':'#E5E7EB')+';">'+
+      '<div style="flex:1;min-width:0;">'+
+        '<div style="display:flex;align-items:center;gap:6px;">'+
+          '<div style="font-size:13px;font-weight:800;color:#1A1A2E;">'+c.name+'</div>'+
+          (isNew?'<span style="font-size:9px;background:#1565C0;color:#fff;padding:2px 6px;border-radius:99px;font-weight:700;">NEW</span>':'')+
+        '</div>'+
+        '<div style="font-size:11px;color:var(--muted);">'+c.mobile+'</div>'+
+        '<div style="display:flex;align-items:center;gap:6px;margin-top:4px;">'+
+          '<div style="flex:1;height:5px;background:#E5E7EB;border-radius:99px;overflow:hidden;max-width:80px;">'+
+            '<div style="height:100%;width:'+pct+'%;background:#FFD600;border-radius:99px;"></div>'+
+          '</div>'+
+          '<div style="font-size:10px;color:var(--muted);font-weight:700;">'+stamps+'/'+paid+' stamps</div>'+
+        '</div>'+
+      '</div>'+
+      '<div style="display:flex;gap:6px;flex-shrink:0;">'+
+        '<button class="btn bp bsm" onclick="todayStampRow(this)" '+(stamps>=paid?'disabled style="opacity:.4;"':'')+'>✅ Stamp</button>'+
+        '<button class="btn bg2 bsm" onclick="todayWA(this)">💬</button>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+}
+
+async function todayStampRow(btn){
+  const row=btn.closest('[data-id]');
+  if(!row) return;
+  const id=row.dataset.id;
+  btn.disabled=true; btn.textContent='Stamping...';
+  await addStamp(id);
+  // Remember this ID — exclude from list even after auto-refresh
+  todayStampedIds.add(id);
+  todayData=todayData.filter(c=>c.id!==id);
+  row.style.transition='opacity .4s,transform .4s';
+  row.style.opacity='0';
+  row.style.transform='translateX(40px)';
+  setTimeout(()=>row.remove(),420);
+}
+
+function todayWA(btn){
+  const row=btn.closest('[data-id]');
+  if(!row) return;
+  const mobile=row.dataset.mobile;
+  const gender=row.dataset.gender;
+  const name=row.querySelector('[style*="font-weight:800"]')?.textContent||'Customer';
+  openWA(mobile,name,'nudge',gender);
+}
+
 </script>
-</body>
-</html>
