@@ -112,7 +112,7 @@ body{display:flex;font-family:'Nunito',sans-serif;}
 .mob-lb{background:linear-gradient(135deg,#10B981,#059669);color:#fff;}
 .mob-road{background:rgba(255,255,255,.15);color:#FFD600;border:1.5px solid rgba(255,214,0,.4);}
 @media(max-width:900px){.mob-nav{display:flex!important;}.game-area{padding-bottom:72px!important;}}
-@media(max-width:480px){.card{padding:10px!important;}.btn{font-size:14px!important;padding:9px!important;}.brand{font-size:22px!important;}.ph-pfx{min-width:68px!important;}.game-emoji{font-size:24px!important;}.spin-wrap{width:210px!important;height:210px!important;}#wCanvas{width:210px!important;height:210px!important;}#tapGame{height:160px!important;}}
+@media(max-width:480px){.card{padding:10px!important;}.btn{font-size:14px!important;padding:9px!important;}.brand{font-size:22px!important;}.ph-pfx{min-width:68px!important;}.game-emoji{font-size:24px!important;}.spin-wrap{width:210px!important;height:210px!important;}#wCanvas{width:210px!important;height:210px!important;}#tapGame{height:200px!important;}}
 #pinOverlay{position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:99999;display:none;align-items:center;justify-content:center;}
 #pinOverlay.show{display:flex;}
 .pin-box{background:#fff;border-radius:20px;padding:24px 20px;width:260px;text-align:center;}
@@ -222,15 +222,24 @@ function setMobileFields(pfxId,numId,mobile){
       <div style="font-size:12px;font-weight:800;color:#FFD600;">🔐 Same login for Loyalty + Games Club</div>
       <div style="font-size:11px;color:rgba(255,255,255,.75);margin-top:2px;">Your stamps and game points are all linked</div>
     </div>
-    <input class="fi" type="text" id="loginName" placeholder="Child's name" maxlength="20" style="margin-bottom:8px;" onkeydown="if(event.key==='Enter')doLogin()">
+    <!-- Step 1: Mobile first -->
     <div style="margin-bottom:10px;">
-      <div style="font-size:11px;font-weight:700;color:#6B7280;margin-bottom:5px;">Parent Mobile</div>
+      <div style="font-size:11px;font-weight:700;color:#6B7280;margin-bottom:5px;">Parent Mobile 📱</div>
       <div class="ph-wrap light">
         <select class="ph-pfx" id="loginPfx"><option value="050">050</option><option value="051">051</option><option value="052">052</option><option value="054">054</option><option value="055" selected>055</option><option value="056">056</option><option value="058">058</option><option value="059">059</option><option value="060">060</option></select>
-        <input class="ph-num" type="tel" id="loginMobile" placeholder="1234567" maxlength="7" inputmode="numeric" autocomplete="tel" onkeydown="if(event.key==='Enter')doLogin()">
+        <input class="ph-num" type="tel" id="loginMobile" placeholder="1234567" maxlength="7" inputmode="numeric" autocomplete="tel" oninput="onLoginMobileInput()">
       </div>
+      <div id="mobileStatus" style="display:none;margin-top:5px;padding:6px 10px;border-radius:8px;font-size:11px;font-weight:700;text-align:center;"></div>
     </div>
-    <button class="btn btn-y" id="loginBtn" onclick="doLogin()">Let's Play! 🎮</button>
+    <!-- Step 2: Child name — revealed after mobile lookup -->
+    <div id="childNameRow" style="display:none;margin-bottom:10px;">
+      <div style="font-size:11px;font-weight:700;color:#6B7280;margin-bottom:5px;">Child's Name 👧👦</div>
+      <!-- single child: pre-filled text input -->
+      <input class="fi" type="text" id="loginName" placeholder="Child's name" maxlength="20" style="display:none;" onkeydown="if(event.key==='Enter')doLogin()">
+      <!-- multiple children: dropdown -->
+      <select class="fi" id="loginNameSelect" style="display:none;appearance:auto;cursor:pointer;"></select>
+    </div>
+    <button class="btn btn-y" id="loginBtn" onclick="doLogin()" style="display:none;">Let's Play! 🎮</button>
     <div id="loginMsg" style="display:none;margin-top:8px;padding:8px;border-radius:8px;font-size:12px;font-weight:700;text-align:center;"></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid #F3F4F6;">
       <button class="btn btn-b" onclick="goToRegister(\'\',\'\',\'Register below!\')" style="font-size:13px;padding:9px;">📝 Register</button>
@@ -387,9 +396,9 @@ function setMobileFields(pfxId,numId,mobile){
     <div class="hud-box"><div class="hud-lbl">Best</div><div class="hud-val" id="tapBest">--</div></div>
     <button class="home-btn" onclick="goProfile()" style="align-self:center;margin-left:4px;flex-shrink:0;">🎮</button>
   </div>
-  <div id="tapGame" style="height:230px;">
+  <div id="tapGame" style="height:270px;">
     <div id="pandaTarget" style="top:80px;left:100px;cursor:pointer;" onclick="tapPanda()" ontouchstart="tapPanda()">🐼</div>
-    <div id="tapStatus" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:'Baloo 2',cursive;font-size:22px;font-weight:800;color:#fff;text-align:center;text-shadow:2px 2px 0 #000;">Tap the panda!<br><span style="font-size:13px;opacity:.7;">Tap START</span></div>
+    <div id="tapStatus" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:'Baloo 2',cursive;font-size:18px;font-weight:800;color:#fff;text-align:center;text-shadow:2px 2px 0 #000;width:90%;word-break:break-word;line-height:1.4;">Tap the panda!<br><span style="font-size:13px;opacity:.7;">Tap START</span></div>
   </div>
   <button class="btn btn-y" id="tapStartBtn" onclick="startTapGame()" style="margin-top:8px;">START! 🐼</button>
 </div>
@@ -573,11 +582,19 @@ function resetAllGameState(){
 // == NAV ==
 function newPlayer(){
   resetAllGameState();
-  document.getElementById('loginName').value='';
+  clearTimeout(_mlTimer);
+  _mlChildren=[];
   document.getElementById('loginMobile').value='';
+  document.getElementById('loginName').value='';
+  document.getElementById('loginName').style.display='none';
+  document.getElementById('loginNameSelect').innerHTML='';
+  document.getElementById('loginNameSelect').style.display='none';
+  document.getElementById('childNameRow').style.display='none';
+  document.getElementById('loginBtn').style.display='none';
+  document.getElementById('mobileStatus').style.display='none';
   document.getElementById('loginMsg').style.display='none';
   player={id:null,name:'',mobile:'',game_points:0,game_spins:0};
-  document.getElementById('loginName').focus();
+  document.getElementById('loginMobile').focus();
   showScreen('s-login');
 }
 
@@ -791,10 +808,18 @@ function confirmGoHome(){
 }
 function goHome(){
   resetAllGameState();
-  document.getElementById('loginName').value='';
+  clearTimeout(_mlTimer);
+  _mlChildren=[];
   document.getElementById('loginMobile').value='';
-  if(document.getElementById('loginPfx')) document.getElementById('loginPfx').value='055';
+  document.getElementById('loginName').value='';
+  document.getElementById('loginName').style.display='none';
+  document.getElementById('loginNameSelect').innerHTML='';
+  document.getElementById('loginNameSelect').style.display='none';
+  document.getElementById('childNameRow').style.display='none';
+  document.getElementById('loginBtn').style.display='none';
+  document.getElementById('mobileStatus').style.display='none';
   document.getElementById('loginMsg').style.display='none';
+  if(document.getElementById('loginPfx')) document.getElementById('loginPfx').value='055';
   player={id:null,name:'',mobile:'',game_points:0,game_spins:0};
   showScreen('s-login');
 }
@@ -1504,69 +1529,155 @@ function checkLoyaltyPassport(){
     if(box) box.innerHTML='<div style="text-align:center;padding:16px 0;"><div style="font-size:40px;">&#9888;&#65039;</div><div style="font-size:14px;font-weight:700;color:#DC2626;margin-top:10px;">'+e.message+'</div></div><button onclick="document.getElementById(\'passportOverlay\').remove()" style="width:100%;padding:12px;background:#1565C0;color:#fff;border:none;border-radius:12px;font-family:\'Baloo 2\',cursive;font-size:16px;font-weight:800;cursor:pointer;margin-top:8px;">Close</button>';
   });
 }
-async function doLogin(){
-  const name=document.getElementById('loginName').value.trim();
-  const mobileNum=(document.getElementById('loginMobile')?.value||'').trim().replace(/\D/g,'');
-  const mobile=getFullMobile('loginPfx','loginMobile');
+// ── MOBILE-FIRST LOGIN ──
+var _mlTimer=null;
+var _mlChildren=[];
+
+function onLoginMobileInput(){
+  clearTimeout(_mlTimer);
+  var num=(document.getElementById('loginMobile').value||'').replace(/\D/g,'');
+  // reset child row
+  document.getElementById('childNameRow').style.display='none';
+  document.getElementById('loginName').style.display='none';
+  document.getElementById('loginName').value='';
+  document.getElementById('loginNameSelect').style.display='none';
+  document.getElementById('loginNameSelect').innerHTML='';
+  document.getElementById('loginBtn').style.display='none';
   document.getElementById('loginMsg').style.display='none';
-  if(!name){
-    document.getElementById('loginName').style.borderColor='#FF6B9D';
-    setTimeout(()=>document.getElementById('loginName').style.borderColor='#E5E7EB',1200);
-    return;
-  }
-  if(mobileNum.length!==7){
-    showLoginMsg('Please enter a valid 7-digit mobile number (e.g. 1234567) 📱',false);
-    document.getElementById('loginMobile').style.borderColor='#FF6B9D';
-    setTimeout(()=>document.getElementById('loginMobile').style.borderColor='rgba(255,255,255,.25)',1200);
-    return;
-  }
-  const btn=document.getElementById('loginBtn');
-  btn.disabled=true;btn.textContent='Checking...';
+  var st=document.getElementById('mobileStatus');
+  st.style.display='none';
+  _mlChildren=[];
+  if(num.length!==7) return;
+  st.textContent='Looking up... 🔍';
+  st.style.display='block';
+  st.style.background='rgba(255,255,255,.12)';
+  st.style.color='rgba(255,255,255,.85)';
+  _mlTimer=setTimeout(_doMobileLookup, 500);
+}
+
+async function _doMobileLookup(){
+  var mobile=getFullMobile('loginPfx','loginMobile');
+  var mobileAlt='0'+mobile.slice(3);
+  var st=document.getElementById('mobileStatus');
   try{
-    // Search both 971XXXXXXXXX and 0XXXXXXXXX formats
-    const _mAlt='0'+mobile.slice(3);
-    const [_rA,_rB]=await Promise.all([sb('customers','GET',null,'select=*&mobile=eq.'+encodeURIComponent(mobile)+'&limit=10'),sb('customers','GET',null,'select=*&mobile=eq.'+encodeURIComponent(_mAlt)+'&limit=10')]);
-    const _seen=new Set();
-    const byMobile=[...(_rA||[]),...(_rB||[])].filter(c=>{if(_seen.has(c.id))return false;_seen.add(c.id);return true;});
+    var rA=await sb('customers','GET',null,'select=id,name,mobile&mobile=eq.'+encodeURIComponent(mobile)+'&limit=20');
+    var rB=await sb('customers','GET',null,'select=id,name,mobile&mobile=eq.'+encodeURIComponent(mobileAlt)+'&limit=20');
+    var seen=new Set();
+    var children=([].concat(rA||[]).concat(rB||[])).filter(function(c){if(seen.has(c.id))return false;seen.add(c.id);return true;});
+    _mlChildren=children;
+
+    if(!children.length){
+      // Not found — show register prompt
+      st.textContent='Mobile not registered — please register first!';
+      st.style.background='rgba(220,38,38,.15)';
+      st.style.color='#FCA5A5';
+      st.style.display='block';
+      var msgEl=document.getElementById('loginMsg');
+      msgEl.innerHTML='';
+      var info=document.createElement('div');
+      info.style.cssText='margin-bottom:8px;font-size:12px;color:#DC2626;';
+      info.textContent='This mobile number is not registered yet.';
+      var regBtn=document.createElement('button');
+      regBtn.textContent='📝 Register Now';
+      regBtn.style.cssText='width:100%;padding:10px;background:#FFD600;border:none;border-radius:8px;font-family:\'Baloo 2\',cursive;font-size:15px;font-weight:800;color:#0D47A1;cursor:pointer;';
+      regBtn.onclick=function(){goToRegister('',mobile,'👋 Welcome! Fill in your details to join MiniCuts!');};
+      msgEl.appendChild(info);
+      msgEl.appendChild(regBtn);
+      msgEl.style.display='block';
+      msgEl.style.background='#FEE2E2';
+      msgEl.style.color='#DC2626';
+      return;
+    }
+
+    st.style.display='none';
+    document.getElementById('childNameRow').style.display='block';
+
+    if(children.length===1){
+      // Single child — pre-fill text input
+      var inp=document.getElementById('loginName');
+      inp.value=children[0].name;
+      inp.style.display='block';
+      document.getElementById('loginNameSelect').style.display='none';
+    } else {
+      // Multiple children — dropdown
+      var sel=document.getElementById('loginNameSelect');
+      sel.innerHTML='<option value="">-- Select child --</option>'
+        +children.map(function(c){return'<option value="'+c.name+'">'+c.name+'</option>';}).join('');
+      sel.style.display='block';
+      document.getElementById('loginName').style.display='none';
+    }
+    document.getElementById('loginBtn').style.display='block';
+  }catch(e){
+    st.textContent='Error: '+e.message;
+    st.style.background='rgba(220,38,38,.2)';
+    st.style.color='#FCA5A5';
+    st.style.display='block';
+  }
+}
+
+async function doLogin(){
+  // Get name from whichever field is visible
+  var name='';
+  var inp=document.getElementById('loginName');
+  var sel=document.getElementById('loginNameSelect');
+  if(inp.style.display!=='none') name=inp.value.trim();
+  else if(sel.style.display!=='none') name=sel.value.trim();
+
+  var mobileNum=(document.getElementById('loginMobile').value||'').replace(/\D/g,'');
+  var mobile=getFullMobile('loginPfx','loginMobile');
+
+  document.getElementById('loginMsg').style.display='none';
+
+  if(mobileNum.length!==7){
+    showLoginMsg('Please enter a valid 7-digit mobile number 📱',false);
+    return;
+  }
+  if(!name){
+    showLoginMsg('Please select or enter the child\'s name 👶',false);
+    return;
+  }
+
+  var btn=document.getElementById('loginBtn');
+  btn.disabled=true; btn.textContent='Checking...';
+  try{
+    // Re-fetch full record for matched child
+    var mobileAlt='0'+mobile.slice(3);
+    var rA=await sb('customers','GET',null,'select=*&mobile=eq.'+encodeURIComponent(mobile)+'&limit=10');
+    var rB=await sb('customers','GET',null,'select=*&mobile=eq.'+encodeURIComponent(mobileAlt)+'&limit=10');
+    var seen=new Set();
+    var byMobile=([].concat(rA||[]).concat(rB||[])).filter(function(c){if(seen.has(c.id))return false;seen.add(c.id);return true;});
 
     if(!byMobile.length){
-      // Mobile not in system at all — take them straight to register, blank form
       goToRegister('', mobile, '👋 Welcome! Fill in your details below to join the MiniCuts Games Club!');
       return;
     }
 
-    // Step 2: find exact name match (case-insensitive in JS)
-    const match=byMobile.find(c=>
-      c.name.trim().toLowerCase()===name.toLowerCase()
-    );
+    var match=byMobile.find(function(c){return c.name.trim().toLowerCase()===name.toLowerCase();});
 
     if(match){
-      // Found exact match — log in
       resetAllGameState();
-      player={...match};
+      player=Object.assign({},match);
       player.game_points=Number(player.game_points)||0;
       player.game_spins=Number(player.game_spins)||0;
       player.stamps=Number(player.stamps)||0;
       player.best_tap_score=Number(player.best_tap_score)||0;
       player._lastGameDate=null;
       player.best_memory_time=player.best_memory_time||null;
-      spinCount=0;bestSpinPts=0;
+      spinCount=0; bestSpinPts=0;
       await checkTodaySessions();
       await fetchGlobalBests();
       goProfile();
     } else {
-      // Mobile exists but this child name not found
-      const existingNames=byMobile.map(c=>c.name).join(', ');
-      // Use DOM to build the message safely — no string escaping issues
-      const msgEl=document.getElementById('loginMsg');
+      var existingNames=byMobile.map(function(c){return c.name;}).join(', ');
+      var msgEl=document.getElementById('loginMsg');
       msgEl.innerHTML='';
-      const txt=document.createElement('div');
+      var txt=document.createElement('div');
       txt.innerHTML='Child <b>'+name+'</b> not found.<br>Registered: <b>'+existingNames+'</b>';
       txt.style.marginBottom='10px';
-      const regBtn=document.createElement('button');
+      var regBtn=document.createElement('button');
       regBtn.textContent='+ Register New Child';
       regBtn.style.cssText='width:100%;padding:10px;background:#FFD600;border:none;border-radius:8px;font-family:\'Baloo 2\',cursive;font-size:16px;font-weight:800;color:#0D47A1;cursor:pointer;margin-top:4px;';
-      regBtn.onclick=()=>goToRegister(name,mobile,'New child? Fill in the details below!');
+      regBtn.onclick=function(){goToRegister(name,mobile,'New child? Fill in the details below!');};
       msgEl.appendChild(txt);
       msgEl.appendChild(regBtn);
       msgEl.style.display='block';
@@ -1574,7 +1685,7 @@ async function doLogin(){
       msgEl.style.color='#DC2626';
     }
   }catch(e){showLoginMsg('Error: '+e.message,false);}
-  finally{btn.disabled=false;btn.textContent="Let's Play! 🎮";}
+  finally{btn.disabled=false; btn.textContent="Let's Play! 🎮";}
 }
 
 function goToRegister(name,mobile,msg){
@@ -1728,45 +1839,225 @@ async function saveAndShowResult(pts,gameType,bestMemTime=null){
 }
 
 function showResult(pts){
-  const newTotal=player.game_points; // already updated by savePoints
-  const emoji=pts>=15?'🔥':pts>=10?'🎉':pts>=5?'⭐':'👍';
-  document.getElementById('resultPts').textContent='+'+pts;
-  document.getElementById('resultTotal').textContent=newTotal+' pts';
-  drawMilestoneTrack('resultMilestoneTrack', newTotal);
-  // Find highest unlocked tier
-  const tier=TIERS.slice().reverse().find(t=>newTotal>=t.pts);
-  const next=TIERS.find(t=>newTotal<t.pts);
-  const bannerEl=document.getElementById('rewardBanner');
-  if(tier){
-    // Check if this game just unlocked a NEW level
-    const prevTotal=newTotal-pts;
-    const justUnlocked=TIERS.slice().reverse().find(t=>newTotal>=t.pts&&prevTotal<t.pts);
-    if(justUnlocked){
-      bannerEl.innerHTML=`<div style="background:linear-gradient(135deg,${justUnlocked.color},${justUnlocked.color}88);border-radius:10px;padding:8px 12px;text-align:center;margin-top:6px;display:flex;align-items:center;gap:10px;">
-        <div style="font-size:30px;">${justUnlocked.icon}</div>
-        <div style="text-align:left;">
-          <div style="font-size:10px;font-weight:800;color:#fff;opacity:.8;text-transform:uppercase;letter-spacing:1px;">Level ${justUnlocked.level} Unlocked!</div>
-          <div style="font-family:'Baloo 2',cursive;font-size:16px;font-weight:900;color:#fff;">${justUnlocked.badge}</div>
-          <div style="font-size:11px;color:#fff;opacity:.85;">${justUnlocked.reward} — show staff! 🎁</div>
-        </div>
-      </div>`;
-    } else {
-      bannerEl.innerHTML=tier?`<div style="background:#F0FDF4;border-radius:10px;padding:8px 12px;margin-top:6px;display:flex;align-items:center;gap:8px;">
-        <div style="font-size:24px;">${tier.icon}</div>
-        <div><div style="font-size:10px;color:#16A34A;font-weight:700;text-transform:uppercase;">Current Level</div>
-        <div style="font-family:'Baloo 2',cursive;font-size:14px;font-weight:800;color:#15803D;">${tier.badge}</div></div>
-      </div>`:'';
-    }
-  } else { bannerEl.innerHTML=''; }
-  if(next){
-    bannerEl.innerHTML+=`<div style="text-align:center;padding:5px 8px;color:#6B7280;font-size:11px;background:#F9FAFB;border-radius:8px;margin-top:4px;">
-      ${next.pts-newTotal}pts → ${next.icon} Level ${next.level}: ${next.badge}
-    </div>`;
-  }
+  const newTotal=player.game_points;
+  const allDone=todayPlayed.spin&&todayPlayed.tap&&todayPlayed.memory;
+
+  // Check if a new tier was just unlocked
+  const prevTotal=newTotal-pts;
+  const justUnlocked=TIERS.slice().reverse().find(t=>newTotal>=t.pts&&prevTotal<t.pts);
+
   if(pts>=10) launchConfetti();
   refreshGameCards();
   renderRemainingGames();
-  showScreen('s-result');
+
+  if(allDone){
+    _showAllDonePopup(newTotal, justUnlocked);
+  } else {
+    _showQuickResultPopup(pts, newTotal, justUnlocked);
+  }
+}
+
+function _showQuickResultPopup(pts, newTotal, justUnlocked){
+  var old=document.getElementById('_qrPop'); if(old) old.remove();
+  var div=document.createElement('div');
+  div.id='_qrPop';
+  div.style.cssText='position:fixed;inset:0;background:rgba(13,71,161,.88);z-index:8000;display:flex;align-items:center;justify-content:center;padding:20px;';
+  var played=Object.values(todayPlayed).filter(Boolean).length;
+  var remaining=3-played;
+  var emoji=pts>=15?'🔥':pts>=10?'🎉':pts>=5?'⭐':'👍';
+  var tierHtml='';
+  if(justUnlocked){
+    tierHtml='<div style="background:linear-gradient(135deg,'+justUnlocked.color+','+justUnlocked.color+'88);border-radius:12px;padding:10px 14px;margin:10px 0;display:flex;align-items:center;gap:10px;"><div style="font-size:28px;">'+justUnlocked.icon+'</div><div style="text-align:left;"><div style="font-size:9px;font-weight:800;color:#fff;opacity:.85;text-transform:uppercase;letter-spacing:1px;">Level '+justUnlocked.level+' Unlocked!</div><div style="font-family:\'Baloo 2\',cursive;font-size:15px;font-weight:900;color:#fff;">'+justUnlocked.badge+'</div><div style="font-size:11px;color:#fff;opacity:.85;">'+justUnlocked.reward+' — show staff! 🎁</div></div></div>';
+  }
+  div.innerHTML='<div style="background:#fff;border-radius:22px;padding:24px 20px;max-width:320px;width:100%;text-align:center;">'
+    +'<div style="font-size:52px;margin-bottom:6px;">'+emoji+'</div>'
+    +'<div style="font-family:\'Baloo 2\',cursive;font-size:40px;font-weight:900;color:#0D47A1;line-height:1;">+'+pts+' pts</div>'
+    +'<div style="font-size:13px;color:#6B7280;margin:4px 0 8px;">Total: <strong style="color:#0D47A1;">'+newTotal+' pts</strong></div>'
+    +tierHtml
+    +'<div style="background:#FFF9E6;border:1.5px solid rgba(255,214,0,.5);border-radius:10px;padding:8px 12px;margin:8px 0;font-family:\'Baloo 2\',cursive;font-size:13px;font-weight:800;color:#0D47A1;">'+remaining+' more game'+(remaining!==1?'s':'')+' left — keep going! ⚡</div>'
+    +'<button id="_qrBtn" style="width:100%;padding:13px;background:linear-gradient(135deg,#FFD600,#FF8C00);border:none;border-radius:12px;font-family:\'Baloo 2\',cursive;font-size:18px;font-weight:800;color:#0D47A1;cursor:pointer;margin-top:4px;">Play Next Game! 🎮</button>'
+    +'</div>';
+  document.body.appendChild(div);
+  document.getElementById('_qrBtn').addEventListener('click', function(){div.remove(); goProfile();});
+  // auto-advance after 4s
+  var t=setTimeout(function(){var e=document.getElementById('_qrPop');if(e){e.remove();goProfile();}},4000);
+  document.getElementById('_qrBtn').addEventListener('click', function(){clearTimeout(t);}, {once:true});
+}
+
+function _showAllDonePopup(newTotal, justUnlocked){
+  var old=document.getElementById('_adPop'); if(old) old.remove();
+  var div=document.createElement('div');
+  div.id='_adPop';
+  div.style.cssText='position:fixed;inset:0;background:rgba(13,71,161,.92);z-index:8000;display:flex;align-items:center;justify-content:center;padding:20px;';
+  var tierHtml='';
+  if(justUnlocked){
+    tierHtml='<div style="background:linear-gradient(135deg,'+justUnlocked.color+','+justUnlocked.color+'88);border-radius:12px;padding:10px 14px;margin:10px 0;display:flex;align-items:center;gap:10px;"><div style="font-size:28px;">'+justUnlocked.icon+'</div><div style="text-align:left;"><div style="font-size:9px;font-weight:800;color:#fff;opacity:.85;text-transform:uppercase;letter-spacing:1px;">Level '+justUnlocked.level+' Unlocked!</div><div style="font-family:\'Baloo 2\',cursive;font-size:15px;font-weight:900;color:#fff;">'+justUnlocked.badge+'</div><div style="font-size:11px;color:#fff;opacity:.85;">'+justUnlocked.reward+' — show staff! 🎁</div></div></div>';
+  }
+  div.innerHTML='<div style="background:#fff;border-radius:22px;padding:28px 22px;max-width:320px;width:100%;text-align:center;">'
+    +'<div style="font-size:64px;margin-bottom:8px;animation:bounce-anim 1s infinite;">🏆</div>'
+    +'<div style="font-family:\'Baloo 2\',cursive;font-size:22px;font-weight:900;color:#0D47A1;margin-bottom:4px;">All 3 Games Done!</div>'
+    +'<div style="font-size:13px;color:#6B7280;margin-bottom:8px;">Total: <strong style="color:#0D47A1;">'+newTotal+' pts</strong></div>'
+    +tierHtml
+    +'<div style="background:#F0FDF4;border:1.5px solid #86EFAC;border-radius:10px;padding:10px;margin:10px 0;font-size:13px;font-weight:700;color:#166534;">Come back after your next haircut for more games! ✂️🐼</div>'
+    +'<button id="_adBtn" style="width:100%;padding:13px;background:linear-gradient(135deg,#FFD600,#FF8C00);border:none;border-radius:12px;font-family:\'Baloo 2\',cursive;font-size:18px;font-weight:800;color:#0D47A1;cursor:pointer;margin-top:4px;">📊 See My Results</button>'
+    +'</div>';
+  document.body.appendChild(div);
+
+  function openSummary(){
+    div.remove();
+    _showPlayerSummary();
+  }
+
+  document.getElementById('_adBtn').addEventListener('click', openSummary);
+  // auto-advance to summary after 8s
+  var t=setTimeout(function(){var e=document.getElementById('_adPop');if(e){e.remove();_showPlayerSummary();}},8000);
+  document.getElementById('_adBtn').addEventListener('click', function(){clearTimeout(t);}, {once:true});
+}
+
+async function _showPlayerSummary(){
+  // Remove any old summary
+  var old=document.getElementById('_sumPop'); if(old) old.remove();
+
+  var pts=player.game_points||0;
+  var name=player.name||'Player';
+  var stamps=Number(player.stamps)||0;
+  var PAID=5;
+
+  // TIERS data
+  var LVLS=[
+    {level:0,pts:0,badge:'Starter Panda',icon:'🐼',color:'#94A3B8'},
+    {level:1,pts:50,badge:'Panda Explorer',icon:'🌟',color:'#4CAF50',reward:'🎀 Mini-Gift from staff'},
+    {level:2,pts:100,badge:'Panda Adventurer',icon:'🏅',color:'#2196F3',reward:'🎀 Mini-Gift from staff'},
+    {level:3,pts:150,badge:'Panda Hero',icon:'🦸',color:'#9C27B0',reward:'🎀 Mini-Gift from staff'},
+    {level:4,pts:200,badge:'Panda Superstar',icon:'⭐',color:'#FF8C00',reward:'🎀 Mini-Gift from staff'},
+    {level:5,pts:250,badge:'Panda Legend',icon:'🔥',color:'#EC4899',reward:'🎀 Mini-Gift from staff'},
+    {level:6,pts:300,badge:'Dragon Warrior',icon:'🐉',color:'#FFD600',reward:'🎀 Mini-Gift from staff'}
+  ];
+  var cur=LVLS.slice().reverse().find(function(l){return pts>=l.pts;})||LVLS[0];
+  var nxt=LVLS.slice(1).find(function(l){return pts<l.pts;})||null;
+
+  // Fetch rank
+  var rankHtml='<span style="color:#9CA3AF;">Loading rank...</span>';
+  try{
+    var res=await fetch(SB_URL+'/rest/v1/customers?select=id&game_points=gt.'+pts+'&limit=1',
+      {headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY,Prefer:'count=exact'}});
+    var cr=res.headers.get('content-range')||'';
+    var above=parseInt((cr.split('/')[1]||'0'),10)||0;
+    var totRes=await fetch(SB_URL+'/rest/v1/customers?select=id&game_points=not.is.null&limit=1',
+      {headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY,Prefer:'count=exact'}});
+    var cr2=totRes.headers.get('content-range')||'';
+    var tot=parseInt((cr2.split('/')[1]||'0'),10)||1;
+    var rank=above+1;
+    var medal=rank===1?'🥇 ':rank===2?'🥈 ':rank===3?'🥉 ':'';
+    rankHtml=medal+'<strong>Rank #'+rank+'</strong> of '+tot+' players';
+  }catch(e){ rankHtml='Rank unavailable'; }
+
+  // Progress bar
+  var pct=Math.min(Math.round((pts/300)*100),100);
+  var pandaPct=Math.min(pct,96);
+
+  // Level icons row
+  var ICONS=[
+    {pts:50,icon:'🌟'},{pts:100,icon:'🏅'},{pts:150,icon:'🦸'},
+    {pts:200,icon:'⭐'},{pts:250,icon:'🔥'},{pts:300,icon:'🐉'}
+  ];
+  var POS=[2,19,36,53,70,87];
+  var iconsHtml=ICONS.map(function(l,i){
+    var done=pts>=l.pts;
+    return '<div style="position:absolute;left:'+POS[i]+'%;top:0;transform:translateX(-50%);text-align:center;width:32px;">'
+      +'<div style="width:28px;height:28px;border-radius:50%;margin:0 auto;background:'+(done?'linear-gradient(135deg,#FFD600,#FF8C00)':'#F1F5F9')
+      +';border:2.5px solid '+(done?'#FF8C00':'#D1D5DB')
+      +';display:flex;align-items:center;justify-content:center;font-size:13px;'
+      +'filter:'+(done?'none':'grayscale(.5) opacity(.5)')+';">'
+      +l.icon+'</div>'
+      +'<div style="font-size:7px;font-weight:800;color:'+(done?'#FF8C00':'#94A3B8')+';margin-top:2px;">'+l.pts+'</div>'
+      +'</div>';
+  }).join('');
+
+  // Stamp dots
+  var stampDots='';
+  for(var s=0;s<PAID;s++){
+    var done=stamps>s;
+    stampDots+='<div style="width:38px;height:38px;border-radius:50%;background:'+(done?'#FFD600':'#F3F4F6')+';border:2px solid '+(done?'#B45309':'#D1D5DB')+';display:flex;align-items:center;justify-content:center;font-size:'+(done?'18':'14')+'px;flex-shrink:0;">'+(done?'✂️':'○')+'</div>';
+  }
+  // Free wash
+  stampDots+='<div style="width:38px;height:38px;border-radius:50%;background:'+(stamps>=PAID?'#22C55E':'#F3F4F6')+';border:2px solid '+(stamps>=PAID?'#166534':'#D1D5DB')+';display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">'+(stamps>=PAID?'🚿':'🚿')+'</div>';
+
+  var stampsLeft=Math.max(0,PAID-stamps);
+  var stampMsg=stamps>=PAID
+    ?'<span style="color:#16A34A;font-weight:800;">🎉 Free hair wash earned! Show to staff.</span>'
+    :'<span style="color:#92400E;">'+stampsLeft+' more haircut'+(stampsLeft!==1?'s':'')+' to earn Free Hair Wash 🚿</span>';
+
+  // All tier levels list
+  var tiersListHtml=LVLS.slice(1).map(function(l){
+    var done=pts>=l.pts;
+    return '<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;background:'+(done?'rgba(255,214,0,.1)':'rgba(0,0,0,.03)')+';border:1px solid '+(done?'rgba(255,214,0,.4)':'#F3F4F6')+';margin-bottom:5px;">'
+      +'<div style="font-size:20px;filter:'+(done?'none':'grayscale(.6) opacity(.5)')+'">'+l.icon+'</div>'
+      +'<div style="flex:1;">'
+        +'<div style="font-size:12px;font-weight:800;color:'+(done?'#92400E':'#6B7280')+'">Level '+l.level+' · '+l.badge+'</div>'
+        +'<div style="font-size:10px;color:#9CA3AF;">'+l.pts+' pts · '+l.reward+'</div>'
+      +'</div>'
+      +(done?'<div style="font-size:16px;">✅</div>':'<div style="font-size:11px;font-weight:700;color:#9CA3AF;">'+(l.pts-pts)+' pts</div>')
+    +'</div>';
+  }).join('');
+
+  var pop=document.createElement('div');
+  pop.id='_sumPop';
+  pop.style.cssText='position:fixed;inset:0;background:linear-gradient(160deg,#0D47A1,#1976D2);z-index:8500;overflow-y:auto;padding:16px;';
+
+  pop.innerHTML=
+    // Header
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">'
+      +'<div style="font-family:\'Baloo 2\',cursive;font-size:22px;font-weight:900;color:#FFD600;">📊 My Results</div>'
+      +'<button id="_sumHomeBtn" style="background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.3);color:#fff;padding:7px 14px;border-radius:99px;font-family:\'Nunito\',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">🏠 Go Home</button>'
+    +'</div>'
+
+    // Hero card — name + pts + rank
+    +'<div style="background:#fff;border-radius:18px;padding:18px;margin-bottom:12px;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,.2);">'
+      +'<div style="font-size:42px;margin-bottom:4px;">'+cur.icon+'</div>'
+      +'<div style="font-family:\'Baloo 2\',cursive;font-size:24px;font-weight:900;color:#0D47A1;">'+name+'</div>'
+      +'<div style="font-size:13px;font-weight:800;color:'+cur.color+';margin:2px 0 6px;">'+cur.badge+'</div>'
+      +'<div style="display:inline-flex;align-items:center;gap:6px;background:#0D47A1;color:#FFD600;padding:6px 18px;border-radius:99px;font-family:\'Baloo 2\',cursive;font-size:22px;font-weight:900;">'+pts+' <span style="font-size:14px;color:rgba(255,255,255,.7);">pts</span></div>'
+      +'<div style="font-size:13px;color:#6B7280;margin-top:8px;">'+rankHtml+'</div>'
+    +'</div>'
+
+    // Roadmap card
+    +'<div style="background:#fff;border-radius:16px;padding:16px;margin-bottom:12px;box-shadow:0 2px 10px rgba(0,0,0,.12);">'
+      +'<div style="font-family:\'Baloo 2\',cursive;font-size:15px;font-weight:800;color:#0D47A1;margin-bottom:12px;">🗺️ Level Roadmap</div>'
+      +'<div style="position:relative;height:36px;margin-bottom:2px;">'+iconsHtml+'</div>'
+      +'<div style="position:relative;height:28px;margin:0 0 6px;">'
+        +'<div style="position:absolute;top:8px;left:0;right:0;height:8px;background:#E2E8F0;border-radius:99px;overflow:hidden;">'
+          +'<div style="height:100%;width:'+pct+'%;background:linear-gradient(90deg,#FFD600,#FF8C00);border-radius:99px;"></div>'
+        +'</div>'
+        +'<div style="position:absolute;top:0;left:calc('+pandaPct+'% - 10px);font-size:22px;line-height:1;">🐼</div>'
+      +'</div>'
+      +(nxt
+        ?'<div style="font-size:11px;font-weight:800;color:#0D47A1;text-align:center;background:#F0F7FF;border-radius:8px;padding:5px 8px;"><span style="color:#FF8C00;">'+(nxt.pts-pts)+' pts</span> to go → '+nxt.icon+' '+nxt.badge+'</div>'
+        :'<div style="font-size:12px;font-weight:800;color:#16A34A;text-align:center;background:#F0FDF4;border-radius:8px;padding:5px 8px;">🐉 Dragon Warrior — maximum level reached!</div>'
+      )
+    +'</div>'
+
+    // Levels list
+    +'<div style="background:#fff;border-radius:16px;padding:16px;margin-bottom:12px;box-shadow:0 2px 10px rgba(0,0,0,.12);">'
+      +'<div style="font-family:\'Baloo 2\',cursive;font-size:15px;font-weight:800;color:#0D47A1;margin-bottom:10px;">🏅 All Levels</div>'
+      +tiersListHtml
+    +'</div>'
+
+    // Loyalty stamps card
+    +'<div style="background:#fff;border-radius:16px;padding:16px;margin-bottom:20px;box-shadow:0 2px 10px rgba(0,0,0,.12);">'
+      +'<div style="font-family:\'Baloo 2\',cursive;font-size:15px;font-weight:800;color:#92400E;margin-bottom:10px;">✂️ Loyalty Stamps ('+stamps+'/'+PAID+')</div>'
+      +'<div style="display:flex;gap:8px;justify-content:center;margin-bottom:10px;">'+stampDots+'</div>'
+      +'<div style="text-align:center;font-size:12px;font-weight:700;padding:7px;background:rgba(0,0,0,.04);border-radius:8px;">'+stampMsg+'</div>'
+    +'</div>'
+
+    // Big Go Home button
+    +'<button id="_sumHomeBtnBottom" style="width:100%;padding:15px;background:linear-gradient(135deg,#FFD600,#FF8C00);border:none;border-radius:14px;font-family:\'Baloo 2\',cursive;font-size:20px;font-weight:900;color:#0D47A1;cursor:pointer;margin-bottom:24px;">🏠 Go Home</button>';
+
+  document.body.appendChild(pop);
+
+  function doGoHome(){pop.remove(); goHome();}
+  document.getElementById('_sumHomeBtn').addEventListener('click', doGoHome);
+  document.getElementById('_sumHomeBtnBottom').addEventListener('click', doGoHome);
 }
 
 // == LEADERBOARD ==
