@@ -1020,6 +1020,9 @@ function showStaffPanel(u){
   document.getElementById('SAV').textContent=u.charAt(0).toUpperCase();
   renderDash();
   loadAfterService();
+  // Auto-load Today on login — Today is the default active page
+  loadToday();
+  startTodayAutoRefresh();
 }
 
 
