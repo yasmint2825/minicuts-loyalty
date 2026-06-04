@@ -855,7 +855,6 @@ function goLeaderboard(){
   loadLeaderboard();
 }
 function goStaff(){showScreen('s-staff');}
-function confirmGoHome(){goHome();}
 // ══ GAME STATE VARIABLES ══
 const SEGS=[
   {pts:8, color:'#3B82F6'},{pts:9, color:'#8B5CF6'},{pts:10,color:'#EC4899'},
@@ -1284,27 +1283,7 @@ function renderProfile(){
 function drawMilestoneTrack(containerId,pts){
   const el=document.getElementById(containerId);
   if(!el) return;
-  const MAX=300;
-  const pct=Math.min((pts/MAX)*100,100);
-  const tiers=TIERS;
-  // Cap icon positions so they don't overflow: first at 2%, last at 94%
-  const positions=[2,20,37,54,71,94];
-  const cps=tiers.map((t,i)=>{
-    const l=positions[i]??Math.min((t.pts/MAX)*100,94);
-    const done=pts>=t.pts;
-    return`<div style="position:absolute;top:-4px;left:calc(${l}% - 9px);text-align:center;min-width:18px;">
-      <div style="font-size:15px;filter:${done?'none':'grayscale(1) opacity(.3)'};" title="${t.badge}">${t.icon}</div>
-      <div style="font-size:8px;color:${done?'#FF8C00':'rgba(0,0,0,.25)'};font-weight:700;margin-top:1px;">${t.pts}</div>
-    </div>`;
-  }).join('');
-  el.innerHTML=`<div style="position:relative;padding:0 2px;margin-bottom:4px;">
-    <div style="position:relative;height:32px;overflow:visible;">
-      <div style="position:absolute;top:12px;left:0;right:0;height:5px;background:rgba(0,0,0,.1);border-radius:99px;"></div>
-      <div style="position:absolute;top:12px;left:0;height:5px;width:${pct}%;background:linear-gradient(90deg,#FFD600,#FF8C00);border-radius:99px;transition:width 1s;max-width:100%;"></div>
-      ${cps}
-      <div style="position:absolute;top:2px;left:calc(${Math.min(pct,96)}% - 9px);font-size:16px;transition:left 1s;">🐼</div>
-    </div>
-  </div>`;
+  renderRoadmap(el,pts);
 }
 
 
@@ -1576,7 +1555,7 @@ function showResult(pts){
   const emoji=pts>=15?'🔥':pts>=10?'🎉':pts>=5?'⭐':'👍';
   document.getElementById('resultPts').textContent='+'+pts;
   document.getElementById('resultTotal').textContent=newTotal+' pts';
-  drawMilestoneTrack(newTotal,'resultMilestoneTrack');
+  drawMilestoneTrack('resultMilestoneTrack', newTotal);
   // Find highest unlocked tier
   const tier=TIERS.slice().reverse().find(t=>newTotal>=t.pts);
   const next=TIERS.find(t=>newTotal<t.pts);
@@ -1738,6 +1717,53 @@ async function fetchLb(){
   return data.filter(c=>(c.game_points||0)>0).slice(0,10);
 }
 
+
+function renderRoadmap(containerEl, pts){
+  var MAX=300;
+  var LVLS=[
+    {pts:50,icon:'🌟',label:'L1 Explorer'},
+    {pts:100,icon:'🏅',label:'L2 Adventurer'},
+    {pts:150,icon:'🦸',label:'L3 Hero'},
+    {pts:200,icon:'⭐',label:'L4 Superstar'},
+    {pts:250,icon:'🔥',label:'L5 Legend'},
+    {pts:300,icon:'🐉',label:'L6 Dragon'}
+  ];
+  var pct=Math.min(pts/MAX*100,100);
+  var POS=[2,19.6,37.2,54.8,72.4,90];
+  var iconsHtml=LVLS.map(function(l,i){
+    var done=pts>=l.pts;
+    var isNext=!done&&(i===0||pts>=LVLS[i-1].pts);
+    return '<div style="position:absolute;left:'+POS[i]+'%;top:0;transform:translateX(-50%);text-align:center;width:30px;z-index:3;">'
+      +'<div style="width:26px;height:26px;border-radius:50%;margin:0 auto;'
+      +'background:'+(done?'linear-gradient(135deg,#FFD600,#FF8C00)':isNext?'#EFF6FF':'#F1F5F9')
+      +';border:2.5px solid '+(done?'#FF8C00':isNext?'#93C5FD':'#D1D5DB')
+      +';display:flex;align-items:center;justify-content:center;font-size:12px;'
+      +'filter:'+(done?'none':'grayscale(.6) opacity(.55)')+';">'
+      +l.icon+'</div>'
+      +'<div style="font-size:7px;font-weight:800;color:'+(done?'#FF8C00':'#94A3B8')+';margin-top:2px;">'+l.pts+'</div>'
+    +'</div>';
+  }).join('');
+  var pandaPct=Math.min(pct,96.5);
+  var curLvl=null;
+  for(var i=LVLS.length-1;i>=0;i--){if(pts>=LVLS[i].pts){curLvl=LVLS[i];break;}}
+  var nxtLvl=LVLS.find(function(l){return pts<l.pts;})||null;
+  containerEl.innerHTML=
+    '<div style="position:relative;height:34px;margin:0;">'
+      +iconsHtml
+    +'</div>'
+    +'<div style="position:relative;height:28px;margin:0 0 4px;">'
+      +'<div style="position:absolute;top:8px;left:0;right:0;height:8px;background:#E2E8F0;border-radius:99px;overflow:hidden;">'
+        +'<div style="height:100%;width:'+pct+'%;background:linear-gradient(90deg,#FFD600,#FF8C00);border-radius:99px;transition:width .6s;"></div>'
+      +'</div>'
+      +'<div style="position:absolute;top:0;left:calc('+pandaPct+'% - 10px);font-size:20px;line-height:1;z-index:4;">🐼</div>'
+    +'</div>'
+    +'<div style="font-size:11px;font-weight:800;color:#0D47A1;text-align:center;background:#F0F7FF;border-radius:8px;padding:5px 8px;margin-top:2px;">'
+      +(nxtLvl
+        ?'<span style="color:#FF8C00;">'+(nxtLvl.pts-pts)+' pts</span> to go → '+nxtLvl.icon+' '+nxtLvl.label
+        :'🐉 Dragon Warrior — maximum level!')
+    +'</div>';
+}
+
 async function loadLeaderboard(){
   const el=document.getElementById('lbList');
   if(!el) return;
@@ -1772,28 +1798,27 @@ async function loadLeaderboard(){
         </div>`;
       }).join('');
       const pandaLeft=Math.min(pct,96);
-      return `<div style="padding:12px;margin-bottom:10px;border-radius:14px;background:${isMe?'#EFF6FF':'#F9FAFB'};border:${isMe?'2px solid #1565C0':'1px solid #E5E7EB'};">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
+      const roadmapId='rm-'+c.id;
+      return `<div style="padding:12px;margin-bottom:10px;border-radius:14px;background:${isMe?'#EFF6FF':'#F9FAFB'};border:${isMe?'2.5px solid #1565C0':'1px solid #E5E7EB'};">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
           <div style="font-size:22px;width:28px;text-align:center;flex-shrink:0;">${medals[i]||'#'+(i+1)}</div>
-          <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#1565C0,#0D47A1);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#FFD600;flex-shrink:0;">${init}</div>
+          <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#1565C0,#0D47A1);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#FFD600;flex-shrink:0;">${init}</div>
           <div style="flex:1;min-width:0;">
-            <div style="font-size:13px;font-weight:800;color:#1A1A2E;">${c.name||'Player'}${isMe?' <span style="font-size:10px;background:#1565C0;color:#fff;padding:1px 5px;border-radius:4px;margin-left:4px;">YOU</span>':''}</div>
-            <div style="font-size:11px;font-weight:700;color:${curTier?'#FF8C00':'#94A3B8'};">${curTier?curTier.icon+' '+curTier.label:'🐼 Just starting!'}</div>
+            <div style="font-size:14px;font-weight:800;color:#1A1A2E;">${c.name||'Player'}${isMe?' <span style="font-size:10px;background:#1565C0;color:#fff;padding:2px 6px;border-radius:4px;margin-left:4px;">YOU</span>':''}</div>
+            <div style="font-size:11px;font-weight:700;color:${curTier?'#FF8C00':'#94A3B8'};">${curTier?curTier.icon+' '+curTier.label:'🐼 Just starting!'} · ${pts} pts</div>
           </div>
-          <div style="font-size:22px;font-weight:900;color:#0D47A1;flex-shrink:0;font-family:'Baloo 2',cursive;">${pts}<span style="font-size:9px;color:#94A3B8;font-family:sans-serif;font-weight:600;"> pts</span></div>
-        </div>
-        <div style="padding:0 4px;">
-          <div style="position:relative;height:56px;">
-            <div style="position:absolute;top:28px;left:0;right:0;height:8px;background:#E2E8F0;border-radius:99px;"></div>
-            <div style="position:absolute;top:28px;left:0;width:${pct}%;max-width:100%;height:8px;background:linear-gradient(90deg,#FFD600,#FF8C00);border-radius:99px;transition:width .6s;"></div>
-            ${tierDots}
-            <div style="position:absolute;top:14px;left:${pandaLeft}%;transform:translateX(-50%);font-size:16px;z-index:6;">🐼</div>
+          <div style="text-align:right;flex-shrink:0;">
+            <div style="font-size:26px;font-weight:900;color:#0D47A1;font-family:'Baloo 2',cursive;line-height:1;">${pts}</div>
+            <div style="font-size:9px;color:#94A3B8;font-weight:600;">pts</div>
           </div>
         </div>
-        ${nextTier?`<div style="font-size:10px;color:#FF8C00;font-weight:700;text-align:right;margin-top:4px;">⚡ ${nextTier.pts-pts} pts → ${nextTier.icon} ${nextTier.label}</div>`:`<div style="font-size:10px;color:#16A34A;font-weight:700;text-align:right;margin-top:4px;">🐉 Max level reached!</div>`}
+        <div id="${roadmapId}" style="padding:0 4px;margin-bottom:4px;"></div>
       </div>`;
     }).join('');
-    }).join('');
+    data.forEach(function(c){
+      const el=document.getElementById('rm-'+c.id);
+      if(el) renderRoadmap(el, c.game_points||0);
+    });
   }catch(e){
     el.innerHTML='<div style="color:#DC2626;padding:16px;font-size:12px;">Error: '+e.message+'<br><br><button onclick="loadLeaderboard()" style="padding:8px;background:#1565C0;color:#fff;border:none;border-radius:8px;cursor:pointer;">Retry</button></div>';
   }
@@ -1867,9 +1892,7 @@ function launchConfetti(){
       await fetchGlobalBests();
       goProfile();
     } else {
-      // Multiple children under same mobile — silently pre-fill mobile only, no message
-      const lm=document.getElementById('loginMobile');
-      if(lm) lm.value=mobile;
+      // Multiple children under same mobile — do NOT pre-fill
       // Do NOT show any message — user hasn't asked to log in yet
     }
   }catch(e){ console.warn('Auto-login error:',e.message); }
