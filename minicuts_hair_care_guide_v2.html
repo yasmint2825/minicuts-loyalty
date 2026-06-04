@@ -77,20 +77,27 @@ body{
 /* ─── STICKY NAV ─── */
 .sticky-nav{
   position:sticky;top:0;z-index:10;
-  background:rgba(255,255,255,.95);backdrop-filter:blur(12px);
-  border-bottom:1px solid rgba(13,71,161,.1);
-  padding:0 12px;overflow-x:auto;
-  display:flex;gap:0;
+  background:rgba(255,255,255,.97);backdrop-filter:blur(12px);
+  border-bottom:2px solid rgba(13,71,161,.1);
+  padding:10px 12px;overflow-x:auto;
+  display:flex;gap:8px;
+  box-shadow:0 2px 12px rgba(13,71,161,.08);
 }
 .sticky-nav::-webkit-scrollbar{height:0;}
 .snav-btn{
-  flex-shrink:0;padding:14px 16px;
-  background:none;border:none;border-bottom:3px solid transparent;
-  font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;
-  color:var(--muted);cursor:pointer;white-space:nowrap;
-  transition:color .2s,border-color .2s;
+  flex-shrink:0;padding:10px 16px;
+  background:#F1F5F9;border:1.5px solid rgba(13,71,161,.12);
+  border-radius:99px;
+  font-family:'Baloo 2',cursive;font-size:13px;font-weight:800;
+  color:var(--b);cursor:pointer;white-space:nowrap;
+  transition:background .18s,color .18s,border-color .18s,box-shadow .18s,transform .12s;
 }
-.snav-btn.active{color:var(--b);border-bottom-color:var(--b);}
+.snav-btn:active{transform:scale(.95);}
+.snav-btn.active{
+  background:linear-gradient(135deg,var(--bd),var(--b));
+  color:#fff;border-color:transparent;
+  box-shadow:0 4px 14px rgba(13,71,161,.28);
+}
 
 /* ─── SHELL ─── */
 .shell{padding:16px 14px 100px;max-width:520px;margin:0 auto;}
@@ -432,12 +439,7 @@ body{
   <div class="hero-body">
     <h1>Your Child's <em>Hair Care</em> Guide</h1>
     <p class="hero-sub">Personalised tips, fun facts and easy routines — designed for Dubai parents.</p>
-    <div class="hero-chips">
-      <span class="hero-chip">🪄 Interactive Quiz</span>
-      <span class="hero-chip">✂️ Style Finder</span>
-      <span class="hero-chip">💡 Fun Facts</span>
-      <span class="hero-chip">🎁 Loyalty Tips</span>
-    </div>
+    <p style="color:rgba(255,255,255,.65);font-size:12px;font-weight:700;margin-top:0;">👇 Tap any section button below to explore</p>
   </div>
 </header>
 
