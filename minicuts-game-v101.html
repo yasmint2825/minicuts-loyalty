@@ -125,24 +125,46 @@ body{display:flex;font-family:'Nunito',sans-serif;}
 .pin-err{color:#DC2626;font-size:12px;font-weight:700;min-height:16px;margin-bottom:6px;}
 .pin-cancel{background:none;border:none;color:#9CA3AF;font-size:12px;cursor:pointer;}
 @keyframes pinShake{0%,100%{transform:translateX(0);}25%{transform:translateX(-7px);}75%{transform:translateX(7px);}}
-/* ── Phone prefix ── */
-.phone-row{display:flex;gap:0;align-items:stretch;margin-bottom:7px;}
-.phone-prefix{background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.25);border-right:none;border-radius:12px 0 0 12px;padding:0 10px;font-size:13px;font-weight:700;color:#fff;display:flex;align-items:center;white-space:nowrap;min-width:72px;justify-content:center;}
-.phone-row .fi{border-radius:0 12px 12px 0!important;flex:1;margin-bottom:0!important;}
-.phone-row-light .phone-prefix{background:#F1F5F9;border-color:#E2E8F0;color:#475569;border-right:none;}
-.phone-row-light .fi{border-radius:0 12px 12px 0!important;}
+/* ── UAE Phone Picker ── */
+.ph-wrap{display:flex;gap:0;align-items:stretch;width:100%;}
+.ph-pfx{appearance:none;-webkit-appearance:none;background:#1A56DB url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23FFD600' stroke-width='1.8' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 8px center;border:2px solid rgba(255,214,0,.5);border-right:none;border-radius:12px 0 0 12px;padding:0 26px 0 10px;font-size:14px;font-weight:800;color:#FFD600;cursor:pointer;flex-shrink:0;min-width:76px;height:48px;font-family:'Baloo 2',cursive;}
+.ph-pfx:focus{outline:none;border-color:#FFD600;}
+.ph-num{flex:1;height:48px;border:2px solid rgba(255,255,255,.25);border-left:none;border-radius:0 12px 12px 0;background:rgba(255,255,255,.12);color:#fff;font-size:15px;font-weight:700;padding:0 14px;font-family:'Nunito',sans-serif;}
+.ph-num::placeholder{color:rgba(255,255,255,.4);font-weight:500;}
+.ph-num:focus{outline:none;border-color:rgba(255,214,0,.7);background:rgba(255,255,255,.18);}
+/* Light variant for white-background cards (register screen) */
+.ph-wrap.light .ph-pfx{background:#F0F7FF;border-color:#CBD5E1;border-right:none;color:#1565C0;}
+.ph-wrap.light .ph-num{background:#fff;border-color:#CBD5E1;border-left:none;color:#1A1A2E;}
+.ph-wrap.light .ph-num::placeholder{color:#9CA3AF;}
+.ph-wrap.light .ph-num:focus{border-color:#1565C0;}
 </style>
 <script>
-// ── PHONE HELPERS (shared) ──
-function getPhoneVal(numberId){
-  const num=(document.getElementById(numberId)?.value||'').trim().replace(/\D/g,'');
-  return num?'971'+num:'';
+// ── UAE PHONE HELPERS ──
+const UAE_PFXS=['050','051','052','054','055','056','058','059','060'];
+function phPfxOpts(sel='055'){return UAE_PFXS.map(p=>`<option value="${p}"${p===sel?' selected':''}>${p}</option>`).join('');}
+// Read ph-pfx select + ph-num input → "971XXXXXXXXX"
+function getFullMobile(pfxId,numId){
+  const pfx=(document.getElementById(pfxId)?.value||'055').replace(/\D/g,'');
+  const num=(document.getElementById(numId)?.value||'').trim().replace(/\D/g,'');
+  if(!num) return '';
+  return '971'+pfx.slice(1)+num; // 971 + 5X + 7digits
 }
-function splitPhoneNum(mobile){
-  const s=String(mobile||'').replace(/\D/g,'');
-  if(s.startsWith('971')&&s.length===12) return s.slice(3);
-  if(s.startsWith('00971')&&s.length===14) return s.slice(5);
-  return s;
+// Validate 7-digit number part
+function phNumValid(numId){return((document.getElementById(numId)?.value||'').replace(/\D/g,'')).length===7;}
+// Split stored "971XXXXXXXXX" → {pfx:"055",num:"1234567"}
+function splitMobile(mobile){
+  let s=String(mobile||'').replace(/\D/g,'');
+  if(s.startsWith('971'))s=s.slice(3);
+  else if(s.startsWith('00971'))s=s.slice(5);
+  if(s.length===9)return{pfx:'0'+s.slice(0,2),num:s.slice(2)};
+  return{pfx:'055',num:s};
+}
+// Set ph-pfx + ph-num from stored mobile string
+function setMobileFields(pfxId,numId,mobile){
+  const p=splitMobile(mobile);
+  const ps=document.getElementById(pfxId),ns=document.getElementById(numId);
+  if(ps)ps.value=UAE_PFXS.includes(p.pfx)?p.pfx:'055';
+  if(ns)ns.value=p.num||'';
 }
 </script>
 </head>
@@ -197,9 +219,12 @@ function splitPhoneNum(mobile){
       <div style="font-size:11px;color:rgba(255,255,255,.75);margin-top:2px;">Your stamps and game points are all linked</div>
     </div>
     <input class="fi" type="text" id="loginName" placeholder="Child's name" maxlength="20" style="margin-bottom:8px;" onkeydown="if(event.key==='Enter')doLogin()">
-    <div class="phone-row" style="margin-bottom:10px;">
-      <span class="phone-prefix">🇦🇪 +971</span>
-      <input class="fi" type="tel" id="loginMobile" placeholder="501234567" maxlength="9" pattern="[0-9]{9}" onkeydown="if(event.key==='Enter')doLogin()">
+    <div style="margin-bottom:10px;">
+      <div style="font-size:11px;font-weight:700;color:rgba(255,255,255,.6);margin-bottom:5px;">Parent Mobile</div>
+      <div class="ph-wrap">
+        <select class="ph-pfx" id="loginPfx"><option value="050">050</option><option value="051">051</option><option value="052">052</option><option value="054">054</option><option value="055" selected>055</option><option value="056">056</option><option value="058">058</option><option value="059">059</option><option value="060">060</option></select>
+        <input class="ph-num" type="tel" id="loginMobile" placeholder="1234567" maxlength="7" pattern="[0-9]{7}" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
     </div>
     <button class="btn btn-y" id="loginBtn" onclick="doLogin()">Let's Play! 🎮</button>
     <div id="loginMsg" style="display:none;margin-top:8px;padding:8px;border-radius:8px;font-size:12px;font-weight:700;text-align:center;"></div>
@@ -241,9 +266,12 @@ function splitPhoneNum(mobile){
   <div class="card">
     <div style="background:#EFF6FF;border-radius:10px;padding:8px 12px;margin-bottom:10px;font-size:12px;color:#1565C0;line-height:1.5;">🐼 Not registered? Fill in details to start playing!</div>
     <input class="fi" type="text" id="regName" placeholder="Child's name *" maxlength="20" style="margin-bottom:7px;">
-    <div class="phone-row phone-row-light">
-      <span class="phone-prefix" style="background:#F1F5F9;border-color:#E2E8F0;color:#374151;">🇦🇪 +971</span>
-      <input class="fi" type="tel" id="regMobile" placeholder="501234567" maxlength="9" pattern="[0-9]{9}">
+    <div style="margin-bottom:10px;">
+      <div style="font-size:11px;font-weight:700;color:#6B7280;margin-bottom:5px;">Parent Mobile *</div>
+      <div class="ph-wrap light">
+        <select class="ph-pfx" id="regPfx"><option value="050">050</option><option value="051">051</option><option value="052">052</option><option value="054">054</option><option value="055" selected>055</option><option value="056">056</option><option value="058">058</option><option value="059">059</option><option value="060">060</option></select>
+        <input class="ph-num" type="tel" id="regMobile" placeholder="1234567" maxlength="7" pattern="[0-9]{7}">
+      </div>
     </div>
     <label style="font-size:11px;font-weight:700;color:#6B7280;display:block;margin-bottom:3px;">Date of Birth <span style="color:#DC2626;">*</span></label>
     <div style="display:grid;grid-template-columns:1fr 2fr 1.3fr;gap:6px;margin-bottom:10px;">
@@ -762,6 +790,7 @@ function goHome(){
   resetAllGameState();
   document.getElementById('loginName').value='';
   document.getElementById('loginMobile').value='';
+  if(document.getElementById('loginPfx')) document.getElementById('loginPfx').value='055';
   document.getElementById('loginMsg').style.display='none';
   player={id:null,name:'',mobile:'',game_points:0,game_spins:0};
   showScreen('s-login');
@@ -1356,17 +1385,17 @@ function showStampGate(){
 async function doLogin(){
   const name=document.getElementById('loginName').value.trim();
   const mobileNum=(document.getElementById('loginMobile')?.value||'').trim().replace(/\D/g,'');
-  const mobile='971'+mobileNum;
+  const mobile=getFullMobile('loginPfx','loginMobile');
   document.getElementById('loginMsg').style.display='none';
   if(!name){
     document.getElementById('loginName').style.borderColor='#FF6B9D';
     setTimeout(()=>document.getElementById('loginName').style.borderColor='#E5E7EB',1200);
     return;
   }
-  if(mobileNum.length!==9){
-    showLoginMsg('Please enter a valid 9-digit UAE mobile (e.g. 501234567) 📱',false);
+  if(mobileNum.length!==7){
+    showLoginMsg('Please enter a valid 7-digit mobile number (e.g. 1234567) 📱',false);
     document.getElementById('loginMobile').style.borderColor='#FF6B9D';
-    setTimeout(()=>document.getElementById('loginMobile').style.borderColor='#E5E7EB',1200);
+    setTimeout(()=>document.getElementById('loginMobile').style.borderColor='rgba(255,255,255,.25)',1200);
     return;
   }
   const btn=document.getElementById('loginBtn');
@@ -1426,7 +1455,7 @@ async function doLogin(){
 
 function goToRegister(name,mobile,msg){
   document.getElementById('regName').value=name||'';
-  document.getElementById('regMobile').value=splitPhoneNum(mobile)||'';
+  setMobileFields('regPfx','regMobile',mobile||'');
   const dd=document.getElementById('dobDay');if(dd) dd.value='';
   const dm=document.getElementById('dobMonth');if(dm) dm.value='';
   const dy=document.getElementById('dobYear');if(dy) dy.value='';
@@ -1445,7 +1474,7 @@ function goToRegister(name,mobile,msg){
 async function doRegister(){
   const name=document.getElementById('regName').value.trim();
   const mobileNum=(document.getElementById('regMobile')?.value||'').trim().replace(/\D/g,'');
-  const mobile='971'+mobileNum;
+  const mobile=getFullMobile('regPfx','regMobile');
   const parent=document.getElementById('regParent').value.trim();
   const dobDay=document.getElementById('dobDay').value;
   const dobMonth=document.getElementById('dobMonth').value;
@@ -1455,7 +1484,7 @@ async function doRegister(){
 
   // Validate
   if(!name){showRegMsg("Please enter child's name 👦",false);return;}
-  if(mobileNum.length!==9){showRegMsg("Please enter a valid 9-digit UAE mobile (e.g. 501234567) 📱",false);return;}
+  if(mobileNum.length!==7){showRegMsg("Please enter a valid 7-digit mobile number (e.g. 1234567) 📱",false);return;}
   if(!dob){showRegMsg("Date of birth is required! 🎂",false);return;}
   if(!regGender){showRegMsg("Please select Boy or Girl",false);return;}
 
@@ -2146,12 +2175,12 @@ function launchConfetti(){
     window.doRegister = async function(){
       const name=$('regName').value.trim();
       const mobileNum=($('regMobile')?.value||'').trim().replace(/\D/g,'');
-      const mobile='971'+mobileNum;
+      const mobile=getFullMobile('regPfx','regMobile');
       const parent=$('regParent').value.trim();
       const d=$('dobDay').value, m=$('dobMonth').value, y=$('dobYear').value;
       const dob=(y&&m&&d)?(y+'-'+m+'-'+d):null, gender=window.regGender||'boy';
       if(!name){showRegMsg("Please enter child's name",false);return;}
-      if(mobileNum.length!==9){showRegMsg('Please enter a valid 9-digit UAE mobile (e.g. 501234567) 📱',false);return;}
+      if(mobileNum.length!==7){showRegMsg('Please enter a valid 7-digit mobile number 📱',false);return;}
       if(!dob){showRegMsg('Date of birth is required! 🎂',false);return;}
       const btn=document.querySelector('#s-register .btn-y');
       if(btn){btn.disabled=true;btn.style.opacity='.65';btn.style.pointerEvents='none';btn.textContent='Registering... 🐼';}
@@ -2533,7 +2562,7 @@ function launchConfetti(){
     return {
       name:(($('regName')&&$('regName').value)||'').trim(),
       mobileNum: mobileNum,
-      mobile:'971'+mobileNum,
+      mobile: getFullMobile('regPfx','regMobile'),
       parent:(($('regParent')&&$('regParent').value)||'').trim(),
       day:($('dobDay')&&$('dobDay').value)||'',
       month:($('dobMonth')&&$('dobMonth').value)||'',
@@ -2545,7 +2574,7 @@ function launchConfetti(){
   function restoreForm(v){
     if(!v) return;
     if($('regName')) $('regName').value=v.name||'';
-    if($('regMobile')) $('regMobile').value=v.mobileNum||'';
+    setMobileFields('regPfx','regMobile',v.mobile||'');
     if($('regParent')) $('regParent').value=v.parent||'';
     if($('dobDay')) $('dobDay').value=v.day||'';
     if($('dobMonth')) $('dobMonth').value=v.month||'';
@@ -2556,7 +2585,7 @@ function launchConfetti(){
     var v=readForm();
     var dob=(v.year&&v.month&&v.day)?(v.year+'-'+v.month+'-'+v.day):null;
     if(!v.name){showRegMsg('Please enter child name',false);restoreForm(v);return;}
-    if(v.mobileNum.length!==9){showRegMsg('Please enter a valid 9-digit UAE mobile (e.g. 501234567)',false);restoreForm(v);return;}
+    if(v.mobileNum.length!==7){showRegMsg('Please enter a valid 7-digit mobile number',false);restoreForm(v);return;}
     if(!dob){showRegMsg('Date of birth is required!',false);restoreForm(v);return;}
     var btn=document.querySelector('#s-register .btn-y') || document.querySelector('#s-register button');
     if(btn){btn.disabled=true;btn.style.opacity='0.65';btn.style.pointerEvents='none';btn.textContent='Registering...';}

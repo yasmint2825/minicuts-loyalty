@@ -148,9 +148,12 @@ tbody td{padding:12px 15px;font-size:13.5px;color:var(--text)}
 @media(max-width:900px){.sb{transform:translateX(-100%)}.sb.open{transform:translateX(0)}.main{margin-left:0}.sr{grid-template-columns:1fr 1fr}.fr{grid-template-columns:1fr}}
 @media(max-width:600px){.sr{grid-template-columns:1fr}.content{padding:14px}.topbar{padding:0 14px}}
 /* ── Phone prefix ── */
-.phone-row{display:flex;gap:0;align-items:stretch;}
-.phone-prefix{background:#F1F5F9;border:1.5px solid var(--border);border-right:none;border-radius:var(--rs) 0 0 var(--rs);padding:0 10px;font-size:14px;font-weight:700;color:#475569;display:flex;align-items:center;white-space:nowrap;user-select:none;min-width:58px;justify-content:center;}
-.phone-row .fi{border-radius:0 var(--rs) var(--rs) 0!important;flex:1;}
+/* ── UAE Phone Picker ── */
+.ph-wrap{display:flex;gap:0;align-items:stretch;}
+.ph-pfx{appearance:none;-webkit-appearance:none;background:#F0F7FF url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%231565C0' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 8px center;border:1.5px solid var(--border);border-right:none;border-radius:var(--rs) 0 0 var(--rs);padding:0 26px 0 10px;font-size:14px;font-weight:700;color:#1565C0;cursor:pointer;flex-shrink:0;min-width:78px;height:44px;}
+.ph-pfx:focus{outline:none;border-color:var(--b);box-shadow:0 0 0 3px rgba(21,101,192,.1);}
+.ph-num{flex:1;height:44px;border:1.5px solid var(--border);border-left:none;border-radius:0 var(--rs) var(--rs) 0;background:#fff;color:var(--text);font-size:14px;padding:0 12px;font-family:var(--fb);}
+.ph-num:focus{outline:none;border-color:var(--b);box-shadow:0 0 0 3px rgba(21,101,192,.1);}
 /* ── DOB Picker ── */
 .dob-row{display:grid;grid-template-columns:1fr 1.8fr 1fr;gap:8px;}
 .dob-row select{appearance:none;-webkit-appearance:none;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236B7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 10px center;padding-right:28px;cursor:pointer;}
@@ -158,19 +161,35 @@ tbody td{padding:12px 15px;font-size:13.5px;color:var(--text)}
 .dob-err{border-color:#DC2626!important;box-shadow:0 0 0 3px rgba(220,38,38,.1)!important;}
 </style>
 <script>
-// ── PHONE HELPERS ──
-// Returns full mobile string: prefix (971) + 9-digit number → "971XXXXXXXXX"
-function getPhone(numberId){
-  const num=(document.getElementById(numberId)?.value||'').trim().replace(/\D/g,'');
+// ── UAE PHONE HELPERS ──
+const UAE_PFXS=['050','051','052','054','055','056','058','059','060'];
+function phPfxOpts(sel='055'){return UAE_PFXS.map(p=>`<option value="${p}"${p===sel?' selected':''}>${p}</option>`).join('');}
+function getPhone(pfxId,numId){
+  const pfx=(document.getElementById(pfxId)?.value||'055').replace(/\D/g,'');
+  const num=(document.getElementById(numId)?.value||'').trim().replace(/\D/g,'');
   if(!num) return '';
-  return '971'+num;
+  return '971'+pfx.slice(1)+num;
 }
-// Splits a stored mobile like "971501234567" back into the 9-digit part for display
+function phoneValid(numId){return((document.getElementById(numId)?.value||'').replace(/\D/g,'')).length===7;}
 function splitPhone(mobile){
-  const s=String(mobile||'').replace(/\D/g,'');
-  if(s.startsWith('971')&&s.length===12) return s.slice(3);
-  if(s.startsWith('00971')&&s.length===14) return s.slice(5);
-  return s; // fallback — show as-is
+  let s=String(mobile||'').replace(/\D/g,'');
+  if(s.startsWith('971'))s=s.slice(3);
+  else if(s.startsWith('00971'))s=s.slice(5);
+  if(s.length===9)return{pfx:'0'+s.slice(0,2),num:s.slice(2)};
+  return{pfx:'055',num:s};
+}
+function setPhoneField(pfxId,numId,mobile){
+  const p=splitPhone(mobile);
+  const ps=document.getElementById(pfxId),ns=document.getElementById(numId);
+  if(ps)ps.value=UAE_PFXS.includes(p.pfx)?p.pfx:'055';
+  if(ns)ns.value=p.num||'';
+}
+// Build inline phone HTML for dynamically generated forms (string context)
+function phHtml(pfxId,numId,storedMobile,placeholder){
+  const p=splitPhone(storedMobile||'');
+  const sel=UAE_PFXS.includes(p.pfx)?p.pfx:'055';
+  return `<div class="ph-wrap"><select class="ph-pfx" id="${pfxId}">${phPfxOpts(sel)}</select>`+
+    `<input class="ph-num" type="tel" id="${numId}" placeholder="${placeholder||'1234567'}" maxlength="7" value="${p.num||''}"></div>`;
 }
 
 function makeDobRow(prefix,required){
@@ -675,9 +694,9 @@ async function archiveCycle(customerId,stamps,firstStampDate,expiryDate,endedBy)
           <div class="fr">
             <div class="fg"><label class="fl">Child's Name *</label><input class="fi" type="text" id="NC1" placeholder="e.g. Zara"></div>
             <div class="fg"><label class="fl">Mobile Number *</label>
-              <div class="phone-row">
-                <span class="phone-prefix">🇦🇪 +971</span>
-                <input class="fi" type="tel" id="NC2" placeholder="501234567" maxlength="9" pattern="[0-9]{9}">
+              <div class="ph-wrap">
+                <select class="ph-pfx" id="NC2_PFX"><option value="050">050</option><option value="051">051</option><option value="052">052</option><option value="054">054</option><option value="055" selected>055</option><option value="056">056</option><option value="058">058</option><option value="059">059</option><option value="060">060</option></select>
+                <input class="ph-num" type="tel" id="NC2" placeholder="1234567" maxlength="7">
               </div>
             </div>
           </div>
@@ -825,9 +844,9 @@ async function archiveCycle(customerId,stamps,firstStampDate,expiryDate,endedBy)
     <div class="fr">
       <div class="fg"><label class="fl">Child's Name</label><input class="fi" type="text" id="EN"></div>
       <div class="fg"><label class="fl">Mobile</label>
-        <div class="phone-row">
-          <span class="phone-prefix">🇦🇪 +971</span>
-          <input class="fi" type="tel" id="EP" maxlength="9" pattern="[0-9]{9}">
+        <div class="ph-wrap">
+          <select class="ph-pfx" id="EP_PFX"><option value="050">050</option><option value="051">051</option><option value="052">052</option><option value="054">054</option><option value="055" selected>055</option><option value="056">056</option><option value="058">058</option><option value="059">059</option><option value="060">060</option></select>
+          <input class="ph-num" type="tel" id="EP" placeholder="1234567" maxlength="7">
         </div>
       </div>
     </div>
@@ -1565,14 +1584,14 @@ let ncG='boy';
 function setG(g){ncG=g;document.getElementById('NCB').classList.toggle('active',g==='boy');document.getElementById('NCG').classList.toggle('active',g==='girl');}
 async function createC(){
   const name=document.getElementById('NC1').value.trim();
-  const phone=getPhone('NC2');
+  const phone=getPhone('NC2_PFX','NC2');
   const phoneNum=(document.getElementById('NC2')?.value||'').trim().replace(/\D/g,'');
   const parent=document.getElementById('NC3').value.trim();
   const notes=document.getElementById('NC5').value.trim();
   const dob=getDob('NC6');
   const stamps=parseInt(document.getElementById('NC4').value)||0;
   if(!name||!phoneNum){toast('Name and mobile required.','error');return;}
-  if(phoneNum.length!==9){toast('⛔ Mobile must be exactly 9 digits (e.g. 501234567)','error');document.getElementById('NC2').focus();return;}
+  if(phoneNum.length!==7){toast('⛔ Mobile must be 7 digits after the prefix (e.g. 1234567)','error');document.getElementById('NC2').focus();return;}
   if(!dob){toast('⛔ Date of birth is required!','error');highlightDobErr('NC6');return;}
   try{
     const ex=await sb('customers','GET',null,'select=id,name&mobile=eq.'+encodeURIComponent(phone));
@@ -1599,7 +1618,7 @@ async function createC(){
     setTimeout(loadAfterService,500); // refresh alert list
   }catch(e){toast('Error: '+e.message,'error');}
 }
-function clearNC(){['NC1','NC2','NC3','NC5'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});document.getElementById('NC4').value='0';['NC6_D','NC6_M','NC6_Y'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});ncG='boy';setG('boy');}
+function clearNC(){['NC1','NC2','NC3','NC5'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});document.getElementById('NC4').value='0';['NC6_D','NC6_M','NC6_Y'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});const pfx=document.getElementById('NC2_PFX');if(pfx)pfx.value='055';ncG='boy';setG('boy');}
 
 // ══ EDIT ══
 let egG='boy';
@@ -1607,7 +1626,7 @@ async function openEditM(id){
   const c=(await sb('customers','GET',null,'select=*&id=eq.'+id))[0];
   document.getElementById('EID').value=id;
   document.getElementById('EN').value=c.name;
-  document.getElementById('EP').value=splitPhone(c.mobile);
+  setPhoneField('EP_PFX','EP',c.mobile);
   document.getElementById('EPR').value=c.parent||'';
   setDob('EDOB',c.dob||'');
   document.getElementById('ENO').value=c.notes||'';
@@ -1618,8 +1637,8 @@ function setEG(g){egG=g;document.getElementById('EGB').classList.toggle('active'
 async function saveEdit(){
   const id=document.getElementById('EID').value;
   const epNum=(document.getElementById('EP')?.value||'').trim().replace(/\D/g,'');
-  if(epNum&&epNum.length!==9){toast('⛔ Mobile must be exactly 9 digits','error');return;}
-  const u={name:document.getElementById('EN').value.trim(),mobile:epNum?'971'+epNum:'',parent:document.getElementById('EPR').value.trim(),notes:document.getElementById('ENO').value.trim(),dob:getDob('EDOB'),gender:egG,stamps:parseInt(document.getElementById('EST').value)||0};
+  if(epNum&&epNum.length!==7){toast('⛔ Mobile must be 7 digits after the prefix','error');return;}
+  const u={name:document.getElementById('EN').value.trim(),mobile:epNum?getPhone('EP_PFX','EP'):'',parent:document.getElementById('EPR').value.trim(),notes:document.getElementById('ENO').value.trim(),dob:getDob('EDOB'),gender:egG,stamps:parseInt(document.getElementById('EST').value)||0};
   try{
     await sb('customers','PATCH',u,'id=eq.'+id);
     closeM('EM');toast('Customer updated!');
@@ -2258,18 +2277,14 @@ function toggleCustHist(uid){
 
 function buildLookupHtml(msg){
   const saved=localStorage.getItem('mc_cust_mobile')||'';
-  const savedNum=splitPhone(saved);
-  const msgBlock=msg?'<div style="background:#FEF3C7;border:1px solid #F59E0B;border-radius:10px;padding:8px 12px;font-size:13px;font-weight:700;color:#92400E;margin-bottom:12px;text-align:center;">'+msg+'</div>':'';
+  const msgBlock=msg?`<div style="background:#FEF3C7;border:1px solid #F59E0B;border-radius:10px;padding:8px 12px;font-size:13px;font-weight:700;color:#92400E;margin-bottom:12px;text-align:center;">${msg}</div>`:'';
   return '<div class="cbox">'+
     '<div style="text-align:center;margin-bottom:18px;">'+
       '<div style="font-size:40px;margin-bottom:6px;">&#x1F43C;</div>'+
       '<div style="font-family:var(--fh);font-size:20px;font-weight:900;">MiniCuts Loyalty Club</div>'+
       '<div style="font-size:12px;color:var(--muted);margin-top:4px;">Same login for Loyalty + MiniCuts Games</div>'+
     '</div>'+
-    '<div class="phone-row" style="margin-bottom:10px;">'+
-      '<span class="phone-prefix">&#x1F1E6;&#x1F1EA; +971</span>'+
-      '<input class="fi" type="tel" id="CML" placeholder="501234567" maxlength="9" value="'+savedNum+'" style="font-size:15px;text-align:left;">'+
-    '</div>'+
+    '<div class="fg" style="margin-bottom:10px;"><label style="font-size:12px;font-weight:700;color:#6B7280;display:block;margin-bottom:5px;">Parent Mobile</label>'+phHtml('CML_PFX','CML',saved,'1234567')+'</div>'+
     msgBlock+
     '<button class="btn bp" onclick="custLookup()" style="width:100%;padding:12px;font-size:15px;font-weight:800;margin-bottom:10px;">'+
       '&#x1F50D; Check My Stamps &amp; Rewards'+
@@ -2320,16 +2335,12 @@ function buildLookup(msg){
 }
 
 function buildRegister(pf=''){
-  const numPart=splitPhone(pf);
   return`<div class="cbox">
     <div style="font-family:'Baloo 2',cursive;font-size:17px;font-weight:800;margin-bottom:3px;">🐼 Join MiniCuts Loyalty!</div>
     <div style="font-size:13px;color:#6B7280;margin-bottom:14px;">Register to start earning stamps</div>
     <div class="fg"><label class="fl">Child's Name *</label><input class="fi" type="text" id="CRN" placeholder="e.g. Zara"></div>
     <div class="fg"><label class="fl">Mobile Number *</label>
-      <div class="phone-row">
-        <span class="phone-prefix">🇦🇪 +971</span>
-        <input class="fi" type="tel" id="CRP" placeholder="501234567" maxlength="9" pattern="[0-9]{9}" value="${numPart}">
-      </div>
+      ${phHtml('CRP_PFX','CRP',pf,'1234567')}
     </div>
     <div class="fg"><label class="fl">Gender *</label>
       <div class="gt"><button class="gb boy active" id="CRB" onclick="setCRG('boy')">👦 Boy</button><button class="gb girl" id="CRG2" onclick="setCRG('girl')">👧 Girl</button></div>
@@ -2369,9 +2380,9 @@ function showLookup(){
 }
 
 async function custLookup(){
-  const rawNum=((document.getElementById('CML')||document.getElementById('CPP'))?.value||'').trim().replace(/\D/g,'');
-  if(!rawNum||rawNum.length<7){return;}
-  const phone='971'+rawNum;
+  const rawNum=((document.getElementById('CML'))?.value||'').trim().replace(/\D/g,'');
+  if(!rawNum||rawNum.length<7) return;
+  const phone=getPhone('CML_PFX','CML');
   const area=document.getElementById('CPA');
   area.innerHTML='<div class="load"><div class="spin"></div></div>';
   try{
@@ -2394,11 +2405,11 @@ async function custLookup(){
 async function custRegister(){
   const name=document.getElementById('CRN').value.trim();
   const phoneNum=(document.getElementById('CRP')?.value||'').trim().replace(/\D/g,'');
-  const phone='971'+phoneNum;
+  const phone=getPhone('CRP_PFX','CRP');
   const parent=document.getElementById('CRPR').value.trim();
   const dob=getDob('CRDOB');
   if(!name||!phoneNum){alert('Please enter name and mobile.');return;}
-  if(phoneNum.length!==9){alert('⛔ Mobile must be exactly 9 digits (e.g. 501234567)');document.getElementById('CRP').focus();return;}
+  if(phoneNum.length!==7){alert('⛔ Mobile must be 7 digits after the prefix (e.g. 1234567)');document.getElementById('CRP').focus();return;}
   if(!dob){
     highlightDobErr('CRDOB');
     alert('Date of birth is required! 🎂');return;
