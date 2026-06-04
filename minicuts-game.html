@@ -1023,7 +1023,9 @@ function goTapPanda(){
   document.getElementById('tapStatus').innerHTML=statusHtml;
   showScreen('s-tap');
   });
-}playGameVoice('tap');
+}
+function startTapGame(){
+  playGameVoice('tap');
   tapScore=0;tapSeconds=10;tapRunning=true;
   soundStart();
   document.getElementById('tapStatus').style.display='none';
