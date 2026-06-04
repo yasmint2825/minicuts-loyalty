@@ -147,7 +147,56 @@ tbody td{padding:12px 15px;font-size:13.5px;color:var(--text)}
 .cp .tab-btn{padding:7px 12px;font-size:12.5px;}
 @media(max-width:900px){.sb{transform:translateX(-100%)}.sb.open{transform:translateX(0)}.main{margin-left:0}.sr{grid-template-columns:1fr 1fr}.fr{grid-template-columns:1fr}}
 @media(max-width:600px){.sr{grid-template-columns:1fr}.content{padding:14px}.topbar{padding:0 14px}}
+/* ── DOB Picker ── */
+.dob-row{display:grid;grid-template-columns:1fr 1.8fr 1fr;gap:8px;}
+.dob-row select{appearance:none;-webkit-appearance:none;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236B7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 10px center;padding-right:28px;cursor:pointer;}
+.dob-row select:focus{border-color:var(--b);box-shadow:0 0 0 3px rgba(21,101,192,.1);}
+.dob-err{border-color:#DC2626!important;box-shadow:0 0 0 3px rgba(220,38,38,.1)!important;}
 </style>
+<script>
+// ── DOB PICKER HELPERS ──
+function makeDobRow(prefix,required){
+  const req=required?'<span style="color:#DC2626;font-weight:900;"> *</span>':'';
+  const days=Array.from({length:31},(_,i)=>`<option value="${String(i+1).padStart(2,'0')}">${i+1}</option>`).join('');
+  const months=['January','February','March','April','May','June','July','August','September','October','November','December']
+    .map((m,i)=>`<option value="${String(i+1).padStart(2,'0')}">${m}</option>`).join('');
+  const curYear=new Date().getFullYear();
+  const years=Array.from({length:20},(_,i)=>`<option value="${curYear-i}">${curYear-i}</option>`).join('');
+  return`<div class="fg">
+    <label class="fl">Date of Birth${req}</label>
+    <div class="dob-row">
+      <select class="fi" id="${prefix}_D"><option value="">Day</option>${days}</select>
+      <select class="fi" id="${prefix}_M"><option value="">Month</option>${months}</select>
+      <select class="fi" id="${prefix}_Y"><option value="">Year</option>${years}</select>
+    </div>
+  </div>`;
+}
+function getDob(prefix){
+  const d=document.getElementById(prefix+'_D')?.value;
+  const m=document.getElementById(prefix+'_M')?.value;
+  const y=document.getElementById(prefix+'_Y')?.value;
+  if(!d||!m||!y) return null;
+  return y+'-'+m+'-'+d; // YYYY-MM-DD for Postgres
+}
+function setDob(prefix,isoDate){
+  if(!isoDate) return;
+  const parts=isoDate.split('-');
+  if(parts.length<3) return;
+  const el_y=document.getElementById(prefix+'_Y');
+  const el_m=document.getElementById(prefix+'_M');
+  const el_d=document.getElementById(prefix+'_D');
+  if(el_y) el_y.value=parts[0];
+  if(el_m) el_m.value=parts[1];
+  if(el_d) el_d.value=parts[2];
+}
+function highlightDobErr(prefix){
+  ['_D','_M','_Y'].forEach(s=>{
+    const el=document.getElementById(prefix+s);
+    if(el) el.classList.add('dob-err');
+    setTimeout(()=>el&&el.classList.remove('dob-err'),2500);
+  });
+}
+</script>
 </head>
 <body>
 <script>
@@ -188,6 +237,33 @@ const DC={
 let CFG=loadCfg();
 function loadCfg(){try{return Object.assign({},DC,JSON.parse(localStorage.getItem('mc_cfg')||'{}'));}catch(e){return{...DC};}}
 function saveCfg(){localStorage.setItem('mc_cfg',JSON.stringify(CFG));}
+
+// ── Save credentials to Supabase staff_config table ──
+// Run once in Supabase SQL editor to create the table:
+//   create table if not exists staff_config (
+//     key text primary key,
+//     value jsonb not null,
+//     updated_at timestamptz default now()
+//   );
+//   -- Enable RLS and add anon read+write policy (since we use anon key):
+//   alter table staff_config enable row level security;
+//   create policy "anon full access" on staff_config for all using (true) with check (true);
+async function saveCredsToDb(user,pass,resetCode){
+  try{
+    await sb('staff_config','POST',
+      {key:'credentials',value:{user,pass,resetCode},updated_at:new Date().toISOString()},
+      'on_conflict=key'
+    );
+  }catch(e){
+    // Try upsert via PATCH if POST fails
+    try{
+      await sb('staff_config','PATCH',
+        {value:{user,pass,resetCode},updated_at:new Date().toISOString()},
+        'key=eq.credentials'
+      );
+    }catch(e2){console.warn('saveCredsToDb failed:',e2.message);}
+  }
+}
 // Paid stamps needed = total - 1 (last visit is always free)
 function saveCfgNudge(){
   try{
@@ -587,7 +663,14 @@ async function archiveCycle(customerId,stamps,firstStampDate,expiryDate,endedBy)
             <div class="gt"><button class="gb boy active" id="NCB" onclick="setG('boy')">👦 Boy</button><button class="gb girl" id="NCG" onclick="setG('girl')">👧 Girl</button></div>
           </div>
           <div class="fg"><label class="fl">Starting Stamps (if transferring)</label><input class="fi" type="number" id="NC4" placeholder="0" min="0" max="5" value="0"></div>
-          <div class="fg"><label class="fl">Date of Birth <span style="color:#DC2626;font-weight:900;">*</span></label><input class="fi" type="date" id="NC6" style="border:2px solid #FFD600;background:#FFFDE7;"></div>
+          <div class="fg">
+            <label class="fl">Date of Birth <span style="color:#DC2626;font-weight:900;">*</span></label>
+            <div class="dob-row">
+              <select class="fi" id="NC6_D"><option value="">Day</option></select>
+              <select class="fi" id="NC6_M"><option value="">Month</option></select>
+              <select class="fi" id="NC6_Y"><option value="">Year</option></select>
+            </div>
+          </div>
           <div class="fg"><label class="fl">Notes (optional)</label><input class="fi" type="text" id="NC5" placeholder="e.g. Special needs, preferred stylist"></div>
           <div style="display:flex;gap:9px;margin-top:6px;">
             <button class="btn bp" onclick="createC()">Create Passport 🐼</button>
@@ -725,7 +808,14 @@ async function archiveCycle(customerId,stamps,firstStampDate,expiryDate,endedBy)
       <div class="gt"><button class="gb boy active" id="EGB" onclick="setEG('boy')">👦 Boy</button><button class="gb girl" id="EGG" onclick="setEG('girl')">👧 Girl</button></div>
     </div>
     <div class="fg"><label class="fl">Current Stamps</label><input class="fi" type="number" id="EST" min="0" max="10"></div>
-    <div class="fg"><label class="fl">Date of Birth</label><input class="fi" type="date" id="EDOB"></div>
+    <div class="fg">
+      <label class="fl">Date of Birth</label>
+      <div class="dob-row">
+        <select class="fi" id="EDOB_D"><option value="">Day</option></select>
+        <select class="fi" id="EDOB_M"><option value="">Month</option></select>
+        <select class="fi" id="EDOB_Y"><option value="">Year</option></select>
+      </div>
+    </div>
             <div class="fg"><label class="fl">Notes</label><input class="fi" type="text" id="ENO"></div>
     <div class="mf">
       <button class="btn bg2" onclick="closeM('EM')">Cancel</button>
@@ -806,6 +896,7 @@ function doReset(){
     CFG.user='admin';CFG.pass='minicuts123';
     saveCfg();
     localStorage.removeItem('mc_session');
+    saveCredsToDb('admin','minicuts123',CFG.resetCode||'MINICUTS2025');
     // Hide forgot box first
     document.getElementById('forgotBox').style.display='none';
     // Show success message prominently
@@ -887,13 +978,40 @@ function syncCfgInputs(){
 }
 
 // ══ AUTH ══
-function doLogin(){
-  const u=document.getElementById('LU').value.trim(),p=document.getElementById('LP').value;
-  if(u===CFG.user&&p===CFG.pass){
-    localStorage.setItem('mc_session',JSON.stringify({user:u,ts:Date.now()}));
-    showStaffPanel(u);
-    document.getElementById('LE').style.display='none';
-  } else {document.getElementById('LE').style.display='block';}
+async function doLogin(){
+  const u=document.getElementById('LU').value.trim();
+  const p=document.getElementById('LP').value;
+  const btn=document.querySelector('#LS .btn');
+  if(btn){btn.disabled=true;btn.textContent='Checking...';}
+  document.getElementById('LE').style.display='none';
+  try{
+    // Try DB first — staff_config table, key='credentials'
+    let matched=false;
+    try{
+      const rows=await sb('staff_config','GET',null,'select=value&key=eq.credentials&limit=1');
+      if(rows&&rows[0]&&rows[0].value){
+        const creds=rows[0].value;
+        if(u===creds.user&&p===creds.pass){
+          // Cache in localStorage so next load is instant
+          CFG.user=creds.user;CFG.pass=creds.pass;saveCfg();
+          matched=true;
+        }
+      }
+    }catch(dbErr){
+      // DB table may not exist yet — fall through to local check
+      console.warn('staff_config not available, using local:',dbErr.message);
+    }
+    // Fallback: check localStorage CFG (used until DB is set up)
+    if(!matched&&u===CFG.user&&p===CFG.pass) matched=true;
+    if(matched){
+      localStorage.setItem('mc_session',JSON.stringify({user:u,ts:Date.now()}));
+      showStaffPanel(u);
+    } else {
+      document.getElementById('LE').style.display='block';
+    }
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent='Login to Staff Panel';}
+  }
 }
 function showStaffPanel(u){
   document.getElementById('LS').style.display='none';
@@ -1419,10 +1537,10 @@ async function createC(){
   const phone=document.getElementById('NC2').value.trim();
   const parent=document.getElementById('NC3').value.trim();
   const notes=document.getElementById('NC5').value.trim();
-  const dob=document.getElementById('NC6').value||null;
+  const dob=getDob('NC6');
   const stamps=parseInt(document.getElementById('NC4').value)||0;
   if(!name||!phone){toast('Name and mobile required.','error');return;}
-  if(!dob){toast('⛔ Date of birth is required!','error');document.getElementById('NC6').focus();return;}
+  if(!dob){toast('⛔ Date of birth is required!','error');highlightDobErr('NC6');return;}
   try{
     const ex=await sb('customers','GET',null,'select=id,name&mobile=eq.'+encodeURIComponent(phone));
     const exactDup=ex.find(r=>r.name.trim().toLowerCase()===name.toLowerCase());
@@ -1448,7 +1566,7 @@ async function createC(){
     setTimeout(loadAfterService,500); // refresh alert list
   }catch(e){toast('Error: '+e.message,'error');}
 }
-function clearNC(){['NC1','NC2','NC3','NC5','NC6'].forEach(id=>document.getElementById(id).value='');document.getElementById('NC4').value='0';ncG='boy';setG('boy');}
+function clearNC(){['NC1','NC2','NC3','NC5'].forEach(id=>document.getElementById(id).value='');document.getElementById('NC4').value='0';['NC6_D','NC6_M','NC6_Y'].forEach(id=>document.getElementById(id).value='');ncG='boy';setG('boy');}
 
 // ══ EDIT ══
 let egG='boy';
@@ -1458,7 +1576,7 @@ async function openEditM(id){
   document.getElementById('EN').value=c.name;
   document.getElementById('EP').value=c.mobile;
   document.getElementById('EPR').value=c.parent||'';
-  document.getElementById('EDOB').value=c.dob||'';
+  setDob('EDOB',c.dob||'');
   document.getElementById('ENO').value=c.notes||'';
   document.getElementById('EST').value=c.stamps||0;
   egG=c.gender;setEG(c.gender);openM('EM');
@@ -1466,7 +1584,7 @@ async function openEditM(id){
 function setEG(g){egG=g;document.getElementById('EGB').classList.toggle('active',g==='boy');document.getElementById('EGG').classList.toggle('active',g==='girl');}
 async function saveEdit(){
   const id=document.getElementById('EID').value;
-  const u={name:document.getElementById('EN').value.trim(),mobile:document.getElementById('EP').value.trim(),parent:document.getElementById('EPR').value.trim(),notes:document.getElementById('ENO').value.trim(),dob:document.getElementById('EDOB').value||null,gender:egG,stamps:parseInt(document.getElementById('EST').value)||0};
+  const u={name:document.getElementById('EN').value.trim(),mobile:document.getElementById('EP').value.trim(),parent:document.getElementById('EPR').value.trim(),notes:document.getElementById('ENO').value.trim(),dob:getDob('EDOB'),gender:egG,stamps:parseInt(document.getElementById('EST').value)||0};
   try{
     await sb('customers','PATCH',u,'id=eq.'+id);
     closeM('EM');toast('Customer updated!');
@@ -2153,7 +2271,11 @@ function buildRegister(pf=''){
     <div class="fg"><label class="fl">Parent Name (optional)</label><input class="fi" type="text" id="CRPR" placeholder="e.g. Sara Ahmed"></div>
     <div class="fg">
       <label class="fl">Date of Birth <span style="color:#DC2626;font-weight:900;">*</span></label>
-      <input class="fi" type="date" id="CRDOB" style="border:2px solid #FFD600;background:#FFFDE7;">
+      <div class="dob-row">
+        <select class="fi" id="CRDOB_D"><option value="">Day</option>${Array.from({length:31},(_,i)=>`<option value="${String(i+1).padStart(2,'0')}">${i+1}</option>`).join('')}</select>
+        <select class="fi" id="CRDOB_M"><option value="">Month</option>${['January','February','March','April','May','June','July','August','September','October','November','December'].map((m,i)=>`<option value="${String(i+1).padStart(2,'0')}">${m}</option>`).join('')}</select>
+        <select class="fi" id="CRDOB_Y"><option value="">Year</option>${Array.from({length:20},(_,i)=>`<option value="${new Date().getFullYear()-i}">${new Date().getFullYear()-i}</option>`).join('')}</select>
+      </div>
     </div>
     <div class="fg"><label class="fl">Gender *</label>
       <div class="gt"><button class="gb boy active" id="CRB" onclick="setCRG('boy')">👦 Boy</button><button class="gb girl" id="CRG2" onclick="setCRG('girl')">👧 Girl</button></div>
@@ -2209,11 +2331,10 @@ async function custRegister(){
   const name=document.getElementById('CRN').value.trim();
   const phone=document.getElementById('CRP').value.trim();
   const parent=document.getElementById('CRPR').value.trim();
-  const dob=document.getElementById('CRDOB').value||null;
+  const dob=getDob('CRDOB');
   if(!name||!phone){alert('Please enter name and mobile.');return;}
   if(!dob){
-    document.getElementById('CRDOB').style.borderColor='#DC2626';
-    document.getElementById('CRDOB').focus();
+    highlightDobErr('CRDOB');
     alert('Date of birth is required! 🎂');return;
   }
   try{
@@ -2304,6 +2425,8 @@ function saveConfig(){
   CFG.user=document.getElementById('CFU').value.trim()||'admin';
   CFG.pass=document.getElementById('CFP').value||'minicuts123';
   CFG.resetCode=document.getElementById('CFRC').value.trim()||'MINICUTS2025';
+  // Push credentials to DB (staff_config table)
+  saveCredsToDb(CFG.user,CFG.pass,CFG.resetCode);
   CFG.boyNudgeWeeks=parseInt(document.getElementById('CFB_NW').value)||8;
   CFG.girlNudgeWeeks=parseInt(document.getElementById('CFG_NW').value)||15;
   CFG.boyLapsedWeeks=parseInt(document.getElementById('CFB_LW').value)||12;
@@ -2452,5 +2575,19 @@ function todayWA(btn){
   const name=row.querySelector('[style*="font-weight:800"]')?.textContent||'Customer';
   openWA(mobile,name,'nudge',gender);
 }
+
+// ── Populate static DOB selects (NC6 for new customer, EDOB for edit modal) ──
+(function populateDobSelects(){
+  const days=Array.from({length:31},(_,i)=>`<option value="${String(i+1).padStart(2,'0')}">${i+1}</option>`).join('');
+  const months=['January','February','March','April','May','June','July','August','September','October','November','December']
+    .map((m,i)=>`<option value="${String(i+1).padStart(2,'0')}">${m}</option>`).join('');
+  const curYear=new Date().getFullYear();
+  const years=Array.from({length:20},(_,i)=>`<option value="${curYear-i}">${curYear-i}</option>`).join('');
+  const fill=(id,opts)=>{const el=document.getElementById(id);if(el)el.innerHTML='<option value="">'+id.split('_')[1]+'</option>'+opts;};
+  // NC6 — admin new customer form
+  fill('NC6_D',days); fill('NC6_M',months); fill('NC6_Y',years);
+  // EDOB — edit modal (static in HTML)
+  fill('EDOB_D',days); fill('EDOB_M',months); fill('EDOB_Y',years);
+})();
 
 </script>
