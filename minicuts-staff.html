@@ -47,14 +47,14 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
 .qt thead{background:var(--bd);position:sticky;top:0;z-index:10;}
 .qt thead th{color:#fff;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:10px 10px;text-align:left;white-space:nowrap;overflow:hidden;}
 /* Column widths */
-.qt th:nth-child(1),.qt td:nth-child(1){width:60px;}   /* Token */
-.qt th:nth-child(2),.qt td:nth-child(2){width:150px;}  /* Name */
-.qt th:nth-child(3),.qt td:nth-child(3){width:120px;}  /* Service */
-.qt th:nth-child(4),.qt td:nth-child(4){width:58px;}   /* Time */
-.qt th:nth-child(5),.qt td:nth-child(5){width:120px;}  /* Stylist */
-.qt th:nth-child(6),.qt td:nth-child(6){width:auto;}   /* Remark & Tip — flex fill */
-.qt th:nth-child(7),.qt td:nth-child(7){width:76px;}   /* Status */
-.qt th:nth-child(8),.qt td:nth-child(8){width:130px;}  /* Actions */
+.qt th:nth-child(1),.qt td:nth-child(1){width:58px;}   /* Token */
+.qt th:nth-child(2),.qt td:nth-child(2){width:140px;}  /* Name */
+.qt th:nth-child(3),.qt td:nth-child(3){width:110px;}  /* Service */
+.qt th:nth-child(4),.qt td:nth-child(4){width:55px;}   /* Time */
+.qt th:nth-child(5),.qt td:nth-child(5){width:190px;}  /* Stylists */
+.qt th:nth-child(6),.qt td:nth-child(6){width:auto;}   /* Remark, Value & Tip — flex fill */
+.qt th:nth-child(7),.qt td:nth-child(7){width:74px;}   /* Status */
+.qt th:nth-child(8),.qt td:nth-child(8){width:128px;}  /* Actions */
 .qt tbody tr{border-bottom:1px solid var(--border);transition:background .1s;}
 .qt tbody tr:hover{background:#F8FBFF;}
 .qt tbody tr.done{opacity:.5;background:#FAFAFA;}
@@ -138,7 +138,7 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
     <table class="qt" id="qt">
       <thead><tr>
         <th>Token</th><th>Name</th><th>Service</th><th>Time</th>
-        <th>Stylist</th><th>Remark &amp; Tip</th><th>Status</th><th>Actions</th>
+        <th>Stylist(s)</th><th>Value · Tip · Remark</th><th>Status</th><th>Actions</th>
       </tr></thead>
       <tbody id="qt-body"><tr><td colspan="8" style="text-align:center;padding:40px;color:var(--muted);">Loading queue...</td></tr></tbody>
     </table>
@@ -156,8 +156,8 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
   </div>
   <div class="tbl-wrap">
     <table class="qt">
-      <thead><tr><th>Token</th><th>Name</th><th>Service</th><th>Stylist</th><th>Tip</th><th>Remark</th><th>Status</th><th>Time</th></tr></thead>
-      <tbody id="hist-body"><tr><td colspan="8" style="text-align:center;padding:40px;color:var(--muted);">Go to Queue tab and refresh to load data</td></tr></tbody>
+      <thead><tr><th>Token</th><th>Name</th><th>Service</th><th>Stylist(s)</th><th>Value</th><th>Tip</th><th>Remark</th><th>Status</th><th>Time</th></tr></thead>
+      <tbody id="hist-body"><tr><td colspan="9" style="text-align:center;padding:40px;color:var(--muted);">Go to Queue tab and refresh to load data</td></tr></tbody>
     </table>
   </div>
 </div>
@@ -273,31 +273,46 @@ function renderQ(){
 
 function buildRow(r){
   const done=r.status==='done';const called=r.status==='called';const cancelled=r.status==='cancelled';
-  const guest=r.is_guest||!r.customer_id;
+  const guest=r.is_guest||!r.customer_id;const locked=done||cancelled;
   const sp=done?'<span class="sp sp-d">✅ Done</span>':called?'<span class="sp sp-c">📢 Called</span>':cancelled?'<span class="sp" style="background:#F3F4F6;color:var(--muted);">✕ Cancelled</span>':guest?'<span class="sp sp-g">👤 Guest</span>':'<span class="sp sp-w">⏳ Waiting</span>';
-  const styOpts=STYLISTS.map(s=>'<option value="'+s+'"'+(r.stylist===s?' selected':'')+'>'+s+'</option>').join('');
+  const sty1Opts='<option value="">— Stylist 1 —</option>'+STYLISTS.map(s=>'<option value="'+s+'"'+(r.stylist===s?' selected':'')+'>'+s+'</option>').join('');
+  const sty2Opts='<option value="">— Stylist 2 —</option>'+STYLISTS.map(s=>'<option value="'+s+'"'+(r.stylist2===s?' selected':'')+'>'+s+'</option>').join('');
   const svcOpts=SVCS.map(s=>'<option'+(r.service===s?' selected':'')+'>'+s+'</option>').join('');
   const remark=escQ(r.remark||'');
   const tip=r.tip||'';
+  const svcVal=r.service_value||'';
   return'<tr class="'+(done?'done':called?'called':cancelled?'done':'')+'" id="qr-'+r.id+'">'
+    // Token
     +'<td><div class="tok-b '+(guest?'guest':'')+'">'+String(r.token_number).padStart(2,'0')+'</div></td>'
-    +'<td><div style="font-weight:800;">'+(r.customer_name||'')+'</div><div style="font-size:11px;color:var(--muted);">'+(guest?'👤 Guest':'📱 '+displayMob(r.mobile||''))+'</div></td>'
-    +'<td><select class="isel" onchange="updF(\''+r.id+'\',\'service\',this.value)"'+(done||cancelled?' disabled':'')+'>'+svcOpts+'</select></td>'
-    +'<td style="font-size:12.5px;color:var(--muted);">'+fmtT(r.checkin_time)+'</td>'
-    +'<td><select class="isel" onchange="updF(\''+r.id+'\',\'stylist\',this.value)"'+(done||cancelled?' disabled':'')+'>'+
-      '<option value="">— Stylist —</option>'+styOpts+'</select></td>'
-    // Remark + Tip inline
-    +'<td style="min-width:200px;">'
-      +'<input class="isel" type="text" placeholder="📝 Remark..." maxlength="120" value="'+remark+'" style="width:100%;margin-bottom:5px;" '+(done||cancelled?'disabled ':'')+
-        'onblur="updF(\''+r.id+'\',\'remark\',this.value)" onkeydown="if(event.key===\'Enter\')this.blur()"/>'
-      +'<div style="display:flex;align-items:center;gap:5px;">'
-        +'<span style="font-size:12px;font-weight:700;color:var(--muted);">💰 Tip AED</span>'
-        +'<input class="isel" type="number" min="0" max="9999" step="5" placeholder="0" value="'+(tip||'')+'" style="width:80px;" '+(done||cancelled?'disabled ':'')+
-          'onblur="updF(\''+r.id+'\',\'tip\',this.value?Number(this.value):null)" onkeydown="if(event.key===\'Enter\')this.blur()"/>'
-      +'</div>'
+    // Name
+    +'<td><div style="font-weight:800;font-size:13px;">'+(r.customer_name||'')+'</div>'
+      +'<div style="font-size:11px;color:var(--muted);">'+(guest?'👤 Guest':'📱 '+displayMob(r.mobile||''))+'</div></td>'
+    // Service
+    +'<td><select class="isel" onchange="updF(\''+r.id+'\',\'service\',this.value)"'+(locked?' disabled':'')+'>'+svcOpts+'</select></td>'
+    // Time
+    +'<td style="font-size:12px;color:var(--muted);">'+fmtT(r.checkin_time)+'</td>'
+    // Stylists — two dropdowns stacked
+    +'<td>'
+      +'<select class="isel" style="margin-bottom:4px;" onchange="updF(\''+r.id+'\',\'stylist\',this.value)"'+(locked?' disabled':'')+'>'+sty1Opts+'</select>'
+      +'<select class="isel" onchange="updF(\''+r.id+'\',\'stylist2\',this.value)"'+(locked?' disabled':'')+'>'+sty2Opts+'</select>'
     +'</td>'
+    // Value + Tip + Remark
+    +'<td>'
+      +'<div style="display:flex;gap:5px;margin-bottom:5px;align-items:center;">'
+        +'<span style="font-size:11px;font-weight:700;color:var(--muted);white-space:nowrap;">💵 AED</span>'
+        +'<input class="isel" type="number" min="0" max="9999" step="5" placeholder="Value" value="'+(svcVal||'')+'" style="width:72px;" '+(locked?'disabled ':'')+
+          'onblur="updF(\''+r.id+'\',\'service_value\',this.value?Number(this.value):null)" onkeydown="if(event.key===\'Enter\')this.blur()" title="Service Value AED"/>'
+        +'<span style="font-size:11px;font-weight:700;color:var(--muted);white-space:nowrap;">Tip</span>'
+        +'<input class="isel" type="number" min="0" max="9999" step="5" placeholder="0" value="'+(tip||'')+'" style="width:62px;" '+(locked?'disabled ':'')+
+          'onblur="updF(\''+r.id+'\',\'tip\',this.value?Number(this.value):null)" onkeydown="if(event.key===\'Enter\')this.blur()" title="Tip AED"/>'
+      +'</div>'
+      +'<input class="isel" type="text" placeholder="📝 Remark..." maxlength="120" value="'+remark+'" style="width:100%;" '+(locked?'disabled ':'')+
+        'onblur="updF(\''+r.id+'\',\'remark\',this.value)" onkeydown="if(event.key===\'Enter\')this.blur()"/>'
+    +'</td>'
+    // Status
     +'<td>'+sp+'</td>'
-    +'<td><div style="display:flex;gap:5px;flex-direction:column;">'
+    // Actions
+    +'<td><div style="display:flex;gap:4px;flex-direction:column;">'
     +(done?'<button class="btn btn-ghost btn-sm" onclick="updS(\''+r.id+'\',\'waiting\')">↩ Undo</button>'
     :cancelled?''
     :(!called?'<button class="btn btn-b btn-sm" style="white-space:nowrap;" onclick="updS(\''+r.id+'\',\'called\')">📢 Call</button>':'')+
@@ -312,26 +327,30 @@ function escQ(s){return(s||'').replace(/'/g,"\\'").replace(/"/g,'&quot;');}
 
 function renderHist(){
   const body=document.getElementById('hist-body');if(!body)return;
-  if(!_qdata.length){body.innerHTML='<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--muted);">Refresh the Queue tab to load data</td></tr>';return;}
+  if(!_qdata.length){body.innerHTML='<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--muted);">Refresh the Queue tab to load data</td></tr>';return;}
   const totalTips=_qdata.filter(r=>r.tip>0).reduce((s,r)=>s+(Number(r.tip)||0),0);
+  const totalRev=_qdata.filter(r=>r.service_value>0).reduce((s,r)=>s+(Number(r.service_value)||0),0);
   body.innerHTML=_qdata.slice().reverse().map(r=>{
     const done=r.status==='done';const called=r.status==='called';const cancelled=r.status==='cancelled';const guest=r.is_guest;
     const sp=done?'<span class="sp sp-d">✅ Done</span>':called?'<span class="sp sp-c">📢 Called</span>':cancelled?'<span class="sp" style="background:#F3F4F6;color:var(--muted);">✕ Cancelled</span>':guest?'<span class="sp sp-g">👤 Guest</span>':'<span class="sp sp-w">⏳ Waiting</span>';
+    const styStr=[r.stylist,r.stylist2].filter(Boolean).join(' & ');
     return'<tr class="'+(done?'done':called?'called':cancelled?'done':'')+'">'
       +'<td><div class="tok-b '+(guest?'guest':'')+'">'+String(r.token_number).padStart(2,'0')+'</div></td>'
       +'<td style="font-weight:700;">'+(r.customer_name||'')+'</td>'
       +'<td>'+(r.service||'—')+'</td>'
-      +'<td>'+(r.stylist||'<span style="color:var(--muted);">—</span>')+'</td>'
+      +'<td>'+(styStr||'<span style="color:var(--muted);">—</span>')+'</td>'
+      +'<td style="font-weight:800;color:var(--b);">'+(r.service_value?'AED '+r.service_value:'—')+'</td>'
       +'<td style="font-weight:800;color:var(--ok);">'+(r.tip?'AED '+r.tip:'—')+'</td>'
       +'<td style="font-size:12px;color:var(--muted);max-width:160px;">'+(r.remark||'—')+'</td>'
       +'<td>'+sp+'</td>'
       +'<td style="font-size:12px;color:var(--muted);">'+fmtT(r.checkin_time)+'</td>'
       +'</tr>';
   }).join('')
-  +'<tr style="background:#F0FDF4;font-weight:800;">'
-    +'<td colspan="4" style="padding:12px 14px;color:var(--ok);">💰 Total Tips Today</td>'
-    +'<td style="padding:12px 14px;color:var(--ok);font-size:15px;font-weight:900;">AED '+totalTips+'</td>'
-    +'<td colspan="3"></td>'
+  +'<tr style="background:#F0FDF4;font-weight:900;border-top:2px solid #86EFAC;">'
+    +'<td colspan="4" style="padding:12px 14px;color:var(--ok);font-size:13px;">💰 Today\'s Totals</td>'
+    +'<td style="padding:12px 14px;color:var(--b);font-size:15px;">AED '+totalRev+'</td>'
+    +'<td style="padding:12px 14px;color:var(--ok);font-size:15px;">AED '+totalTips+'</td>'
+    +'<td colspan="3" style="padding:12px 14px;color:var(--muted);font-size:12px;">Combined: AED '+(totalRev+totalTips)+'</td>'
   +'</tr>';
 }
 
@@ -355,14 +374,19 @@ async function cancelToken(id,name){
 }
 async function markDone(qid,cid,name,mob){
   const row=document.getElementById('qr-'+qid);
-  // Capture remark and tip from the row inputs before marking done
+  const inputs=row?.querySelectorAll('input[type="text"],input[type="number"]');
+  const svcValInput=row?.querySelectorAll('input[type="number"]')[0];
+  const tipInput=row?.querySelectorAll('input[type="number"]')[1];
   const remarkInput=row?.querySelector('input[type="text"]');
-  const tipInput=row?.querySelector('input[type="number"]');
   const remark=(remarkInput?.value||'').trim()||null;
   const tip=tipInput?.value?Number(tipInput.value):null;
+  const service_value=svcValInput?.value?Number(svcValInput.value):null;
+  const qRow=_qdata.find(x=>x.id===qid);
+  const stylist=qRow?.stylist||null;
+  const stylist2=qRow?.stylist2||null;
   const doneBtn=row?.querySelector('.btn-g');if(doneBtn){doneBtn.disabled=true;doneBtn.textContent='...';}
   try{
-    await sb('queue','PATCH',{status:'done',done_at:new Date().toISOString(),remark,tip},'id=eq.'+qid);
+    await sb('queue','PATCH',{status:'done',done_at:new Date().toISOString(),remark,tip,service_value},'id=eq.'+qid);
     if(cid&&cid!=='null'&&cid){
       const rows=await sb('customers','GET',null,'select=*&id=eq.'+cid);
       if(rows?.length){
@@ -370,27 +394,27 @@ async function markDone(qid,cid,name,mob){
         const months=c.gender==='girl'?15:12;
         const fs=c.first_stamp_date||now;
         const exp=c.expiry_date||(()=>{const d=new Date(fs);d.setMonth(d.getMonth()+months);return d.toISOString();})();
-        const stylist=_qdata.find(r=>r.id===qid)?.stylist||null;
         await sb('customers','PATCH',{stamps:ns,first_stamp_date:fs,expiry_date:exp,last_visit_date:now},'id=eq.'+cid);
-        await sb('visits','POST',{customer_id:cid,type:'paid',stamp_count_after:ns,cycle_expiry:exp,stylist,remark,tip});
+        await sb('visits','POST',{customer_id:cid,type:'paid',stamp_count_after:ns,cycle_expiry:exp,stylist,stylist2,remark,tip,service_value});
         const paid=5;const free=ns>=paid;
-        toast(name+' — Stamp '+ns+'/'+paid+' added'+(free?' 🎁 Free wash ready!':'')+(stylist?' by '+stylist:'')+(tip?' · Tip AED '+tip:''));
-        showWAPrompt(name,ns,mob,c.parent,c.gender,stylist,remark,tip);
+        const styStr=[stylist,stylist2].filter(Boolean).join(' & ');
+        toast(name+' — Stamp '+ns+'/'+paid+(free?' 🎁':'')+(styStr?' · '+styStr:'')+(service_value?' · AED '+service_value:'')+(tip?' · Tip '+tip:''));
+        showWAPrompt(name,ns,mob,c.parent,c.gender,stylist,stylist2,remark,tip,service_value);
       }
-    } else { toast(name+' done (guest — no stamp)'+(tip?' · Tip AED '+tip:''),'info'); }
-    const r=_qdata.find(x=>x.id===qid);if(r){r.status='done';r.remark=remark;r.tip=tip;}
+    } else { toast(name+' done (guest)'+(service_value?' · AED '+service_value:'')+(tip?' · Tip AED '+tip:''),'info'); }
+    if(qRow){qRow.status='done';qRow.remark=remark;qRow.tip=tip;qRow.service_value=service_value;}
     renderQ();renderHist();updateStats();
   }catch(e){toast('Error: '+e.message,'err');if(doneBtn){doneBtn.disabled=false;doneBtn.textContent='✅ Done+Stamp';}}
 }
 
-function showWAPrompt(name,stamps,mobile,parent,gender,stylist,remark,tip){
+function showWAPrompt(name,stamps,mobile,parent,gender,stylist,stylist2,remark,tip,service_value){
   const paid=5;const free=stamps>=paid;
   const mob=(mobile||'').replace(/\D/g,'');
-  const isGuest=!mob||mob.startsWith('GUEST');
-  if(isGuest)return;
+  const isGuest=!mob||mob.startsWith('GUEST');if(isGuest)return;
+  const styStr=[stylist,stylist2].filter(Boolean).join(' & ');
   const waMsg='Hi '+(parent||name)+'!\n\nThank you for visiting MiniCuts — '+name+' looked amazing! ✂️🐼\n\n'
     +(free?'🎉 You\'ve earned a FREE Hair Wash! Come in anytime to claim it!':'You now have '+stamps+' stamp'+(stamps!==1?'s':'')+' — just '+(paid-stamps)+' more for a free hair wash! 🚿')
-    +(stylist?'\n\nStylist today: '+stylist:'')
+    +(styStr?'\n\nStylist today: '+styStr:'')
     +'\n\nSee you soon!\nMiniCuts DSO';
   const wa='https://wa.me/971'+mob.replace(/^0/,'')+'?text='+encodeURIComponent(waMsg);
   const ov=document.createElement('div');
@@ -398,11 +422,12 @@ function showWAPrompt(name,stamps,mobile,parent,gender,stylist,remark,tip){
   ov.innerHTML='<div style="background:#fff;border-radius:18px;padding:24px;max-width:380px;width:100%;text-align:center;">'
     +'<div style="font-size:44px;margin-bottom:8px;">'+(free?'🎁':'✂️')+'</div>'
     +'<div style="font-family:var(--fh);font-size:19px;font-weight:800;color:var(--bd);margin-bottom:4px;">Done! Stamp Added.</div>'
-    +'<div style="font-size:13.5px;color:var(--muted);margin-bottom:12px;line-height:1.6;">'+name+' now has <strong>'+stamps+'</strong> stamp'+(stamps!==1?'s':'')+(free?' · 🎉 Free hair wash ready!':' · '+(paid-stamps)+' more to go!')+'</div>'
-    +(stylist||remark||tip?'<div style="background:#F8FBFF;border-radius:10px;padding:10px 12px;margin-bottom:12px;text-align:left;font-size:13px;">'
-      +(stylist?'<div style="margin-bottom:4px;">✂️ <strong>Stylist:</strong> '+stylist+'</div>':'')
-      +(remark?'<div style="margin-bottom:4px;">📝 <strong>Remark:</strong> '+remark+'</div>':'')
+    +'<div style="font-size:13.5px;color:var(--muted);margin-bottom:12px;line-height:1.6;">'+name+' — <strong>'+stamps+'</strong> stamp'+(stamps!==1?'s':'')+(free?' · 🎉 Free wash ready!':' · '+(paid-stamps)+' more')+'</div>'
+    +(styStr||remark||tip||service_value?'<div style="background:#F8FBFF;border-radius:10px;padding:10px 12px;margin-bottom:12px;text-align:left;font-size:13px;display:grid;gap:4px;">'
+      +(styStr?'<div>✂️ <strong>Stylist:</strong> '+styStr+'</div>':'')
+      +(service_value?'<div>💵 <strong>Service:</strong> AED '+service_value+'</div>':'')
       +(tip?'<div style="color:var(--ok);">💰 <strong>Tip:</strong> AED '+tip+'</div>':'')
+      +(remark?'<div>📝 <strong>Remark:</strong> '+remark+'</div>':'')
       +'</div>':'')
     +'<a href="'+wa+'" target="_blank" style="display:block;width:100%;padding:12px;background:#25D366;color:#fff;border-radius:11px;font-family:var(--fh);font-size:15px;font-weight:800;text-decoration:none;margin-bottom:9px;">💬 Send WhatsApp</a>'
     +'<button style="width:100%;padding:10px;border:1.5px solid var(--border);border-radius:9px;background:transparent;cursor:pointer;font-family:var(--fh);font-size:14px;font-weight:700;">Close</button>'
@@ -421,15 +446,20 @@ function loadCfgScreen(){
   if(sumEl&&_qdata.length){
     const done=_qdata.filter(r=>r.status==='done');
     const totalTips=_qdata.filter(r=>r.tip>0).reduce((s,r)=>s+(Number(r.tip)||0),0);
+    const totalRev=_qdata.filter(r=>r.service_value>0).reduce((s,r)=>s+(Number(r.service_value)||0),0);
     const byS={};
     done.forEach(r=>{
-      const k=r.stylist||'Unassigned';
-      if(!byS[k])byS[k]={count:0,tips:0};
-      byS[k].count++;
-      byS[k].tips+=Number(r.tip)||0;
+      [r.stylist,r.stylist2].filter(Boolean).forEach(s=>{
+        if(!byS[s])byS[s]={count:0,tips:0,rev:0};
+        byS[s].count++;
+        byS[s].tips+=Number(r.tip)||0;
+      });
+      const pri=r.stylist||'Unassigned';
+      if(!byS[pri])byS[pri]={count:0,tips:0,rev:0};
+      byS[pri].rev+=Number(r.service_value)||0;
     });
-    sumEl.innerHTML='<div style="font-size:13px;font-weight:700;margin-bottom:8px;color:var(--bd);">Served today: '+done.length+' · Total tips: <span style="color:var(--ok);">AED '+totalTips+'</span></div>'+
-      Object.entries(byS).map(([s,v])=>'<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px;"><span>✂️ '+s+'</span><span><strong>'+v.count+' served</strong>'+(v.tips>0?' · <span style="color:var(--ok);">AED '+v.tips+'</span>':'')+'</span></div>').join('');
+    sumEl.innerHTML='<div style="font-size:13px;font-weight:700;margin-bottom:10px;color:var(--bd);">Served: <strong>'+done.length+'</strong> · Revenue: <span style="color:var(--b);">AED '+totalRev+'</span> · Tips: <span style="color:var(--ok);">AED '+totalTips+'</span></div>'
+      +Object.entries(byS).map(([s,v])=>'<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;"><span>✂️ <strong>'+s+'</strong></span><span style="display:flex;gap:12px;"><span>'+v.count+' served</span>'+(v.rev?'<span style="color:var(--b);">AED '+v.rev+'</span>':'')+(v.tips?'<span style="color:var(--ok);">Tip '+v.tips+'</span>':'')+'</span></div>').join('');
   } else if(sumEl){sumEl.innerHTML='<div style="color:var(--muted);font-size:13px;">Load the queue first to see today\'s summary.</div>';}
 }
 
