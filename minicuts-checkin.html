@@ -336,6 +336,9 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
       <button class="btn btn-ghost btn-full" onclick="resetToLookup()" style="margin-top:4px;">← New Check-In</button>
     </div>
 
+    <!-- Family (multi-kid) token screen — separate div, never conflicts with ci-confirmed -->
+    <div id="ci-family" style="display:none;"></div>
+
     <div id="ci-loading" style="text-align:center;padding:40px;color:var(--muted);">
       <div style="font-size:40px;margin-bottom:10px;">⏳</div>
       <div style="font-weight:700;">Checking in...</div>
@@ -803,6 +806,7 @@ async function proceedToCheckin(){
   if(!_selectedCustomers.length) return;
   showScreen('s-checkin');
   document.getElementById('ci-confirmed').style.display='none';
+  document.getElementById('ci-family').style.display='none';
   document.getElementById('ci-loading').style.display='block';
   try{
     const tokens=[];
@@ -853,13 +857,18 @@ async function doCheckin(customerId,name,mobile,service,showLoading){
 }
 
 function showTokenScreen(token,name,customerId,subText,mobile){
-  document.getElementById('ci-loading').style.display='none';
-  document.getElementById('ci-token').textContent=String(token).padStart(2,'0');
-  document.getElementById('ci-name').textContent=name;
-  document.getElementById('ci-sub').textContent=subText||'';
-  document.getElementById('ci-confirmed').style.display='block';
-
-  // Store for games/passport buttons
+  const loading=document.getElementById('ci-loading');
+  const confirmed=document.getElementById('ci-confirmed');
+  const family=document.getElementById('ci-family');
+  const tokenEl=document.getElementById('ci-token');
+  const nameEl=document.getElementById('ci-name');
+  const subEl=document.getElementById('ci-sub');
+  if(loading) loading.style.display='none';
+  if(family) family.style.display='none';
+  if(tokenEl) tokenEl.textContent=String(token).padStart(2,'0');
+  if(nameEl) nameEl.textContent=name;
+  if(subEl) subEl.textContent=subText||'';
+  if(confirmed) confirmed.style.display='block';
   window._checkinCustomerId=customerId;
   window._checkinMobile=mobile;
   showScreen('s-checkin');
@@ -875,9 +884,15 @@ function viewPassport(){
 }
 
 function showFamilyTokenScreen(tokens,mobile){
-  document.getElementById('ci-loading').style.display='none';
+  const loading=document.getElementById('ci-loading');
+  const confirmed=document.getElementById('ci-confirmed');
+  const el=document.getElementById('ci-family');
+  if(loading) loading.style.display='none';
+  if(confirmed) confirmed.style.display='none';
+  if(!el) return;
+
   window._checkinMobile=mobile;
-  window._checkinCustomerId=tokens[0].id;
+  window._checkinCustomerId=tokens[0]?.id||null;
 
   const tokensHtml=tokens.map(t=>`
     <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:#F0F7FF;border-radius:12px;margin-bottom:8px;border:1px solid rgba(21,101,192,.1);">
@@ -886,7 +901,6 @@ function showFamilyTokenScreen(tokens,mobile){
       <div style="font-size:11.5px;color:var(--muted);">Token #${String(t.token).padStart(2,'0')} · Waiting</div></div>
     </div>`).join('');
 
-  const el=document.getElementById('ci-confirmed');
   el.innerHTML=`
     <div class="token-card">
       <div class="token-label">Family Check-In</div>
@@ -905,6 +919,7 @@ function showFamilyTokenScreen(tokens,mobile){
     </div>
     <button class="btn btn-ghost btn-full" onclick="resetToLookup()" style="margin-top:10px;">← New Check-In</button>`;
   el.style.display='block';
+  showScreen('s-checkin');
 }
 
 // ══════════════════════════════
