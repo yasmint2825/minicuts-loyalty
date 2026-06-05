@@ -73,8 +73,8 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
 .tok{width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,var(--bd),var(--bm));color:var(--y);font-family:var(--fh);font-size:18px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 .tok.guest{background:linear-gradient(135deg,#6B7280,#9CA3AF);}
 .gw{background:var(--err);border-radius:12px;padding:13px 14px;margin-bottom:14px;}
-.bnav{position:fixed;bottom:0;left:0;right:0;background:rgba(255,255,255,.97);backdrop-filter:blur(12px);border-top:1px solid var(--border);padding:8px 14px;display:flex;gap:8px;z-index:50;}
-.bb{flex:1;padding:9px 6px;border:none;border-radius:10px;font-family:var(--fh);font-size:12px;font-weight:800;cursor:pointer;background:#F1F5F9;color:var(--muted);transition:all .15s;}
+.bnav{position:fixed;bottom:0;left:0;right:0;background:rgba(255,255,255,.97);backdrop-filter:blur(12px);border-top:1px solid var(--border);padding:6px 10px;display:flex;gap:6px;z-index:50;}
+.bb{flex:1;padding:8px 4px;border:none;border-radius:10px;font-family:var(--fh);font-size:11px;font-weight:800;cursor:pointer;background:#F1F5F9;color:var(--muted);transition:all .15s;line-height:1.25;text-align:center;}
 .bb.active{background:var(--b);color:#fff;}
 #clk{font-family:var(--fh);font-size:11px;font-weight:700;color:rgba(255,255,255,.7);}
 </style>
@@ -241,7 +241,7 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
 <div class="bnav">
   <button class="bb active" id="bn-ci" onclick="navTo('s-lookup','bn-ci')">✅ Check In</button>
   <button class="bb" id="bn-q" onclick="navTo('s-queue','bn-q');loadQ();">📋 Queue</button>
-  <button class="bb" id="bn-g" onclick="window.open('./minicuts-game.html','_blank')">🎮 Loyalty &amp; Games</button>
+  <button class="bb" id="bn-g" onclick="window.open('./minicuts-game.html','_blank')">🎮 Games</button>
 </div>
 
 <script>
@@ -402,7 +402,9 @@ async function doCI(custId,name,mob,svc){
   const last=(ex&&ex.length)?Number(ex[0].token_number)||0:0;
   const tok=last+1;
   await sb('queue','POST',{customer_id:custId||null,customer_name:name,mobile:mob||null,service:svc||'Haircut',token_number:tok,checkin_date:t,checkin_time:new Date().toISOString(),status:'waiting',is_guest:!custId,stylist:null});
-  if(custId)sb('customers','PATCH',{last_visit_date:new Date().toISOString()},'id=eq.'+custId).catch(()=>{});
+  // NOTE: last_visit_date is intentionally NOT set here.
+  // It is only set by staff when the haircut is done (Done+Stamp).
+  // This ensures games unlock only after the haircut, not on check-in.
   refreshStats();return tok;
 }
 function showTok(tok,name,cid,sub,mob){

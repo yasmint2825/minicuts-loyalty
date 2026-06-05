@@ -929,6 +929,15 @@ async function goProfile(){
         player.game_spins    = fresh[0].game_spins;
       }
     }catch(e){ /* use cached data if fetch fails */ }
+    // Live-check visits table — the definitive stamp gate
+    // Re-read stamps fresh in case staff just stamped
+    try{
+      const s=await sb('customers','GET',null,'select=stamps&id=eq.'+player.id);
+      if(s&&s[0]) player.stamps=Number(s[0].stamps)||0;
+    }catch(e){}
+    player._stampedToday = await hasStampedTodayLive();
+  } else {
+    player._stampedToday = false;
   }
   renderProfile();
   showScreen('s-profile');
@@ -939,25 +948,21 @@ async function goProfile(){
     if(!document.getElementById('s-profile').classList.contains('active')){
       clearInterval(window._stampPollTimer);return;
     }
-    if(hasStampedToday()){clearInterval(window._stampPollTimer);return;} // already unlocked
+    if(player._stampedToday){clearInterval(window._stampPollTimer);return;}
     if(!player.id) return;
     try{
+      const wasLocked=!player._stampedToday;
+      player._stampedToday=await hasStampedTodayLive();
+      // Also refresh last_visit_date
       const fresh=await sb('customers','GET',null,'select=stamps,last_visit_date&id=eq.'+player.id);
-      if(fresh&&fresh[0]){
-        const wasLocked=!hasStampedToday();
-        player.stamps=fresh[0].stamps;
-        player.last_visit_date=fresh[0].last_visit_date;
-        if(wasLocked&&hasStampedToday()){
-          // Gate just lifted — refresh game cards immediately
-          refreshGameCards();
-          const old=document.getElementById('stampGateTap');if(old)old.remove();
-          // Brief celebration toast
-          const t=document.createElement('div');
-          t.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#FFD600,#FF8C00);color:#0D47A1;padding:12px 22px;border-radius:99px;font-family:\'Baloo 2\',cursive;font-size:16px;font-weight:900;z-index:8000;box-shadow:0 8px 24px rgba(255,214,0,.4);white-space:nowrap;';
-          t.textContent='✂️ Stamp received — games unlocked! 🎮';
-          document.body.appendChild(t);
-          setTimeout(()=>t.remove(),3000);
-        }
+      if(fresh&&fresh[0]){player.stamps=fresh[0].stamps;player.last_visit_date=fresh[0].last_visit_date;}
+      if(wasLocked&&player._stampedToday){
+        refreshGameCards();
+        const old=document.getElementById('stampGateTap');if(old)old.remove();
+        const t=document.createElement('div');
+        t.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#FFD600,#FF8C00);color:#0D47A1;padding:12px 22px;border-radius:99px;font-family:\'Baloo 2\',cursive;font-size:16px;font-weight:900;z-index:8000;box-shadow:0 8px 24px rgba(255,214,0,.4);white-space:nowrap;';
+        t.textContent='✂️ Stamp received — games unlocked! 🎮';
+        document.body.appendChild(t);setTimeout(()=>t.remove(),3000);
       }
     }catch(e){}
   },15000);
@@ -1410,18 +1415,38 @@ function drawMilestoneTrack(containerId,pts){
 }
 
 
-function hasStampedToday(){
-  if(!player.last_visit_date) return false;
-  // Use device local date — avoids UTC+4 Dubai timezone mismatch
+async function hasStampedTodayLive(){
+  // Check visits table directly — only true if staff added a stamp today
+  if(!player.id) return false;
+  // New customer with 0 stamps can never be unlocked
+  if((Number(player.stamps)||0) === 0) return false;
+  try{
+    const now=new Date();
+    const todayStart=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0')+'T00:00:00';
+    const rows=await sb('visits','GET',null,
+      'select=id&customer_id=eq.'+player.id+
+      '&created_at=gte.'+encodeURIComponent(todayStart)+
+      '&type=eq.paid&limit=1');
+    return !!(rows&&rows.length);
+  }catch(e){
+    // Fallback to last_visit_date if visits table unreachable
+    return hasStampedTodayFallback();
+  }
+}
+
+function hasStampedTodayFallback(){
+  // Extra guard: new customers with 0 stamps can never be considered stamped
+  if(!player.last_visit_date || (Number(player.stamps)||0) === 0) return false;
   const now=new Date();
-  const localToday=now.getFullYear()+'-'+
-    String(now.getMonth()+1).padStart(2,'0')+'-'+
-    String(now.getDate()).padStart(2,'0');
+  const localToday=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
   const v=new Date(player.last_visit_date);
-  const localVisit=v.getFullYear()+'-'+
-    String(v.getMonth()+1).padStart(2,'0')+'-'+
-    String(v.getDate()).padStart(2,'0');
+  const localVisit=v.getFullYear()+'-'+String(v.getMonth()+1).padStart(2,'0')+'-'+String(v.getDate()).padStart(2,'0');
   return localVisit===localToday;
+}
+
+// Synchronous version used by renderProfile — uses cached result
+function hasStampedToday(){
+  return player._stampedToday===true;
 }
 
 function showStampGate(){
@@ -1839,6 +1864,7 @@ async function fetchGlobalBests(){
 
 async function checkTodaySessions(){
   if(!player.id) return;
+  player._stampedToday=false; // will be set properly by goProfile live check
   try{
     const sessions=await fetch(
       SB_URL+'/rest/v1/game_sessions?select=game_type,created_at&customer_id=eq.'+player.id+'&order=created_at.desc&limit=100',
