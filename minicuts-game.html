@@ -359,7 +359,7 @@ function setMobileFields(pfxId,numId,mobile){
     </div>
   </div>
   <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;">
-    <button class="btn" onclick="goLeaderboard()" style="background:linear-gradient(135deg,#10B981,#059669);color:#fff;border:none;padding:9px;font-size:13px;font-weight:800;">🏆 View Leaderboard</button>
+    <a href="https://yasmint2825.github.io/minicuts-loyalty/minicuts_hair_care_guide_v2.html" target="_blank" rel="noopener" class="btn" style="background:linear-gradient(135deg,#1565C0,#0D47A1);color:#fff;border:none;padding:9px;font-size:11px;font-weight:800;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:4px;">✨ Smart Hair Guide for Parents</a>
     <button class="btn btn-ghost" onclick="newPlayer()" style="font-size:13px;padding:9px;border-color:var(--y);color:var(--y);">👶 New</button>
     <button class="btn btn-ghost" onclick="goHome()" style="font-size:13px;padding:9px;">🏠 Exit</button>
   </div>
@@ -715,11 +715,25 @@ function refreshGameCards(){
     }
     document.getElementById('gameGrid').style.display='grid';
     document.getElementById('gameGrid').style.opacity='0.25';
-    document.getElementById('gameGrid').style.pointerEvents='auto';
+    document.getElementById('gameGrid').style.pointerEvents='none';
     document.getElementById('allDoneCard').style.display='none';
+    // Wrap in a tappable overlay so tapping shows the gate message
+    const gGrid=document.getElementById('gameGrid');
+    if(!document.getElementById('stampGateTap')){
+      const overlay=document.createElement('div');
+      overlay.id='stampGateTap';
+      overlay.style.cssText='position:absolute;inset:0;z-index:10;cursor:pointer;';
+      overlay.addEventListener('click',showStampGate);
+      gGrid.style.position='relative';
+      gGrid.parentNode.style.position='relative';
+      gGrid.parentNode.appendChild(overlay);
+    }
     return;
   }
   document.getElementById('gameGrid').style.opacity='1';
+  document.getElementById('gameGrid').style.pointerEvents='auto';
+  const oldOverlay=document.getElementById('stampGateTap');
+  if(oldOverlay) oldOverlay.remove();
 
   // Prompt messages
   if(prompt){
@@ -896,7 +910,11 @@ function showAutoResetWarning(){
   },{passive:true});
 });
 
-function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if(id!=='s-profile') clearInterval(window._stampPollTimer);
+}
 function goBack(){showScreen(prevScreen);}
 async function goProfile(){
   // Always re-fetch stamp status live — catches stamps given after the player logged in
@@ -911,10 +929,43 @@ async function goProfile(){
         player.game_spins    = fresh[0].game_spins;
       }
     }catch(e){ /* use cached data if fetch fails */ }
+    // Live-check visits table — the definitive stamp gate
+    // Re-read stamps fresh in case staff just stamped
+    try{
+      const s=await sb('customers','GET',null,'select=stamps&id=eq.'+player.id);
+      if(s&&s[0]) player.stamps=Number(s[0].stamps)||0;
+    }catch(e){}
+    player._stampedToday = await hasStampedTodayLive();
+  } else {
+    player._stampedToday = false;
   }
   renderProfile();
   showScreen('s-profile');
   loadSidebarLb();
+  // Start polling every 15s while on profile — gate lifts automatically when staff stamps
+  clearInterval(window._stampPollTimer);
+  window._stampPollTimer=setInterval(async()=>{
+    if(!document.getElementById('s-profile').classList.contains('active')){
+      clearInterval(window._stampPollTimer);return;
+    }
+    if(player._stampedToday){clearInterval(window._stampPollTimer);return;}
+    if(!player.id) return;
+    try{
+      const wasLocked=!player._stampedToday;
+      player._stampedToday=await hasStampedTodayLive();
+      // Also refresh last_visit_date
+      const fresh=await sb('customers','GET',null,'select=stamps,last_visit_date&id=eq.'+player.id);
+      if(fresh&&fresh[0]){player.stamps=fresh[0].stamps;player.last_visit_date=fresh[0].last_visit_date;}
+      if(wasLocked&&player._stampedToday){
+        refreshGameCards();
+        const old=document.getElementById('stampGateTap');if(old)old.remove();
+        const t=document.createElement('div');
+        t.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#FFD600,#FF8C00);color:#0D47A1;padding:12px 22px;border-radius:99px;font-family:\'Baloo 2\',cursive;font-size:16px;font-weight:900;z-index:8000;box-shadow:0 8px 24px rgba(255,214,0,.4);white-space:nowrap;';
+        t.textContent='✂️ Stamp received — games unlocked! 🎮';
+        document.body.appendChild(t);setTimeout(()=>t.remove(),3000);
+      }
+    }catch(e){}
+  },15000);
   // Show stamp info in loyalty bar
   const sbInfo=document.getElementById('stampBarInfo');
   if(sbInfo&&player.id){
@@ -1364,18 +1415,38 @@ function drawMilestoneTrack(containerId,pts){
 }
 
 
-function hasStampedToday(){
-  if(!player.last_visit_date) return false;
-  // Use device local date — avoids UTC+4 Dubai timezone mismatch
+async function hasStampedTodayLive(){
+  // Check visits table directly — only true if staff added a stamp today
+  if(!player.id) return false;
+  // New customer with 0 stamps can never be unlocked
+  if((Number(player.stamps)||0) === 0) return false;
+  try{
+    const now=new Date();
+    const todayStart=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0')+'T00:00:00';
+    const rows=await sb('visits','GET',null,
+      'select=id&customer_id=eq.'+player.id+
+      '&created_at=gte.'+encodeURIComponent(todayStart)+
+      '&type=eq.paid&limit=1');
+    return !!(rows&&rows.length);
+  }catch(e){
+    // Fallback to last_visit_date if visits table unreachable
+    return hasStampedTodayFallback();
+  }
+}
+
+function hasStampedTodayFallback(){
+  // Extra guard: new customers with 0 stamps can never be considered stamped
+  if(!player.last_visit_date || (Number(player.stamps)||0) === 0) return false;
   const now=new Date();
-  const localToday=now.getFullYear()+'-'+
-    String(now.getMonth()+1).padStart(2,'0')+'-'+
-    String(now.getDate()).padStart(2,'0');
+  const localToday=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
   const v=new Date(player.last_visit_date);
-  const localVisit=v.getFullYear()+'-'+
-    String(v.getMonth()+1).padStart(2,'0')+'-'+
-    String(v.getDate()).padStart(2,'0');
+  const localVisit=v.getFullYear()+'-'+String(v.getMonth()+1).padStart(2,'0')+'-'+String(v.getDate()).padStart(2,'0');
   return localVisit===localToday;
+}
+
+// Synchronous version used by renderProfile — uses cached result
+function hasStampedToday(){
+  return player._stampedToday===true;
 }
 
 function showStampGate(){
@@ -1793,6 +1864,7 @@ async function fetchGlobalBests(){
 
 async function checkTodaySessions(){
   if(!player.id) return;
+  player._stampedToday=false; // will be set properly by goProfile live check
   try{
     const sessions=await fetch(
       SB_URL+'/rest/v1/game_sessions?select=game_type,created_at&customer_id=eq.'+player.id+'&order=created_at.desc&limit=100',
