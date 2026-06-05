@@ -226,7 +226,7 @@ function setMobileFields(pfxId,numId,mobile){
     <div style="margin-bottom:10px;">
       <div style="font-size:11px;font-weight:700;color:#6B7280;margin-bottom:5px;">Parent Mobile 📱</div>
       <div class="ph-wrap light">
-        <select class="ph-pfx" id="loginPfx"><option value="050">050</option><option value="051">051</option><option value="052">052</option><option value="054">054</option><option value="055" selected>055</option><option value="056">056</option><option value="058">058</option><option value="059">059</option><option value="060">060</option></select>
+        <select class="ph-pfx" id="loginPfx" onchange="onLoginMobileInput()"><option value="050">050</option><option value="051">051</option><option value="052">052</option><option value="054">054</option><option value="055" selected>055</option><option value="056">056</option><option value="058">058</option><option value="059">059</option><option value="060">060</option></select>
         <input class="ph-num" type="tel" id="loginMobile" placeholder="1234567" maxlength="7" inputmode="numeric" autocomplete="tel" oninput="onLoginMobileInput()">
       </div>
       <div id="mobileStatus" style="display:none;margin-top:5px;padding:6px 10px;border-radius:8px;font-size:11px;font-weight:700;text-align:center;"></div>
@@ -1415,20 +1415,22 @@ function openPassport(){
   window.open(loyaltyUrl(alt),'_blank');
 }
 function checkLoyaltyPassport(){
-  var name=document.getElementById('loginName').value.trim();
-  var mobileNum=(document.getElementById('loginMobile')&&document.getElementById('loginMobile').value||'').trim().replace(/\D/g,'');
+  // Exact same name reading as doLogin
+  var name='';
+  var inp=document.getElementById('loginName');
+  var sel=document.getElementById('loginNameSelect');
+  if(inp.style.display!=='none') name=inp.value.trim();
+  else if(sel.style.display!=='none') name=sel.value.trim();
+
+  var mobileNum=(document.getElementById('loginMobile').value||'').replace(/\D/g,'');
   var mobile=getFullMobile('loginPfx','loginMobile');
 
-  if(!name){
-    document.getElementById('loginName').style.borderColor='#FF6B9D';
-    setTimeout(function(){document.getElementById('loginName').style.borderColor='#E5E7EB';},1500);
-    showLoginMsg('Please enter child name to check passport',false);
+  if(mobileNum.length!==7){
+    showLoginMsg('Please enter a valid 7-digit mobile number 📱',false);
     return;
   }
-  if(mobileNum.length!==7){
-    showLoginMsg('Please enter parent mobile number to check passport',false);
-    document.getElementById('loginMobile').style.borderColor='#FF6B9D';
-    setTimeout(function(){document.getElementById('loginMobile').style.borderColor='#1565C0';},1500);
+  if(!name){
+    showLoginMsg('Please select or enter the child\'s name 👶',false);
     return;
   }
 
@@ -1536,22 +1538,28 @@ var _mlChildren=[];
 function onLoginMobileInput(){
   clearTimeout(_mlTimer);
   var num=(document.getElementById('loginMobile').value||'').replace(/\D/g,'');
-  // reset child row
+  // reset everything cleanly
   document.getElementById('childNameRow').style.display='none';
   document.getElementById('loginName').style.display='none';
   document.getElementById('loginName').value='';
   document.getElementById('loginNameSelect').style.display='none';
   document.getElementById('loginNameSelect').innerHTML='';
   document.getElementById('loginBtn').style.display='none';
-  document.getElementById('loginMsg').style.display='none';
+  var msgEl=document.getElementById('loginMsg');
+  msgEl.style.display='none';
+  msgEl.innerHTML='';
+  msgEl.style.background='';
+  msgEl.style.color='';
   var st=document.getElementById('mobileStatus');
   st.style.display='none';
+  st.textContent='';
   _mlChildren=[];
   if(num.length!==7) return;
+  // Dark text on white card background
   st.textContent='Looking up... 🔍';
   st.style.display='block';
-  st.style.background='rgba(255,255,255,.12)';
-  st.style.color='rgba(255,255,255,.85)';
+  st.style.background='#EEF6FF';
+  st.style.color='#1565C0';
   _mlTimer=setTimeout(_doMobileLookup, 500);
 }
 
@@ -1569,8 +1577,8 @@ async function _doMobileLookup(){
     if(!children.length){
       // Not found — show register prompt
       st.textContent='Mobile not registered — please register first!';
-      st.style.background='rgba(220,38,38,.15)';
-      st.style.color='#FCA5A5';
+      st.style.background='#FEE2E2';
+      st.style.color='#DC2626';
       st.style.display='block';
       var msgEl=document.getElementById('loginMsg');
       msgEl.innerHTML='';
@@ -1609,8 +1617,8 @@ async function _doMobileLookup(){
     document.getElementById('loginBtn').style.display='block';
   }catch(e){
     st.textContent='Error: '+e.message;
-    st.style.background='rgba(220,38,38,.2)';
-    st.style.color='#FCA5A5';
+    st.style.background='#FEE2E2';
+    st.style.color='#DC2626';
     st.style.display='block';
   }
 }
