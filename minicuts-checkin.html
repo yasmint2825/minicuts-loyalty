@@ -221,7 +221,8 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
       <div id="lu-kids" style="display:none;"></div>
 
       <div id="lu-actions" style="display:none;">
-        <button class="btn btn-y btn-full" id="lu-checkin-btn" onclick="proceedToCheckin()" style="margin-bottom:8px;">✅ Check In Selected Child</button>
+        <div id="lu-selected-summary" style="background:#EEF6FF;border-radius:10px;padding:8px 12px;margin-bottom:10px;font-size:12.5px;font-weight:700;color:var(--b);display:none;"></div>
+        <button class="btn btn-y btn-full" id="lu-checkin-btn" onclick="proceedToCheckin()" style="margin-bottom:8px;">✅ Check In</button>
         <button class="btn btn-ghost btn-full" onclick="showRegister(getLookupMobile())">+ Register New Child for this Mobile</button>
       </div>
 
@@ -349,11 +350,43 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
     </div>
     <div class="card">
       <div class="eyebrow">Guest Check-In</div>
-      <div class="card-title">Walk-In Guest</div>
-      <div class="card-sub">Enter the child's first name for the token. No mobile needed.</div>
-      <div class="fg">
-        <label class="fl">Child's First Name <span class="req">*</span></label>
-        <input class="fi" type="text" id="guest-name" placeholder="e.g. Omar" maxlength="25"/>
+      <div class="card-title">Walk-In Guest 👤</div>
+
+      <!-- Hard warning — prominent, impossible to miss -->
+      <div style="background:#DC2626;border-radius:12px;padding:13px 14px;margin-bottom:14px;">
+        <div style="font-family:var(--fh);font-size:14px;font-weight:900;color:#fff;margin-bottom:6px;">⚠️ Guest mode — limited service only</div>
+        <div style="display:flex;flex-direction:column;gap:5px;">
+          <div style="display:flex;align-items:center;gap:8px;background:rgba(0,0,0,.2);border-radius:8px;padding:7px 10px;">
+            <span style="font-size:16px;">✖️</span>
+            <span style="font-size:12.5px;font-weight:800;color:#fff;">No Loyalty Stamps — visits won't count</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;background:rgba(0,0,0,.2);border-radius:8px;padding:7px 10px;">
+            <span style="font-size:16px;">✖️</span>
+            <span style="font-size:12.5px;font-weight:800;color:#fff;">No Games Access — points won't be earned</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;background:rgba(0,0,0,.2);border-radius:8px;padding:7px 10px;">
+            <span style="font-size:16px;">✖️</span>
+            <span style="font-size:12.5px;font-weight:800;color:#fff;">No Free Hair Wash reward</span>
+          </div>
+        </div>
+        <div style="margin-top:10px;background:rgba(255,255,255,.15);border-radius:8px;padding:8px 10px;font-size:12px;font-weight:700;color:#fff;text-align:center;">
+          📱 Takes just 30 seconds to register — ask the customer to share their number!
+        </div>
+      </div>
+
+      <button class="btn btn-b btn-full" onclick="showScreen('s-lookup')" style="margin-bottom:12px;background:var(--ok);">✅ Register Instead (recommended)</button>
+
+      <div style="text-align:center;font-size:11.5px;color:var(--muted);margin-bottom:14px;font-weight:700;">— or continue as guest below —</div>
+
+      <div class="fr">
+        <div class="fg">
+          <label class="fl">First Name <span class="req">*</span></label>
+          <input class="fi" type="text" id="guest-fname" placeholder="e.g. Omar" maxlength="25"/>
+        </div>
+        <div class="fg">
+          <label class="fl">Last Name <span class="req">*</span></label>
+          <input class="fi" type="text" id="guest-lname" placeholder="e.g. Al Rashid" maxlength="30"/>
+        </div>
       </div>
       <div class="fg">
         <label class="fl">Service</label>
@@ -433,9 +466,7 @@ const SERVICES=['Haircut','Haircut + Wash','Wash Only','Styling','Trim','Other']
 
 const GUEST_MOBILE_PREFIX='GUEST';
 let _queueData=[];
-let _selectedCustomerId=null;
-let _selectedCustomerName='';
-let _selectedCustomerMobile='';
+let _selectedCustomers=[]; // array of {id, name, mobile} — one per kid to check in
 let _lookupTimer=null;
 let _kidGenders={}; // {blockId: 'boy'|'girl'}
 let _kidBlockCount=0;
@@ -518,7 +549,7 @@ function onLookupMobileInput(){
   document.getElementById('lu-kids').style.display='none';
   document.getElementById('lu-actions').style.display='none';
   document.getElementById('lu-notfound').style.display='none';
-  _selectedCustomerId=null;
+  _selectedCustomers=[];
   if(num.length!==7) return;
   const st=document.getElementById('lu-status');
   st.textContent='Looking up... 🔍';
@@ -545,31 +576,46 @@ async function doLookup(){
       return;
     }
 
-    st.textContent='✅ Found '+kids.length+' child'+(kids.length>1?'ren':'')+' — tap to select';
+    st.textContent='✅ Found '+kids.length+' child'+(kids.length>1?'ren':'')+' — select who is here today';
     st.style.background='#DCFCE7';st.style.color='var(--ok)';
 
-    // Render kid rows
+    // Render kid rows with checkboxes
     const kidsEl=document.getElementById('lu-kids');
-    kidsEl.innerHTML='';
+    const note=kids.length>1
+      ?'Tick all children here for a haircut today — each gets their own token in order'
+      :'Confirm to check in';
+    kidsEl.innerHTML='<div style="font-size:11.5px;font-weight:700;color:var(--b);background:#EEF6FF;border-radius:8px;padding:7px 11px;margin-bottom:10px;">☑️ '+note+'</div>';
     kids.forEach(k=>{
       const row=document.createElement('div');
       row.className='kid-row';
       row.id='kid-row-'+k.id;
       const isGirl=k.gender==='girl';
       row.innerHTML=`
+        <input type="checkbox" id="cb-${k.id}" style="width:18px;height:18px;accent-color:var(--b);cursor:pointer;flex-shrink:0;" />
         <div class="kid-avatar ${isGirl?'girl':''}">${k.name.charAt(0).toUpperCase()}</div>
-        <div class="kid-info-wrap">
+        <div class="kid-info-wrap" style="flex:1;">
           <div class="kid-name">${k.name}</div>
           <div class="kid-info">${isGirl?'👧 Girl':'👦 Boy'} · ${k.stamps||0} stamps · ${k.game_points||0} pts</div>
-        </div>
-        <div class="check-icon">✅</div>`;
-      row.addEventListener('click',()=>selectKid(k,row));
+        </div>`;
+      row.addEventListener('click',(e)=>{
+        if(e.target.tagName!=='INPUT'){
+          const cb=document.getElementById('cb-'+k.id);
+          if(cb) cb.checked=!cb.checked;
+        }
+        toggleKid(k,row,document.getElementById('cb-'+k.id).checked);
+      });
+      document.getElementById('cb-'+k.id)?.addEventListener('change',function(){
+        toggleKid(k,row,this.checked);
+      });
       kidsEl.appendChild(row);
     });
     kidsEl.style.display='block';
 
-    // If only one child, auto-select
-    if(kids.length===1) selectKid(kids[0],document.getElementById('kid-row-'+kids[0].id));
+    // Auto-tick single child
+    if(kids.length===1){
+      const cb=document.getElementById('cb-'+kids[0].id);
+      if(cb){cb.checked=true;toggleKid(kids[0],document.getElementById('kid-row-'+kids[0].id),true);}
+    }
 
   }catch(e){
     st.textContent='Error: '+e.message;
@@ -577,13 +623,37 @@ async function doLookup(){
   }
 }
 
-function selectKid(k,row){
-  document.querySelectorAll('.kid-row').forEach(r=>r.classList.remove('selected'));
-  row.classList.add('selected');
-  _selectedCustomerId=k.id;
-  _selectedCustomerName=k.name;
-  _selectedCustomerMobile=k.mobile;
-  document.getElementById('lu-actions').style.display='block';
+function toggleKid(k,row,checked){
+  if(checked){
+    row.classList.add('selected');
+    if(!_selectedCustomers.find(c=>c.id===k.id)){
+      _selectedCustomers.push({id:k.id,name:k.name,mobile:k.mobile});
+    }
+  } else {
+    row.classList.remove('selected');
+    _selectedCustomers=_selectedCustomers.filter(c=>c.id!==k.id);
+  }
+  updateCheckinBtn();
+}
+
+function updateCheckinBtn(){
+  const n=_selectedCustomers.length;
+  const summary=document.getElementById('lu-selected-summary');
+  const btn=document.getElementById('lu-checkin-btn');
+  const actionsEl=document.getElementById('lu-actions');
+  if(n===0){
+    actionsEl.style.display='none';
+    return;
+  }
+  actionsEl.style.display='block';
+  if(n===1){
+    btn.textContent='✅ Check In '+_selectedCustomers[0].name;
+    summary.style.display='none';
+  } else {
+    btn.textContent='✅ Check In '+n+' Children (separate tokens)';
+    summary.style.display='block';
+    summary.textContent='🎫 Tokens will be: '+_selectedCustomers.map((c,i)=>'#'+(i+1)+' '+c.name).join(' · ');
+  }
 }
 
 // ══════════════════════════════
@@ -730,14 +800,24 @@ async function doRegisterAll(){
 // CHECK-IN LOGIC
 // ══════════════════════════════
 async function proceedToCheckin(){
-  if(!_selectedCustomerId){return;}
+  if(!_selectedCustomers.length) return;
   showScreen('s-checkin');
   document.getElementById('ci-confirmed').style.display='none';
   document.getElementById('ci-loading').style.display='block';
   try{
-    const service='Haircut'; // default; staff can update in queue view
-    const token=await doCheckin(_selectedCustomerId,_selectedCustomerName,_selectedCustomerMobile,service,true);
-    showTokenScreen(token,_selectedCustomerName,_selectedCustomerId,'Checked in! You\'re in the queue.',_selectedCustomerMobile);
+    const tokens=[];
+    for(const c of _selectedCustomers){
+      const token=await doCheckin(c.id,c.name,c.mobile,'Haircut',false);
+      tokens.push({token,name:c.name,id:c.id,mobile:c.mobile});
+    }
+    // Show token screen for whole family
+    const mobile=_selectedCustomers[0].mobile;
+    const firstId=_selectedCustomers[0].id;
+    if(tokens.length===1){
+      showTokenScreen(tokens[0].token,tokens[0].name,firstId,'Checked in! You\'re in the queue.',mobile);
+    } else {
+      showFamilyTokenScreen(tokens,mobile);
+    }
   }catch(e){
     document.getElementById('ci-loading').innerHTML='<div style="color:var(--err);padding:20px;text-align:center;">Error: '+e.message+'</div>';
   }
@@ -794,29 +874,67 @@ function viewPassport(){
   window.open('./index.html?customer=1&lookup='+encodeURIComponent(mobile),'_blank');
 }
 
+function showFamilyTokenScreen(tokens,mobile){
+  document.getElementById('ci-loading').style.display='none';
+  window._checkinMobile=mobile;
+  window._checkinCustomerId=tokens[0].id;
+
+  const tokensHtml=tokens.map(t=>`
+    <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:#F0F7FF;border-radius:12px;margin-bottom:8px;border:1px solid rgba(21,101,192,.1);">
+      <div style="min-width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--bd),var(--bm));color:var(--y);font-family:var(--fh);font-size:19px;font-weight:900;display:flex;align-items:center;justify-content:center;">${String(t.token).padStart(2,'0')}</div>
+      <div><div style="font-family:var(--fh);font-size:15px;font-weight:800;color:var(--bd);">${t.name}</div>
+      <div style="font-size:11.5px;color:var(--muted);">Token #${String(t.token).padStart(2,'0')} · Waiting</div></div>
+    </div>`).join('');
+
+  const el=document.getElementById('ci-confirmed');
+  el.innerHTML=`
+    <div class="token-card">
+      <div class="token-label">Family Check-In</div>
+      <div style="font-size:52px;margin:6px 0;">🐼</div>
+      <div class="token-name">${tokens.length} Children Checked In!</div>
+      <div class="token-sub">Each child has their own token in the queue</div>
+    </div>
+    <div class="card" style="margin-bottom:14px;">
+      <div style="font-family:var(--fh);font-size:14px;font-weight:800;color:var(--bd);margin-bottom:10px;">🎫 Your Token Numbers</div>
+      ${tokensHtml}
+      <div style="font-size:12px;color:var(--muted);margin-top:6px;padding:8px;background:#FFF9E6;border-radius:8px;">✂️ Stylist will call each child individually in queue order</div>
+    </div>
+    <div class="token-actions">
+      <button class="btn btn-b" onclick="goToGames()">🎮 Play Games</button>
+      <button class="btn btn-ghost" onclick="viewPassport()">🎫 My Passport</button>
+    </div>
+    <button class="btn btn-ghost btn-full" onclick="resetToLookup()" style="margin-top:10px;">← New Check-In</button>`;
+  el.style.display='block';
+}
+
 // ══════════════════════════════
 // GUEST CHECK-IN
 // ══════════════════════════════
 function showGuestCheckin(){
-  document.getElementById('guest-name').value='';
+  document.getElementById('guest-fname').value='';
+  document.getElementById('guest-lname').value='';
   document.getElementById('guest-service').value='Haircut';
+  const msgEl=document.getElementById('guest-msg');
+  msgEl.style.display='none';
   showScreen('s-guest');
 }
 
 async function doGuestCheckin(){
-  const name=document.getElementById('guest-name').value.trim();
+  const fname=document.getElementById('guest-fname').value.trim();
+  const lname=document.getElementById('guest-lname').value.trim();
   const service=document.getElementById('guest-service').value;
   const msgEl=document.getElementById('guest-msg');
-  if(!name){showMsg(msgEl,'Please enter child\'s name ❌','err');return;}
+  if(!fname){showMsg(msgEl,'Please enter the child\'s first name ❌','err');document.getElementById('guest-fname').focus();return;}
+  if(!lname){showMsg(msgEl,'Please enter the child\'s last name ❌','err');document.getElementById('guest-lname').focus();return;}
 
+  const fullName=fname+' '+lname;
   const btn=document.querySelector('#s-guest .btn-y');
   if(btn){btn.disabled=true;btn.textContent='Issuing token...';}
   try{
-    // Generate a pseudo-mobile for guest tracking
     const guestRef='GUEST-'+Date.now().toString().slice(-6);
-    const token=await doCheckin(null,name,guestRef,service,true);
-    showTokenScreen(token,name+' (Guest)',null,
-      'Guest token — no loyalty or games access.',null);
+    const token=await doCheckin(null,fullName,guestRef,service,true);
+    showTokenScreen(token,fullName+' (Guest)',null,
+      '⚠️ Guest only — no loyalty stamps or game rewards.',null);
   }catch(e){
     showMsg(msgEl,'Error: '+e.message,'err');
   }finally{
@@ -1020,7 +1138,7 @@ function resetToLookup(){
   document.getElementById('lu-kids').style.display='none';
   document.getElementById('lu-actions').style.display='none';
   document.getElementById('lu-notfound').style.display='none';
-  _selectedCustomerId=null;
+  _selectedCustomers=[];
   showNav('s-lookup','bn-checkin');
 }
 
