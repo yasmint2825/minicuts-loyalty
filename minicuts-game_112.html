@@ -1415,7 +1415,7 @@ function openPassport(){
   window.open(loyaltyUrl(alt),'_blank');
 }
 function checkLoyaltyPassport(){
-  // Read name from whichever field is currently visible (matches mobile-first login UI)
+  // Read name from whichever field is currently visible (mobile-first UI)
   var name='';
   var nameInput=document.getElementById('loginName');
   var nameSelect=document.getElementById('loginNameSelect');
@@ -1444,7 +1444,8 @@ function checkLoyaltyPassport(){
   overlay.innerHTML='<div id="passportBox" style="background:#fff;border-radius:20px;padding:20px;width:100%;max-width:380px;max-height:90vh;overflow-y:auto;"><div style="text-align:center;padding:20px 0;"><div style="font-size:40px;">🎫</div><div style="font-family:\'Baloo 2\',cursive;font-size:16px;font-weight:800;color:#0D47A1;margin-top:8px;">Loading Passport...</div></div></div>';
   document.body.appendChild(overlay);
 
-  var mAlt='0'+mobile.slice(3);
+  // mobile = '971XXXXXXXXX' — slice(2) gives '5XXXXXXXX', prepend '0' = '05XXXXXXXX'
+  var mAlt='0'+mobile.slice(2);
   Promise.all([
     sb('customers','GET',null,'select=*&mobile=eq.'+encodeURIComponent(mobile)+'&limit=10'),
     sb('customers','GET',null,'select=*&mobile=eq.'+encodeURIComponent(mAlt)+'&limit=10')
@@ -1561,8 +1562,7 @@ function onLoginMobileInput(){
 
 async function _doMobileLookup(){
   var mobile=getFullMobile('loginPfx','loginMobile');
-  var mobileAlt='0'+mobile.slice(3);
-  var st=document.getElementById('mobileStatus');
+  var mobileAlt='0'+mobile.slice(2);
   try{
     var rA=await sb('customers','GET',null,'select=id,name,mobile&mobile=eq.'+encodeURIComponent(mobile)+'&limit=20');
     var rB=await sb('customers','GET',null,'select=id,name,mobile&mobile=eq.'+encodeURIComponent(mobileAlt)+'&limit=20');
@@ -1645,8 +1645,7 @@ async function doLogin(){
   btn.disabled=true; btn.textContent='Checking...';
   try{
     // Re-fetch full record for matched child
-    var mobileAlt='0'+mobile.slice(3);
-    var rA=await sb('customers','GET',null,'select=*&mobile=eq.'+encodeURIComponent(mobile)+'&limit=10');
+    var mobileAlt='0'+mobile.slice(2);
     var rB=await sb('customers','GET',null,'select=*&mobile=eq.'+encodeURIComponent(mobileAlt)+'&limit=10');
     var seen=new Set();
     var byMobile=([].concat(rA||[]).concat(rB||[])).filter(function(c){if(seen.has(c.id))return false;seen.add(c.id);return true;});
