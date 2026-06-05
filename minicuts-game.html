@@ -108,8 +108,8 @@ body{display:flex;font-family:'Nunito',sans-serif;}
 .sub{color:rgba(255,255,255,.75);font-size:11px;text-align:center;margin-bottom:8px;}
 @media(max-width:900px){.mobile-how-to-play{display:block!important;}}
 .mob-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:#0D47A1;border-top:2px solid rgba(255,255,255,.15);z-index:100;padding:8px 12px;gap:8px;}
-.mob-nav button{flex:1;padding:10px 6px;border:none;border-radius:10px;font-family:'Baloo 2',cursive;font-size:13px;font-weight:800;cursor:pointer;}
-.mob-lb{background:linear-gradient(135deg,#10B981,#059669);color:#fff;}
+.mob-nav button,.mob-nav a{flex:1;padding:10px 6px;border:none;border-radius:10px;font-family:'Baloo 2',cursive;font-size:13px;font-weight:800;cursor:pointer;text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center;}
+.mob-lb{background:linear-gradient(135deg,#FFD600,#FFB300);color:#0D47A1;}
 .mob-road{background:rgba(255,255,255,.15);color:#FFD600;border:1.5px solid rgba(255,214,0,.4);}
 @media(max-width:900px){.mob-nav{display:flex!important;}.game-area{padding-bottom:72px!important;}}
 @media(max-width:480px){.card{padding:10px!important;}.btn{font-size:14px!important;padding:9px!important;}.brand{font-size:22px!important;}.ph-pfx{min-width:68px!important;}.game-emoji{font-size:24px!important;}.spin-wrap{width:210px!important;height:210px!important;}#wCanvas{width:210px!important;height:210px!important;}#tapGame{height:200px!important;}}
@@ -810,6 +810,7 @@ function goHome(){
   resetAllGameState();
   clearTimeout(_mlTimer);
   _mlChildren=[];
+  try{localStorage.removeItem('mc_cust_mobile');}catch(e){}
   document.getElementById('loginMobile').value='';
   document.getElementById('loginName').value='';
   document.getElementById('loginName').style.display='none';
@@ -2387,18 +2388,15 @@ function launchConfetti(){
   setTimeout(()=>wrap.innerHTML='',4000);
 }
 
-// == AUTO-LOGIN from URL or localStorage (passed from loyalty page) ==
+// == AUTO-LOGIN from URL only (intentional redirect from loyalty page) ==
 (async function tryAutoLogin(){
   try{
     const p=new URLSearchParams(location.search);
-    const mobile=p.get('mobile')||localStorage.getItem('mc_cust_mobile')||'';
-    if(!mobile) return;
-    // Do NOT pre-fill the field — keeps screen clean
-    // Fetch all children under this mobile
+    const mobile=p.get('mobile')||'';
+    if(!mobile) return; // no URL param — stay on login screen, never auto-login
     const rows=await sb('customers','GET',null,'select=*&mobile=eq.'+encodeURIComponent(mobile)+'&limit=10');
-    if(!rows||!rows.length) return; // unknown mobile — leave login screen blank
+    if(!rows||!rows.length) return;
     if(rows.length===1){
-      // Single child — log straight in
       resetAllGameState();
       player={...rows[0]};
       player.game_points=Number(player.game_points)||0;
@@ -2410,9 +2408,6 @@ function launchConfetti(){
       await checkTodaySessions();
       await fetchGlobalBests();
       goProfile();
-    } else {
-      // Multiple children under same mobile — do NOT pre-fill, leave screen blank
-      // Do NOT show any message — user hasn't asked to log in yet
     }
   }catch(e){ console.warn('Auto-login error:',e.message); }
 })();
@@ -3188,7 +3183,7 @@ function launchConfetti(){
 
 <!-- MOBILE NAV -->
 <div class="mob-nav" id="mobNav">
-  <button class="mob-lb" onclick="goLeaderboard()">🏆 Leaderboard</button>
+  <a href="https://yasmint2825.github.io/minicuts-loyalty/minicuts_hair_care_guide_v2.html" target="_blank" rel="noopener" class="mob-lb">✨ Smart Hair Guide for Parents</a>
   <button class="mob-road" onclick="showMobileRoadmap()">🗺️ My Roadmap</button>
 </div>
 
