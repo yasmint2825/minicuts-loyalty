@@ -1415,12 +1415,12 @@ function openPassport(){
   window.open(loyaltyUrl(alt),'_blank');
 }
 function checkLoyaltyPassport(){
-  // Read name from whichever field is currently visible (mobile-first UI)
-  var name='';
+  // Grab name from whichever field has a value — works regardless of display state
   var nameInput=document.getElementById('loginName');
   var nameSelect=document.getElementById('loginNameSelect');
-  if(nameInput && nameInput.style.display!=='none') name=nameInput.value.trim();
-  else if(nameSelect && nameSelect.style.display!=='none') name=nameSelect.value.trim();
+  var nameFromInput=(nameInput&&nameInput.value||'').trim();
+  var nameFromSelect=(nameSelect&&nameSelect.value||'').trim();
+  var name=nameFromSelect||nameFromInput; // dropdown takes priority if set
 
   var mobileNum=(document.getElementById('loginMobile')&&document.getElementById('loginMobile').value||'').trim().replace(/\D/g,'');
   var mobile=getFullMobile('loginPfx','loginMobile');
