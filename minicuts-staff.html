@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>MiniCuts · Staff Queue</title>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800;900&family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet"/>
+<style>
+:root{--y:#FFD600;--b:#1565C0;--bd:#0D47A1;--bm:#1976D2;--ok:#16A34A;--err:#DC2626;--warn:#D97706;--pink:#EC4899;--bg:#F0F4FF;--text:#1A1A2E;--muted:#6B7280;--border:#E5E7EB;--r:14px;--rs:9px;--fh:'Baloo 2',cursive;--fb:'Nunito',sans-serif;}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{min-height:100vh;font-family:var(--fb);background:var(--bg);color:var(--text);}
+/* TOPBAR */
+.top{background:linear-gradient(135deg,var(--bd),var(--bm));padding:12px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
+.top-brand{font-family:var(--fh);font-size:17px;font-weight:900;color:#fff;display:flex;align-items:center;gap:8px;}
+.top-right{display:flex;align-items:center;gap:10px;}
+.badge-staff{background:var(--y);color:var(--bd);padding:4px 10px;border-radius:99px;font-size:11px;font-weight:800;}
+/* TABS */
+.tabs{background:#fff;border-bottom:2px solid var(--border);display:flex;padding:0 20px;position:sticky;top:56px;z-index:40;}
+.tab{padding:12px 18px;font-family:var(--fb);font-size:13.5px;font-weight:700;color:var(--muted);border:none;background:transparent;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;white-space:nowrap;transition:all .15s;}
+.tab.active{color:var(--b);border-bottom-color:var(--b);}
+.page{display:none;padding:20px;max-width:900px;margin:0 auto;}.page.active{display:block;}
+/* CARDS */
+.card{background:#fff;border-radius:var(--r);padding:18px;margin-bottom:14px;box-shadow:0 2px 12px rgba(13,71,161,.08);border:1px solid rgba(13,71,161,.07);}
+.card-title{font-family:var(--fh);font-size:17px;font-weight:800;color:var(--bd);margin-bottom:4px;}
+/* STATS */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;}
+.stat{background:#fff;border-radius:var(--r);padding:14px;box-shadow:0 2px 10px rgba(13,71,161,.07);text-align:center;border:1px solid rgba(13,71,161,.07);}
+.stat-n{font-family:var(--fh);font-size:28px;font-weight:900;color:var(--bd);}
+.stat-l{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-top:2px;}
+/* QUEUE TABLE */
+.qt{width:100%;border-collapse:collapse;background:#fff;border-radius:var(--r);overflow:hidden;box-shadow:0 2px 12px rgba(13,71,161,.07);}
+.qt thead{background:var(--bd);}
+.qt thead th{color:#fff;font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:12px 14px;text-align:left;white-space:nowrap;}
+.qt tbody tr{border-bottom:1px solid var(--border);transition:background .1s;}
+.qt tbody tr:hover{background:#F8FBFF;}
+.qt tbody tr.done{opacity:.45;background:#F9FAFB;}
+.qt tbody tr.called{background:#EEF6FF;}
+.qt td{padding:11px 14px;font-size:13.5px;}
+.tok-b{width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,var(--bd),var(--bm));color:var(--y);font-family:var(--fh);font-size:16px;font-weight:900;display:inline-flex;align-items:center;justify-content:center;}
+.tok-b.guest{background:linear-gradient(135deg,#6B7280,#9CA3AF);}
+.sp{display:inline-flex;align-items:center;padding:3px 9px;border-radius:99px;font-size:11px;font-weight:800;white-space:nowrap;}
+.sp-w{background:#FEF3C7;color:#92400E;}.sp-d{background:#DCFCE7;color:var(--ok);}.sp-c{background:#EEF6FF;color:var(--b);}.sp-g{background:#F3F4F6;color:var(--muted);}
+/* FORMS */
+.fg{margin-bottom:13px;}.fl{display:block;font-size:12px;font-weight:800;color:var(--text);margin-bottom:5px;}
+.fi{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--rs);font-family:var(--fb);font-size:13.5px;color:var(--text);background:#fff;outline:none;}
+.fi:focus{border-color:var(--b);box-shadow:0 0 0 3px rgba(21,101,192,.1);}
+select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236B7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 10px center;padding-right:28px;cursor:pointer;}
+.fr{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.sm{padding:8px 12px;border-radius:var(--rs);font-size:12.5px;font-weight:700;margin-bottom:12px;display:none;}
+.sm.ok{background:#DCFCE7;color:var(--ok);display:block;}.sm.err{background:#FEE2E2;color:var(--err);display:block;}.sm.info{background:#EEF6FF;color:var(--b);display:block;}
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:9px 16px;border-radius:var(--rs);font-family:var(--fh);font-weight:800;font-size:13.5px;cursor:pointer;border:none;transition:transform .12s;line-height:1;white-space:nowrap;}
+.btn:active{transform:scale(.97);}.btn:disabled{opacity:.45;cursor:not-allowed;transform:none;}
+.btn-y{background:linear-gradient(135deg,var(--y),#FFB300);color:var(--bd);}
+.btn-b{background:var(--b);color:#fff;}.btn-g{background:var(--ok);color:#fff;}
+.btn-err{background:var(--err);color:#fff;}
+.btn-ghost{background:transparent;color:var(--b);border:1.5px solid rgba(21,101,192,.25);}
+.btn-sm{padding:5px 10px;font-size:12px;border-radius:7px;}
+.btn-full{width:100%;}
+/* INLINE SELECT */
+.isel{font-size:12px;padding:5px 8px;border:1.5px solid var(--border);border-radius:7px;background:#fff;outline:none;cursor:pointer;min-width:100px;}
+.isel:focus{border-color:var(--b);}
+/* FILTERS */
+.filters{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:16px;background:#fff;padding:14px;border-radius:var(--r);box-shadow:0 2px 10px rgba(13,71,161,.06);}
+.filters .fg{margin-bottom:0;min-width:140px;flex:1;}
+/* TOAST */
+.tc{position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:7px;}
+.toast{background:#fff;border-radius:var(--rs);padding:12px 18px;box-shadow:0 8px 32px rgba(0,0,0,.15);display:flex;align-items:center;gap:9px;font-size:13.5px;font-weight:700;min-width:240px;animation:ti .3s ease;}
+@keyframes ti{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+.toast.ok{border-left:4px solid var(--ok);}.toast.err{border-left:4px solid var(--err);}.toast.info{border-left:4px solid var(--b);}
+#clk{font-family:var(--fh);font-size:11px;font-weight:700;color:rgba(255,255,255,.7);}
+@media(max-width:700px){.stats-row{grid-template-columns:1fr 1fr;}.fr{grid-template-columns:1fr;}.filters{flex-direction:column;}.qt thead th:nth-child(4),.qt td:nth-child(4){display:none;}}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="top">
+  <div class="top-brand">🐼 MiniCuts <span style="opacity:.6;font-size:13px;font-weight:700;">Staff Panel</span></div>
+  <div class="top-right">
+    <div id="clk"></div>
+    <div class="badge-staff">✂️ Staff</div>
+    <a href="./index.html" target="_blank" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);color:#fff;padding:5px 11px;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;">📋 Loyalty</a>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <button class="tab active" onclick="showTab('t-queue',this)">📋 Queue</button>
+  <button class="tab" onclick="showTab('t-history',this)">🕐 History</button>
+  <button class="tab" onclick="showTab('t-config',this);loadCfgScreen();">⚙️ Settings</button>
+</div>
+
+<!-- ══ TAB: QUEUE ══ -->
+<div class="page active" id="t-queue">
+  <div class="stats-row" id="s-stats">
+    <div class="stat"><div class="stat-n" id="st-w">—</div><div class="stat-l">Waiting</div></div>
+    <div class="stat"><div class="stat-n" id="st-c" style="color:var(--b);">—</div><div class="stat-l">Called</div></div>
+    <div class="stat"><div class="stat-n" id="st-d" style="color:var(--ok);">—</div><div class="stat-l">Done Today</div></div>
+    <div class="stat"><div class="stat-n" id="st-n" style="color:var(--y);">—</div><div class="stat-l">Next Token</div></div>
+  </div>
+
+  <div class="filters">
+    <div class="fg"><label class="fl">Filter Stylist</label><select class="fi" id="f-sty" onchange="renderQ()"><option value="">All Stylists</option></select></div>
+    <div class="fg"><label class="fl">Filter Status</label><select class="fi" id="f-sta" onchange="renderQ()"><option value="">All</option><option value="waiting">Waiting</option><option value="called">Called</option><option value="done">Done</option></select></div>
+    <div class="fg" style="min-width:140px;"><label class="fl">Search Name</label><input class="fi" type="text" id="f-nm" placeholder="Type to filter..." oninput="renderQ()"/></div>
+    <div style="display:flex;gap:8px;align-items:flex-end;padding-bottom:1px;">
+      <button class="btn btn-b" onclick="loadQ()">↻ Refresh</button>
+      <button class="btn btn-ghost" onclick="window.open('./minicuts-checkin.html','_blank')">👤 Customer Screen</button>
+    </div>
+  </div>
+
+  <div class="card" style="padding:0;overflow:hidden;">
+    <div style="overflow-x:auto;">
+      <table class="qt" id="qt">
+        <thead><tr>
+          <th>Token</th><th>Name</th><th>Service</th><th>Time</th>
+          <th>Stylist</th><th>Status</th><th>Actions</th>
+        </tr></thead>
+        <tbody id="qt-body"><tr><td colspan="7" style="text-align:center;padding:40px;color:var(--muted);">Loading queue...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ══ TAB: HISTORY ══ -->
+<div class="page" id="t-history">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+    <div><div style="font-family:var(--fh);font-size:19px;font-weight:800;color:var(--bd);">🕐 Today's History</div>
+    <div style="font-size:12.5px;color:var(--muted);margin-top:2px;">All check-ins including completed ones</div></div>
+    <button class="btn btn-ghost" onclick="loadQ()">↻ Refresh</button>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden;">
+    <div style="overflow-x:auto;">
+      <table class="qt">
+        <thead><tr><th>Token</th><th>Name</th><th>Service</th><th>Stylist</th><th>Status</th><th>Time</th></tr></thead>
+        <tbody id="hist-body"><tr><td colspan="6" style="text-align:center;padding:40px;color:var(--muted);">Go to Queue tab and refresh to load data</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ══ TAB: SETTINGS ══ -->
+<div class="page" id="t-config">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+    <div class="card">
+      <div class="card-title">✂️ Stylist Management</div>
+      <p style="font-size:12.5px;color:var(--muted);margin:6px 0 14px;">Add or remove stylists. One per line. These appear in the queue dropdown.</p>
+      <div class="fg"><label class="fl">Stylists (one per line)</label>
+        <textarea class="fi" id="cfg-sty" rows="10" style="resize:vertical;line-height:1.8;font-size:14px;"></textarea>
+      </div>
+      <div id="cfg-msg" class="sm"></div>
+      <button class="btn btn-y btn-full" onclick="saveCfg()">Save Stylists ✅</button>
+    </div>
+    <div>
+      <div class="card">
+        <div class="card-title">📊 Today's Summary</div>
+        <div id="cfg-summary" style="color:var(--muted);font-size:13px;">Go to Queue tab to load data first.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">🔗 Quick Links</div>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px;">
+          <a href="./minicuts-checkin.html" target="_blank" class="btn btn-b btn-full">👤 Customer Check-In Screen</a>
+          <a href="./index.html" target="_blank" class="btn btn-ghost btn-full">📋 Loyalty Dashboard</a>
+          <a href="./minicuts-game.html" target="_blank" class="btn btn-ghost btn-full">🎮 Games App</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div class="tc" id="TC"></div>
+
+<script>
+const SB_URL='https://wtapyfgtwkjyjrjdnhkb.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind0YXB5Zmd0d2tqeWpyamRuaGtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0NDc3ODEsImV4cCI6MjA5NTAyMzc4MX0.y_-iPfb8Pcg9zh42h6RGVBsUVZm80LcA9sPlz_Gl_fA';
+function loadCfgStore(){try{return JSON.parse(localStorage.getItem('mc_ci_cfg')||'{}')}catch(e){return{}}}
+function saveCfgStore(c){localStorage.setItem('mc_ci_cfg',JSON.stringify(c));}
+let CFG=loadCfgStore();
+let STYLISTS=CFG.stylists||['Shakeeb','Farhan','Rizwan','Usman','Hamza','Bilal','Staff'];
+const SVCS=['Haircut','Haircut + Wash','Wash Only','Styling','Trim','Other'];
+let _qdata=[];
+
+async function sb(path,method='GET',body=null,params=''){
+  const url=SB_URL+'/rest/v1/'+path+(params?'?'+params:'');
+  const h={'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Prefer':'return=representation'};
+  const o={method,headers:h};if(body)o.body=JSON.stringify(body);
+  const r=await fetch(url,o);const t=await r.text();
+  if(!r.ok)throw new Error(t.substring(0,200));
+  return t?JSON.parse(t):[];
+}
+
+setInterval(()=>{const e=document.getElementById('clk');if(e)e.textContent=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'});},1000);
+
+function today(){const n=new Date();return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');}
+function fmtT(iso){if(!iso)return'—';return new Date(iso).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});}
+function toast(msg,t='ok'){const e=document.createElement('div');e.className='toast '+t;e.innerHTML=(t==='ok'?'✅':t==='err'?'❌':'ℹ️')+' '+msg;document.getElementById('TC').appendChild(e);setTimeout(()=>e.remove(),3500);}
+function showM(el,msg,t){if(!el)return;el.textContent=msg;el.className='sm '+t;el.style.display='block';}
+
+function showTab(id,btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if(btn)btn.classList.add('active');
+}
+
+// QUEUE
+async function loadQ(){
+  try{
+    const rows=await sb('queue','GET',null,'select=*&checkin_date=eq.'+today()+'&order=token_number.asc&limit=200');
+    _qdata=rows||[];
+    populateStyFilter();
+    renderQ();
+    renderHist();
+    updateStats();
+  }catch(e){toast('Error loading queue: '+e.message,'err');}
+}
+
+function populateStyFilter(){
+  const sel=document.getElementById('f-sty');if(!sel)return;
+  const cur=sel.value;sel.innerHTML='<option value="">All Stylists</option>';
+  STYLISTS.forEach(s=>{const o=document.createElement('option');o.value=s;o.textContent=s;sel.appendChild(o);});
+  const used=new Set(_qdata.map(r=>r.stylist).filter(Boolean));
+  used.forEach(s=>{if(!STYLISTS.includes(s)){const o=document.createElement('option');o.value=s;o.textContent=s+'*';sel.appendChild(o);}});
+  sel.value=cur;
+}
+
+function updateStats(){
+  const w=_qdata.filter(r=>r.status==='waiting').length;
+  const c=_qdata.filter(r=>r.status==='called').length;
+  const d=_qdata.filter(r=>r.status==='done').length;
+  const nx=_qdata.find(r=>r.status==='waiting');
+  const e=id=>document.getElementById(id);
+  if(e('st-w'))e('st-w').textContent=w;if(e('st-c'))e('st-c').textContent=c;
+  if(e('st-d'))e('st-d').textContent=d;if(e('st-n'))e('st-n').textContent=nx?String(nx.token_number).padStart(2,'0'):'—';
+}
+
+function renderQ(){
+  const styF=document.getElementById('f-sty')?.value||'';
+  const staF=document.getElementById('f-sta')?.value||'';
+  const nmF=(document.getElementById('f-nm')?.value||'').toLowerCase();
+  let data=_qdata;
+  if(styF)data=data.filter(r=>r.stylist===styF);
+  if(staF)data=data.filter(r=>r.status===staF);
+  if(nmF)data=data.filter(r=>(r.customer_name||'').toLowerCase().includes(nmF));
+  const body=document.getElementById('qt-body');if(!body)return;
+  if(!data.length){body.innerHTML='<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--muted);">No customers match the filter 🐼</td></tr>';return;}
+  body.innerHTML=data.map(row=>buildRow(row)).join('');
+}
+
+function buildRow(r){
+  const done=r.status==='done';const called=r.status==='called';const guest=r.is_guest||!r.customer_id;
+  const sp=done?'<span class="sp sp-d">✅ Done</span>':called?'<span class="sp sp-c">📢 Called</span>':guest?'<span class="sp sp-g">👤 Guest</span>':'<span class="sp sp-w">⏳ Waiting</span>';
+  const styOpts=STYLISTS.map(s=>'<option value="'+s+'"'+(r.stylist===s?' selected':'')+'>'+s+'</option>').join('');
+  const svcOpts=SVCS.map(s=>'<option'+(r.service===s?' selected':'')+'>'+s+'</option>').join('');
+  return'<tr class="'+(done?'done':called?'called':'')+'" id="qr-'+r.id+'">'
+    +'<td><div class="tok-b '+(guest?'guest':'')+'">'+String(r.token_number).padStart(2,'0')+'</div></td>'
+    +'<td><div style="font-weight:800;">'+(r.customer_name||'')+'</div><div style="font-size:11px;color:var(--muted);">'+(guest?'👤 Guest':'📱 '+displayMob(r.mobile||''))+'</div></td>'
+    +'<td><select class="isel" onchange="updF(\''+r.id+'\',\'service\',this.value)">'+svcOpts+'</select></td>'
+    +'<td style="font-size:12.5px;color:var(--muted);">'+fmtT(r.checkin_time)+'</td>'
+    +'<td><select class="isel" onchange="updF(\''+r.id+'\',\'stylist\',this.value)"><option value="">— Stylist —</option>'+styOpts+'</select></td>'
+    +'<td>'+sp+'</td>'
+    +'<td><div style="display:flex;gap:6px;flex-wrap:wrap;">'
+    +(done?'<button class="btn btn-ghost btn-sm" onclick="updS(\''+r.id+'\',\'waiting\')">↩ Undo</button>'
+      :(!called?'<button class="btn btn-b btn-sm" onclick="updS(\''+r.id+'\',\'called\')">📢 Call</button>':'')+
+       '<button class="btn btn-g btn-sm" onclick="markDone(\''+r.id+'\',\''+r.customer_id+'\',\''+escQ(r.customer_name)+'\',\''+r.mobile+'\')">✅ Done+Stamp</button>')
+    +'</div></td>'
+    +'</tr>';
+}
+
+function displayMob(m){const s=m.replace(/\D/g,'');if(s.startsWith('971'))return'0'+s.slice(3);return m;}
+function escQ(s){return(s||'').replace(/'/g,"\\'").replace(/"/g,'&quot;');}
+
+function renderHist(){
+  const body=document.getElementById('hist-body');if(!body)return;
+  if(!_qdata.length){body.innerHTML='<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--muted);">Refresh the Queue tab to load data</td></tr>';return;}
+  body.innerHTML=_qdata.slice().reverse().map(r=>{
+    const done=r.status==='done';const called=r.status==='called';const guest=r.is_guest;
+    const sp=done?'<span class="sp sp-d">✅ Done</span>':called?'<span class="sp sp-c">📢 Called</span>':guest?'<span class="sp sp-g">👤 Guest</span>':'<span class="sp sp-w">⏳ Waiting</span>';
+    return'<tr class="'+(done?'done':called?'called':'')+'">'
+      +'<td><div class="tok-b '+(guest?'guest':'')+'">'+String(r.token_number).padStart(2,'0')+'</div></td>'
+      +'<td style="font-weight:700;">'+(r.customer_name||'')+'</td>'
+      +'<td>'+(r.service||'—')+'</td>'
+      +'<td>'+(r.stylist||'<span style="color:var(--muted);">—</span>')+'</td>'
+      +'<td>'+sp+'</td>'
+      +'<td style="font-size:12px;color:var(--muted);">'+fmtT(r.checkin_time)+'</td>'
+      +'</tr>';
+  }).join('');
+}
+
+async function updF(id,field,value){
+  try{const u={};u[field]=value;await sb('queue','PATCH',u,'id=eq.'+id);const r=_qdata.find(x=>x.id===id);if(r)r[field]=value;}
+  catch(e){toast('Update error: '+e.message,'err');}
+}
+async function updS(id,status){
+  try{await sb('queue','PATCH',{status},'id=eq.'+id);const r=_qdata.find(x=>x.id===id);if(r)r.status=status;renderQ();renderHist();updateStats();}
+  catch(e){toast('Error: '+e.message,'err');}
+}
+async function markDone(qid,cid,name,mob){
+  const row=document.getElementById('qr-'+qid);
+  const doneBtn=row?.querySelector('.btn-g');if(doneBtn){doneBtn.disabled=true;doneBtn.textContent='...';}
+  try{
+    await sb('queue','PATCH',{status:'done',done_at:new Date().toISOString()},'id=eq.'+qid);
+    if(cid&&cid!=='null'&&cid){
+      const rows=await sb('customers','GET',null,'select=*&id=eq.'+cid);
+      if(rows?.length){
+        const c=rows[0];const ns=(c.stamps||0)+1;const now=new Date().toISOString();
+        const months=c.gender==='girl'?15:12;
+        const fs=c.first_stamp_date||now;
+        const exp=c.expiry_date||(()=>{const d=new Date(fs);d.setMonth(d.getMonth()+months);return d.toISOString();})();
+        const stylist=_qdata.find(r=>r.id===qid)?.stylist||null;
+        await sb('customers','PATCH',{stamps:ns,first_stamp_date:fs,expiry_date:exp,last_visit_date:now},'id=eq.'+cid);
+        await sb('visits','POST',{customer_id:cid,type:'paid',stamp_count_after:ns,cycle_expiry:exp,stylist});
+        const paid=5;const free=ns>=paid;
+        toast(name+' — Stamp '+ns+'/'+paid+' added'+(free?' 🎁 Free wash ready!':'')+(stylist?' by '+stylist:''));
+        showWAPrompt(name,ns,mob,c.parent,c.gender,stylist);
+      }
+    } else { toast(name+' done (guest — no stamp)','info'); }
+    const r=_qdata.find(x=>x.id===qid);if(r)r.status='done';
+    renderQ();renderHist();updateStats();
+  }catch(e){toast('Error: '+e.message,'err');if(doneBtn){doneBtn.disabled=false;doneBtn.textContent='✅ Done+Stamp';}}
+}
+
+function showWAPrompt(name,stamps,mobile,parent,gender,stylist){
+  const paid=5;const free=stamps>=paid;
+  const mob=(mobile||'').replace(/\D/g,'');
+  const isGuest=!mob||mob.startsWith('GUEST');
+  if(isGuest)return;
+  const waMsg='Hi '+(parent||name)+'!\n\nThank you for visiting MiniCuts — '+name+' looked amazing! ✂️🐼\n\n'+(free?'🎉 You\'ve earned a FREE Hair Wash! Come in anytime to claim it!':'You now have '+stamps+' stamp'+(stamps!==1?'s':'')+' — just '+(paid-stamps)+' more for a free hair wash! 🚿')+(stylist?'\n\nStylist today: '+stylist:'')+'\n\nSee you soon!\nMiniCuts DSO';
+  const wa='https://wa.me/971'+mob.replace(/^0/,'')+'?text='+encodeURIComponent(waMsg);
+  const ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9000;display:flex;align-items:center;justify-content:center;padding:20px;';
+  ov.innerHTML='<div style="background:#fff;border-radius:18px;padding:24px;max-width:380px;width:100%;text-align:center;">'
+    +'<div style="font-size:44px;margin-bottom:8px;">'+(free?'🎁':'✂️')+'</div>'
+    +'<div style="font-family:var(--fh);font-size:19px;font-weight:800;color:var(--bd);margin-bottom:4px;">Done! Stamp Added.</div>'
+    +'<div style="font-size:13.5px;color:var(--muted);margin-bottom:16px;line-height:1.6;">'+name+' now has <strong>'+stamps+'</strong> stamp'+(stamps!==1?'s':'')+(free?' · 🎉 Free hair wash ready!':' · '+(paid-stamps)+' more to go!')+'</div>'
+    +'<a href="'+wa+'" target="_blank" style="display:block;width:100%;padding:12px;background:#25D366;color:#fff;border-radius:11px;font-family:var(--fh);font-size:15px;font-weight:800;text-decoration:none;margin-bottom:9px;">💬 Send WhatsApp</a>'
+    +'<button style="width:100%;padding:10px;border:1.5px solid var(--border);border-radius:9px;background:transparent;cursor:pointer;font-family:var(--fh);font-size:14px;font-weight:700;">Close</button>'
+    +'</div>';
+  ov.querySelector('button').addEventListener('click',()=>ov.remove());
+  ov.addEventListener('click',e=>{if(e.target===ov)ov.remove();});
+  document.body.appendChild(ov);
+}
+
+// CONFIG
+function loadCfgScreen(){
+  const ta=document.getElementById('cfg-sty');
+  if(ta)ta.value=STYLISTS.join('\n');
+  // Summary
+  const sumEl=document.getElementById('cfg-summary');
+  if(sumEl&&_qdata.length){
+    const done=_qdata.filter(r=>r.status==='done');
+    const byS={};done.forEach(r=>{const k=r.stylist||'Unassigned';byS[k]=(byS[k]||0)+1;});
+    sumEl.innerHTML='<div style="font-size:13px;font-weight:700;margin-bottom:8px;color:var(--bd);">Served today: '+done.length+' customers</div>'+
+      Object.entries(byS).map(([s,n])=>'<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:13px;"><span>✂️ '+s+'</span><strong>'+n+'</strong></div>').join('');
+  } else if(sumEl){sumEl.innerHTML='<div style="color:var(--muted);font-size:13px;">Load the queue first to see today\'s summary.</div>';}
+}
+
+function saveCfg(){
+  const ta=document.getElementById('cfg-sty');const msg=document.getElementById('cfg-msg');
+  const list=(ta?.value||'').split('\n').map(s=>s.trim()).filter(Boolean);
+  if(!list.length){showM(msg,'Add at least one stylist ❌','err');return;}
+  STYLISTS=list;CFG.stylists=list;saveCfgStore(CFG);
+  showM(msg,'Saved ✅','ok');toast('Stylist list updated');
+  populateStyFilter();
+}
+
+// AUTO REFRESH
+setInterval(()=>{if(document.getElementById('t-queue').classList.contains('active'))loadQ();},30000);
+
+// INIT
+loadQ();
+</script>
+</body>
+</html>
