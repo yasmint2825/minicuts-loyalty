@@ -15,79 +15,53 @@
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 html,body{min-height:100vh;font-family:var(--fb);background:var(--bg);color:var(--text);}
-a{color:inherit;text-decoration:none;}
-
-/* ─── LAYOUT ─── */
-.wrap{max-width:480px;margin:0 auto;padding:16px 14px 80px;}
-
-/* ─── HERO HEADER ─── */
-.hero{background:linear-gradient(135deg,var(--bd),var(--bm));border-radius:18px;padding:18px 18px 16px;margin-bottom:16px;position:relative;overflow:hidden;}
+.wrap{max-width:480px;margin:0 auto;padding:16px 14px 88px;}
+.hero{background:linear-gradient(135deg,var(--bd),var(--bm));border-radius:18px;padding:16px 18px;margin-bottom:16px;position:relative;overflow:hidden;}
 .hero::after{content:'✂️';position:absolute;right:14px;bottom:-4px;font-size:72px;opacity:.07;pointer-events:none;}
-.hero-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.hero-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
 .brand{font-family:var(--fh);font-size:20px;font-weight:900;color:#fff;display:flex;align-items:center;gap:8px;}
-.hero h2{font-family:var(--fh);font-size:15px;font-weight:800;color:rgba(255,255,255,.9);margin-bottom:4px;}
-.hero p{font-size:12px;color:rgba(255,255,255,.65);}
-.queue-strip{display:flex;gap:8px;margin-top:12px;}
-.q-stat{flex:1;background:rgba(255,255,255,.12);border-radius:10px;padding:8px 10px;text-align:center;}
+.queue-strip{display:flex;gap:8px;margin-top:10px;}
+.q-stat{flex:1;background:rgba(255,255,255,.12);border-radius:10px;padding:7px 10px;text-align:center;}
 .q-stat-n{font-family:var(--fh);font-size:22px;font-weight:900;color:var(--y);}
 .q-stat-l{font-size:10px;font-weight:700;color:rgba(255,255,255,.65);text-transform:uppercase;letter-spacing:.04em;}
-.time-badge{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);color:#fff;padding:4px 10px;border-radius:99px;font-size:11px;font-weight:700;}
-
-/* ─── SCREEN MANAGEMENT ─── */
 .screen{display:none;}
-.screen.active{display:block;animation:fadeUp .22s ease both;}
-@keyframes fadeUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
-
-/* ─── CARD ─── */
+.screen.active{display:block;animation:fadeUp .2s ease both;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
 .card{background:var(--card);border-radius:var(--r);padding:18px;margin-bottom:14px;box-shadow:0 3px 16px rgba(13,71,161,.08);border:1px solid rgba(13,71,161,.07);}
 .card-title{font-family:var(--fh);font-size:17px;font-weight:800;color:var(--bd);margin-bottom:4px;}
 .card-sub{font-size:12.5px;color:var(--muted);margin-bottom:14px;line-height:1.5;}
 .eyebrow{font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.07em;color:var(--b);margin-bottom:5px;}
-
-/* ─── FORM ─── */
 .fg{margin-bottom:13px;}
 .fl{display:block;font-size:12px;font-weight:800;color:var(--text);margin-bottom:5px;}
-.fl .req{color:var(--err);}
+.req{color:var(--err);}
 .fi{width:100%;padding:11px 13px;border:1.5px solid var(--border);border-radius:var(--rs);font-family:var(--fb);font-size:14px;color:var(--text);background:#fff;outline:none;transition:border-color .18s,box-shadow .18s;}
 .fi:focus{border-color:var(--b);box-shadow:0 0 0 3px rgba(21,101,192,.1);}
-.fi.err{border-color:var(--err)!important;box-shadow:0 0 0 3px rgba(220,38,38,.1)!important;}
 select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236B7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 12px center;padding-right:32px;cursor:pointer;}
 .fr{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
 .fr3{display:grid;grid-template-columns:1fr 1.7fr 1fr;gap:8px;}
-
-/* UAE phone */
 .ph-wrap{display:flex;gap:0;}
 .ph-pfx{flex-shrink:0;min-width:80px;height:46px;border:1.5px solid var(--border);border-right:none;border-radius:var(--rs) 0 0 var(--rs);background:#F0F7FF url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%231565C0' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 8px center;padding:0 24px 0 10px;font-size:14px;font-weight:700;color:var(--b);appearance:none;-webkit-appearance:none;cursor:pointer;outline:none;}
-.ph-pfx:focus{border-color:var(--b);}
 .ph-num{flex:1;height:46px;border:1.5px solid var(--border);border-left:none;border-radius:0 var(--rs) var(--rs) 0;background:#fff;color:var(--text);font-size:15px;padding:0 13px;font-family:var(--fb);outline:none;transition:border-color .18s;}
-.ph-num:focus{border-color:var(--b);box-shadow:0 0 0 3px rgba(21,101,192,.1);}
-
-/* ─── GENDER TOGGLE ─── */
+.ph-num:focus{border-color:var(--b);}
 .gender-row{display:flex;border:1.5px solid var(--border);border-radius:var(--rs);overflow:hidden;}
 .gender-btn{flex:1;padding:10px;text-align:center;cursor:pointer;font-weight:800;font-size:13.5px;background:#fff;border:none;transition:all .15s;}
 .gender-btn.active.boy{background:var(--b);color:#fff;}
 .gender-btn.active.girl{background:var(--pink);color:#fff;}
-
-/* ─── STATUS MSG ─── */
 .status-msg{padding:9px 13px;border-radius:var(--rs);font-size:12.5px;font-weight:700;margin-bottom:12px;display:none;}
 .status-msg.ok{background:#DCFCE7;color:var(--ok);display:block;}
 .status-msg.err{background:#FEE2E2;color:var(--err);display:block;}
 .status-msg.info{background:#EEF6FF;color:var(--b);display:block;}
 .status-msg.warn{background:#FEF3C7;color:var(--warn);display:block;}
-
-/* ─── BUTTONS ─── */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:11px 18px;border-radius:var(--rs);font-family:var(--fh);font-weight:800;font-size:15px;cursor:pointer;border:none;transition:transform .13s,box-shadow .13s;line-height:1;}
 .btn:active{transform:scale(.97);}
 .btn:disabled{opacity:.45;cursor:not-allowed;transform:none;}
 .btn-y{background:linear-gradient(135deg,var(--y),#FFB300);color:var(--bd);box-shadow:0 6px 18px rgba(255,214,0,.28);}
-.btn-b{background:var(--b);color:#fff;box-shadow:0 6px 18px rgba(21,101,192,.2);}
+.btn-b{background:var(--b);color:#fff;}
 .btn-g{background:var(--ok);color:#fff;}
 .btn-ghost{background:transparent;color:var(--b);border:1.5px solid rgba(21,101,192,.25);}
 .btn-err{background:var(--err);color:#fff;}
 .btn-full{width:100%;justify-content:center;}
 .btn-sm{padding:7px 13px;font-size:13px;}
-
-/* ─── TOKEN DISPLAY ─── */
 .token-card{background:linear-gradient(135deg,var(--bd),var(--bm));border-radius:22px;padding:26px 22px;text-align:center;color:#fff;position:relative;overflow:hidden;margin-bottom:14px;}
 .token-card::before{content:'';position:absolute;top:-40px;right:-40px;width:140px;height:140px;background:rgba(255,214,0,.12);border-radius:50%;}
 .token-card::after{content:'🐼';position:absolute;left:14px;bottom:-4px;font-size:64px;opacity:.1;}
@@ -96,8 +70,7 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
 .token-name{font-family:var(--fh);font-size:22px;font-weight:800;margin-top:10px;color:#fff;}
 .token-sub{font-size:12px;color:rgba(255,255,255,.65);margin-top:4px;}
 .token-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px;}
-
-/* ─── QUEUE CARD ─── */
+/* Queue rows */
 .queue-item{display:flex;align-items:center;gap:12px;padding:13px;background:#fff;border-radius:14px;margin-bottom:9px;border:1px solid rgba(13,71,161,.08);box-shadow:0 2px 8px rgba(13,71,161,.05);}
 .queue-item.done{opacity:.45;background:#F9FAFB;}
 .token-badge{width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,var(--bd),var(--bm));color:var(--y);font-family:var(--fh);font-size:18px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
@@ -111,15 +84,10 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
 .sp-done{background:#DCFCE7;color:var(--ok);}
 .sp-called{background:#EEF6FF;color:var(--b);}
 .sp-guest{background:#F3F4F6;color:var(--muted);}
-
-/* ─── MULTI-KID BUILDER ─── */
-.kid-block{background:#F8FBFF;border:1.5px solid rgba(21,101,192,.12);border-radius:14px;padding:14px;margin-bottom:10px;position:relative;}
+.kid-block{background:#F8FBFF;border:1.5px solid rgba(21,101,192,.12);border-radius:14px;padding:14px;margin-bottom:10px;}
 .kid-block-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
 .kid-num{font-family:var(--fh);font-size:13px;font-weight:800;color:var(--b);}
-.remove-kid{background:none;border:none;color:var(--err);font-size:18px;cursor:pointer;padding:2px 6px;border-radius:6px;line-height:1;}
-.remove-kid:hover{background:#FEE2E2;}
-
-/* ─── PROGRESS STEPS ─── */
+.remove-kid{background:none;border:none;color:var(--err);font-size:18px;cursor:pointer;padding:2px 6px;border-radius:6px;}
 .steps{display:flex;align-items:center;gap:0;margin-bottom:20px;}
 .step{flex:1;text-align:center;position:relative;}
 .step::after{content:'';position:absolute;top:14px;left:50%;width:100%;height:2px;background:var(--border);z-index:0;}
@@ -127,47 +95,49 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
 .step-dot{width:28px;height:28px;border-radius:50%;background:var(--border);color:var(--muted);font-size:12px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;position:relative;z-index:1;transition:all .2s;}
 .step.active .step-dot{background:var(--b);color:#fff;box-shadow:0 0 0 4px rgba(21,101,192,.15);}
 .step.done .step-dot{background:var(--ok);color:#fff;}
-.step.active::after{background:var(--b);}
-.step.done::after{background:var(--ok);}
+.step.active::after,.step.done::after{background:var(--b);}
 .step-label{font-size:10px;font-weight:700;color:var(--muted);margin-top:5px;}
 .step.active .step-label{color:var(--b);}
-.step.done .step-label{color:var(--ok);}
-
-/* ─── CHECKIN CONFIRM ─── */
-.checkin-confirm{background:linear-gradient(135deg,var(--ok),#15803D);border-radius:var(--r);padding:16px;margin-bottom:14px;color:#fff;display:flex;align-items:center;gap:12px;}
-.checkin-confirm .icon{font-size:32px;flex-shrink:0;}
-.checkin-confirm .info strong{display:block;font-family:var(--fh);font-size:15px;font-weight:800;}
-.checkin-confirm .info span{font-size:12px;opacity:.8;}
-
-/* ─── FOUND KIDS LIST ─── */
 .kid-row{display:flex;align-items:center;gap:10px;padding:11px;border-radius:12px;background:#F0F7FF;border:1.5px solid transparent;cursor:pointer;transition:all .15s;margin-bottom:8px;}
-.kid-row:hover,.kid-row.selected{border-color:var(--b);background:#EEF6FF;}
-.kid-row.selected{box-shadow:0 0 0 3px rgba(21,101,192,.12);}
+.kid-row.selected{border-color:var(--b);background:#EEF6FF;box-shadow:0 0 0 3px rgba(21,101,192,.1);}
 .kid-avatar{width:36px;height:36px;border-radius:50%;background:var(--b);color:#fff;font-family:var(--fh);font-size:16px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 .kid-avatar.girl{background:var(--pink);}
 .kid-name{font-weight:800;font-size:14px;}
 .kid-info{font-size:11.5px;color:var(--muted);}
-.check-icon{margin-left:auto;font-size:18px;display:none;}
-.kid-row.selected .check-icon{display:block;}
-
-/* ─── GUEST FORM ─── */
-.guest-banner{background:linear-gradient(135deg,#F59E0B,#D97706);border-radius:12px;padding:12px 14px;margin-bottom:14px;display:flex;align-items:center;gap:10px;}
-.guest-banner .icon{font-size:24px;flex-shrink:0;}
-.guest-banner p{font-size:12.5px;font-weight:700;color:#fff;line-height:1.4;}
-
-/* ─── LIVE CLOCK ─── */
-#liveClock{font-family:var(--fh);font-size:11px;font-weight:700;color:rgba(255,255,255,.7);}
-
-/* ─── BOTTOM NAV (staff only) ─── */
-.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:rgba(255,255,255,.97);backdrop-filter:blur(12px);border-top:1px solid var(--border);padding:8px 14px;display:flex;gap:8px;max-width:480px;margin:0 auto;z-index:50;}
+.guest-warn{background:var(--err);border-radius:12px;padding:13px 14px;margin-bottom:14px;}
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:rgba(255,255,255,.97);backdrop-filter:blur(12px);border-top:1px solid var(--border);padding:8px 14px;display:flex;gap:8px;z-index:50;}
 .bnav-btn{flex:1;padding:9px 6px;border:none;border-radius:10px;font-family:var(--fh);font-size:12px;font-weight:800;cursor:pointer;background:#F1F5F9;color:var(--muted);transition:all .15s;}
 .bnav-btn.active{background:var(--b);color:#fff;}
-
-/* ─── MOBILE TWEAKS ─── */
+/* Staff-only elements hidden in customer mode */
+.staff-only{display:none;}
+body.staff-mode .staff-only{display:flex;}
+body.staff-mode .customer-only{display:none;}
+#liveClock{font-family:var(--fh);font-size:11px;font-weight:700;color:rgba(255,255,255,.7);}
+.mode-badge{padding:4px 10px;border-radius:99px;font-size:11px;font-weight:800;}
+.mode-badge.staff{background:var(--y);color:var(--bd);}
+.mode-badge.customer{background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(255,255,255,.3);}
 @media(max-width:380px){.fr{grid-template-columns:1fr;}.token-num{font-size:56px;}}
 </style>
 </head>
 <body>
+
+<!-- ─── STAFF PIN OVERLAY ─── -->
+<div id="staffPinOverlay" style="position:fixed;inset:0;background:rgba(13,71,161,.95);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:#fff;border-radius:22px;padding:28px 22px;width:100%;max-width:340px;text-align:center;">
+    <div style="font-size:48px;margin-bottom:8px;">🔐</div>
+    <div style="font-family:var(--fh);font-size:20px;font-weight:900;color:var(--bd);margin-bottom:4px;">Staff Access</div>
+    <div style="font-size:12.5px;color:var(--muted);margin-bottom:18px;">Enter the 4-digit staff PIN to unlock full controls</div>
+    <div id="pin-dots" style="display:flex;justify-content:center;gap:12px;margin-bottom:18px;">
+      <div class="pd" style="width:14px;height:14px;border-radius:50%;background:#E5E7EB;transition:background .15s;"></div>
+      <div class="pd" style="width:14px;height:14px;border-radius:50%;background:#E5E7EB;transition:background .15s;"></div>
+      <div class="pd" style="width:14px;height:14px;border-radius:50%;background:#E5E7EB;transition:background .15s;"></div>
+      <div class="pd" style="width:14px;height:14px;border-radius:50%;background:#E5E7EB;transition:background .15s;"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:10px;" id="pin-grid"></div>
+    <div id="pin-err" style="height:16px;font-size:12px;color:var(--err);font-weight:700;margin-bottom:8px;"></div>
+    <button onclick="skipToCustomer()" style="width:100%;padding:10px;background:transparent;border:1.5px solid var(--border);border-radius:10px;font-family:var(--fh);font-size:14px;font-weight:800;color:var(--muted);cursor:pointer;">👤 Customer Mode (no PIN)</button>
+  </div>
+</div>
 
 <div class="wrap">
 
@@ -175,14 +145,17 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
   <div class="hero">
     <div class="hero-top">
       <div class="brand">🐼 MiniCuts</div>
-      <div id="liveClock"></div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div id="liveClock"></div>
+        <div id="modeBadge" class="mode-badge customer">Customer</div>
+      </div>
     </div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div>
-        <div class="hero h2" style="font-family:var(--fh);font-size:15px;font-weight:800;color:rgba(255,255,255,.9);">Check-In &amp; Queue</div>
-        <div style="font-size:12px;color:rgba(255,255,255,.65);margin-top:2px;">Walk-in registration · Token number · Live queue</div>
+        <div style="font-family:var(--fh);font-size:15px;font-weight:800;color:rgba(255,255,255,.9);" id="heroTitle">Check-In &amp; Queue</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.65);margin-top:2px;" id="heroSub">Walk-in registration · Token number</div>
       </div>
-      <button class="btn btn-ghost btn-sm" onclick="showScreen('s-queue')" style="background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.25);color:#fff;font-size:12px;">📋 View Queue</button>
+      <button class="btn btn-sm staff-only" id="staffModeBtn" onclick="showNav('s-queue','bn-queue');loadQueue();" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);color:#fff;font-size:11px;padding:6px 11px;">📋 Queue</button>
     </div>
     <div class="queue-strip">
       <div class="q-stat"><div class="q-stat-n" id="qs-waiting">—</div><div class="q-stat-l">Waiting</div></div>
@@ -193,18 +166,15 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
 
   <!-- ═══ SCREEN: LOOKUP ═══ -->
   <div class="screen active" id="s-lookup">
-    <!-- Steps -->
     <div class="steps">
-      <div class="step active" id="st1"><div class="step-dot">1</div><div class="step-label">Lookup</div></div>
-      <div class="step" id="st2"><div class="step-dot">2</div><div class="step-label">Select Kid</div></div>
-      <div class="step" id="st3"><div class="step-dot">3</div><div class="step-label">Check In</div></div>
+      <div class="step active"><div class="step-dot">1</div><div class="step-label">Lookup</div></div>
+      <div class="step"><div class="step-dot">2</div><div class="step-label">Select</div></div>
+      <div class="step"><div class="step-dot">3</div><div class="step-label">Check In</div></div>
     </div>
-
     <div class="card">
       <div class="eyebrow">Step 1</div>
       <div class="card-title">Welcome to MiniCuts! 🐼</div>
-      <div class="card-sub">Enter your mobile number to get started. New customer? We'll register you in seconds.</div>
-
+      <div class="card-sub">Enter your mobile number to check in.</div>
       <div class="fg">
         <label class="fl">Parent Mobile 📱</label>
         <div class="ph-wrap">
@@ -216,22 +186,18 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
           <input class="ph-num" type="tel" id="lu-num" placeholder="1234567" maxlength="7" inputmode="numeric" oninput="onLookupMobileInput()"/>
         </div>
       </div>
-
       <div id="lu-status" style="display:none;padding:9px 12px;border-radius:10px;font-size:12.5px;font-weight:700;margin-bottom:10px;"></div>
       <div id="lu-kids" style="display:none;"></div>
-
       <div id="lu-actions" style="display:none;">
         <div id="lu-selected-summary" style="background:#EEF6FF;border-radius:10px;padding:8px 12px;margin-bottom:10px;font-size:12.5px;font-weight:700;color:var(--b);display:none;"></div>
         <button class="btn btn-y btn-full" id="lu-checkin-btn" onclick="proceedToCheckin()" style="margin-bottom:8px;">✅ Check In</button>
         <button class="btn btn-ghost btn-full" onclick="showRegister(getLookupMobile())">+ Register New Child for this Mobile</button>
       </div>
-
       <div id="lu-notfound" style="display:none;margin-top:6px;">
-        <div class="status-msg warn" style="display:block;">Mobile not registered yet. Register below to get started!</div>
+        <div class="status-msg warn" style="display:block;">Mobile not registered yet. Register below!</div>
         <button class="btn btn-b btn-full" onclick="showRegister(getLookupMobile())" style="margin-bottom:8px;">📝 Register (New Customer)</button>
         <button class="btn btn-ghost btn-full" onclick="showGuestCheckin()">👤 Continue as Guest (no phone)</button>
       </div>
-
       <div style="text-align:center;margin-top:14px;padding-top:14px;border-top:1px solid var(--border);">
         <button class="btn btn-ghost btn-sm" onclick="showGuestCheckin()">👤 Guest Check-In (no phone)</button>
       </div>
@@ -241,16 +207,14 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
   <!-- ═══ SCREEN: REGISTER ═══ -->
   <div class="screen" id="s-register">
     <div class="steps">
-      <div class="step done" id="rg-st1"><div class="step-dot">✓</div><div class="step-label">Lookup</div></div>
-      <div class="step active" id="rg-st2"><div class="step-dot">2</div><div class="step-label">Register</div></div>
-      <div class="step" id="rg-st3"><div class="step-dot">3</div><div class="step-label">Check In</div></div>
+      <div class="step done"><div class="step-dot">✓</div><div class="step-label">Lookup</div></div>
+      <div class="step active"><div class="step-dot">2</div><div class="step-label">Register</div></div>
+      <div class="step"><div class="step-dot">3</div><div class="step-label">Check In</div></div>
     </div>
-
     <div class="card">
       <div class="eyebrow">New Customer Registration</div>
       <div class="card-title">Join MiniCuts! 🐼</div>
       <div class="card-sub">Register all children in one go — just add more kids below.</div>
-
       <div class="fg">
         <label class="fl">Parent Mobile <span class="req">*</span></label>
         <div class="ph-wrap">
@@ -262,46 +226,39 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
           <input class="ph-num" type="tel" id="rg-num" placeholder="1234567" maxlength="7" inputmode="numeric"/>
         </div>
       </div>
-
       <div class="fg">
         <label class="fl">Parent Name <span style="color:var(--muted);font-weight:600;">(Optional)</span></label>
         <input class="fi" type="text" id="rg-parent" placeholder="e.g. Ahmed Al Rashid"/>
       </div>
-
       <div class="fg">
         <label class="fl">Location / Area in Dubai</label>
         <select class="fi" id="rg-location">
           <option value="">Select area...</option>
           <option>Dubai Silicon Oasis (DSO)</option><option>Academic City</option><option>Al Barsha</option>
-          <option>Al Furjan</option><option>Al Karama</option><option>Al Khail Gate</option>
-          <option>Al Nahda</option><option>Al Qusais</option><option>Al Warqa</option>
-          <option>Arabian Ranches</option><option>Arjan / Dubailand</option><option>Bur Dubai</option>
-          <option>Business Bay</option><option>Damac Hills</option><option>Deira</option>
-          <option>Discovery Gardens</option><option>Downtown Dubai</option><option>Dubai Creek Harbour</option>
-          <option>Dubai Hills Estate</option><option>Dubai Investments Park (DIP)</option>
-          <option>Dubai Marina</option><option>Dubai Production City (IMPZ)</option>
-          <option>Dubai South / Expo City</option><option>Emirates Hills</option>
-          <option>Falcon City</option><option>Green Community</option><option>Greens / Views</option>
-          <option>International City</option><option>JBR / JLT</option><option>JVC / JVT</option>
-          <option>Jumeirah</option><option>Jumeirah Islands / Park</option><option>Liwan / Dubailand</option>
-          <option>Meydan</option><option>Mirdif</option><option>Motor City</option>
-          <option>Muhaisnah</option><option>Nad Al Sheba</option><option>Palm Jumeirah</option>
-          <option>Rashidiya</option><option>Remraam</option><option>Ras Al Khor</option>
-          <option>Sports City</option><option>Springs / Meadows</option><option>Town Square</option>
-          <option>Umm Suqeim</option><option>Umm Ramool</option><option>Wadi Al Safa / Liwan</option>
-          <option>Other / Outside Dubai</option>
+          <option>Al Furjan</option><option>Al Karama</option><option>Al Khail Gate</option><option>Al Nahda</option>
+          <option>Al Qusais</option><option>Al Warqa</option><option>Arabian Ranches</option>
+          <option>Arjan / Dubailand</option><option>Bur Dubai</option><option>Business Bay</option>
+          <option>Damac Hills</option><option>Deira</option><option>Discovery Gardens</option>
+          <option>Downtown Dubai</option><option>Dubai Creek Harbour</option><option>Dubai Hills Estate</option>
+          <option>Dubai Investments Park (DIP)</option><option>Dubai Marina</option>
+          <option>Dubai Production City (IMPZ)</option><option>Dubai South / Expo City</option>
+          <option>Emirates Hills</option><option>Falcon City</option><option>Green Community</option>
+          <option>Greens / Views</option><option>International City</option><option>JBR / JLT</option>
+          <option>JVC / JVT</option><option>Jumeirah</option><option>Jumeirah Islands / Park</option>
+          <option>Liwan / Dubailand</option><option>Meydan</option><option>Mirdif</option>
+          <option>Motor City</option><option>Muhaisnah</option><option>Nad Al Sheba</option>
+          <option>Palm Jumeirah</option><option>Rashidiya</option><option>Remraam</option>
+          <option>Ras Al Khor</option><option>Sports City</option><option>Springs / Meadows</option>
+          <option>Town Square</option><option>Umm Suqeim</option><option>Umm Ramool</option>
+          <option>Wadi Al Safa / Liwan</option><option>Other / Outside Dubai</option>
         </select>
       </div>
-
-      <!-- Kids blocks -->
       <div style="font-family:var(--fh);font-size:14px;font-weight:800;color:var(--bd);margin:14px 0 10px;display:flex;align-items:center;justify-content:space-between;">
         <span>Children 👧👦</span>
         <button class="btn btn-ghost btn-sm" onclick="addKidBlock()" style="font-size:12px;padding:5px 11px;">+ Add Child</button>
       </div>
       <div id="rg-kids-container"></div>
-
       <div id="rg-msg" class="status-msg" style="margin-top:6px;"></div>
-
       <div style="display:flex;gap:9px;margin-top:4px;">
         <button class="btn btn-ghost" onclick="showScreen('s-lookup')" style="padding:11px 14px;">← Back</button>
         <button class="btn btn-y" style="flex:1;" onclick="doRegisterAll()">Register &amp; Check In ✅</button>
@@ -309,96 +266,57 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
     </div>
   </div>
 
-  <!-- ═══ SCREEN: CHECK IN CONFIRM ═══ -->
+  <!-- ═══ SCREEN: CHECK IN RESULT ═══ -->
   <div class="screen" id="s-checkin">
-    <div class="steps">
-      <div class="step done"><div class="step-dot">✓</div><div class="step-label">Lookup</div></div>
-      <div class="step done"><div class="step-dot">✓</div><div class="step-label">Select Kid</div></div>
-      <div class="step active"><div class="step-dot">3</div><div class="step-label">Check In</div></div>
-    </div>
-
     <div id="ci-confirmed" style="display:none;">
       <div class="token-card">
         <div class="token-label">Your Token Number</div>
         <div class="token-num" id="ci-token">—</div>
         <div class="token-name" id="ci-name">—</div>
-        <div class="token-sub" id="ci-sub">Checking in...</div>
+        <div class="token-sub" id="ci-sub">—</div>
       </div>
       <div class="token-actions">
-        <button class="btn btn-b" onclick="goToGames()">🎮 Play Games</button>
+        <button class="btn btn-b" onclick="goToGames()">🎮 Loyalty &amp; Games</button>
         <button class="btn btn-ghost" onclick="viewPassport()">🎫 My Passport</button>
       </div>
       <div class="card" style="margin-top:14px;">
         <div class="card-title" style="font-size:15px;">🐼 While you wait...</div>
-        <div style="font-size:13px;color:var(--muted);margin-top:6px;line-height:1.55;">Play our 3 games — Spin the Wheel, Tap Panda and Memory Match — to earn badges and surprise gifts!</div>
+        <div style="font-size:13px;color:var(--muted);margin-top:6px;line-height:1.55;">Play Spin the Wheel, Tap Panda and Memory Match — earn badges and surprise gifts!</div>
         <button class="btn btn-y btn-full" style="margin-top:12px;" onclick="goToGames()">🎮 Play MiniCuts Games!</button>
       </div>
-      <button class="btn btn-ghost btn-full" onclick="resetToLookup()" style="margin-top:4px;">← New Check-In</button>
+      <button class="btn btn-ghost btn-full" onclick="resetToLookup()" style="margin-top:8px;">← New Check-In</button>
     </div>
-
-    <!-- Family (multi-kid) token screen — separate div, never conflicts with ci-confirmed -->
     <div id="ci-family" style="display:none;"></div>
-
     <div id="ci-loading" style="text-align:center;padding:40px;color:var(--muted);">
       <div style="font-size:40px;margin-bottom:10px;">⏳</div>
       <div style="font-weight:700;">Checking in...</div>
     </div>
   </div>
 
-  <!-- ═══ SCREEN: GUEST CHECK-IN ═══ -->
+  <!-- ═══ SCREEN: GUEST ═══ -->
   <div class="screen" id="s-guest">
-    <div class="guest-banner">
-      <div class="icon">👤</div>
-      <p>Guest check-in — no phone number required. Token will be issued but no loyalty or games access.</p>
+    <div class="guest-warn">
+      <div style="font-family:var(--fh);font-size:14px;font-weight:900;color:#fff;margin-bottom:8px;">⚠️ Guest mode — limited service only</div>
+      <div style="display:flex;flex-direction:column;gap:5px;">
+        <div style="display:flex;align-items:center;gap:8px;background:rgba(0,0,0,.2);border-radius:8px;padding:7px 10px;"><span>✖️</span><span style="font-size:12.5px;font-weight:800;color:#fff;">No Loyalty Stamps — visits won't count</span></div>
+        <div style="display:flex;align-items:center;gap:8px;background:rgba(0,0,0,.2);border-radius:8px;padding:7px 10px;"><span>✖️</span><span style="font-size:12.5px;font-weight:800;color:#fff;">No Games Access — points won't be earned</span></div>
+        <div style="display:flex;align-items:center;gap:8px;background:rgba(0,0,0,.2);border-radius:8px;padding:7px 10px;"><span>✖️</span><span style="font-size:12.5px;font-weight:800;color:#fff;">No Free Hair Wash reward</span></div>
+      </div>
+      <div style="margin-top:10px;background:rgba(255,255,255,.15);border-radius:8px;padding:8px 10px;font-size:12px;font-weight:700;color:#fff;text-align:center;">📱 Takes 30 seconds to register — ask the customer to share their number!</div>
     </div>
+    <button class="btn btn-g btn-full" onclick="showScreen('s-lookup')" style="margin-bottom:12px;">✅ Register Instead (recommended)</button>
+    <div style="text-align:center;font-size:11.5px;color:var(--muted);margin-bottom:14px;font-weight:700;">— or continue as guest below —</div>
     <div class="card">
       <div class="eyebrow">Guest Check-In</div>
       <div class="card-title">Walk-In Guest 👤</div>
-
-      <!-- Hard warning — prominent, impossible to miss -->
-      <div style="background:#DC2626;border-radius:12px;padding:13px 14px;margin-bottom:14px;">
-        <div style="font-family:var(--fh);font-size:14px;font-weight:900;color:#fff;margin-bottom:6px;">⚠️ Guest mode — limited service only</div>
-        <div style="display:flex;flex-direction:column;gap:5px;">
-          <div style="display:flex;align-items:center;gap:8px;background:rgba(0,0,0,.2);border-radius:8px;padding:7px 10px;">
-            <span style="font-size:16px;">✖️</span>
-            <span style="font-size:12.5px;font-weight:800;color:#fff;">No Loyalty Stamps — visits won't count</span>
-          </div>
-          <div style="display:flex;align-items:center;gap:8px;background:rgba(0,0,0,.2);border-radius:8px;padding:7px 10px;">
-            <span style="font-size:16px;">✖️</span>
-            <span style="font-size:12.5px;font-weight:800;color:#fff;">No Games Access — points won't be earned</span>
-          </div>
-          <div style="display:flex;align-items:center;gap:8px;background:rgba(0,0,0,.2);border-radius:8px;padding:7px 10px;">
-            <span style="font-size:16px;">✖️</span>
-            <span style="font-size:12.5px;font-weight:800;color:#fff;">No Free Hair Wash reward</span>
-          </div>
-        </div>
-        <div style="margin-top:10px;background:rgba(255,255,255,.15);border-radius:8px;padding:8px 10px;font-size:12px;font-weight:700;color:#fff;text-align:center;">
-          📱 Takes just 30 seconds to register — ask the customer to share their number!
-        </div>
-      </div>
-
-      <button class="btn btn-b btn-full" onclick="showScreen('s-lookup')" style="margin-bottom:12px;background:var(--ok);">✅ Register Instead (recommended)</button>
-
-      <div style="text-align:center;font-size:11.5px;color:var(--muted);margin-bottom:14px;font-weight:700;">— or continue as guest below —</div>
-
       <div class="fr">
-        <div class="fg">
-          <label class="fl">First Name <span class="req">*</span></label>
-          <input class="fi" type="text" id="guest-fname" placeholder="e.g. Omar" maxlength="25"/>
-        </div>
-        <div class="fg">
-          <label class="fl">Last Name <span class="req">*</span></label>
-          <input class="fi" type="text" id="guest-lname" placeholder="e.g. Al Rashid" maxlength="30"/>
-        </div>
+        <div class="fg"><label class="fl">First Name <span class="req">*</span></label><input class="fi" type="text" id="guest-fname" placeholder="e.g. Omar" maxlength="25"/></div>
+        <div class="fg"><label class="fl">Last Name <span class="req">*</span></label><input class="fi" type="text" id="guest-lname" placeholder="e.g. Al Rashid" maxlength="30"/></div>
       </div>
-      <div class="fg">
-        <label class="fl">Service</label>
+      <div class="fg"><label class="fl">Service</label>
         <select class="fi" id="guest-service">
-          <option value="Haircut">Haircut</option>
-          <option value="Haircut + Wash">Haircut + Wash</option>
-          <option value="Wash Only">Wash Only</option>
-          <option value="Styling">Styling</option>
-          <option value="Other">Other</option>
+          <option value="Haircut">Haircut</option><option value="Haircut + Wash">Haircut + Wash</option>
+          <option value="Wash Only">Wash Only</option><option value="Styling">Styling</option><option value="Other">Other</option>
         </select>
       </div>
       <div id="guest-msg" class="status-msg"></div>
@@ -409,79 +327,120 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
     </div>
   </div>
 
-  <!-- ═══ SCREEN: QUEUE (STAFF VIEW) ═══ -->
+  <!-- ═══ SCREEN: QUEUE ═══ -->
   <div class="screen" id="s-queue">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
-      <div>
-        <div style="font-family:var(--fh);font-size:19px;font-weight:800;color:var(--bd);">📋 Today's Queue</div>
-        <div style="font-size:12px;color:var(--muted);margin-top:2px;">Live queue · <span style="color:var(--ok);font-weight:700;">Auto-refreshes every 30s</span></div>
-      </div>
-      <div style="display:flex;gap:7px;">
-        <button class="btn btn-ghost btn-sm" onclick="loadQueue()">↻ Refresh</button>
-        <button class="btn btn-b btn-sm" onclick="showScreen('s-lookup')">+ New Check-In</button>
-      </div>
+    <!-- CUSTOMER VIEW -->
+    <div id="q-customer-view" class="customer-only">
+      <div style="font-family:var(--fh);font-size:19px;font-weight:800;color:var(--bd);margin-bottom:4px;">📋 Today's Queue</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">Your token status · <span style="color:var(--ok);font-weight:700;">Live</span></div>
+      <div id="cust-queue-stats" style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;"></div>
+      <div id="cust-queue-list"><div style="text-align:center;padding:40px;color:var(--muted);">Loading...</div></div>
     </div>
-
-    <!-- Stylist filter -->
-    <div class="card" style="padding:12px 14px;margin-bottom:12px;">
-      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-        <div style="flex:1;min-width:140px;">
-          <label class="fl" style="margin-bottom:4px;">Filter Stylist</label>
-          <select class="fi" id="q-stylist-filter" onchange="renderQueue()" style="font-size:13px;">
-            <option value="">All Stylists</option>
-          </select>
+    <!-- STAFF VIEW -->
+    <div id="q-staff-view" class="staff-only" style="flex-direction:column;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+        <div>
+          <div style="font-family:var(--fh);font-size:19px;font-weight:800;color:var(--bd);">📋 Staff Queue</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px;">Full controls · <span style="color:var(--ok);font-weight:700;">Auto-refreshes every 30s</span></div>
         </div>
-        <div style="flex:1;min-width:140px;">
-          <label class="fl" style="margin-bottom:4px;">Filter Status</label>
-          <select class="fi" id="q-status-filter" onchange="renderQueue()" style="font-size:13px;">
-            <option value="">All</option>
-            <option value="waiting">Waiting</option>
-            <option value="called">Called</option>
-            <option value="done">Done</option>
-          </select>
+        <div style="display:flex;gap:7px;">
+          <button class="btn btn-ghost btn-sm" onclick="loadQueue()">↻ Refresh</button>
+          <button class="btn btn-b btn-sm" onclick="showScreen('s-lookup')">+ Check-In</button>
         </div>
       </div>
+      <div class="card" style="padding:12px 14px;margin-bottom:12px;">
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+          <div style="flex:1;min-width:140px;">
+            <label class="fl" style="margin-bottom:4px;">Filter Stylist</label>
+            <select class="fi" id="q-stylist-filter" onchange="renderQueue()" style="font-size:13px;"><option value="">All Stylists</option></select>
+          </div>
+          <div style="flex:1;min-width:140px;">
+            <label class="fl" style="margin-bottom:4px;">Filter Status</label>
+            <select class="fi" id="q-status-filter" onchange="renderQueue()" style="font-size:13px;">
+              <option value="">All</option><option value="waiting">Waiting</option>
+              <option value="called">Called</option><option value="done">Done</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div id="queue-stats" style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;"></div>
+      <div id="queue-list"><div style="text-align:center;padding:40px;color:var(--muted);">Loading queue...</div></div>
+    </div>
+  </div>
+
+  <!-- ═══ SCREEN: CONFIG (STAFF ONLY) ═══ -->
+  <div class="screen" id="s-config">
+    <div class="card">
+      <div class="eyebrow">Staff Settings</div>
+      <div class="card-title">Configuration ⚙️</div>
+      <div class="card-sub">Manage stylists and system settings.</div>
+
+      <div class="fg">
+        <label class="fl">Stylists (one per line)</label>
+        <textarea class="fi" id="cfg-stylists" rows="8" style="resize:vertical;line-height:1.7;" placeholder="Shakeeb&#10;Farhan&#10;Rizwan"></textarea>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px;">Add or remove stylists. Changes apply immediately.</div>
+      </div>
+
+      <div class="fg">
+        <label class="fl">Staff PIN (4 digits)</label>
+        <input class="fi" type="password" id="cfg-pin" placeholder="••••" maxlength="4" inputmode="numeric"/>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px;">PIN is required to access staff queue and controls.</div>
+      </div>
+
+      <div id="cfg-msg" class="status-msg"></div>
+      <button class="btn btn-y btn-full" onclick="saveConfig()">Save Settings ✅</button>
     </div>
 
-    <div id="queue-stats" style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;"></div>
-    <div id="queue-list"><div style="text-align:center;padding:40px;color:var(--muted);">Loading queue...</div></div>
+    <div class="card">
+      <div style="font-family:var(--fh);font-size:15px;font-weight:800;color:var(--bd);margin-bottom:10px;">🔒 Lock to Customer Mode</div>
+      <div style="font-size:12.5px;color:var(--muted);margin-bottom:12px;">Switch back to customer-facing view. Staff PIN required to re-enter staff mode.</div>
+      <button class="btn btn-ghost btn-full" onclick="lockToCustomer()">🔒 Lock Screen</button>
+    </div>
   </div>
 
 </div><!-- end wrap -->
 
 <!-- BOTTOM NAV -->
-<div class="bottom-nav">
+<div class="bottom-nav" id="bottomNav">
   <button class="bnav-btn active" id="bn-checkin" onclick="showNav('s-lookup','bn-checkin')">✅ Check In</button>
   <button class="bnav-btn" id="bn-queue" onclick="showNav('s-queue','bn-queue');loadQueue();">📋 Queue</button>
-  <button class="bnav-btn" id="bn-games" onclick="window.open('./minicuts-game.html','_blank')">🎮 Games</button>
-  <button class="bnav-btn" id="bn-loyalty" onclick="window.open('./index.html','_blank')">🎫 Loyalty</button>
+  <button class="bnav-btn customer-only" id="bn-games" onclick="window.open('./minicuts-game.html','_blank')">🎮 Loyalty &amp; Games</button>
+  <button class="bnav-btn staff-only" id="bn-config" onclick="showNav('s-config','bn-config');loadConfigScreen();">⚙️ Settings</button>
 </div>
 
 <script>
-// ══════════════════════════════
-// CONFIG
-// ══════════════════════════════
+// ══════════════════════════════════════
+// CONFIG & STATE
+// ══════════════════════════════════════
 const SB_URL='https://wtapyfgtwkjyjrjdnhkb.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind0YXB5Zmd0d2tqeWpyamRuaGtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0NDc3ODEsImV4cCI6MjA5NTAyMzc4MX0.y_-iPfb8Pcg9zh42h6RGVBsUVZm80LcA9sPlz_Gl_fA';
 
-const STYLISTS=['Shakeeb','Farhan','Rizwan','Usman','Hamza','Bilal','Staff'];
+// Load from localStorage
+function loadCfg(){
+  try{ return JSON.parse(localStorage.getItem('mc_checkin_cfg')||'{}'); }catch(e){return {};}
+}
+function saveCfgLocal(cfg){
+  localStorage.setItem('mc_checkin_cfg',JSON.stringify(cfg));
+}
+let CFG=loadCfg();
+let STYLISTS=(CFG.stylists||['Shakeeb','Farhan','Rizwan','Usman','Hamza','Bilal','Staff']);
+let STAFF_PIN=CFG.staffPin||'1234';
 const SERVICES=['Haircut','Haircut + Wash','Wash Only','Styling','Trim','Other'];
 
-const GUEST_MOBILE_PREFIX='GUEST';
+let _isStaff=false;
 let _queueData=[];
-let _selectedCustomers=[]; // array of {id, name, mobile} — one per kid to check in
+let _selectedCustomers=[];
 let _lookupTimer=null;
-let _kidGenders={}; // {blockId: 'boy'|'girl'}
+let _kidGenders={};
 let _kidBlockCount=0;
 
-// ══════════════════════════════
+// ══════════════════════════════════════
 // DB HELPER
-// ══════════════════════════════
+// ══════════════════════════════════════
 async function sb(path,method='GET',body=null,params=''){
   const url=SB_URL+'/rest/v1/'+path+(params?'?'+params:'');
   const h={'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,
-    'Prefer':method==='POST'?'return=representation':'return=minimal'};
-  if(method==='GET') h['Prefer']='return=representation';
+    'Prefer':method==='GET'?'return=representation':'return=representation'};
   const o={method,headers:h};
   if(body) o.body=JSON.stringify(body);
   const r=await fetch(url,o);
@@ -490,9 +449,132 @@ async function sb(path,method='GET',body=null,params=''){
   return t?JSON.parse(t):[];
 }
 
-// ══════════════════════════════
+// ══════════════════════════════════════
+// CLOCK
+// ══════════════════════════════════════
+function updateClock(){
+  const now=new Date();
+  const el=document.getElementById('liveClock');
+  if(el) el.textContent=now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+setInterval(updateClock,1000); updateClock();
+
+// ══════════════════════════════════════
+// STAFF PIN
+// ══════════════════════════════════════
+let _pinEntry='';
+function initPinPad(){
+  const grid=document.getElementById('pin-grid');
+  if(!grid) return;
+  grid.innerHTML='';
+  [1,2,3,4,5,6,7,8,9,'',0,'⌫'].forEach(k=>{
+    const btn=document.createElement('button');
+    btn.textContent=k===''?'':String(k);
+    btn.style.cssText='padding:14px;border-radius:10px;border:none;font-size:20px;font-weight:800;cursor:pointer;font-family:var(--fh);background:'+(k==='⌫'?'#FEE2E2':'#F3F4F6')+';color:'+(k==='⌫'?'var(--err)':'var(--text)');
+    if(k==='') {btn.style.background='transparent';btn.style.cursor='default';}
+    btn.addEventListener('click',()=>{
+      if(k==='') return;
+      if(k==='⌫'){_pinEntry=_pinEntry.slice(0,-1);}
+      else if(_pinEntry.length<4){_pinEntry+=String(k);}
+      updatePinDots();
+      if(_pinEntry.length===4) checkPin();
+    });
+    grid.appendChild(btn);
+  });
+}
+
+function updatePinDots(){
+  document.querySelectorAll('.pd').forEach((d,i)=>{
+    d.style.background=i<_pinEntry.length?'var(--b)':'#E5E7EB';
+  });
+}
+
+function checkPin(){
+  if(_pinEntry===STAFF_PIN){
+    enterStaffMode();
+  } else {
+    document.getElementById('pin-err').textContent='Wrong PIN — try again';
+    _pinEntry='';
+    updatePinDots();
+    setTimeout(()=>{const e=document.getElementById('pin-err');if(e)e.textContent='';},2000);
+  }
+}
+
+function enterStaffMode(){
+  _isStaff=true;
+  document.body.classList.add('staff-mode');
+  document.getElementById('staffPinOverlay').style.display='none';
+  document.getElementById('modeBadge').textContent='Staff';
+  document.getElementById('modeBadge').className='mode-badge staff';
+  // Show staff-only nav items
+  document.querySelectorAll('.staff-only').forEach(el=>el.style.display='flex');
+  document.querySelectorAll('.customer-only').forEach(el=>el.style.display='');
+}
+
+function skipToCustomer(){
+  _isStaff=false;
+  document.getElementById('staffPinOverlay').style.display='none';
+  document.getElementById('modeBadge').textContent='Customer';
+  document.getElementById('modeBadge').className='mode-badge customer';
+}
+
+function lockToCustomer(){
+  _isStaff=false;
+  document.body.classList.remove('staff-mode');
+  document.getElementById('modeBadge').textContent='Customer';
+  document.getElementById('modeBadge').className='mode-badge customer';
+  _pinEntry='';
+  updatePinDots();
+  document.getElementById('staffPinOverlay').style.display='flex';
+  showNav('s-lookup','bn-checkin');
+}
+
+// ══════════════════════════════════════
+// SCREEN / NAV
+// ══════════════════════════════════════
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  const el=document.getElementById(id);
+  if(el){el.classList.add('active');window.scrollTo({top:0,behavior:'smooth'});}
+}
+function showNav(screenId,btnId){
+  showScreen(screenId);
+  document.querySelectorAll('.bnav-btn').forEach(b=>b.classList.remove('active'));
+  const btn=document.getElementById(btnId);
+  if(btn) btn.classList.add('active');
+}
+
+// ══════════════════════════════════════
+// CONFIG SCREEN
+// ══════════════════════════════════════
+function loadConfigScreen(){
+  const ta=document.getElementById('cfg-stylists');
+  const pi=document.getElementById('cfg-pin');
+  if(ta) ta.value=STYLISTS.join('\n');
+  if(pi) pi.value=STAFF_PIN;
+}
+
+function saveConfig(){
+  const ta=document.getElementById('cfg-stylists');
+  const pi=document.getElementById('cfg-pin');
+  const msgEl=document.getElementById('cfg-msg');
+  const newStylists=(ta.value||'').split('\n').map(s=>s.trim()).filter(Boolean);
+  const newPin=(pi.value||'').replace(/\D/g,'');
+  if(newStylists.length===0){showMsg(msgEl,'Add at least one stylist ❌','err');return;}
+  if(newPin.length!==4){showMsg(msgEl,'PIN must be exactly 4 digits ❌','err');return;}
+  STYLISTS=newStylists;
+  STAFF_PIN=newPin;
+  const cfg={stylists:STYLISTS,staffPin:STAFF_PIN};
+  saveCfgLocal(cfg);
+  CFG=cfg;
+  showMsg(msgEl,'Settings saved ✅','ok');
+  // Repopulate stylist dropdowns
+  populateStylistFilter();
+}
+
+// ══════════════════════════════════════
 // PHONE HELPERS
-// ══════════════════════════════
+// ══════════════════════════════════════
 function getFullMobile(pfxId,numId){
   const pfx=(document.getElementById(pfxId)?.value||'055').replace(/\D/g,'');
   const num=(document.getElementById(numId)?.value||'').replace(/\D/g,'');
@@ -510,41 +592,13 @@ function splitMobile(m){
 function setPhoneFields(pfxId,numId,mobile){
   const p=splitMobile(mobile);
   const ps=document.getElementById(pfxId),ns=document.getElementById(numId);
-  if(ps&&['050','051','052','054','055','056','058','059','060'].includes(p.pfx)) ps.value=p.pfx;
+  if(ps) ps.value=['050','051','052','054','055','056','058','059','060'].includes(p.pfx)?p.pfx:'055';
   if(ns) ns.value=p.num||'';
 }
-function displayMobile(m){
-  const p=splitMobile(m);
-  return (p.pfx||'')+(p.num||'');
-}
 
-// ══════════════════════════════
-// CLOCK
-// ══════════════════════════════
-function updateClock(){
-  const now=new Date();
-  document.getElementById('liveClock').textContent=now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
-}
-setInterval(updateClock,1000);updateClock();
-
-// ══════════════════════════════
-// SCREEN MANAGEMENT
-// ══════════════════════════════
-function showScreen(id){
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  const el=document.getElementById(id);
-  if(el){el.classList.add('active');window.scrollTo({top:0,behavior:'smooth'});}
-}
-function showNav(screenId,btnId){
-  showScreen(screenId);
-  document.querySelectorAll('.bnav-btn').forEach(b=>b.classList.remove('active'));
-  const btn=document.getElementById(btnId);
-  if(btn) btn.classList.add('active');
-}
-
-// ══════════════════════════════
+// ══════════════════════════════════════
 // MOBILE LOOKUP
-// ══════════════════════════════
+// ══════════════════════════════════════
 function onLookupMobileInput(){
   clearTimeout(_lookupTimer);
   const num=(document.getElementById('lu-num').value||'').replace(/\D/g,'');
@@ -555,8 +609,7 @@ function onLookupMobileInput(){
   _selectedCustomers=[];
   if(num.length!==7) return;
   const st=document.getElementById('lu-status');
-  st.textContent='Looking up... 🔍';
-  st.style.display='block';
+  st.textContent='Looking up... 🔍';st.style.display='block';
   st.style.background='#EEF6FF';st.style.color='var(--b)';
   _lookupTimer=setTimeout(doLookup,500);
 }
@@ -571,72 +624,43 @@ async function doLookup(){
       sb('customers','GET',null,'select=id,name,mobile,gender,dob,stamps,game_points&mobile=eq.'+encodeURIComponent(mAlt)+'&limit=20')
     ]);
     const seen=new Set();
-    const kids=[...( rA||[]),...(rB||[])].filter(c=>{if(seen.has(c.id))return false;seen.add(c.id);return true;});
+    const kids=[...(rA||[]),...(rB||[])].filter(c=>{if(seen.has(c.id))return false;seen.add(c.id);return true;});
+    if(!kids.length){st.style.display='none';document.getElementById('lu-notfound').style.display='block';return;}
 
-    if(!kids.length){
-      st.style.display='none';
-      document.getElementById('lu-notfound').style.display='block';
-      return;
-    }
-
-    st.textContent='✅ Found '+kids.length+' child'+(kids.length>1?'ren':'')+' — select who is here today';
+    st.textContent='✅ Found '+kids.length+' child'+(kids.length>1?'ren':'')+' — tick who is here today';
     st.style.background='#DCFCE7';st.style.color='var(--ok)';
 
-    // Render kid rows with checkboxes
     const kidsEl=document.getElementById('lu-kids');
-    const note=kids.length>1
-      ?'Tick all children here for a haircut today — each gets their own token in order'
-      :'Confirm to check in';
-    kidsEl.innerHTML='<div style="font-size:11.5px;font-weight:700;color:var(--b);background:#EEF6FF;border-radius:8px;padding:7px 11px;margin-bottom:10px;">☑️ '+note+'</div>';
+    kidsEl.innerHTML='<div style="font-size:11.5px;font-weight:700;color:var(--b);background:#EEF6FF;border-radius:8px;padding:7px 11px;margin-bottom:10px;">☑️ '+(kids.length>1?'Tick all children here for a haircut today':'Confirm to check in')+'</div>';
     kids.forEach(k=>{
       const row=document.createElement('div');
-      row.className='kid-row';
-      row.id='kid-row-'+k.id;
+      row.className='kid-row';row.id='kid-row-'+k.id;
       const isGirl=k.gender==='girl';
-      row.innerHTML=`
-        <input type="checkbox" id="cb-${k.id}" style="width:18px;height:18px;accent-color:var(--b);cursor:pointer;flex-shrink:0;" />
+      row.innerHTML=`<input type="checkbox" id="cb-${k.id}" style="width:18px;height:18px;accent-color:var(--b);cursor:pointer;flex-shrink:0;"/>
         <div class="kid-avatar ${isGirl?'girl':''}">${k.name.charAt(0).toUpperCase()}</div>
-        <div class="kid-info-wrap" style="flex:1;">
-          <div class="kid-name">${k.name}</div>
-          <div class="kid-info">${isGirl?'👧 Girl':'👦 Boy'} · ${k.stamps||0} stamps · ${k.game_points||0} pts</div>
-        </div>`;
-      row.addEventListener('click',(e)=>{
-        if(e.target.tagName!=='INPUT'){
-          const cb=document.getElementById('cb-'+k.id);
-          if(cb) cb.checked=!cb.checked;
+        <div style="flex:1;"><div class="kid-name">${k.name}</div>
+        <div class="kid-info">${isGirl?'👧 Girl':'👦 Boy'} · ${k.stamps||0} stamps · ${k.game_points||0} pts</div></div>`;
+      const toggle=(checked)=>{
+        if(checked){
+          row.classList.add('selected');
+          if(!_selectedCustomers.find(c=>c.id===k.id)) _selectedCustomers.push({id:k.id,name:k.name,mobile:k.mobile});
+        } else {
+          row.classList.remove('selected');
+          _selectedCustomers=_selectedCustomers.filter(c=>c.id!==k.id);
         }
-        toggleKid(k,row,document.getElementById('cb-'+k.id).checked);
+        updateCheckinBtn();
+      };
+      row.addEventListener('click',e=>{
+        if(e.target.tagName!=='INPUT'){const cb=document.getElementById('cb-'+k.id);if(cb){cb.checked=!cb.checked;toggle(cb.checked);}}
       });
-      document.getElementById('cb-'+k.id)?.addEventListener('change',function(){
-        toggleKid(k,row,this.checked);
+      document.addEventListener('change',function handler(e){
+        if(e.target.id==='cb-'+k.id){toggle(e.target.checked);document.removeEventListener('change',handler);}
       });
       kidsEl.appendChild(row);
     });
     kidsEl.style.display='block';
-
-    // Auto-tick single child
-    if(kids.length===1){
-      const cb=document.getElementById('cb-'+kids[0].id);
-      if(cb){cb.checked=true;toggleKid(kids[0],document.getElementById('kid-row-'+kids[0].id),true);}
-    }
-
-  }catch(e){
-    st.textContent='Error: '+e.message;
-    st.style.background='#FEE2E2';st.style.color='var(--err)';
-  }
-}
-
-function toggleKid(k,row,checked){
-  if(checked){
-    row.classList.add('selected');
-    if(!_selectedCustomers.find(c=>c.id===k.id)){
-      _selectedCustomers.push({id:k.id,name:k.name,mobile:k.mobile});
-    }
-  } else {
-    row.classList.remove('selected');
-    _selectedCustomers=_selectedCustomers.filter(c=>c.id!==k.id);
-  }
-  updateCheckinBtn();
+    if(kids.length===1){const cb=document.getElementById('cb-'+kids[0].id);if(cb){cb.checked=true;_selectedCustomers=[{id:kids[0].id,name:kids[0].name,mobile:kids[0].mobile}];updateCheckinBtn();document.getElementById('kid-row-'+kids[0].id).classList.add('selected');}}
+  }catch(e){st.textContent='Error: '+e.message;st.style.background='#FEE2E2';st.style.color='var(--err)';}
 }
 
 function updateCheckinBtn(){
@@ -644,91 +668,42 @@ function updateCheckinBtn(){
   const summary=document.getElementById('lu-selected-summary');
   const btn=document.getElementById('lu-checkin-btn');
   const actionsEl=document.getElementById('lu-actions');
-  if(n===0){
-    actionsEl.style.display='none';
-    return;
-  }
+  if(n===0){actionsEl.style.display='none';return;}
   actionsEl.style.display='block';
-  if(n===1){
-    btn.textContent='✅ Check In '+_selectedCustomers[0].name;
-    summary.style.display='none';
-  } else {
-    btn.textContent='✅ Check In '+n+' Children (separate tokens)';
-    summary.style.display='block';
-    summary.textContent='🎫 Tokens will be: '+_selectedCustomers.map((c,i)=>'#'+(i+1)+' '+c.name).join(' · ');
-  }
+  if(n===1){btn.textContent='✅ Check In '+_selectedCustomers[0].name;summary.style.display='none';}
+  else{btn.textContent='✅ Check In '+n+' Children (separate tokens)';summary.style.display='block';summary.textContent='🎫 Tokens will be issued in order: '+_selectedCustomers.map(c=>c.name).join(' → ');}
 }
 
-// ══════════════════════════════
-// MULTI-KID REGISTRATION BUILDER
-// ══════════════════════════════
+// ══════════════════════════════════════
+// MULTI-KID REGISTRATION
+// ══════════════════════════════════════
 function showRegister(mobile){
-  _kidBlockCount=0;
-  document.getElementById('rg-kids-container').innerHTML='';
-  if(mobile){
-    const p=splitMobile(mobile);
-    setPhoneFields('rg-pfx','rg-num',mobile);
-  }
-  addKidBlock();
-  showScreen('s-register');
+  _kidBlockCount=0;document.getElementById('rg-kids-container').innerHTML='';
+  if(mobile) setPhoneFields('rg-pfx','rg-num',mobile);
+  addKidBlock();showScreen('s-register');
 }
 
 function addKidBlock(){
-  _kidBlockCount++;
-  const id='kid'+_kidBlockCount;
-  _kidGenders[id]='boy';
+  _kidBlockCount++;const id='kid'+_kidBlockCount;_kidGenders[id]='boy';
   const container=document.getElementById('rg-kids-container');
   const block=document.createElement('div');
-  block.className='kid-block';
-  block.id='kb-'+id;
-
+  block.className='kid-block';block.id='kb-'+id;
   const curYear=new Date().getFullYear();
   const years=Array.from({length:20},(_,i)=>`<option value="${curYear-i}">${curYear-i}</option>`).join('');
   const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].map((m,i)=>`<option value="${String(i+1).padStart(2,'0')}">${m}</option>`).join('');
   const days=Array.from({length:31},(_,i)=>`<option value="${String(i+1).padStart(2,'0')}">${i+1}</option>`).join('');
-
-  block.innerHTML=`
-    <div class="kid-block-header">
-      <span class="kid-num">👧👦 Child ${_kidBlockCount}</span>
-      ${_kidBlockCount>1?`<button class="remove-kid" onclick="removeKidBlock('${id}')">✕</button>`:''}
-    </div>
-    <div class="fg"><label class="fl">Name <span class="req">*</span></label>
-      <input class="fi" type="text" id="${id}-name" placeholder="Child's name"/></div>
+  block.innerHTML=`<div class="kid-block-header"><span class="kid-num">👦👧 Child ${_kidBlockCount}</span>${_kidBlockCount>1?`<button class="remove-kid" onclick="removeKidBlock('${id}')">✕</button>`:''}</div>
+    <div class="fg"><label class="fl">Name <span class="req">*</span></label><input class="fi" type="text" id="${id}-name" placeholder="Child's name"/></div>
     <div class="fg"><label class="fl">Gender <span class="req">*</span></label>
-      <div class="gender-row">
-        <button class="gender-btn boy active" id="${id}-boy" onclick="setKidGender('${id}','boy')">👦 Boy</button>
-        <button class="gender-btn girl" id="${id}-girl" onclick="setKidGender('${id}','girl')">👧 Girl</button>
-      </div></div>
+      <div class="gender-row"><button class="gender-btn boy active" id="${id}-boy" onclick="setKidGender('${id}','boy')">👦 Boy</button><button class="gender-btn girl" id="${id}-girl" onclick="setKidGender('${id}','girl')">👧 Girl</button></div></div>
     <div class="fg"><label class="fl">Date of Birth <span class="req">*</span></label>
-      <div class="fr3">
-        <select class="fi" id="${id}-dd"><option value="">Day</option>${days}</select>
-        <select class="fi" id="${id}-mm"><option value="">Month</option>${months}</select>
-        <select class="fi" id="${id}-yy"><option value="">Year</option>${years}</select>
-      </div></div>
-    <div class="fg"><label class="fl">Service</label>
-      <select class="fi" id="${id}-svc">
-        <option value="Haircut">Haircut</option>
-        <option value="Haircut + Wash">Haircut + Wash</option>
-        <option value="Wash Only">Wash Only</option>
-        <option value="Styling">Styling</option>
-        <option value="Other">Other</option>
-      </select></div>`;
+      <div class="fr3"><select class="fi" id="${id}-dd"><option value="">Day</option>${days}</select><select class="fi" id="${id}-mm"><option value="">Month</option>${months}</select><select class="fi" id="${id}-yy"><option value="">Year</option>${years}</select></div></div>
+    <div class="fg"><label class="fl">Service</label><select class="fi" id="${id}-svc"><option value="Haircut">Haircut</option><option value="Haircut + Wash">Haircut + Wash</option><option value="Wash Only">Wash Only</option><option value="Styling">Styling</option><option value="Other">Other</option></select></div>`;
   container.appendChild(block);
 }
 
-function removeKidBlock(id){
-  const el=document.getElementById('kb-'+id);
-  if(el) el.remove();
-  delete _kidGenders[id];
-}
-
-function setKidGender(id,g){
-  _kidGenders[id]=g;
-  const boy=document.getElementById(id+'-boy');
-  const girl=document.getElementById(id+'-girl');
-  if(boy){boy.classList.toggle('active',g==='boy');}
-  if(girl){girl.classList.toggle('active',g==='girl');}
-}
+function removeKidBlock(id){const el=document.getElementById('kb-'+id);if(el)el.remove();delete _kidGenders[id];}
+function setKidGender(id,g){_kidGenders[id]=g;document.getElementById(id+'-boy')?.classList.toggle('active',g==='boy');document.getElementById(id+'-girl')?.classList.toggle('active',g==='girl');}
 
 async function doRegisterAll(){
   const mobile=getFullMobile('rg-pfx','rg-num');
@@ -736,15 +711,9 @@ async function doRegisterAll(){
   const parent=document.getElementById('rg-parent').value.trim();
   const location=document.getElementById('rg-location').value;
   const msgEl=document.getElementById('rg-msg');
-
-  if(mobileNum.length!==7){
-    showMsg(msgEl,'Please enter a valid 7-digit mobile number 📱','err');return;
-  }
-
-  // Collect all kid blocks
+  if(mobileNum.length!==7){showMsg(msgEl,'Valid 7-digit mobile required 📱','err');return;}
   const blocks=document.querySelectorAll('.kid-block');
-  const kids=[];
-  let valid=true;
+  const kids=[];let valid=true;
   blocks.forEach(b=>{
     const id=b.id.replace('kb-','');
     const name=(document.getElementById(id+'-name')?.value||'').trim();
@@ -754,54 +723,37 @@ async function doRegisterAll(){
     const dob=(dd&&mm&&yy)?yy+'-'+mm+'-'+dd:null;
     const gender=_kidGenders[id]||'boy';
     const service=document.getElementById(id+'-svc')?.value||'Haircut';
-    if(!name){showMsg(msgEl,'Please enter a name for all children ❌','err');valid=false;return;}
-    if(!dob){showMsg(msgEl,'Please enter date of birth for all children 🎂','err');valid=false;return;}
+    if(!name){showMsg(msgEl,'Enter name for all children ❌','err');valid=false;return;}
+    if(!dob){showMsg(msgEl,'Date of birth required for all children 🎂','err');valid=false;return;}
     kids.push({name,gender,dob,service});
   });
   if(!valid||!kids.length) return;
-
   const btn=document.querySelector('#s-register .btn-y');
   if(btn){btn.disabled=true;btn.textContent='Registering...';}
   showMsg(msgEl,'Registering...','info');
-
   try{
     const results=[];
     for(const kid of kids){
-      const res=await sb('customers','POST',{
-        name:kid.name,mobile,parent:parent||null,
-        gender:kid.gender,dob:kid.dob,
-        location:location||null,
-        stamps:0,redemptions:0,game_points:0,game_spins:0
-      });
+      const res=await sb('customers','POST',{name:kid.name,mobile,parent:parent||null,gender:kid.gender,dob:kid.dob,location:location||null,stamps:0,redemptions:0,game_points:0,game_spins:0});
       const newC=Array.isArray(res)?res[0]:res;
       if(!newC||!newC.id) throw new Error('Registration failed for '+kid.name);
       results.push({customer:newC,service:kid.service});
     }
-
-    // Check in all registered kids
     showMsg(msgEl,'✅ Registered! Issuing tokens...','ok');
     const tokens=[];
     for(const {customer,service} of results){
-      const token=await doCheckin(customer.id,customer.name,customer.mobile,service,false);
-      tokens.push({name:customer.name,token,id:customer.id});
+      const token=await doCheckin(customer.id,customer.name,customer.mobile,service);
+      tokens.push({name:customer.name,token,id:customer.id,mobile:customer.mobile});
     }
-
-    // Show first kid's token (others can be seen in queue)
-    const first=tokens[0];
-    showTokenScreen(first.token,first.name,first.id,
-      tokens.length>1?`+ ${tokens.length-1} more checked in (see queue)`:'Registered & checked in!',
-      mobile);
-
-  }catch(e){
-    showMsg(msgEl,'Error: '+e.message,'err');
-  }finally{
-    if(btn){btn.disabled=false;btn.textContent='Register & Check In ✅';}
-  }
+    if(tokens.length===1) showTokenScreen(tokens[0].token,tokens[0].name,tokens[0].id,'Registered &amp; checked in!',mobile);
+    else showFamilyTokenScreen(tokens,mobile);
+  }catch(e){showMsg(msgEl,'Error: '+e.message,'err');}
+  finally{if(btn){btn.disabled=false;btn.textContent='Register & Check In ✅';}}
 }
 
-// ══════════════════════════════
+// ══════════════════════════════════════
 // CHECK-IN LOGIC
-// ══════════════════════════════
+// ══════════════════════════════════════
 async function proceedToCheckin(){
   if(!_selectedCustomers.length) return;
   showScreen('s-checkin');
@@ -811,47 +763,24 @@ async function proceedToCheckin(){
   try{
     const tokens=[];
     for(const c of _selectedCustomers){
-      const token=await doCheckin(c.id,c.name,c.mobile,'Haircut',false);
+      const token=await doCheckin(c.id,c.name,c.mobile,'Haircut');
       tokens.push({token,name:c.name,id:c.id,mobile:c.mobile});
     }
-    // Show token screen for whole family
     const mobile=_selectedCustomers[0].mobile;
-    const firstId=_selectedCustomers[0].id;
-    if(tokens.length===1){
-      showTokenScreen(tokens[0].token,tokens[0].name,firstId,'Checked in! You\'re in the queue.',mobile);
-    } else {
-      showFamilyTokenScreen(tokens,mobile);
-    }
+    if(tokens.length===1) showTokenScreen(tokens[0].token,tokens[0].name,tokens[0].id,'Checked in! You\'re in the queue.',mobile);
+    else showFamilyTokenScreen(tokens,mobile);
   }catch(e){
-    document.getElementById('ci-loading').innerHTML='<div style="color:var(--err);padding:20px;text-align:center;">Error: '+e.message+'</div>';
+    document.getElementById('ci-loading').innerHTML='<div style="color:var(--err);padding:20px;text-align:center;font-weight:700;">Error: '+e.message+'</div>';
   }
 }
 
-async function doCheckin(customerId,name,mobile,service,showLoading){
-  // Get today's token count to generate next token number
+async function doCheckin(customerId,name,mobile,service){
   const today=getTodayStr();
   const existing=await sb('queue','GET',null,'select=token_number&checkin_date=eq.'+today+'&order=token_number.desc&limit=1');
   const lastToken=(existing&&existing.length)?Number(existing[0].token_number)||0:0;
   const tokenNum=lastToken+1;
-
-  await sb('queue','POST',{
-    customer_id:customerId||null,
-    customer_name:name,
-    mobile:mobile||null,
-    service:service||'Haircut',
-    token_number:tokenNum,
-    checkin_date:today,
-    checkin_time:new Date().toISOString(),
-    status:'waiting',
-    is_guest:!customerId,
-    stylist:null
-  });
-
-  // Update last_visit_date on customer
-  if(customerId){
-    sb('customers','PATCH',{last_visit_date:new Date().toISOString()},'id=eq.'+customerId).catch(()=>{});
-  }
-
+  await sb('queue','POST',{customer_id:customerId||null,customer_name:name,mobile:mobile||null,service:service||'Haircut',token_number:tokenNum,checkin_date:today,checkin_time:new Date().toISOString(),status:'waiting',is_guest:!customerId,stylist:null});
+  if(customerId) sb('customers','PATCH',{last_visit_date:new Date().toISOString()},'id=eq.'+customerId).catch(()=>{});
   refreshQueueStats();
   return tokenNum;
 }
@@ -874,15 +803,6 @@ function showTokenScreen(token,name,customerId,subText,mobile){
   showScreen('s-checkin');
 }
 
-function goToGames(){
-  const mobile=window._checkinMobile||'';
-  window.open('./minicuts-game.html'+(mobile?'?mobile='+encodeURIComponent(mobile):''),'_blank');
-}
-function viewPassport(){
-  const mobile=window._checkinMobile||'';
-  window.open('./index.html?customer=1&lookup='+encodeURIComponent(mobile),'_blank');
-}
-
 function showFamilyTokenScreen(tokens,mobile){
   const loading=document.getElementById('ci-loading');
   const confirmed=document.getElementById('ci-confirmed');
@@ -890,31 +810,28 @@ function showFamilyTokenScreen(tokens,mobile){
   if(loading) loading.style.display='none';
   if(confirmed) confirmed.style.display='none';
   if(!el) return;
-
   window._checkinMobile=mobile;
   window._checkinCustomerId=tokens[0]?.id||null;
-
   const tokensHtml=tokens.map(t=>`
     <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:#F0F7FF;border-radius:12px;margin-bottom:8px;border:1px solid rgba(21,101,192,.1);">
       <div style="min-width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--bd),var(--bm));color:var(--y);font-family:var(--fh);font-size:19px;font-weight:900;display:flex;align-items:center;justify-content:center;">${String(t.token).padStart(2,'0')}</div>
       <div><div style="font-family:var(--fh);font-size:15px;font-weight:800;color:var(--bd);">${t.name}</div>
       <div style="font-size:11.5px;color:var(--muted);">Token #${String(t.token).padStart(2,'0')} · Waiting</div></div>
     </div>`).join('');
-
   el.innerHTML=`
     <div class="token-card">
-      <div class="token-label">Family Check-In</div>
-      <div style="font-size:52px;margin:6px 0;">🐼</div>
+      <div class="token-label">Family Check-In ✅</div>
+      <div style="font-size:52px;margin:6px 0;position:relative;z-index:1;">🐼</div>
       <div class="token-name">${tokens.length} Children Checked In!</div>
-      <div class="token-sub">Each child has their own token in the queue</div>
+      <div class="token-sub">Each child has their own token in queue order</div>
     </div>
     <div class="card" style="margin-bottom:14px;">
-      <div style="font-family:var(--fh);font-size:14px;font-weight:800;color:var(--bd);margin-bottom:10px;">🎫 Your Token Numbers</div>
+      <div style="font-family:var(--fh);font-size:14px;font-weight:800;color:var(--bd);margin-bottom:10px;">🎫 Your Token Numbers (in order)</div>
       ${tokensHtml}
       <div style="font-size:12px;color:var(--muted);margin-top:6px;padding:8px;background:#FFF9E6;border-radius:8px;">✂️ Stylist will call each child individually in queue order</div>
     </div>
     <div class="token-actions">
-      <button class="btn btn-b" onclick="goToGames()">🎮 Play Games</button>
+      <button class="btn btn-b" onclick="goToGames()">🎮 Loyalty &amp; Games</button>
       <button class="btn btn-ghost" onclick="viewPassport()">🎫 My Passport</button>
     </div>
     <button class="btn btn-ghost btn-full" onclick="resetToLookup()" style="margin-top:10px;">← New Check-In</button>`;
@@ -922,15 +839,17 @@ function showFamilyTokenScreen(tokens,mobile){
   showScreen('s-checkin');
 }
 
-// ══════════════════════════════
+function goToGames(){window.open('./minicuts-game.html'+(window._checkinMobile?'?mobile='+encodeURIComponent(window._checkinMobile):''),'_blank');}
+function viewPassport(){window.open('./index.html?customer=1&lookup='+encodeURIComponent(window._checkinMobile||''),'_blank');}
+
+// ══════════════════════════════════════
 // GUEST CHECK-IN
-// ══════════════════════════════
+// ══════════════════════════════════════
 function showGuestCheckin(){
   document.getElementById('guest-fname').value='';
   document.getElementById('guest-lname').value='';
   document.getElementById('guest-service').value='Haircut';
-  const msgEl=document.getElementById('guest-msg');
-  msgEl.style.display='none';
+  const m=document.getElementById('guest-msg');if(m){m.style.display='none';}
   showScreen('s-guest');
 }
 
@@ -939,216 +858,25 @@ async function doGuestCheckin(){
   const lname=document.getElementById('guest-lname').value.trim();
   const service=document.getElementById('guest-service').value;
   const msgEl=document.getElementById('guest-msg');
-  if(!fname){showMsg(msgEl,'Please enter the child\'s first name ❌','err');document.getElementById('guest-fname').focus();return;}
-  if(!lname){showMsg(msgEl,'Please enter the child\'s last name ❌','err');document.getElementById('guest-lname').focus();return;}
-
+  if(!fname){showMsg(msgEl,'Please enter first name ❌','err');document.getElementById('guest-fname').focus();return;}
+  if(!lname){showMsg(msgEl,'Please enter last name ❌','err');document.getElementById('guest-lname').focus();return;}
   const fullName=fname+' '+lname;
   const btn=document.querySelector('#s-guest .btn-y');
   if(btn){btn.disabled=true;btn.textContent='Issuing token...';}
   try{
     const guestRef='GUEST-'+Date.now().toString().slice(-6);
-    const token=await doCheckin(null,fullName,guestRef,service,true);
-    showTokenScreen(token,fullName+' (Guest)',null,
-      '⚠️ Guest only — no loyalty stamps or game rewards.',null);
-  }catch(e){
-    showMsg(msgEl,'Error: '+e.message,'err');
-  }finally{
-    if(btn){btn.disabled=false;btn.textContent='Get Token 🎫';}
-  }
+    const token=await doCheckin(null,fullName,guestRef,service);
+    showTokenScreen(token,fullName+' (Guest)',null,'⚠️ Guest only — no loyalty or game rewards.',null);
+  }catch(e){showMsg(msgEl,'Error: '+e.message,'err');}
+  finally{if(btn){btn.disabled=false;btn.textContent='Get Token 🎫';}}
 }
 
-// ══════════════════════════════
-// QUEUE VIEW
-// ══════════════════════════════
-async function loadQueue(){
-  try{
-    const today=getTodayStr();
-    const rows=await sb('queue','GET',null,'select=*&checkin_date=eq.'+today+'&order=token_number.asc&limit=200');
-    _queueData=rows||[];
-    populateStylestFilter();
-    renderQueue();
-    refreshQueueStats();
-  }catch(e){
-    document.getElementById('queue-list').innerHTML='<div style="color:var(--err);padding:16px;">Error loading queue: '+e.message+'</div>';
-  }
-}
-
-function populateStylestFilter(){
-  const sel=document.getElementById('q-stylist-filter');
-  const existing=new Set(Array.from(sel.options).map(o=>o.value).filter(Boolean));
-  const usedStylists=new Set(_queueData.map(r=>r.stylist).filter(Boolean));
-  STYLISTS.forEach(s=>{if(!existing.has(s)){const o=document.createElement('option');o.value=s;o.textContent=s;sel.appendChild(o);}});
-  usedStylists.forEach(s=>{if(!existing.has(s)&&!STYLISTS.includes(s)){const o=document.createElement('option');o.value=s;o.textContent=s;sel.appendChild(o);}});
-}
-
-function renderQueue(){
-  const stylistFilter=document.getElementById('q-stylist-filter')?.value||'';
-  const statusFilter=document.getElementById('q-status-filter')?.value||'';
-  let data=_queueData;
-  if(stylistFilter) data=data.filter(r=>r.stylist===stylistFilter);
-  if(statusFilter) data=data.filter(r=>r.status===statusFilter);
-
-  const waiting=data.filter(r=>r.status==='waiting').length;
-  const called=data.filter(r=>r.status==='called').length;
-  const done=data.filter(r=>r.status==='done').length;
-
-  document.getElementById('queue-stats').innerHTML=`
-    <div style="display:flex;gap:8px;flex-wrap:wrap;width:100%;">
-      <div class="q-stat" style="background:#fff;border:1px solid var(--border);border-radius:12px;flex:1;min-width:80px;">
-        <div class="q-stat-n" style="color:var(--warn);">${waiting}</div><div class="q-stat-l" style="color:var(--muted);">Waiting</div></div>
-      <div class="q-stat" style="background:#fff;border:1px solid var(--border);border-radius:12px;flex:1;min-width:80px;">
-        <div class="q-stat-n" style="color:var(--b);">${called}</div><div class="q-stat-l" style="color:var(--muted);">Called</div></div>
-      <div class="q-stat" style="background:#fff;border:1px solid var(--border);border-radius:12px;flex:1;min-width:80px;">
-        <div class="q-stat-n" style="color:var(--ok);">${done}</div><div class="q-stat-l" style="color:var(--muted);">Done</div></div>
-    </div>`;
-
-  if(!data.length){
-    document.getElementById('queue-list').innerHTML='<div style="text-align:center;padding:40px;color:var(--muted);font-size:14px;">No customers in queue yet today 🐼</div>';
-    return;
-  }
-
-  document.getElementById('queue-list').innerHTML=data.map(row=>buildQueueRow(row)).join('');
-}
-
-function buildQueueRow(row){
-  const isGuest=row.is_guest||!row.customer_id;
-  const isDone=row.status==='done';
-  const isCalled=row.status==='called';
-  const statusPill=isDone?`<span class="status-pill sp-done">✅ Done</span>`:
-    isCalled?`<span class="status-pill sp-called">📢 Called</span>`:
-    isGuest?`<span class="status-pill sp-guest">👤 Guest</span>`:
-    `<span class="status-pill sp-wait">⏳ Waiting</span>`;
-
-  const stylistOpts=STYLISTS.map(s=>`<option value="${s}" ${row.stylist===s?'selected':''}>${s}</option>`).join('');
-  const svcOpts=SERVICES.map(s=>`<option value="${s}" ${row.service===s?'selected':''}>${s}</option>`).join('');
-
-  const timeStr=row.checkin_time?new Date(row.checkin_time).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}):'';
-
-  return`<div class="queue-item ${isDone?'done':''}" id="qr-${row.id}">
-    <div class="token-badge ${isGuest?'guest':''}">${String(row.token_number).padStart(2,'0')}</div>
-    <div class="queue-info">
-      <div class="queue-name">${row.customer_name}</div>
-      <div class="queue-meta">${timeStr} · ${statusPill}</div>
-      <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;">
-        <select class="fi" style="flex:1;min-width:100px;font-size:12px;padding:5px 8px;height:32px;"
-          onchange="updateQueueField('${row.id}','stylist',this.value)">
-          <option value="">— Stylist —</option>${stylistOpts}
-        </select>
-        <select class="fi" style="flex:1;min-width:100px;font-size:12px;padding:5px 8px;height:32px;"
-          onchange="updateQueueField('${row.id}','service',this.value)">
-          ${svcOpts}
-        </select>
-      </div>
-    </div>
-    <div class="queue-actions" style="flex-direction:column;gap:5px;">
-      ${!isDone?`
-        ${!isCalled?`<button class="btn btn-b btn-sm" style="font-size:11px;padding:6px 10px;white-space:nowrap;" onclick="updateQueueStatus('${row.id}','called')">📢 Call</button>`:''}
-        <button class="btn btn-g btn-sm" style="font-size:11px;padding:6px 10px;white-space:nowrap;" onclick="markDone('${row.id}','${row.customer_id||''}','${row.customer_name}','${row.mobile||''}',this)">✅ Done</button>
-      `:`<button class="btn btn-ghost btn-sm" style="font-size:11px;padding:6px 10px;white-space:nowrap;" onclick="updateQueueStatus('${row.id}','waiting')">↩ Undo</button>`}
-    </div>
-  </div>`;
-}
-
-async function updateQueueField(id,field,value){
-  try{
-    const update={};update[field]=value;
-    await sb('queue','PATCH',update,'id=eq.'+id);
-    // Update local data
-    const row=_queueData.find(r=>r.id===id);
-    if(row) row[field]=value;
-  }catch(e){console.warn('Update error:',e.message);}
-}
-
-async function updateQueueStatus(id,status){
-  try{
-    await sb('queue','PATCH',{status},'id=eq.'+id);
-    const row=_queueData.find(r=>r.id===id);
-    if(row) row.status=status;
-    renderQueue();
-    refreshQueueStats();
-  }catch(e){alert('Error: '+e.message);}
-}
-
-async function markDone(queueId,customerId,name,mobile,btn){
-  btn.disabled=true;btn.textContent='...';
-  try{
-    await sb('queue','PATCH',{status:'done',done_at:new Date().toISOString()},'id=eq.'+queueId);
-
-    // If registered customer — add stamp + show WA option
-    if(customerId&&customerId!=='null'&&customerId!==''){
-      const rows=await sb('customers','GET',null,'select=*&id=eq.'+customerId);
-      if(rows&&rows.length){
-        const c=rows[0];
-        const ns=(c.stamps||0)+1;
-        const now=new Date().toISOString();
-        const months=c.gender==='girl'?15:12;
-        const firstStamp=c.first_stamp_date||now;
-        const expiry=c.expiry_date||(()=>{const d=new Date(firstStamp);d.setMonth(d.getMonth()+months);return d.toISOString();})();
-        await sb('customers','PATCH',{stamps:ns,first_stamp_date:firstStamp,expiry_date:expiry,last_visit_date:now},'id=eq.'+customerId);
-        await sb('visits','POST',{customer_id:customerId,type:'paid',stamp_count_after:ns,cycle_expiry:expiry});
-        showStampConfirm(name,ns,mobile,c.parent);
-      }
-    }
-
-    const row=_queueData.find(r=>r.id===queueId);
-    if(row) row.status='done';
-    renderQueue();
-    refreshQueueStats();
-  }catch(e){alert('Error: '+e.message);btn.disabled=false;btn.textContent='✅ Done';}
-}
-
-function showStampConfirm(name,stamps,mobile,parent){
-  const paid=5;
-  const overlay=document.createElement('div');
-  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9000;display:flex;align-items:center;justify-content:center;padding:20px;';
-  const free=stamps>=paid;
-  const waMsg='Hi '+(parent||name)+'!\n\nThank you for visiting MiniCuts — '+name+' looked amazing! ✂️🐼\n\n'+(free?'🎉 You\'ve earned a FREE Hair Wash! Come in anytime to claim it!':'You now have '+stamps+' stamp'+(stamps!==1?'s':'')+' — just '+(paid-stamps)+' more for a free hair wash! 🚿')+'\n\nSee you soon!\nMiniCuts DSO';
-  const mobClean=(mobile||'').replace(/\D/g,'');
-  const wa='https://wa.me/971'+mobClean.replace(/^0/,'')+'?text='+encodeURIComponent(waMsg);
-  overlay.innerHTML=`<div style="background:#fff;border-radius:20px;padding:24px;max-width:340px;width:100%;text-align:center;">
-    <div style="font-size:48px;margin-bottom:8px;">${free?'🎁':'✂️'}</div>
-    <div style="font-family:var(--fh);font-size:20px;font-weight:800;color:var(--bd);margin-bottom:4px;">Stamp Added!</div>
-    <div style="font-size:14px;color:var(--muted);margin-bottom:14px;">${name} now has <strong>${stamps}</strong> stamp${stamps!==1?'s':''}.${free?' 🎉 Free hair wash ready!':' '+(paid-stamps)+' more to go!'}</div>
-    ${mobile&&!mobile.startsWith('GUEST')?`<a href="${wa}" target="_blank" style="display:block;width:100%;padding:12px;background:#25D366;color:#fff;border-radius:12px;font-family:var(--fh);font-size:15px;font-weight:800;text-decoration:none;margin-bottom:9px;">💬 Send WhatsApp</a>`:''}
-    <button style="width:100%;padding:11px;border:1.5px solid var(--border);border-radius:12px;background:transparent;cursor:pointer;font-family:var(--fh);font-size:14px;font-weight:700;" onclick="this.closest('[style*=fixed]').remove()">Close</button>
-  </div>`;
-  overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove();});
-  document.body.appendChild(overlay);
-}
-
-// ══════════════════════════════
-// QUEUE STATS (hero bar)
-// ══════════════════════════════
-async function refreshQueueStats(){
-  try{
-    const today=getTodayStr();
-    const rows=await sb('queue','GET',null,'select=status,token_number&checkin_date=eq.'+today+'&order=token_number.desc&limit=200');
-    const waiting=(rows||[]).filter(r=>r.status==='waiting'||r.status==='called').length;
-    const served=(rows||[]).filter(r=>r.status==='done').length;
-    const next=waiting>0?((rows||[]).filter(r=>r.status==='waiting')[0]?.token_number||'—'):'—';
-    document.getElementById('qs-waiting').textContent=waiting;
-    document.getElementById('qs-served').textContent=served;
-    document.getElementById('qs-next').textContent=next;
-  }catch(e){}
-}
-
-// ══════════════════════════════
-// HELPERS
-// ══════════════════════════════
-function getTodayStr(){
-  const now=new Date();
-  return now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
-}
-
-function showMsg(el,msg,type){
-  if(!el)return;
-  el.textContent=msg;
-  el.className='status-msg '+type;
-  el.style.display='block';
-}
-
+// ══════════════════════════════════════
+// RESET
+// ══════════════════════════════════════
 function resetToLookup(){
-  document.getElementById('lu-num').value='';
+  const numEl=document.getElementById('lu-num');
+  if(numEl) numEl.value='';
   document.getElementById('lu-status').style.display='none';
   document.getElementById('lu-kids').style.display='none';
   document.getElementById('lu-actions').style.display='none';
@@ -1157,22 +885,198 @@ function resetToLookup(){
   showNav('s-lookup','bn-checkin');
 }
 
-// ══════════════════════════════
-// AUTO-REFRESH QUEUE
-// ══════════════════════════════
-setInterval(()=>{
-  if(document.getElementById('s-queue').classList.contains('active')){
-    loadQueue();
-  } else {
+// ══════════════════════════════════════
+// QUEUE — CUSTOMER VIEW
+// ══════════════════════════════════════
+function renderCustomerQueue(){
+  const data=_queueData;
+  const waiting=data.filter(r=>r.status==='waiting').length;
+  const called=data.filter(r=>r.status==='called').length;
+  const done=data.filter(r=>r.status==='done').length;
+  const statsEl=document.getElementById('cust-queue-stats');
+  if(statsEl) statsEl.innerHTML=`
+    <div style="display:flex;gap:8px;flex-wrap:wrap;width:100%;">
+      <div class="q-stat" style="background:#fff;border:1px solid var(--border);border-radius:12px;flex:1;min-width:70px;"><div class="q-stat-n" style="color:var(--warn);">${waiting}</div><div class="q-stat-l" style="color:var(--muted);">Waiting</div></div>
+      <div class="q-stat" style="background:#fff;border:1px solid var(--border);border-radius:12px;flex:1;min-width:70px;"><div class="q-stat-n" style="color:var(--b);">${called}</div><div class="q-stat-l" style="color:var(--muted);">Being Served</div></div>
+      <div class="q-stat" style="background:#fff;border:1px solid var(--border);border-radius:12px;flex:1;min-width:70px;"><div class="q-stat-n" style="color:var(--ok);">${done}</div><div class="q-stat-l" style="color:var(--muted);">Done Today</div></div>
+    </div>`;
+  const listEl=document.getElementById('cust-queue-list');
+  if(!listEl) return;
+  const visible=data.filter(r=>r.status!=='done');
+  if(!visible.length){listEl.innerHTML='<div style="text-align:center;padding:40px;color:var(--muted);font-size:14px;">Queue is empty — you\'re all set! 🐼</div>';return;}
+  listEl.innerHTML=visible.map(row=>{
+    const isCalled=row.status==='called';
+    const isGuest=row.is_guest;
+    return`<div class="queue-item" style="border-left:4px solid ${isCalled?'var(--b)':isGuest?'#9CA3AF':'var(--y)'};">
+      <div class="token-badge ${isGuest?'guest':''}">${String(row.token_number).padStart(2,'0')}</div>
+      <div class="queue-info">
+        <div class="queue-name">${row.customer_name}</div>
+        <div class="queue-meta">${row.service||'Haircut'} · ${isCalled?'<span style="color:var(--b);font-weight:800;">Now being served 💈</span>':'<span style="color:var(--warn);font-weight:700;">Waiting</span>'}</div>
+      </div>
+      ${isCalled?'<div style="font-size:20px;">💈</div>':'<div style="font-size:20px;">⏳</div>'}
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════
+// QUEUE — STAFF VIEW
+// ══════════════════════════════════════
+async function loadQueue(){
+  try{
+    const today=getTodayStr();
+    const rows=await sb('queue','GET',null,'select=*&checkin_date=eq.'+today+'&order=token_number.asc&limit=200');
+    _queueData=rows||[];
+    populateStylistFilter();
+    renderQueue();
+    renderCustomerQueue();
     refreshQueueStats();
+  }catch(e){
+    const el=document.getElementById('queue-list');
+    if(el) el.innerHTML='<div style="color:var(--err);padding:16px;">Error: '+e.message+'</div>';
   }
+}
+
+function populateStylistFilter(){
+  const sel=document.getElementById('q-stylist-filter');
+  if(!sel) return;
+  const current=sel.value;
+  sel.innerHTML='<option value="">All Stylists</option>';
+  STYLISTS.forEach(s=>{const o=document.createElement('option');o.value=s;o.textContent=s;sel.appendChild(o);});
+  sel.value=current;
+}
+
+function renderQueue(){
+  const stylistFilter=document.getElementById('q-stylist-filter')?.value||'';
+  const statusFilter=document.getElementById('q-status-filter')?.value||'';
+  let data=_queueData;
+  if(stylistFilter) data=data.filter(r=>r.stylist===stylistFilter);
+  if(statusFilter) data=data.filter(r=>r.status===statusFilter);
+  const waiting=data.filter(r=>r.status==='waiting').length;
+  const called=data.filter(r=>r.status==='called').length;
+  const done=data.filter(r=>r.status==='done').length;
+  const statsEl=document.getElementById('queue-stats');
+  if(statsEl) statsEl.innerHTML=`<div style="display:flex;gap:8px;flex-wrap:wrap;width:100%;">
+    <div class="q-stat" style="background:#fff;border:1px solid var(--border);border-radius:12px;flex:1;min-width:70px;"><div class="q-stat-n" style="color:var(--warn);">${waiting}</div><div class="q-stat-l" style="color:var(--muted);">Waiting</div></div>
+    <div class="q-stat" style="background:#fff;border:1px solid var(--border);border-radius:12px;flex:1;min-width:70px;"><div class="q-stat-n" style="color:var(--b);">${called}</div><div class="q-stat-l" style="color:var(--muted);">Called</div></div>
+    <div class="q-stat" style="background:#fff;border:1px solid var(--border);border-radius:12px;flex:1;min-width:70px;"><div class="q-stat-n" style="color:var(--ok);">${done}</div><div class="q-stat-l" style="color:var(--muted);">Done</div></div>
+  </div>`;
+  const listEl=document.getElementById('queue-list');
+  if(!listEl) return;
+  if(!data.length){listEl.innerHTML='<div style="text-align:center;padding:40px;color:var(--muted);font-size:14px;">No customers in queue 🐼</div>';return;}
+  listEl.innerHTML=data.map(row=>buildQueueRow(row)).join('');
+}
+
+function buildQueueRow(row){
+  const isGuest=row.is_guest||!row.customer_id;
+  const isDone=row.status==='done';
+  const isCalled=row.status==='called';
+  const timeStr=row.checkin_time?new Date(row.checkin_time).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}):'';
+  const statusPill=isDone?'<span class="status-pill sp-done">✅ Done</span>':isCalled?'<span class="status-pill sp-called">📢 Called</span>':isGuest?'<span class="status-pill sp-guest">👤 Guest</span>':'<span class="status-pill sp-wait">⏳ Waiting</span>';
+  const stylistOpts=STYLISTS.map(s=>`<option value="${s}"${row.stylist===s?' selected':''}>${s}</option>`).join('');
+  const svcOpts=SERVICES.map(s=>`<option value="${s}"${row.service===s?' selected':''}>${s}</option>`).join('');
+  return`<div class="queue-item${isDone?' done':''}" id="qr-${row.id}">
+    <div class="token-badge${isGuest?' guest':''}">${String(row.token_number).padStart(2,'0')}</div>
+    <div class="queue-info">
+      <div class="queue-name">${row.customer_name}</div>
+      <div class="queue-meta">${timeStr} · ${statusPill}</div>
+      <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;">
+        <select class="fi" style="flex:1;min-width:100px;font-size:12px;padding:5px 8px;height:32px;" onchange="updateQueueField('${row.id}','stylist',this.value)">
+          <option value="">— Stylist —</option>${stylistOpts}</select>
+        <select class="fi" style="flex:1;min-width:100px;font-size:12px;padding:5px 8px;height:32px;" onchange="updateQueueField('${row.id}','service',this.value)">${svcOpts}</select>
+      </div>
+    </div>
+    <div class="queue-actions" style="flex-direction:column;gap:5px;">
+      ${!isDone?`
+        ${!isCalled?`<button class="btn btn-b btn-sm" style="font-size:11px;padding:6px 10px;white-space:nowrap;" onclick="updateQueueStatus('${row.id}','called')">📢 Call</button>`:''}
+        <button class="btn btn-g btn-sm" style="font-size:11px;padding:6px 10px;white-space:nowrap;" onclick="markDone('${row.id}','${row.customer_id||''}','${row.customer_name}','${row.mobile||''}',this)">✅ Done+Stamp</button>
+      `:`<button class="btn btn-ghost btn-sm" style="font-size:11px;padding:6px 10px;white-space:nowrap;" onclick="updateQueueStatus('${row.id}','waiting')">↩ Undo</button>`}
+    </div>
+  </div>`;
+}
+
+async function updateQueueField(id,field,value){
+  try{const update={};update[field]=value;await sb('queue','PATCH',update,'id=eq.'+id);const row=_queueData.find(r=>r.id===id);if(row)row[field]=value;}catch(e){console.warn(e.message);}
+}
+async function updateQueueStatus(id,status){
+  try{await sb('queue','PATCH',{status},'id=eq.'+id);const row=_queueData.find(r=>r.id===id);if(row)row.status=status;renderQueue();renderCustomerQueue();refreshQueueStats();}catch(e){alert('Error: '+e.message);}
+}
+
+async function markDone(queueId,customerId,name,mobile,btn){
+  btn.disabled=true;btn.textContent='...';
+  try{
+    await sb('queue','PATCH',{status:'done',done_at:new Date().toISOString()},'id=eq.'+queueId);
+    if(customerId&&customerId!=='null'&&customerId!==''){
+      const rows=await sb('customers','GET',null,'select=*&id=eq.'+customerId);
+      if(rows&&rows.length){
+        const c=rows[0];const ns=(c.stamps||0)+1;const now=new Date().toISOString();
+        const months=c.gender==='girl'?15:12;
+        const firstStamp=c.first_stamp_date||now;
+        const expiry=c.expiry_date||(()=>{const d=new Date(firstStamp);d.setMonth(d.getMonth()+months);return d.toISOString();})();
+        await sb('customers','PATCH',{stamps:ns,first_stamp_date:firstStamp,expiry_date:expiry,last_visit_date:now},'id=eq.'+customerId);
+        await sb('visits','POST',{customer_id:customerId,type:'paid',stamp_count_after:ns,cycle_expiry:expiry,stylist:_queueData.find(r=>r.id===queueId)?.stylist||null});
+        showStampConfirm(name,ns,mobile,c.parent,c.gender);
+      }
+    }
+    const row=_queueData.find(r=>r.id===queueId);if(row)row.status='done';
+    renderQueue();renderCustomerQueue();refreshQueueStats();
+  }catch(e){alert('Error: '+e.message);btn.disabled=false;btn.textContent='✅ Done+Stamp';}
+}
+
+function showStampConfirm(name,stamps,mobile,parent,gender){
+  const paid=5;
+  const free=stamps>=paid;
+  const mobClean=(mobile||'').replace(/\D/g,'');
+  const isGuest=!mobClean||mobClean.startsWith('GUEST');
+  const waMsg='Hi '+(parent||name)+'!\n\nThank you for visiting MiniCuts — '+name+' looked amazing! ✂️🐼\n\n'+(free?'🎉 You\'ve earned a FREE Hair Wash! Come in anytime to claim it!':'You now have '+stamps+' stamp'+(stamps!==1?'s':'')+' — just '+(paid-stamps)+' more for a free hair wash! 🚿')+'\n\nSee you soon!\nMiniCuts DSO';
+  const wa='https://wa.me/971'+mobClean.replace(/^0/,'')+'?text='+encodeURIComponent(waMsg);
+  const overlay=document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9000;display:flex;align-items:center;justify-content:center;padding:20px;';
+  overlay.innerHTML=`<div style="background:#fff;border-radius:20px;padding:24px;max-width:340px;width:100%;text-align:center;">
+    <div style="font-size:48px;margin-bottom:8px;">${free?'🎁':'✂️'}</div>
+    <div style="font-family:var(--fh);font-size:20px;font-weight:800;color:var(--bd);margin-bottom:4px;">Stamp Added + Done!</div>
+    <div style="font-size:14px;color:var(--muted);margin-bottom:14px;">${name} — <strong>${stamps}</strong> stamp${stamps!==1?'s':''}${free?' · 🎉 Free hair wash ready!':' · '+(paid-stamps)+' more to go!'}</div>
+    ${!isGuest?`<a href="${wa}" target="_blank" style="display:block;width:100%;padding:12px;background:#25D366;color:#fff;border-radius:12px;font-family:var(--fh);font-size:15px;font-weight:800;text-decoration:none;margin-bottom:9px;">💬 Send WhatsApp</a>`:''}
+    <button style="width:100%;padding:11px;border:1.5px solid var(--border);border-radius:12px;background:transparent;cursor:pointer;font-family:var(--fh);font-size:14px;font-weight:700;" onclick="this.closest('[style*=fixed]').remove()">Close</button>
+  </div>`;
+  overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove();});
+  document.body.appendChild(overlay);
+}
+
+// ══════════════════════════════════════
+// QUEUE STATS
+// ══════════════════════════════════════
+async function refreshQueueStats(){
+  try{
+    const today=getTodayStr();
+    const rows=await sb('queue','GET',null,'select=status,token_number&checkin_date=eq.'+today+'&order=token_number.asc&limit=200');
+    const waiting=(rows||[]).filter(r=>r.status==='waiting'||r.status==='called').length;
+    const served=(rows||[]).filter(r=>r.status==='done').length;
+    const nextRow=(rows||[]).find(r=>r.status==='waiting');
+    const next=nextRow?String(nextRow.token_number).padStart(2,'0'):'—';
+    const el=n=>document.getElementById(n);
+    if(el('qs-waiting')) el('qs-waiting').textContent=waiting;
+    if(el('qs-served')) el('qs-served').textContent=served;
+    if(el('qs-next')) el('qs-next').textContent=next;
+  }catch(e){}
+}
+
+// ══════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════
+function getTodayStr(){const now=new Date();return now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');}
+function showMsg(el,msg,type){if(!el)return;el.textContent=msg;el.className='status-msg '+type;el.style.display='block';}
+
+// Auto-refresh queue every 30s
+setInterval(()=>{
+  if(document.getElementById('s-queue').classList.contains('active')) loadQueue();
+  else refreshQueueStats();
 },30000);
 
-// ══════════════════════════════
+// ══════════════════════════════════════
 // INIT
-// ══════════════════════════════
+// ══════════════════════════════════════
+initPinPad();
 refreshQueueStats();
 </script>
-
 </body>
 </html>
