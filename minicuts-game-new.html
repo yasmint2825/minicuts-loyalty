@@ -910,7 +910,11 @@ function showAutoResetWarning(){
   },{passive:true});
 });
 
-function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if(id!=='s-profile') clearInterval(window._stampPollTimer);
+}
 function goBack(){showScreen(prevScreen);}
 async function goProfile(){
   // Always re-fetch stamp status live — catches stamps given after the player logged in
@@ -929,6 +933,34 @@ async function goProfile(){
   renderProfile();
   showScreen('s-profile');
   loadSidebarLb();
+  // Start polling every 15s while on profile — gate lifts automatically when staff stamps
+  clearInterval(window._stampPollTimer);
+  window._stampPollTimer=setInterval(async()=>{
+    if(!document.getElementById('s-profile').classList.contains('active')){
+      clearInterval(window._stampPollTimer);return;
+    }
+    if(hasStampedToday()){clearInterval(window._stampPollTimer);return;} // already unlocked
+    if(!player.id) return;
+    try{
+      const fresh=await sb('customers','GET',null,'select=stamps,last_visit_date&id=eq.'+player.id);
+      if(fresh&&fresh[0]){
+        const wasLocked=!hasStampedToday();
+        player.stamps=fresh[0].stamps;
+        player.last_visit_date=fresh[0].last_visit_date;
+        if(wasLocked&&hasStampedToday()){
+          // Gate just lifted — refresh game cards immediately
+          refreshGameCards();
+          const old=document.getElementById('stampGateTap');if(old)old.remove();
+          // Brief celebration toast
+          const t=document.createElement('div');
+          t.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#FFD600,#FF8C00);color:#0D47A1;padding:12px 22px;border-radius:99px;font-family:\'Baloo 2\',cursive;font-size:16px;font-weight:900;z-index:8000;box-shadow:0 8px 24px rgba(255,214,0,.4);white-space:nowrap;';
+          t.textContent='✂️ Stamp received — games unlocked! 🎮';
+          document.body.appendChild(t);
+          setTimeout(()=>t.remove(),3000);
+        }
+      }
+    }catch(e){}
+  },15000);
   // Show stamp info in loyalty bar
   const sbInfo=document.getElementById('stampBarInfo');
   if(sbInfo&&player.id){
