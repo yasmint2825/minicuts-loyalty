@@ -181,6 +181,19 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
     <button class="btn btn-full" onclick="addKid()" style="background:linear-gradient(135deg,#EEF6FF,#E0EDFF);border:2px dashed var(--b);color:var(--b);font-size:14px;padding:13px;border-radius:12px;margin-bottom:10px;">
       ➕ Add Another Child (sibling)
     </button>
+
+    <!-- How did you hear — always show on registration (first visit) -->
+    <div style="background:#FFFDF0;border:1.5px solid rgba(255,214,0,.4);border-radius:14px;padding:13px;margin-bottom:12px;">
+      <div style="font-family:var(--fh);font-size:13px;font-weight:800;color:var(--bd);margin-bottom:4px;">🙏 Help us grow for families like yours</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.4;">One tap — how did you first hear about MiniCuts?</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <button type="button" class="reg-hear-btn" onclick="setRegHear(this,'Ad Board')" style="padding:11px 8px;border-radius:10px;border:2px solid var(--border);background:#fff;font-family:var(--fh);font-size:13px;font-weight:800;color:var(--text);cursor:pointer;transition:all .15s;">📋 Ad Board</button>
+        <button type="button" class="reg-hear-btn" onclick="setRegHear(this,'Instagram')" style="padding:11px 8px;border-radius:10px;border:2px solid var(--border);background:#fff;font-family:var(--fh);font-size:13px;font-weight:800;color:var(--text);cursor:pointer;transition:all .15s;">📸 Instagram</button>
+        <button type="button" class="reg-hear-btn" onclick="setRegHear(this,'Friends / Family')" style="padding:11px 8px;border-radius:10px;border:2px solid var(--border);background:#fff;font-family:var(--fh);font-size:13px;font-weight:800;color:var(--text);cursor:pointer;transition:all .15s;">👥 Friends</button>
+        <button type="button" class="reg-hear-btn" onclick="setRegHear(this,'Google')" style="padding:11px 8px;border-radius:10px;border:2px solid var(--border);background:#fff;font-family:var(--fh);font-size:13px;font-weight:800;color:var(--text);cursor:pointer;transition:all .15s;">🔍 Google</button>
+      </div>
+      <div id="rg-hear-err" style="display:none;margin-top:7px;font-size:12px;font-weight:700;color:var(--err);">Please tap one option above ☝️</div>
+    </div>
     <div id="rg-msg" class="sm" style="margin-top:6px;"></div>
     <div style="display:flex;gap:9px;margin-top:4px;">
       <button class="btn btn-ghost" onclick="showScr('s-lookup')" style="padding:11px 14px;">← Back</button>
@@ -200,7 +213,7 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
     </div>
     <div class="ta">
       <button class="btn btn-b" onclick="goGames()">🎮 Loyalty &amp; Games</button>
-      <button class="btn btn-ghost" onclick="goPassport()">🎫 My Passport</button>
+      <button class="btn btn-ghost" onclick="window.open('./minicuts_hair_care_guide_v2.html','_blank')">📖 Smart Guide</button>
     </div>
     <div class="card" style="margin-top:14px;">
       <div style="font-family:var(--fh);font-size:14px;font-weight:800;color:var(--bd);margin-bottom:10px;">🎫 Your Loyalty Passport</div>
@@ -276,7 +289,7 @@ function loadCfg(){try{return JSON.parse(localStorage.getItem('mc_ci_cfg')||'{}'
 const CFG=loadCfg();
 const STYLISTS=CFG.stylists||['Shakeeb','Farhan','Rizwan','Usman','Hamza','Bilal','Staff'];
 const SVCS=['Haircut','Haircut + Wash','Wash Only','Styling','Trim','Other'];
-let _qdata=[],_sel=[],_luTimer=null,_genders={},_kcount=0,_hearAbout=null;
+let _qdata=[],_sel=[],_luTimer=null,_genders={},_kcount=0,_hearAbout=null,_regHearAbout=null;
 
 function setHear(btn,val){
   _hearAbout=val;
@@ -286,15 +299,21 @@ function setHear(btn,val){
   btn.style.background='linear-gradient(135deg,var(--y),#FFB300)';
   btn.style.borderColor='var(--yd)';btn.style.color='var(--bd)';
   document.getElementById('lu-hear-err').style.display='none';
-  // Immediately enable check-in button and remove hint
   const ciBtn=document.getElementById('lu-btn');
   const note=document.getElementById('lu-hear-note');
   if(note)note.textContent='';
   const n=_sel.length;
-  if(ciBtn){
-    ciBtn.disabled=false;ciBtn.style.opacity='1';
-    ciBtn.textContent=n===1?'✅ Check In '+_sel[0].name:'✅ Check In '+n+' Children';
-  }
+  if(ciBtn){ciBtn.disabled=false;ciBtn.style.opacity='1';ciBtn.textContent=n===1?'✅ Check In '+_sel[0].name:'✅ Check In '+n+' Children';}
+}
+
+function setRegHear(btn,val){
+  _regHearAbout=val;
+  document.querySelectorAll('.reg-hear-btn').forEach(b=>{
+    b.style.background='#fff';b.style.borderColor='var(--border)';b.style.color='var(--text)';
+  });
+  btn.style.background='linear-gradient(135deg,var(--y),#FFB300)';
+  btn.style.borderColor='var(--yd)';btn.style.color='var(--bd)';
+  document.getElementById('rg-hear-err').style.display='none';
 }
 
 async function sb(path,method='GET',body=null,params=''){
@@ -339,38 +358,76 @@ function onLookup(){
 async function doLookup(){
   const mob=getM();const mAlt='0'+mob.slice(3);const st=document.getElementById('lu-st');
   try{
-    const [rA,rB]=await Promise.all([
+    const [rA,rB,queueRows]=await Promise.all([
       sb('customers','GET',null,'select=id,name,mobile,gender,stamps,game_points,heard_via&mobile=eq.'+encodeURIComponent(mob)+'&limit=20'),
-      sb('customers','GET',null,'select=id,name,mobile,gender,stamps,game_points,heard_via&mobile=eq.'+encodeURIComponent(mAlt)+'&limit=20')
+      sb('customers','GET',null,'select=id,name,mobile,gender,stamps,game_points,heard_via&mobile=eq.'+encodeURIComponent(mAlt)+'&limit=20'),
+      sb('queue','GET',null,'select=customer_id,status&checkin_date=eq.'+today()+'&status=in.(waiting,called)&limit=50')
     ]);
     const seen=new Set();
     const kids=[...(rA||[]),...(rB||[])].filter(c=>{if(seen.has(c.id))return false;seen.add(c.id);return true;});
     if(!kids.length){st.style.display='none';document.getElementById('lu-nf').style.display='block';return;}
+
+    // Build set of customer_ids already in today's active queue
+    const alreadyQueued=new Set((queueRows||[]).map(r=>r.customer_id).filter(Boolean));
+
     st.textContent='✅ Found '+kids.length+' child'+(kids.length>1?'ren':'')+' — tick who is here today';
     st.style.background='#DCFCE7';st.style.color='var(--ok)';
     const ke=document.getElementById('lu-kids');
     ke.innerHTML='<div style="font-size:11.5px;font-weight:700;color:var(--b);background:#EEF6FF;border-radius:8px;padding:7px 11px;margin-bottom:10px;">☑️ '+(kids.length>1?'Tick all children here for a haircut today':'Confirm to check in')+'</div>';
+    let autoSelectKid=null;
     kids.forEach(k=>{
+      const inQueue=alreadyQueued.has(k.id);
       const row=document.createElement('div');row.className='kid-row';row.id='kr-'+k.id;
+      if(inQueue) row.style.opacity='0.5';
       const g=k.gender==='girl';
-      row.innerHTML='<input type="checkbox" id="cb-'+k.id+'" style="width:18px;height:18px;accent-color:var(--b);cursor:pointer;flex-shrink:0;"/><div class="kav '+(g?'girl':'')+'">'+(k.name.charAt(0).toUpperCase())+'</div><div style="flex:1;"><div style="font-weight:800;font-size:14px;">'+k.name+'</div><div style="font-size:11.5px;color:var(--muted);">'+(g?'👧 Girl':'👦 Boy')+' · '+(k.stamps||0)+' stamps · '+(k.game_points||0)+' pts</div></div>';
-      const tog=(chk)=>{
-        if(chk){row.classList.add('selected');if(!_sel.find(c=>c.id===k.id))_sel.push({id:k.id,name:k.name,mobile:k.mobile,heard_via:k.heard_via||null});}
-        else{row.classList.remove('selected');_sel=_sel.filter(c=>c.id!==k.id);}
-        updBtn();
-      };
-      row.addEventListener('click',e=>{if(e.target.tagName!=='INPUT'){const cb=document.getElementById('cb-'+k.id);if(cb){cb.checked=!cb.checked;tog(cb.checked);}}});
-      row.querySelector('input')?.addEventListener('change',function(){tog(this.checked);});
+      row.innerHTML='<input type="checkbox" id="cb-'+k.id+'"'+(inQueue?' disabled':'')+' style="width:18px;height:18px;accent-color:var(--b);cursor:'+(inQueue?'not-allowed':'pointer')+';flex-shrink:0;"/>'
+        +'<div class="kav '+(g?'girl':'')+'">'+(k.name.charAt(0).toUpperCase())+'</div>'
+        +'<div style="flex:1;"><div style="font-weight:800;font-size:14px;">'+k.name+'</div>'
+        +'<div style="font-size:11.5px;color:'+(inQueue?'var(--warn)':'var(--muted)')+';">'
+          +(inQueue?'⏳ Already in queue today':(g?'👧 Girl':'👦 Boy')+' · '+(k.stamps||0)+' stamps · '+(k.game_points||0)+' pts')
+        +'</div></div>';
+      if(!inQueue){
+        const tog=(chk)=>{
+          if(chk){row.classList.add('selected');if(!_sel.find(c=>c.id===k.id))_sel.push({id:k.id,name:k.name,mobile:k.mobile,heard_via:k.heard_via||null,stamps:k.stamps||0,game_points:k.game_points||0});}
+          else{row.classList.remove('selected');_sel=_sel.filter(c=>c.id!==k.id);}
+          updBtn();
+        };
+        row.addEventListener('click',e=>{if(e.target.tagName!=='INPUT'){const cb=document.getElementById('cb-'+k.id);if(cb){cb.checked=!cb.checked;tog(cb.checked);}}});
+        row.querySelector('input')?.addEventListener('change',function(){tog(this.checked);});
+        if(!autoSelectKid) autoSelectKid=k; // auto-select first non-queued kid
+      }
       ke.appendChild(row);
     });
     ke.style.display='block';
-    if(kids.length===1){const cb=document.getElementById('cb-'+kids[0].id);if(cb){cb.checked=true;_sel=[{id:kids[0].id,name:kids[0].name,mobile:kids[0].mobile,heard_via:kids[0].heard_via||null}];updBtn();document.getElementById('kr-'+kids[0].id)?.classList.add('selected');}}
+    // Auto-tick only if exactly one kid and not already queued
+    const eligibleKids=kids.filter(k=>!alreadyQueued.has(k.id));
+    if(eligibleKids.length===1){
+      const k=eligibleKids[0];
+      const cb=document.getElementById('cb-'+k.id);
+      if(cb){cb.checked=true;_sel=[{id:k.id,name:k.name,mobile:k.mobile,heard_via:k.heard_via||null,stamps:k.stamps||0,game_points:k.game_points||0}];updBtn();document.getElementById('kr-'+k.id)?.classList.add('selected');}
+    } else if(eligibleKids.length===0){
+      // All kids already in queue — show message but keep "Register New Child" visible
+      st.textContent='⏳ Already checked in and waiting — no action needed';
+      st.style.background='#FEF3C7';st.style.color='var(--warn)';
+      // Show lu-act just for the Register New Child button (hide Check In button)
+      const act=document.getElementById('lu-act');
+      if(act){
+        act.style.display='block';
+        const btn=document.getElementById('lu-btn');
+        if(btn) btn.style.display='none';
+        const hearEl=document.getElementById('lu-hear');
+        if(hearEl) hearEl.style.display='none';
+        const sum=document.getElementById('lu-sum');
+        if(sum) sum.style.display='none';
+      }
+    }
   }catch(e){st.textContent='Error: '+e.message;st.style.background='#FEE2E2';st.style.color='var(--err)';}
 }
 function updBtn(){
   const n=_sel.length;const sum=document.getElementById('lu-sum');const btn=document.getElementById('lu-btn');const act=document.getElementById('lu-act');
   if(n===0){act.style.display='none';return;}
   act.style.display='block';
+  if(btn) btn.style.display='block'; // ensure visible (may have been hidden by all-queued branch)
   if(n===1){btn.textContent='✅ Check In '+_sel[0].name;sum.style.display='none';}
   else{btn.textContent='✅ Check In '+n+' Children';sum.style.display='block';sum.textContent='🎫 Tokens in order: '+_sel.map(c=>c.name).join(' → ');}
 
@@ -420,6 +477,10 @@ async function doRegAll(){
   const loc=document.getElementById('rg-loc')?.value||'';
   const msg=document.getElementById('rg-msg');const btn=document.getElementById('rg-btn');
   if(mnum.length!==7){showM(msg,'Valid 7-digit mobile required 📱','err');return;}
+  if(!_regHearAbout){
+    const e=document.getElementById('rg-hear-err');if(e){e.style.display='block';e.scrollIntoView({behavior:'smooth',block:'nearest'});}
+    return;
+  }
   const blocks=document.querySelectorAll('.kid-block');const kids=[];let ok=true;
   blocks.forEach(b=>{
     const id=b.id.replace('kb-','');
@@ -437,17 +498,19 @@ async function doRegAll(){
   try{
     const results=[];
     for(const k of kids){
-      const res=await sb('customers','POST',{name:k.name,mobile:mob,parent:par||null,gender:k.gender,dob:k.dob,location:loc||null,stamps:0,redemptions:0,game_points:0,game_spins:0});
+      const res=await sb('customers','POST',{name:k.name,mobile:mob,parent:par||null,gender:k.gender,dob:k.dob,location:loc||null,stamps:0,redemptions:0,game_points:0,game_spins:0,heard_via:_regHearAbout});
       const nc=Array.isArray(res)?res[0]:res;if(!nc?.id)throw new Error('Registration failed for '+k.name);
       results.push({customer:nc,svc:k.svc});
     }
     showM(msg,'✅ Registered! Issuing tokens...','ok');
     const tokens=[];
-    for(const {customer,svc} of results){const tok=await doCI(customer.id,customer.name,customer.mobile,svc);tokens.push({name:customer.name,token:tok,id:customer.id,mobile:customer.mobile});}
+    for(const {customer,svc} of results){const tok=await doCI(customer.id,customer.name,customer.mobile,svc,_regHearAbout);tokens.push({name:customer.name,token:tok,id:customer.id,mobile:customer.mobile,stamps:0,game_points:0});}
     if(tokens.length===1)showTok(tokens[0].token,tokens[0].name,tokens[0].id,'Registered & checked in! ✅',mob);
     else showFamTok(tokens,mob);
   }catch(e){showM(msg,'Error: '+e.message,'err');}
-  finally{if(btn){btn.disabled=false;btn.textContent='Register & Check In ✅';}}
+  finally{if(btn){btn.disabled=false;btn.textContent='Register & Check In ✅';}_regHearAbout=null;
+    document.querySelectorAll('.reg-hear-btn').forEach(b=>{b.style.background='#fff';b.style.borderColor='var(--border)';b.style.color='var(--text)';});
+  }
 }
 
 // CHECKIN
@@ -502,27 +565,28 @@ function startAutoReset(){
 }
 
 function buildPassportStrip(selKids){
-  // Build a passport strip for each kid in selKids using their stamps data
   const PAID=5;
-  if(!selKids||!selKids.length||selKids[0]?.stamps===undefined) return '';
+  if(!selKids||!selKids.length) return '';
   return selKids.map(k=>{
     const stamps=Number(k.stamps)||0;
     const pts=Number(k.game_points)||0;
     const free=stamps>=PAID;
     const left=Math.max(0,PAID-stamps);
+    const isNew=stamps===0;
     const dots=Array.from({length:PAID},(_,i)=>
-      '<div style="width:28px;height:28px;border-radius:50%;background:'+(i<stamps?'linear-gradient(135deg,var(--y),#FFB300)':'#F3F4F6')+';border:2px solid '+(i<stamps?'#D97706':'#E5E7EB')+';display:flex;align-items:center;justify-content:center;font-size:13px;">'+(i<stamps?'✂️':'')+'</div>'
+      '<div style="width:30px;height:30px;border-radius:50%;background:'+(i<stamps?'linear-gradient(135deg,var(--y),#FFB300)':'#F3F4F6')+';border:2px solid '+(i<stamps?'#D97706':'#E5E7EB')+';display:flex;align-items:center;justify-content:center;font-size:14px;">'+(i<stamps?'✂️':'')+'</div>'
     ).join('');
-    return '<div style="background:'+(free?'linear-gradient(135deg,#DCFCE7,#BBF7D0)':'#F8FBFF')+';border:1.5px solid '+(free?'#86EFAC':'rgba(21,101,192,.1)')+';border-radius:14px;padding:13px;margin-bottom:10px;">'
+    return '<div style="background:'+(free?'linear-gradient(135deg,#DCFCE7,#BBF7D0)':isNew?'linear-gradient(135deg,#EEF6FF,#E0EDFF)':'#F8FBFF')+';border:1.5px solid '+(free?'#86EFAC':isNew?'rgba(21,101,192,.15)':'rgba(21,101,192,.1)')+';border-radius:14px;padding:14px;margin-bottom:10px;">'
       +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">'
-        +'<div style="font-family:var(--fh);font-size:14px;font-weight:800;color:var(--bd);">'+k.name+'\'s Loyalty</div>'
-        +'<div style="font-size:11px;font-weight:700;color:var(--muted);">'+pts+' pts</div>'
+        +'<div style="font-family:var(--fh);font-size:14px;font-weight:800;color:var(--bd);">'+(isNew?'🎉 Welcome, ':'✂️ ')+k.name+'!</div>'
+        +(pts>0?'<div style="font-size:11px;font-weight:700;color:var(--muted);">'+pts+' game pts</div>':'')
       +'</div>'
-      +'<div style="display:flex;gap:6px;justify-content:center;margin-bottom:8px;">'+dots
-        +'<div style="width:28px;height:28px;border-radius:50%;background:'+(free?'#22C55E':'#F3F4F6')+';border:2px solid '+(free?'#16A34A':'#E5E7EB')+';display:flex;align-items:center;justify-content:center;font-size:13px;">🚿</div>'
+      +'<div style="display:flex;gap:7px;justify-content:center;align-items:center;margin-bottom:10px;">'+dots
+        +'<div style="font-size:11px;color:var(--muted);margin-left:4px;">→</div>'
+        +'<div style="width:30px;height:30px;border-radius:50%;background:'+(free?'#22C55E':'#F3F4F6')+';border:2px solid '+(free?'#16A34A':'#E5E7EB')+';display:flex;align-items:center;justify-content:center;font-size:14px;">🚿</div>'
       +'</div>'
-      +'<div style="text-align:center;font-size:12px;font-weight:700;color:'+(free?'#16A34A':'var(--muted)')+';background:'+(free?'rgba(22,163,74,.1)':'rgba(0,0,0,.04)')+';border-radius:8px;padding:6px;">'
-        +(free?'🎉 Free Hair Wash ready — tell the stylist!':'✂️ '+left+' more haircut'+(left!==1?'s':'')+' to earn Free Hair Wash 🚿')
+      +'<div style="text-align:center;font-size:12px;font-weight:700;color:'+(free?'#16A34A':isNew?'var(--b)':'var(--muted)')+';background:'+(free?'rgba(22,163,74,.1)':isNew?'rgba(21,101,192,.07)':'rgba(0,0,0,.04)')+';border-radius:8px;padding:7px;">'
+        +(free?'🎉 Free Hair Wash ready — tell the stylist now!':isNew?'🌟 Collect '+PAID+' stamps for a Free Hair Wash!':'✂️ '+left+' more haircut'+(left!==1?'s':'')+' to earn Free Hair Wash 🚿')
       +'</div>'
     +'</div>';
   }).join('');
