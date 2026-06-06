@@ -108,6 +108,8 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
 <div class="tabs">
   <button class="tab active" onclick="showTab('t-queue',this)">📋 Queue</button>
   <button class="tab" onclick="showTab('t-history',this)">🕐 History</button>
+  <button class="tab" onclick="showTab('t-prizes',this);loadPrizes();">🎁 Game Prizes</button>
+  <button class="tab" onclick="showTab('t-freewash',this);loadFreeWash();">🚿 Free Wash</button>
   <button class="tab" onclick="showTab('t-config',this);loadCfgScreen();">⚙️ Settings</button>
 </div>
 
@@ -156,10 +158,74 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
   </div>
   <div class="tbl-wrap">
     <table class="qt">
-      <thead><tr><th>Token</th><th>Name</th><th>Service</th><th>Stylist(s)</th><th>Value</th><th>Tip</th><th>Remark</th><th>Status</th><th>Time</th></tr></thead>
-      <tbody id="hist-body"><tr><td colspan="9" style="text-align:center;padding:40px;color:var(--muted);">Go to Queue tab and refresh to load data</td></tr></tbody>
+      <thead><tr><th>Token</th><th>Name</th><th>Service</th><th>Stylist(s)</th><th>Value</th><th>Tip</th><th>Remark</th><th>Status</th><th>Time</th><th>Edit</th></tr></thead>
+      <tbody id="hist-body"><tr><td colspan="10" style="text-align:center;padding:40px;color:var(--muted);">Go to Queue tab and refresh to load data</td></tr></tbody>
     </table>
   </div>
+</div>
+
+<!-- ══ TAB: PRIZES ══ -->
+<div class="page" id="t-prizes">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-shrink:0;flex-wrap:wrap;gap:8px;">
+    <div>
+      <div style="font-family:var(--fh);font-size:17px;font-weight:800;color:var(--bd);">🎁 Game Prize Tracker</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:2px;">Players who have crossed prize levels — mark prizes as given</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      <input type="text" id="pz-search" placeholder="🔍 Search player..." oninput="renderPrizes()" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:9px;font-family:var(--fb);font-size:13px;outline:none;width:180px;"/>
+      <select id="pz-filter" onchange="renderPrizes()" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:9px;font-family:var(--fb);font-size:13px;outline:none;background:#fff;cursor:pointer;">
+        <option value="pending">🔔 Prize Pending</option>
+        <option value="all">All Players</option>
+        <option value="given">✅ All Given</option>
+      </select>
+      <button class="btn btn-b" onclick="loadPrizes()">↻ Refresh</button>
+      <div id="pz-summary" style="background:#FEF3C7;color:#92400E;padding:6px 12px;border-radius:8px;font-size:12.5px;font-weight:700;display:none;"></div>
+    </div>
+  </div>
+
+  <!-- Level key -->
+  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">
+    <div style="font-size:11.5px;font-weight:700;color:var(--muted);align-self:center;margin-right:4px;">Levels:</div>
+    <span style="background:#EEF6FF;color:var(--b);padding:3px 10px;border-radius:99px;font-size:11.5px;font-weight:700;">🌟 L1 · 50pts</span>
+    <span style="background:#EEF6FF;color:var(--b);padding:3px 10px;border-radius:99px;font-size:11.5px;font-weight:700;">🏅 L2 · 100pts</span>
+    <span style="background:#EEF6FF;color:var(--b);padding:3px 10px;border-radius:99px;font-size:11.5px;font-weight:700;">🦸 L3 · 150pts</span>
+    <span style="background:#EEF6FF;color:var(--b);padding:3px 10px;border-radius:99px;font-size:11.5px;font-weight:700;">⭐ L4 · 200pts</span>
+    <span style="background:#EEF6FF;color:var(--b);padding:3px 10px;border-radius:99px;font-size:11.5px;font-weight:700;">🔥 L5 · 250pts</span>
+    <span style="background:#EEF6FF;color:var(--b);padding:3px 10px;border-radius:99px;font-size:11.5px;font-weight:700;">🐉 L6 · 300pts</span>
+  </div>
+
+  <div id="pz-list"><div style="text-align:center;padding:40px;color:var(--muted);">Loading prizes...</div></div>
+</div>
+
+<!-- ══ TAB: FREE WASH ══ -->
+<div class="page" id="t-freewash">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+    <div>
+      <div style="font-family:var(--fh);font-size:17px;font-weight:800;color:var(--bd);">🚿 Free Hair Wash Tracker</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:2px;">Customers who have earned their free wash — mark as given when redeemed</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      <input type="text" id="fw-search" placeholder="🔍 Search..." oninput="renderFreeWash()" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:9px;font-family:var(--fb);font-size:13px;outline:none;width:160px;"/>
+      <select id="fw-filter" onchange="renderFreeWash()" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:9px;font-family:var(--fb);font-size:13px;outline:none;background:#fff;cursor:pointer;">
+        <option value="ready">🚿 Ready to Claim</option>
+        <option value="expiring">⏰ Expiring Soon</option>
+        <option value="all">All</option>
+      </select>
+      <button class="btn btn-b" onclick="loadFreeWash()">↻ Refresh</button>
+      <div id="fw-summary" style="padding:6px 12px;border-radius:8px;font-size:12.5px;font-weight:700;display:none;"></div>
+    </div>
+  </div>
+
+  <!-- Info box about expiry -->
+  <div style="background:#FEF3C7;border:1px solid #FCD34D;border-radius:10px;padding:11px 14px;margin-bottom:14px;font-size:12.5px;color:#92400E;font-weight:700;display:flex;gap:10px;align-items:flex-start;">
+    <span style="font-size:18px;flex-shrink:0;">⚠️</span>
+    <div>
+      <div style="margin-bottom:3px;">Free wash must be claimed before passport expiry — Boys: <span id="fw-boy-months">12</span> months · Girls: <span id="fw-girl-months">15</span> months from first stamp.</div>
+      <div style="font-weight:600;">If customer reaches 5 stamps in month 11 but doesn't claim by month 12 → the free wash is lost and cycle resets.</div>
+    </div>
+  </div>
+
+  <div id="fw-list"><div style="text-align:center;padding:40px;color:var(--muted);">Loading...</div></div>
 </div>
 
 <!-- ══ TAB: SETTINGS ══ -->
@@ -242,7 +308,12 @@ const SB_URL='https://wtapyfgtwkjyjrjdnhkb.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind0YXB5Zmd0d2tqeWpyamRuaGtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0NDc3ODEsImV4cCI6MjA5NTAyMzc4MX0.y_-iPfb8Pcg9zh42h6RGVBsUVZm80LcA9sPlz_Gl_fA';
 function loadCfgStore(){try{return JSON.parse(localStorage.getItem('mc_ci_cfg')||'{}')}catch(e){return{}}}
 function saveCfgStore(c){localStorage.setItem('mc_ci_cfg',JSON.stringify(c));}
+function loadLoyaltyCfg(){try{return JSON.parse(localStorage.getItem('mc_cfg')||'{}')}catch(e){return{};}}
 let CFG=loadCfgStore();
+let LCFG=loadLoyaltyCfg();
+function boyMonths(){return Number(LCFG.boyMonths)||12;}
+function girlMonths(){return Number(LCFG.girlMonths)||15;}
+function paidNeeded(){return Math.max(1,(Number(LCFG.stampsNeeded)||6)-1);}
 let STYLISTS=CFG.stylists||['Shakeeb','Farhan','Rizwan','Usman','Hamza','Bilal','Staff'];
 const SVCS=['Haircut','Haircut + Wash','Wash Only','Styling','Trim','Other'];
 
@@ -407,7 +478,7 @@ function escQ(s){return(s||'').replace(/'/g,"\\'").replace(/"/g,'&quot;');}
 
 function renderHist(){
   const body=document.getElementById('hist-body');if(!body)return;
-  if(!_qdata.length){body.innerHTML='<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--muted);">Refresh the Queue tab to load data</td></tr>';return;}
+  if(!_qdata.length){body.innerHTML='<tr><td colspan="10" style="text-align:center;padding:30px;color:var(--muted);">Refresh the Queue tab to load data</td></tr>';return;}
   const totalTips=_qdata.filter(r=>r.tip>0).reduce((s,r)=>s+(Number(r.tip)||0),0);
   const totalRev=_qdata.filter(r=>r.service_value>0).reduce((s,r)=>s+(Number(r.service_value)||0),0);
   body.innerHTML=_qdata.slice().reverse().map(r=>{
@@ -424,14 +495,78 @@ function renderHist(){
       +'<td style="font-size:12px;color:var(--muted);max-width:160px;">'+(r.remark||'—')+'</td>'
       +'<td>'+sp+'</td>'
       +'<td style="font-size:12px;color:var(--muted);">'+fmtT(r.checkin_time)+'</td>'
+      +'<td><button class="btn btn-ghost btn-sm" style="font-size:11px;" onclick="editHistRow(\''+r.id+'\')">✏️ Edit</button></td>'
       +'</tr>';
   }).join('')
   +'<tr style="background:#F0FDF4;font-weight:900;border-top:2px solid #86EFAC;">'
     +'<td colspan="4" style="padding:12px 14px;color:var(--ok);font-size:13px;">💰 Today\'s Totals</td>'
     +'<td style="padding:12px 14px;color:var(--b);font-size:15px;">AED '+totalRev+'</td>'
     +'<td style="padding:12px 14px;color:var(--ok);font-size:15px;">AED '+totalTips+'</td>'
-    +'<td colspan="3" style="padding:12px 14px;color:var(--muted);font-size:12px;">Combined: AED '+(totalRev+totalTips)+'</td>'
+    +'<td colspan="4" style="padding:12px 14px;color:var(--muted);font-size:12px;">Combined: AED '+(totalRev+totalTips)+'</td>'
   +'</tr>';
+}
+
+function editHistRow(id){
+  const r=_qdata.find(x=>x.id===id);if(!r)return;
+  const sty1Opts=STYLISTS.map(s=>'<option value="'+s+'"'+(r.stylist===s?' selected':'')+'>'+s+'</option>').join('');
+  const sty2Opts=STYLISTS.map(s=>'<option value="'+s+'"'+(r.stylist2===s?' selected':'')+'>'+s+'</option>').join('');
+  const svcOpts=SVCS.map(s=>'<option'+(r.service===s?' selected':'')+'>'+s+'</option>').join('');
+  const ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9000;display:flex;align-items:center;justify-content:center;padding:20px;';
+  ov.innerHTML=`
+    <div style="background:#fff;border-radius:18px;padding:24px;max-width:420px;width:100%;">
+      <div style="font-family:var(--fh);font-size:18px;font-weight:800;color:var(--bd);margin-bottom:4px;">✏️ Edit Record</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:18px;">${r.customer_name} · Token ${String(r.token_number).padStart(2,'0')}</div>
+      <div style="display:grid;gap:12px;">
+        <div><label style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px;">Service</label>
+          <select id="eh-svc" class="fi" style="font-size:13px;">${svcOpts}</select></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div><label style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px;">Stylist 1</label>
+            <select id="eh-sty1" class="fi" style="font-size:13px;"><option value="">— None —</option>${sty1Opts}</select></div>
+          <div><label style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px;">Stylist 2</label>
+            <select id="eh-sty2" class="fi" style="font-size:13px;"><option value="">— None —</option>${sty2Opts}</select></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div><label style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px;">💵 Service Value (AED)</label>
+            <input id="eh-val" class="fi" type="number" min="0" step="5" value="${r.service_value||''}" placeholder="0" style="font-size:13px;"/></div>
+          <div><label style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px;">💰 Tip (AED)</label>
+            <input id="eh-tip" class="fi" type="number" min="0" step="5" value="${r.tip||''}" placeholder="0" style="font-size:13px;"/></div>
+        </div>
+        <div><label style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px;">📝 Remark</label>
+          <input id="eh-rem" class="fi" type="text" maxlength="120" value="${escQ(r.remark||'')}" placeholder="Optional note..." style="font-size:13px;"/></div>
+      </div>
+      <div id="eh-msg" style="display:none;margin-top:10px;padding:8px 12px;border-radius:8px;font-size:12.5px;font-weight:700;"></div>
+      <div style="display:flex;gap:9px;margin-top:18px;">
+        <button style="flex:0;padding:10px 16px;border:1.5px solid var(--border);border-radius:9px;background:transparent;cursor:pointer;font-family:var(--fh);font-size:14px;font-weight:700;" onclick="this.closest('[style*=fixed]').remove()">Cancel</button>
+        <button style="flex:1;padding:11px;background:linear-gradient(135deg,var(--y),#FFB300);color:var(--bd);border:none;border-radius:9px;cursor:pointer;font-family:var(--fh);font-size:15px;font-weight:800;" onclick="saveHistEdit('${id}',this)">Save Changes ✅</button>
+      </div>
+    </div>`;
+  ov.addEventListener('click',e=>{if(e.target===ov)ov.remove();});
+  document.body.appendChild(ov);
+}
+
+async function saveHistEdit(id,btn){
+  const svc=document.getElementById('eh-svc')?.value;
+  const sty1=document.getElementById('eh-sty1')?.value||null;
+  const sty2=document.getElementById('eh-sty2')?.value||null;
+  const val=document.getElementById('eh-val')?.value;
+  const tip=document.getElementById('eh-tip')?.value;
+  const rem=document.getElementById('eh-rem')?.value.trim()||null;
+  const msg=document.getElementById('eh-msg');
+  const service_value=val?Number(val):null;
+  const tipVal=tip?Number(tip):null;
+  if(btn){btn.disabled=true;btn.textContent='Saving...';}
+  try{
+    await sb('queue','PATCH',{service:svc,stylist:sty1,stylist2:sty2,service_value,tip:tipVal,remark:rem},'id=eq.'+id);
+    const r=_qdata.find(x=>x.id===id);
+    if(r){r.service=svc;r.stylist=sty1;r.stylist2=sty2;r.service_value=service_value;r.tip=tipVal;r.remark=rem;}
+    renderHist();
+    toast('Record updated ✅');
+    btn.closest('[style*=fixed]').remove();
+  }catch(e){
+    if(msg){msg.textContent='Error: '+e.message;msg.style.display='block';msg.style.background='#FEE2E2';msg.style.color='var(--err)';}
+    if(btn){btn.disabled=false;btn.textContent='Save Changes ✅';}
+  }
 }
 
 async function updF(id,field,value){
@@ -480,7 +615,7 @@ async function markDone(qid,cid,name,mob){
           return;
         }
         const ns=(c.stamps||0)+1;const now=new Date().toISOString();
-        const months=c.gender==='girl'?15:12;
+        const months=c.gender==='girl'?girlMonths():boyMonths();
         const fs=c.first_stamp_date||now;
         const exp=c.expiry_date||(()=>{const d=new Date(fs);d.setMonth(d.getMonth()+months);return d.toISOString();})();
         await sb('customers','PATCH',{stamps:ns,first_stamp_date:fs,expiry_date:exp,last_visit_date:now},'id=eq.'+cid);
@@ -635,6 +770,243 @@ function insertToken(token){
   const start=ta.selectionStart,end=ta.selectionEnd;
   ta.value=ta.value.substring(0,start)+token+ta.value.substring(end);
   ta.focus();ta.selectionStart=ta.selectionEnd=start+token.length;
+}
+
+// ══ PRIZES ══
+const GAME_LEVELS=[
+  {level:1,pts:50, badge:'Panda Explorer',  icon:'🌟'},
+  {level:2,pts:100,badge:'Panda Adventurer',icon:'🏅'},
+  {level:3,pts:150,badge:'Panda Hero',      icon:'🦸'},
+  {level:4,pts:200,badge:'Panda Superstar', icon:'⭐'},
+  {level:5,pts:250,badge:'Panda Legend',    icon:'🔥'},
+  {level:6,pts:300,badge:'Dragon Warrior',  icon:'🐉'},
+];
+let _pzPlayers=[],_pzPrizes=[],_pzExpanded={};
+
+async function loadPrizes(){
+  document.getElementById('pz-list').innerHTML='<div style="text-align:center;padding:40px;color:var(--muted);">Loading...</div>';
+  try{
+    const [players,prizes]=await Promise.all([
+      sb('customers','GET',null,'select=id,name,mobile,gender,game_points&game_points=gt.0&order=game_points.desc&limit=500'),
+      sb('prizes_given','GET',null,'select=*&limit=2000').catch(()=>[])
+    ]);
+    _pzPlayers=players||[];_pzPrizes=prizes||[];
+    renderPrizes();
+  }catch(e){
+    document.getElementById('pz-list').innerHTML='<div style="color:var(--err);padding:20px;">Error: '+e.message+'</div>';
+  }
+}
+
+function pzPending(p){
+  const given=new Set((_pzPrizes.filter(x=>x.customer_id===p.id)).map(x=>x.stage_pts));
+  return GAME_LEVELS.filter(l=>p.game_points>=l.pts&&!given.has(l.pts));
+}
+function pzGiven(p){
+  const pp=_pzPrizes.filter(x=>x.customer_id===p.id);
+  const given=new Set(pp.map(x=>x.stage_pts));
+  return GAME_LEVELS.filter(l=>p.game_points>=l.pts&&given.has(l.pts)).map(l=>({...l,givenRow:pp.find(x=>x.stage_pts===l.pts)}));
+}
+
+function renderPrizes(){
+  const search=(document.getElementById('pz-search')?.value||'').toLowerCase();
+  const filter=document.getElementById('pz-filter')?.value||'all';
+  let data=_pzPlayers;
+  if(search) data=data.filter(p=>(p.name||'').toLowerCase().includes(search));
+  if(filter==='pending') data=data.filter(p=>pzPending(p).length>0);
+  if(filter==='given') data=data.filter(p=>pzPending(p).length===0&&pzGiven(p).length>0);
+
+  const totalPending=_pzPlayers.filter(p=>pzPending(p).length>0).length;
+  const sum=document.getElementById('pz-summary');
+  if(sum){
+    if(totalPending>0){sum.style.display='block';sum.style.background='#FEF3C7';sum.style.color='#92400E';sum.textContent='🔔 '+totalPending+' player'+(totalPending!==1?'s':'')+' with prizes pending';}
+    else{sum.style.display='block';sum.style.background='#DCFCE7';sum.style.color='var(--ok)';sum.textContent='✅ All caught up — no prizes pending!';}
+  }
+
+  const el=document.getElementById('pz-list');if(!el)return;
+  if(!data.length){
+    el.innerHTML='<div style="text-align:center;padding:60px;color:var(--muted);">'
+      +(filter==='pending'
+        ?'<div style="font-size:40px;margin-bottom:12px;">🎉</div><div style="font-family:var(--fh);font-size:17px;font-weight:800;color:var(--ok);margin-bottom:6px;">All prizes given!</div><div style="font-size:13px;">Players will reappear here when they reach the next level.</div>'
+        :'<div style="font-size:13px;">No players found 🐼</div>')
+      +'</div>';
+    return;
+  }
+
+  el.innerHTML=data.map(p=>{
+    const pending=pzPending(p);const given=pzGiven(p);
+    const hasPending=pending.length>0;
+    const isExp=_pzExpanded[p.id];
+    const reachedLevels=GAME_LEVELS.filter(l=>p.game_points>=l.pts);
+
+    const pendingTags=pending.map(l=>'<span style="background:#FEF3C7;color:#92400E;border:1px solid #FCD34D;padding:3px 8px;border-radius:99px;font-size:11px;font-weight:800;white-space:nowrap;">🎁 '+l.icon+' L'+l.level+' Prize!</span>').join('');
+    const givenTag=given.length?'<span style="background:#DCFCE7;color:var(--ok);padding:3px 8px;border-radius:99px;font-size:11px;font-weight:800;">✅ '+given.length+' given</span>':'';
+    const curLv=[...GAME_LEVELS].reverse().find(l=>p.game_points>=l.pts);
+    const lvTag=curLv?'<span style="background:#EEF6FF;color:var(--b);padding:3px 8px;border-radius:99px;font-size:11px;font-weight:700;">'+curLv.icon+' L'+curLv.level+'</span>':'';
+
+    const rows=reachedLevels.map(l=>{
+      const gr=(_pzPrizes.filter(x=>x.customer_id===p.id)).find(x=>x.stage_pts===l.pts);
+      return'<div style="display:flex;align-items:center;gap:12px;padding:11px 16px;border-top:1px solid var(--border);background:'+( gr?'#F9FAFB':'linear-gradient(90deg,#FFFBEB,#fff)')+';">'
+        +'<div style="width:36px;height:36px;border-radius:9px;background:'+(gr?'#E5E7EB':'linear-gradient(135deg,var(--y),#FFB300)')+';display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;">'+l.icon+'</div>'
+        +'<div style="flex:1;">'
+          +'<div style="font-weight:800;font-size:13.5px;">Level '+l.level+' · '+l.badge+'</div>'
+          +'<div style="font-size:11.5px;color:var(--muted);">'+l.pts+' pts'+(gr?' · ✅ Given '+fmtT(gr.given_at)+' ('+fmtDate(gr.given_at)+')':' · 🎁 Prize not yet given')+'</div>'
+        +'</div>'
+        +(gr
+          ?'<span style="background:#DCFCE7;color:var(--ok);padding:4px 10px;border-radius:99px;font-size:11px;font-weight:800;flex-shrink:0;">✅ Given</span>'
+          :'<button class="btn btn-y btn-sm" style="flex-shrink:0;" onclick="pzGive(event,\''+p.id+'\',\''+escQ(p.name)+'\','+l.pts+',\'Level '+l.level+' · '+escQ(l.badge)+'\')">🎁 Mark Given</button>'
+        )
+      +'</div>';
+    }).join('');
+
+    return'<div data-pz="'+p.id+'" style="background:#fff;border-radius:13px;margin-bottom:9px;border:'+(hasPending?'2px solid var(--warn)':'1.5px solid var(--border)')+';overflow:hidden;box-shadow:'+(hasPending?'0 0 0 3px rgba(217,119,6,.08)':'none')+';"><div style="display:flex;align-items:center;gap:13px;padding:13px 16px;cursor:pointer;" onclick="pzToggle(\''+p.id+'\')">'
+      +'<div style="width:40px;height:40px;border-radius:50%;background:'+(p.gender==='girl'?'#EC4899':'var(--bd)')+';color:#fff;font-family:var(--fh);font-size:17px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0;">'+p.name.charAt(0).toUpperCase()+'</div>'
+      +'<div style="flex:1;min-width:0;"><div style="font-weight:800;font-size:14.5px;">'+p.name+'</div><div style="font-size:11.5px;color:var(--muted);">'+displayMob(p.mobile||'')+'</div></div>'
+      +'<div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center;">'+pendingTags+givenTag+lvTag+'</div>'
+      +'<div style="font-family:var(--fh);font-size:21px;font-weight:900;color:var(--bd);margin-left:12px;">'+p.game_points+'<span style="font-size:11px;font-weight:700;color:var(--muted);"> pts</span></div>'
+      +'<div style="margin-left:10px;color:var(--muted);">'+(isExp?'▲':'▼')+'</div>'
+    +'</div>'+(isExp&&rows?rows:'')+'</div>';
+  }).join('');
+}
+
+function pzToggle(id){_pzExpanded[id]=!_pzExpanded[id];renderPrizes();}
+
+async function pzGive(e,custId,custName,stagePts,stageLabel){
+  e.stopPropagation();
+  const btn=e.target;
+  if(!confirm('Mark "'+stageLabel+'" as given to '+custName+'?')) return;
+  btn.disabled=true;btn.textContent='Saving...';
+  try{
+    await sb('prizes_given','POST',{customer_id:custId,stage_pts:stagePts,stage_label:stageLabel,given_at:new Date().toISOString(),given_by:'staff'});
+    _pzPrizes.push({customer_id:custId,stage_pts:stagePts,stage_label:stageLabel,given_at:new Date().toISOString(),given_by:'staff'});
+    toast('🎁 Prize marked as given for '+custName);
+    // Check if player still has pending prizes after this one
+    const player=_pzPlayers.find(p=>p.id===custId);
+    const stillPending=player?pzPending(player).length>0:false;
+    if(!stillPending){
+      // No more pending — collapse and fade out card before re-render
+      _pzExpanded[custId]=false;
+      const card=document.querySelector('[data-pz="'+custId+'"]');
+      if(card){
+        card.style.transition='opacity .4s,transform .4s';
+        card.style.opacity='0';card.style.transform='translateX(30px)';
+        setTimeout(()=>renderPrizes(),420);
+      } else { renderPrizes(); }
+    } else {
+      _pzExpanded[custId]=true;
+      renderPrizes();
+    }
+  }catch(e2){
+    toast('Error: '+e2.message,'err');
+    btn.disabled=false;btn.textContent='🎁 Mark Given';
+  }
+}
+
+function fmtDate(iso){if(!iso)return'—';return new Date(iso).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});}
+
+// ══ FREE WASH TRACKER ══
+let _fwData=[];
+
+async function loadFreeWash(){
+  // Always re-read directly from localStorage — don't rely on cached LCFG
+  try{LCFG=JSON.parse(localStorage.getItem('mc_cfg')||'{}');}catch(e){LCFG={};}
+  const bm=document.getElementById('fw-boy-months');
+  const gm=document.getElementById('fw-girl-months');
+  if(bm)bm.textContent=boyMonths();
+  if(gm)gm.textContent=girlMonths();
+  document.getElementById('fw-list').innerHTML='<div style="text-align:center;padding:40px;color:var(--muted);">Loading...</div>';
+  try{
+    const paid=paidNeeded();
+    const rows=await sb('customers','GET',null,'select=id,name,mobile,gender,stamps,redemptions,first_stamp_date,expiry_date,last_visit_date,parent&stamps=gte.'+paid+'&order=expiry_date.asc&limit=500');
+    _fwData=rows||[];
+    renderFreeWash();
+  }catch(e){
+    document.getElementById('fw-list').innerHTML='<div style="color:var(--err);padding:20px;">Error: '+e.message+'</div>';
+  }
+}
+
+function renderFreeWash(){
+  const search=(document.getElementById('fw-search')?.value||'').toLowerCase();
+  const filter=document.getElementById('fw-filter')?.value||'ready';
+  const now=new Date();
+  const PAID=paidNeeded();
+
+  let data=_fwData.filter(c=>Number(c.stamps||0)>=PAID);
+  if(search) data=data.filter(c=>(c.name||'').toLowerCase().includes(search));
+
+  // Categorise each
+  data=data.map(c=>{
+    const exp=c.expiry_date?new Date(c.expiry_date):null;
+    const expired=exp&&now>exp;
+    const daysLeft=exp?Math.ceil((exp-now)/864e5):null;
+    const expiringSoon=!expired&&daysLeft!==null&&daysLeft<=30;
+    return{...c,expired,daysLeft,expiringSoon};
+  });
+
+  if(filter==='ready') data=data.filter(c=>!c.expired);
+  if(filter==='expiring') data=data.filter(c=>c.expiringSoon&&!c.expired);
+
+  const readyCount=_fwData.filter(c=>Number(c.stamps||0)>=paidNeeded()&&!(c.expiry_date&&now>new Date(c.expiry_date))).length;
+  const sum=document.getElementById('fw-summary');
+  if(sum){
+    sum.style.display='block';
+    if(readyCount>0){sum.style.background='#FEF3C7';sum.style.color='#92400E';sum.textContent='🚿 '+readyCount+' customer'+(readyCount!==1?'s':'')+' ready to claim';}
+    else{sum.style.background='#DCFCE7';sum.style.color='var(--ok)';sum.textContent='✅ All claimed';}
+  }
+
+  const el=document.getElementById('fw-list');if(!el)return;
+  if(!data.length){
+    el.innerHTML='<div style="text-align:center;padding:60px;color:var(--muted);"><div style="font-size:36px;margin-bottom:10px;">🚿</div><div style="font-size:14px;">'+(filter==='ready'?'No customers ready to claim right now':'No customers found')+'</div></div>';
+    return;
+  }
+
+  el.innerHTML=data.map(c=>{
+    const stamps=Number(c.stamps||0);const PAID=paidNeeded();
+    const bg=c.expiringSoon?'#FFFBEB':c.expired?'#FFF5F5':'#fff';
+    const border=c.expiringSoon?'#FCD34D':c.expired?'#FCA5A5':'var(--border)';
+    const statusBadge=c.expired
+      ?'<span style="background:#FEE2E2;color:var(--err);padding:3px 9px;border-radius:99px;font-size:11px;font-weight:800;">⏰ Expired</span>'
+      :c.expiringSoon
+        ?'<span style="background:#FEF3C7;color:#92400E;padding:3px 9px;border-radius:99px;font-size:11px;font-weight:800;">⚠️ Expires in '+c.daysLeft+'d</span>'
+        :'<span style="background:#DCFCE7;color:var(--ok);padding:3px 9px;border-radius:99px;font-size:11px;font-weight:800;">✅ Ready to Claim</span>';
+    const mob=(c.mobile||'').replace(/\D/g,'');
+    const waMsg='Hi '+(c.parent||c.name)+'!\\n\\n🎉 Great news! '+c.name+' has earned a FREE Hair Wash at MiniCuts!\\n\\n✂️ Come in anytime before '+fmtDate(c.expiry_date)+' to claim it.\\n\\nSee you soon!\\nMiniCuts DSO 🐼';
+    const wa='https://wa.me/'+toWANum(c.mobile)+'?text='+encodeURIComponent(waMsg);
+    return`<div style="display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:13px;margin-bottom:9px;background:${bg};border:1.5px solid ${border};">
+      <div style="width:44px;height:44px;border-radius:50%;background:${c.gender==='girl'?'#EC4899':'var(--bd)'};color:#fff;font-family:var(--fh);font-size:18px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${c.name.charAt(0).toUpperCase()}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:800;font-size:14.5px;">${c.name} ${statusBadge}</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:3px;">📱 ${displayMob(c.mobile||'')} · ${c.gender==='girl'?'👧 Girl':'👦 Boy'} · ${stamps} stamps · Expires ${fmtDate(c.expiry_date)}</div>
+        <div style="font-size:11.5px;color:var(--muted);margin-top:1px;">Times redeemed: ${c.redemptions||0} · First stamp: ${fmtDate(c.first_stamp_date)}</div>
+      </div>
+      <div style="display:flex;gap:7px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;">
+        ${!c.expired?`<a href="${wa}" target="_blank" class="btn btn-ghost btn-sm" style="font-size:12px;text-decoration:none;">💬 Remind</a>`:''}
+        ${!c.expired?`<button class="btn btn-y btn-sm" onclick="markFreeWashGiven('${c.id}','${escQ(c.name)}',this)">🚿 Mark Given</button>`:'<span style="color:var(--err);font-size:12px;font-weight:700;">Expired — cycle reset needed</span>'}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function markFreeWashGiven(id,name,btn){
+  if(!confirm('Mark free hair wash as given to '+name+'? This will reset their stamp card.')) return;
+  btn.disabled=true;btn.textContent='Saving...';
+  try{
+    // Fetch current customer data
+    const rows=await sb('customers','GET',null,'select=*&id=eq.'+id);
+    const c=rows[0];if(!c)throw new Error('Customer not found');
+    const now=new Date().toISOString();
+    const months=c.gender==='girl'?girlMonths():boyMonths();
+    // Archive current cycle
+    await sb('cycles','POST',{customer_id:id,stamps_earned:c.stamps||0,first_stamp_date:c.first_stamp_date,expiry_date:c.expiry_date,ended_at:now,ended_by:'redeemed'}).catch(()=>{});
+    // Reset stamps, increment redemptions
+    const newExpiry=new Date();newExpiry.setMonth(newExpiry.getMonth()+months);
+    await sb('customers','PATCH',{stamps:0,redemptions:(c.redemptions||0)+1,first_stamp_date:null,expiry_date:null,last_visit_date:now},'id=eq.'+id);
+    await sb('visits','POST',{customer_id:id,type:'free',stamp_count_after:0,cycle_expiry:null});
+    toast('🚿 Free wash marked as given for '+name+' — stamp card reset!');
+    loadFreeWash();
+  }catch(e){
+    toast('Error: '+e.message,'err');
+    btn.disabled=false;btn.textContent='🚿 Mark Given';
+  }
 }
 
 // AUTO REFRESH
