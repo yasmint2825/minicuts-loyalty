@@ -907,8 +907,17 @@ function fmtDate(iso){if(!iso)return'—';return new Date(iso).toLocaleDateStrin
 let _fwData=[];
 
 async function loadFreeWash(){
-  // Always re-read directly from localStorage — don't rely on cached LCFG
-  try{LCFG=JSON.parse(localStorage.getItem('mc_cfg')||'{}');}catch(e){LCFG={};}
+  // Fetch loyalty config directly from Supabase so it's always in sync with index.html
+  try{
+    const rows=await sb('staff_config','GET',null,'select=value&key=eq.loyalty_config&limit=1');
+    if(rows&&rows.length){
+      const saved=JSON.parse(rows[0].value||'{}');
+      LCFG=Object.assign({boyMonths:12,girlMonths:15,stampsNeeded:6},saved);
+    }
+  }catch(e){
+    // Fallback to localStorage
+    try{LCFG=JSON.parse(localStorage.getItem('mc_cfg')||'{}');}catch(e2){LCFG={};}
+  }
   const bm=document.getElementById('fw-boy-months');
   const gm=document.getElementById('fw-girl-months');
   if(bm)bm.textContent=boyMonths();

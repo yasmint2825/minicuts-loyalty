@@ -751,7 +751,7 @@ async function archiveCycle(customerId,stamps,firstStampDate,expiryDate,endedBy)
         <div style="font-family:var(--fh);font-size:21px;font-weight:800;margin-bottom:5px;">Settings</div>
         <div style="color:var(--muted);font-size:13.5px;margin-bottom:22px;">Configure loyalty rules and credentials</div>
         <div class="card" style="max-width:540px;margin-bottom:18px;">
-          <div style="font-family:var(--fh);font-size:16px;font-weight:800;margin-bottom:14px;">Loyalty Rules</div>
+          <div style="font-family:var(--fh);font-size:16px;font-weight:800;margin-bottom:4px;">Loyalty Rules</div>
           <div class="cr"><div><div style="font-size:13.5px;font-weight:700;">Total visits for special gift</div><div style="font-size:12px;color:var(--muted);">e.g. 6 = 5 paid + 6th earns a Free Hair Wash 🚿 · 8 = 7 paid + 8th earns a Free Hair Wash 🚿</div></div><input class="ci" type="number" id="CFS" min="1" max="20" value="5"></div>
           <div class="cr"><div><div style="font-size:13.5px;font-weight:700;">Boy passport validity (months)</div><div style="font-size:12px;color:var(--muted);">From first stamp in cycle</div></div><input class="ci" type="number" id="CFB" min="1" max="36" value="12"></div>
           <div class="cr"><div><div style="font-size:13.5px;font-weight:700;">Girl passport validity (months)</div><div style="font-size:12px;color:var(--muted);">From first stamp in cycle</div></div><input class="ci" type="number" id="CFG2" min="1" max="36" value="15"></div>
@@ -759,6 +759,25 @@ async function archiveCycle(customerId,stamps,firstStampDate,expiryDate,endedBy)
           <div class="cr"><div><div style="font-size:13.5px;font-weight:700;">Staff password</div></div><input class="ci" type="password" id="CFP" value="minicuts123" style="width:130px;"></div>
           <div class="cr"><div><div style="font-size:13.5px;font-weight:700;">Master reset code</div><div style="font-size:12px;color:var(--muted);">Used to recover forgotten password</div></div><input class="ci" type="text" id="CFRC" value="MINICUTS2025" style="width:130px;text-transform:uppercase;" oninput="this.value=this.value.toUpperCase()"></div>
           <button class="btn bp" style="margin-top:14px;" onclick="saveConfig()">Save Settings</button>
+        </div>
+
+        <!-- PRIZE TRACKER -->
+        <div class="card" style="max-width:640px;margin-bottom:18px;">
+          <div style="font-family:var(--fh);font-size:16px;font-weight:800;margin-bottom:4px;">🎁 Surprise Prize Levels</div>
+          <div style="font-size:13px;color:var(--muted);margin-bottom:12px;">These match the game levels in MiniCuts Games. Track prizes given per customer in their profile.</div>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <div style="display:grid;grid-template-columns:50px 1fr 80px;gap:10px;font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;padding:0 10px;">
+              <span>Level</span><span>Badge &amp; Prize</span><span>Points</span>
+            </div>
+            ${GAME_LEVELS.map(l=>`<div style="display:grid;grid-template-columns:50px 1fr 80px;gap:10px;align-items:center;background:#F8FBFF;border-radius:10px;padding:10px 12px;border:1px solid var(--border);">
+              <div style="font-size:20px;text-align:center;">${l.icon}</div>
+              <div><div style="font-weight:800;font-size:13.5px;">${l.badge}</div><div style="font-size:11.5px;color:var(--muted);">Level ${l.level}</div></div>
+              <div style="font-family:var(--fh);font-size:15px;font-weight:900;color:var(--b);">${l.pts} pts</div>
+            </div>`).join('')}
+          </div>
+          <div style="margin-top:12px;font-size:11.5px;color:var(--muted);background:#F8FBFF;border-radius:8px;padding:8px 12px;">
+            💡 Open any customer profile → 🎁 Prizes tab to see which levels they've reached and mark prizes as given.
+          </div>
         </div>
         <div class="card" style="max-width:640px;margin-bottom:18px;">
           <div style="font-family:var(--fh);font-size:16px;font-weight:800;margin-bottom:4px;">Retention Settings</div>
@@ -1083,7 +1102,7 @@ function showPage(id,btn){
   if(id==='dashboard'){renderDash();loadAfterService();}
   if(id==='customers') loadCustomers();
   if(id==='qrpage') renderSalonQR();
-  if(id==='config') syncCfgInputs();
+  if(id==='config'){syncCfgInputs();}
   if(id==='missyou') renderMissYou();
 }
 
@@ -1367,11 +1386,13 @@ async function viewProfile(id){
     const c=cRows[0];
     const visits=await sbFresh('visits','select=*&customer_id=eq.'+id+'&order=created_at.desc&limit=50');
     const cycles=await sbFresh('cycles','select=*&customer_id=eq.'+id+'&order=ended_at.desc');
-    renderProfile(c,visits,cycles);
+    let prizes=[];
+    try{prizes=await sbFresh('prizes_given','select=*&customer_id=eq.'+id);}catch(e){}
+    renderProfile(c,visits,cycles,prizes);
   }catch(e){document.getElementById('PC').innerHTML='<div style="color:var(--err);">Error: '+e.message+'</div>';}
 }
 
-function renderProfile(c,visits,cycles){
+function renderProfile(c,visits,cycles,prizes){
   const st=parseInt(c.stamps)||0;const exp=isExp(c);const d=dLeft(c);
   const paid=paidNeeded();const pct=Math.min(Math.round((st/paid)*100),100);
   let sc='';for(let i=0;i<paid;i++) sc+=`<div class="sc2 ${i<st?'on':''}">${i<st?'🐼':'✦'}</div>`;
@@ -1451,9 +1472,11 @@ function renderProfile(c,visits,cycles){
         <div class="tab-bar">
           <button class="tab-btn active" onclick="switchTab(this,'tVisits')">Visit History</button>
           <button class="tab-btn" onclick="switchTab(this,'tCycles')">Cycle Audit Trail 🔍</button>
+          <button class="tab-btn" onclick="switchTab(this,'tPrizes')">🎁 Prizes</button>
         </div>
         <div class="tab-pane active" id="tVisits">${visitHtml}</div>
         <div class="tab-pane" id="tCycles">${cycleHtml}</div>
+        <div class="tab-pane" id="tPrizes">${buildPrizesTab(c,prizes||[])}</div>
       </div>
     </div>`;
   // Inject follow-up section after DOM renders
@@ -1465,6 +1488,57 @@ function switchTab(btn,paneId){
   btn.closest('.card').querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
   btn.classList.add('active');
   document.getElementById(paneId).classList.add('active');
+}
+
+// ══ PRIZE LEVELS — match minicuts-game.html exactly ══
+const GAME_LEVELS=[
+  {level:1,pts:50, badge:'Panda Explorer',  icon:'🌟'},
+  {level:2,pts:100,badge:'Panda Adventurer',icon:'🏅'},
+  {level:3,pts:150,badge:'Panda Hero',      icon:'🦸'},
+  {level:4,pts:200,badge:'Panda Superstar', icon:'⭐'},
+  {level:5,pts:250,badge:'Panda Legend',    icon:'🔥'},
+  {level:6,pts:300,badge:'Dragon Warrior',  icon:'🐉'},
+];
+
+function buildPrizesTab(c,prizes){
+  const pts=Number(c.game_points)||0;
+  const givenMap=new Map(prizes.map(p=>[p.stage_pts,p]));
+  const rows=GAME_LEVELS.map(l=>{
+    const reached=pts>=l.pts;
+    const given=givenMap.get(l.pts);
+    const bg=given?'#F0FDF4':reached?'#FFFDF0':'#F9FAFB';
+    const border=given?'#86EFAC':reached?'rgba(255,214,0,.6)':'var(--border)';
+    return`<div style="display:flex;align-items:center;gap:14px;padding:13px;border-radius:12px;background:${bg};border:1.5px solid ${border};margin-bottom:8px;">
+      <div style="width:46px;height:46px;border-radius:12px;background:${given?'var(--ok)':reached?'linear-gradient(135deg,var(--y),#FFB300)':'#E5E7EB'};display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">${l.icon}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:800;font-size:14px;">Level ${l.level} · ${l.badge}</div>
+        <div style="font-size:11.5px;color:var(--muted);margin-top:2px;">${l.pts} pts required · Customer has <strong style="color:${reached?'var(--ok)':'var(--b)'}">${pts} pts</strong>${reached&&!given?' · 🎁 Prize ready!':''}</div>
+        ${given?`<div style="font-size:11.5px;color:var(--ok);font-weight:700;margin-top:4px;">✅ Given on ${fmtDate(given.given_at)}</div>`:''}
+      </div>
+      <div style="flex-shrink:0;">
+        ${given
+          ?'<span style="background:#DCFCE7;color:var(--ok);padding:4px 10px;border-radius:99px;font-size:11px;font-weight:800;">✅ Given</span>'
+          :reached
+            ?`<button class="btn by bsm" onclick="givePrize('${c.id}','${c.name}',${l.pts},'Level ${l.level} · ${l.badge}',this)" style="white-space:nowrap;">🎁 Mark as Given</button>`
+            :`<span style="background:#F3F4F6;color:var(--muted);padding:4px 10px;border-radius:99px;font-size:11.5px;font-weight:700;">${l.pts-pts} pts away</span>`
+        }
+      </div>
+    </div>`;
+  }).join('');
+  return rows+`<div style="margin-top:4px;background:#EEF6FF;border-radius:10px;padding:9px 14px;font-size:12.5px;color:var(--b);font-weight:700;">🎮 ${c.name} has <strong>${pts}</strong> game points</div>`;
+}
+
+async function givePrize(custId,custName,stagePts,stageLabel,btn){
+  if(!confirm('Mark "'+stageLabel+'" as given to '+custName+'?')) return;
+  btn.disabled=true;btn.textContent='Saving...';
+  try{
+    await sb('prizes_given','POST',{customer_id:custId,stage_pts:stagePts,stage_label:stageLabel,given_at:new Date().toISOString(),given_by:'staff'});
+    toast('🎁 Prize marked as given for '+custName);
+    viewProfile(custId);
+  }catch(e){
+    toast('Error: '+e.message,'err');
+    btn.disabled=false;btn.textContent='🎁 Mark as Given';
+  }
 }
 
 function buildCycleHistory(cycles,currentStamps,c){
@@ -2535,7 +2609,16 @@ function saveConfig(){
   CFG.boyWABirthday=document.getElementById('CFB_WB').value||DC.boyWABirthday;
   CFG.girlWABirthday=document.getElementById('CFG_WB').value||DC.girlWABirthday;
   CFG.afterServiceMsg=document.getElementById('CF_AS_MSG').value||DC.afterServiceMsg;
-  saveCfg();toast('Settings saved!');
+  saveCfg();
+  // Save key loyalty settings to Supabase so staff.html can read them cross-device
+  sb('staff_config','POST',
+    {key:'loyalty_config',value:JSON.stringify({boyMonths:CFG.boyMonths,girlMonths:CFG.girlMonths,stampsNeeded:CFG.stampsNeeded}),updated_at:new Date().toISOString()},
+    'on_conflict=key'
+  ).catch(()=>sb('staff_config','PATCH',
+    {value:JSON.stringify({boyMonths:CFG.boyMonths,girlMonths:CFG.girlMonths,stampsNeeded:CFG.stampsNeeded}),updated_at:new Date().toISOString()},
+    'key=eq.loyalty_config'
+  ).catch(()=>{}));
+  toast('Settings saved!');
 }
 function resetASMsg(){
   document.getElementById('CF_AS_MSG').value=DC.afterServiceMsg;
