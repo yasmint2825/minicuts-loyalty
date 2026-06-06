@@ -179,41 +179,6 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
         <div class="card-title">📊 Today's Summary</div>
         <div id="cfg-summary" style="color:var(--muted);font-size:13px;">Go to Queue tab to load data first.</div>
       </div>
-      <div class="card" style="margin-top:0;">
-        <div class="card-title">🛠️ Database Setup</div>
-        <p style="font-size:12.5px;color:var(--muted);margin:6px 0 12px;line-height:1.5;">If the queue is not loading, run this SQL once in your <a href="https://supabase.com/dashboard" target="_blank" style="color:var(--b);">Supabase SQL Editor</a>:</p>
-        <pre style="background:#F8FBFF;border:1px solid var(--border);border-radius:8px;padding:12px;font-size:11.5px;overflow-x:auto;line-height:1.6;color:var(--text);white-space:pre-wrap;">create table if not exists queue (
-  id uuid primary key default gen_random_uuid(),
-  customer_id uuid references customers(id) on delete set null,
-  customer_name text not null,
-  mobile text,
-  service text default 'Haircut',
-  token_number integer not null,
-  checkin_date date not null,
-  checkin_time timestamptz default now(),
-  status text default 'waiting',
-  is_guest boolean default false,
-  stylist text,
-  stylist2 text,
-  service_value numeric(8,2),
-  tip numeric(8,2),
-  remark text,
-  done_at timestamptz,
-  created_at timestamptz default now()
-);
-alter table queue enable row level security;
-create policy "anon full access" on queue
-  for all using (true) with check (true);
-
--- Add columns to visits too:
-alter table visits add column if not exists stylist2 text;
-alter table visits add column if not exists service_value numeric(8,2);
-alter table visits add column if not exists tip numeric(8,2);
-alter table visits add column if not exists remark text;
-
--- Add to customers if not already there:
-alter table customers add column if not exists location text;</pre>
-      </div>
       <div class="card">
         <div class="card-title">🔗 Quick Links</div>
         <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px;">
@@ -434,7 +399,16 @@ async function markDone(qid,cid,name,mob){
     if(cid&&cid!=='null'&&cid){
       const rows=await sb('customers','GET',null,'select=*&id=eq.'+cid);
       if(rows?.length){
-        const c=rows[0];const ns=(c.stamps||0)+1;const now=new Date().toISOString();
+        const c=rows[0];
+        // Same-day stamp guard — check visits table for a stamp already today
+        const todayStr=new Date().toISOString().split('T')[0];
+        const todayVisits=await sb('visits','GET',null,'select=id&customer_id=eq.'+cid+'&type=eq.paid&created_at=gte.'+todayStr+'T00:00:00&limit=1');
+        if(todayVisits&&todayVisits.length){
+          toast(name+' already stamped today — cannot add a second stamp on the same day ⚠️','err');
+          if(doneBtn){doneBtn.disabled=false;doneBtn.textContent='✅ Done+Stamp';}
+          return;
+        }
+        const ns=(c.stamps||0)+1;const now=new Date().toISOString();
         const months=c.gender==='girl'?15:12;
         const fs=c.first_stamp_date||now;
         const exp=c.expiry_date||(()=>{const d=new Date(fs);d.setMonth(d.getMonth()+months);return d.toISOString();})();
@@ -451,6 +425,13 @@ async function markDone(qid,cid,name,mob){
   }catch(e){toast('Error: '+e.message,'err');if(doneBtn){doneBtn.disabled=false;doneBtn.textContent='✅ Done+Stamp';}}
 }
 
+function toWANum(mobile){
+  let n=String(mobile||'').replace(/\D/g,'');
+  if(n.startsWith('00971')) n=n.slice(5);
+  else if(n.startsWith('971')) n=n.slice(3);
+  else if(n.startsWith('0'))   n=n.slice(1);
+  return '971'+n;
+}
 function showWAPrompt(name,stamps,mobile,parent,gender,stylist,stylist2,remark,tip,service_value){
   const paid=5;const free=stamps>=paid;
   const mob=(mobile||'').replace(/\D/g,'');
@@ -460,7 +441,7 @@ function showWAPrompt(name,stamps,mobile,parent,gender,stylist,stylist2,remark,t
     +(free?'🎉 You\'ve earned a FREE Hair Wash! Come in anytime to claim it!':'You now have '+stamps+' stamp'+(stamps!==1?'s':'')+' — just '+(paid-stamps)+' more for a free hair wash! 🚿')
     +(styStr?'\n\nStylist today: '+styStr:'')
     +'\n\nSee you soon!\nMiniCuts DSO';
-  const wa='https://wa.me/971'+mob.replace(/^0/,'')+'?text='+encodeURIComponent(waMsg);
+  const wa='https://wa.me/'+toWANum(mobile)+'?text='+encodeURIComponent(waMsg);
   const ov=document.createElement('div');
   ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9000;display:flex;align-items:center;justify-content:center;padding:20px;';
   ov.innerHTML='<div style="background:#fff;border-radius:18px;padding:24px;max-width:380px;width:100%;text-align:center;">'
