@@ -73,7 +73,7 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
 .tok{width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,var(--bd),var(--bm));color:var(--y);font-family:var(--fh);font-size:18px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 .tok.guest{background:linear-gradient(135deg,#6B7280,#9CA3AF);}
 .gw{background:var(--err);border-radius:12px;padding:13px 14px;margin-bottom:14px;}
-.bnav{position:fixed;bottom:0;left:0;right:0;background:rgba(255,255,255,.97);backdrop-filter:blur(12px);border-top:1px solid var(--border);padding:6px 10px;display:flex;gap:6px;z-index:50;}
+.bnav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:rgba(255,255,255,.97);backdrop-filter:blur(12px);border-top:1px solid var(--border);border-radius:0;padding:6px 10px;display:flex;gap:6px;z-index:50;}
 .bb{flex:1;padding:8px 4px;border:none;border-radius:10px;font-family:var(--fh);font-size:11px;font-weight:800;cursor:pointer;background:#F1F5F9;color:var(--muted);transition:all .15s;line-height:1.25;text-align:center;}
 .bb.active{background:var(--b);color:#fff;}
 #clk{font-family:var(--fh);font-size:11px;font-weight:700;color:rgba(255,255,255,.7);}
@@ -160,9 +160,11 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
         <option>Dubai Silicon Oasis (DSO)</option><option>Academic City</option><option>Al Barsha</option><option>Al Furjan</option><option>Al Karama</option><option>Al Khail Gate</option><option>Al Nahda</option><option>Al Qusais</option><option>Al Warqa</option><option>Arabian Ranches</option><option>Arjan / Dubailand</option><option>Bur Dubai</option><option>Business Bay</option><option>Damac Hills</option><option>Deira</option><option>Discovery Gardens</option><option>Downtown Dubai</option><option>Dubai Creek Harbour</option><option>Dubai Hills Estate</option><option>Dubai Investments Park (DIP)</option><option>Dubai Marina</option><option>Dubai Production City (IMPZ)</option><option>Dubai South / Expo City</option><option>Emirates Hills</option><option>Falcon City</option><option>Green Community</option><option>Greens / Views</option><option>International City</option><option>JBR / JLT</option><option>JVC / JVT</option><option>Jumeirah</option><option>Jumeirah Islands / Park</option><option>Liwan / Dubailand</option><option>Meydan</option><option>Mirdif</option><option>Motor City</option><option>Muhaisnah</option><option>Nad Al Sheba</option><option>Palm Jumeirah</option><option>Rashidiya</option><option>Remraam</option><option>Ras Al Khor</option><option>Sports City</option><option>Springs / Meadows</option><option>Town Square</option><option>Umm Suqeim</option><option>Umm Ramool</option><option>Wadi Al Safa / Liwan</option><option>Other / Outside Dubai</option>
       </select>
     </div>
-    <div style="display:flex;align-items:center;justify-content:space-between;margin:14px 0 10px;">
-      <span style="font-family:var(--fh);font-size:14px;font-weight:800;color:var(--bd);">Children 👧👦</span>
-      <button class="btn btn-ghost btn-sm" onclick="addKid()" style="font-size:12px;padding:5px 11px;">+ Add Child</button>
+    <div style="margin:14px 0 10px;">
+      <span style="font-family:var(--fh);font-size:14px;font-weight:800;color:var(--bd);display:block;margin-bottom:10px;">Children 👧👦</span>
+      <button class="btn btn-full" onclick="addKid()" style="background:linear-gradient(135deg,#EEF6FF,#E0EDFF);border:2px dashed var(--b);color:var(--b);font-size:14px;padding:13px;border-radius:12px;">
+        ➕ Add Another Child (sibling)
+      </button>
     </div>
     <div id="rg-kids"></div>
     <div id="rg-msg" class="sm" style="margin-top:6px;"></div>
@@ -191,7 +193,8 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
       <div style="font-size:13px;color:var(--muted);margin-top:6px;line-height:1.55;">Play Spin the Wheel, Tap Panda and Memory Match — earn badges and surprise gifts!</div>
       <button class="btn btn-y btn-full" style="margin-top:12px;" onclick="goGames()">🎮 Play MiniCuts Games!</button>
     </div>
-    <button class="btn btn-ghost btn-full" onclick="resetCI()" style="margin-top:8px;">✅ All done — New Check-In</button>
+    <button class="btn btn-ghost btn-full" onclick="clearInterval(window._ciTimer);resetCI()" style="margin-top:8px;">✅ All done — New Check-In</button>
+    <div style="text-align:center;font-size:12px;color:var(--muted);margin-top:8px;">Auto-resets in <span id="ci-countdown">10</span>s</div>
   </div>
   <div id="ci-family" style="display:none;"></div>
   <div id="ci-load" style="text-align:center;padding:40px;color:var(--muted);">
@@ -407,7 +410,21 @@ async function doCI(custId,name,mob,svc){
   // This ensures games unlock only after the haircut, not on check-in.
   refreshStats();return tok;
 }
+function startAutoReset(){
+  clearInterval(window._ciTimer);
+  let secs=10;
+  const countEl=document.getElementById('ci-countdown');
+  if(countEl) countEl.textContent=secs;
+  window._ciTimer=setInterval(()=>{
+    secs--;
+    const el=document.getElementById('ci-countdown');
+    if(el) el.textContent=secs;
+    if(secs<=0){clearInterval(window._ciTimer);resetCI();}
+  },1000);
+}
+
 function showTok(tok,name,cid,sub,mob){
+  clearInterval(window._ciTimer);
   const ld=document.getElementById('ci-load');const sg=document.getElementById('ci-single');const fam=document.getElementById('ci-family');
   if(ld)ld.style.display='none';if(fam)fam.style.display='none';
   const te=document.getElementById('ci-tok');const ne=document.getElementById('ci-nm');const se=document.getElementById('ci-sb');
@@ -415,14 +432,17 @@ function showTok(tok,name,cid,sub,mob){
   if(sg)sg.style.display='block';
   window._ciMob=mob;window._ciCid=cid;
   showScr('s-ci');
+  startAutoReset();
 }
 function showFamTok(tokens,mob){
+  clearInterval(window._ciTimer);
   const ld=document.getElementById('ci-load');const sg=document.getElementById('ci-single');const el=document.getElementById('ci-family');
   if(ld)ld.style.display='none';if(sg)sg.style.display='none';if(!el)return;
   window._ciMob=mob;window._ciCid=tokens[0]?.id||null;
   const rows=tokens.map(t=>'<div style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:#F0F7FF;border-radius:12px;margin-bottom:8px;border:1px solid rgba(21,101,192,.1);"><div style="min-width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--bd),var(--bm));color:var(--y);font-family:var(--fh);font-size:19px;font-weight:900;display:flex;align-items:center;justify-content:center;">'+String(t.token).padStart(2,'0')+'</div><div><div style="font-family:var(--fh);font-size:15px;font-weight:800;color:var(--bd);">'+t.name+'</div><div style="font-size:11.5px;color:var(--muted);">Token #'+String(t.token).padStart(2,'0')+' · Waiting</div></div></div>').join('');
-  el.innerHTML='<div class="tc"><div class="tl">Family Check-In ✅</div><div style="font-size:52px;margin:6px 0;position:relative;z-index:1;">🐼</div><div class="tname">'+tokens.length+' Children Checked In!</div><div class="tsub">Each child has their own token in queue order</div></div><div class="card" style="margin-bottom:14px;"><div style="font-family:var(--fh);font-size:14px;font-weight:800;color:var(--bd);margin-bottom:10px;">🎫 Your Token Numbers</div>'+rows+'<div style="font-size:12px;color:var(--muted);margin-top:6px;padding:8px;background:#FFF9E6;border-radius:8px;">✂️ Stylist will call each child in queue order</div></div><div class="ta"><button class="btn btn-b" onclick="goGames()">🎮 Loyalty &amp; Games</button><button class="btn btn-ghost" onclick="goPassport()">🎫 My Passport</button></div><button class="btn btn-ghost btn-full" onclick="resetCI()" style="margin-top:10px;">✅ All done — New Check-In</button>';
+  el.innerHTML='<div class="tc"><div class="tl">Family Check-In ✅</div><div style="font-size:52px;margin:6px 0;position:relative;z-index:1;">🐼</div><div class="tname">'+tokens.length+' Children Checked In!</div><div class="tsub">Each child has their own token in queue order</div></div><div class="card" style="margin-bottom:14px;"><div style="font-family:var(--fh);font-size:14px;font-weight:800;color:var(--bd);margin-bottom:10px;">🎫 Your Token Numbers</div>'+rows+'<div style="font-size:12px;color:var(--muted);margin-top:6px;padding:8px;background:#FFF9E6;border-radius:8px;">✂️ Stylist will call each child in queue order</div></div><div class="ta"><button class="btn btn-b" onclick="goGames()">🎮 Loyalty &amp; Games</button><button class="btn btn-ghost" onclick="goPassport()">🎫 My Passport</button></div><div style="margin-top:10px;text-align:center;"><button class="btn btn-ghost btn-full" onclick="clearInterval(window._ciTimer);resetCI()">✅ All done — New Check-In</button><div style="font-size:12px;color:var(--muted);margin-top:8px;">Auto-resets in <span id="ci-countdown">10</span>s</div></div>';
   el.style.display='block';showScr('s-ci');
+  startAutoReset();
 }
 function goGames(){window.open('./minicuts-game.html'+(window._ciMob?'?mobile='+encodeURIComponent(window._ciMob):''),'_blank');}
 function goPassport(){window.open('./index.html?customer=1&lookup='+encodeURIComponent(window._ciMob||''),'_blank');}
