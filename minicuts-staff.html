@@ -248,35 +248,30 @@ const SVCS=['Haircut','Haircut + Wash','Wash Only','Styling','Trim','Other'];
 
 const DEFAULT_WA_TEMPLATE=`Hi {parent}! 👋
 
-Thank you for visiting MiniCuts today — {name} looked absolutely amazing! ✂️🐼
+Thank you for visiting MiniCuts — {name} looked amazing! ✂️🐼
 
 {free_msg}
 
-🎫 Check {name}'s loyalty passport anytime:
+🎫 Loyalty Passport:
 {passport_link}
 
-——
+🎮 Play games, earn points & win prizes every visit:
+https://yasmint2825.github.io/minicuts-loyalty/minicuts-game.html
 
-⭐ A small favour from our hearts:
+⭐ A small favour:
+We're a small family business that lives for kids like {name}. A quick Google review helps other families find us — 10 seconds, means the world 🙏
+👉 https://g.page/r/CY7wwbQTVi-nEAE/review
 
-We're a small family business that lives and breathes for kids like {name}. Every Google review genuinely helps other families find us — it takes just 10 seconds and means the world to our team.
-
-👉 {google_link}
-
-If you enjoyed your visit today, even a few words would make our day 🙏
-
-——
-
-📸 Follow us on Instagram for tips, offers & MiniCuts moments:
-{insta_link}
+📸 Follow us for offers & updates:
+https://www.instagram.com/minicutsdso/
 
 See you soon!
 MiniCuts DSO 🐼`;
 
 let WA_TEMPLATE=CFG.waTemplate||DEFAULT_WA_TEMPLATE;
 let WA_PASSPORT_BASE=CFG.passportBase||'https://yasmint2825.github.io/minicuts-loyalty/?customer=1&lookup=';
-let WA_GOOGLE=CFG.googleLink||'https://share.google/xpTR5fVOVbt4pwg8X';
-let WA_INSTA=CFG.instaLink||'https://instagram.com/minicuts_dso';
+let WA_GOOGLE=CFG.googleLink||'https://g.page/r/CY7wwbQTVi-nEAE/review';
+let WA_INSTA=CFG.instaLink||'https://www.instagram.com/minicutsdso/';
 let _qdata=[];
 
 async function sb(path,method='GET',body=null,params=''){
