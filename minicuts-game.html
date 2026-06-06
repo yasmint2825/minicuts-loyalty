@@ -241,8 +241,9 @@ function setMobileFields(pfxId,numId,mobile){
     </div>
     <button class="btn btn-y" id="loginBtn" onclick="doLogin()" style="display:none;">Let's Play! 🎮</button>
     <div id="loginMsg" style="display:none;margin-top:8px;padding:8px;border-radius:8px;font-size:12px;font-weight:700;text-align:center;"></div>
-    <div style="margin-top:10px;padding-top:10px;border-top:1px solid #F3F4F6;">
-      <button class="btn" onclick="goLeaderboard()" style="width:100%;font-size:13px;padding:9px;background:linear-gradient(135deg,#10B981,#059669);color:#fff;border:none;font-weight:800;">🏆 Leaderboard</button>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid #F3F4F6;">
+      <button class="btn btn-b" onclick="goToRegister(\'\',\'\',\'Register below!\')" style="font-size:13px;padding:9px;">📝 Register</button>
+      <button class="btn" onclick="goLeaderboard()" style="font-size:13px;padding:9px;background:linear-gradient(135deg,#10B981,#059669);color:#fff;border:none;font-weight:800;">🏆 Leaderboard</button>
     </div>
     <button onclick="checkLoyaltyPassport()" style="width:100%;margin-top:7px;padding:10px;background:linear-gradient(135deg,#7C3AED,#5B21B6);color:#fff;border:none;border-radius:11px;font-family:'Baloo 2',cursive;font-size:15px;font-weight:800;cursor:pointer;">🎫 Check My Loyalty Passport</button>
   </div>
@@ -1743,6 +1744,8 @@ async function doLogin(){
       player._lastGameDate=null;
       player.best_memory_time=player.best_memory_time||null;
       spinCount=0; bestSpinPts=0;
+      // Remember mobile for next visit
+      try{localStorage.setItem('mc_last_mobile',mobile);}catch(e){}
       await checkTodaySessions();
       await fetchGlobalBests();
       goProfile();
@@ -2481,6 +2484,36 @@ function launchConfetti(){
       goProfile();
     }
   }catch(e){ console.warn('Auto-login error:',e.message); }
+})();
+
+// Pre-fill remembered mobile on login screen
+(function prefillMobile(){
+  try{
+    const saved=localStorage.getItem('mc_last_mobile');
+    if(!saved) return;
+    // Only pre-fill if we're on the login screen (not auto-logged in via URL param)
+    setTimeout(function(){
+      const mobileEl=document.getElementById('loginMobile');
+      const pfxEl=document.getElementById('loginPfx');
+      if(!mobileEl||!pfxEl) return;
+      // Already have content (URL param login)? Skip
+      if(mobileEl.value) return;
+      // Parse the saved mobile e.g. "97155XXXXXXX" or "0551234567"
+      let n=String(saved).replace(/\D/g,'');
+      if(n.startsWith('971')) n=n.slice(3);
+      else if(n.startsWith('0')) n=n.slice(1);
+      // n is now "55XXXXXXX" — first 2 digits = prefix, last 7 = number
+      if(n.length===9){
+        const pfx='0'+n.slice(0,2);
+        const num=n.slice(2);
+        const pfxOpts=Array.from(pfxEl.options).map(o=>o.value);
+        if(pfxOpts.includes(pfx)) pfxEl.value=pfx;
+        mobileEl.value=num;
+        // Trigger the lookup so child name(s) appear automatically
+        if(typeof onLoginMobileInput==='function') onLoginMobileInput();
+      }
+    }, 300);
+  }catch(e){}
 })();
 
 </script>
