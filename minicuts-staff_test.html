@@ -1,0 +1,1081 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>MiniCuts · Staff Queue</title>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800;900&family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet"/>
+<style>
+:root{--y:#FFD600;--b:#1565C0;--bd:#0D47A1;--bm:#1976D2;--ok:#16A34A;--err:#DC2626;--warn:#D97706;--pink:#EC4899;--bg:#F0F4FF;--text:#1A1A2E;--muted:#6B7280;--border:#E5E7EB;--r:12px;--rs:8px;--fh:'Baloo 2',cursive;--fb:'Nunito',sans-serif;}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;font-family:var(--fb);background:var(--bg);color:var(--text);overflow-x:hidden;}
+body{display:flex;flex-direction:column;}
+
+/* ─── TOPBAR ─── */
+.top{background:linear-gradient(135deg,var(--bd),var(--bm));padding:10px 24px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.top-brand{font-family:var(--fh);font-size:16px;font-weight:900;color:#fff;display:flex;align-items:center;gap:8px;}
+.top-right{display:flex;align-items:center;gap:10px;}
+.badge-staff{background:var(--y);color:var(--bd);padding:3px 10px;border-radius:99px;font-size:11px;font-weight:800;}
+
+/* ─── STATS STRIP ─── */
+.stats-strip{background:#fff;border-bottom:1px solid var(--border);padding:8px 24px;display:flex;gap:24px;align-items:center;flex-shrink:0;}
+.sstat{display:flex;align-items:center;gap:8px;}
+.sstat-n{font-family:var(--fh);font-size:22px;font-weight:900;color:var(--bd);line-height:1;}
+.sstat-l{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;line-height:1.2;}
+.sstat-div{width:1px;height:28px;background:var(--border);}
+
+/* ─── TABS ─── */
+.tabs{background:#fff;border-bottom:2px solid var(--border);display:flex;padding:0 24px;flex-shrink:0;}
+.tab{padding:10px 18px;font-family:var(--fb);font-size:13px;font-weight:700;color:var(--muted);border:none;background:transparent;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;white-space:nowrap;transition:all .15s;}
+.tab.active{color:var(--b);border-bottom-color:var(--b);}
+
+/* ─── PAGES ─── */
+.page{display:none;padding:16px 24px;flex:1;overflow-y:auto;}
+.page.active{display:flex;flex-direction:column;}
+
+/* ─── FILTERS ─── */
+.filters{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:12px;background:#fff;padding:12px 16px;border-radius:var(--r);box-shadow:0 2px 8px rgba(13,71,161,.06);flex-shrink:0;}
+.fg{margin-bottom:0;}.fl{display:block;font-size:11px;font-weight:800;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em;}
+.fi{width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--rs);font-family:var(--fb);font-size:13px;color:var(--text);background:#fff;outline:none;}
+.fi:focus{border-color:var(--b);}
+select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236B7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 8px center;padding-right:24px;cursor:pointer;}
+.fr{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+
+/* ─── TABLE ─── */
+.tbl-wrap{flex:1;overflow:auto;border-radius:var(--r);box-shadow:0 2px 12px rgba(13,71,161,.08);}
+.qt{width:100%;border-collapse:collapse;background:#fff;table-layout:fixed;}
+.qt thead{background:var(--bd);position:sticky;top:0;z-index:10;}
+.qt thead th{color:#fff;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:10px 10px;text-align:left;white-space:nowrap;overflow:hidden;}
+/* Column widths */
+.qt th:nth-child(1),.qt td:nth-child(1){width:58px;}   /* Token */
+.qt th:nth-child(2),.qt td:nth-child(2){width:140px;}  /* Name */
+.qt th:nth-child(3),.qt td:nth-child(3){width:110px;}  /* Service */
+.qt th:nth-child(4),.qt td:nth-child(4){width:55px;}   /* Time */
+.qt th:nth-child(5),.qt td:nth-child(5){width:190px;}  /* Stylists */
+.qt th:nth-child(6),.qt td:nth-child(6){width:auto;}   /* Remark, Value & Tip — flex fill */
+.qt th:nth-child(7),.qt td:nth-child(7){width:74px;}   /* Status */
+.qt th:nth-child(8),.qt td:nth-child(8){width:128px;}  /* Actions */
+.qt tbody tr{border-bottom:1px solid var(--border);transition:background .1s;}
+.qt tbody tr:hover{background:#F8FBFF;}
+.qt tbody tr.done{opacity:.5;background:#FAFAFA;}
+.qt tbody tr.called{background:#EEF6FF;}
+.qt td{padding:8px 10px;font-size:13px;vertical-align:middle;}
+.tok-b{width:38px;height:38px;border-radius:9px;background:linear-gradient(135deg,var(--bd),var(--bm));color:var(--y);font-family:var(--fh);font-size:15px;font-weight:900;display:inline-flex;align-items:center;justify-content:center;}
+.tok-b.guest{background:linear-gradient(135deg,#6B7280,#9CA3AF);}
+.sp{display:inline-flex;align-items:center;padding:2px 7px;border-radius:99px;font-size:10.5px;font-weight:800;white-space:nowrap;}
+.sp-w{background:#FEF3C7;color:#92400E;}.sp-d{background:#DCFCE7;color:var(--ok);}.sp-c{background:#EEF6FF;color:var(--b);}.sp-g{background:#F3F4F6;color:var(--muted);}
+
+/* ─── INLINE INPUTS ─── */
+.isel{font-size:12px;padding:5px 7px;border:1.5px solid var(--border);border-radius:6px;background:#fff;outline:none;cursor:pointer;width:100%;}
+.isel:focus{border-color:var(--b);}
+
+/* ─── BUTTONS ─── */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:7px 12px;border-radius:var(--rs);font-family:var(--fh);font-weight:800;font-size:13px;cursor:pointer;border:none;transition:transform .12s;line-height:1;white-space:nowrap;}
+.btn:active{transform:scale(.97);}.btn:disabled{opacity:.45;cursor:not-allowed;transform:none;}
+.btn-y{background:linear-gradient(135deg,var(--y),#FFB300);color:var(--bd);}
+.btn-b{background:var(--b);color:#fff;}.btn-g{background:var(--ok);color:#fff;}
+.btn-ghost{background:transparent;color:var(--b);border:1.5px solid rgba(21,101,192,.25);}
+.btn-sm{padding:5px 9px;font-size:11.5px;border-radius:6px;}
+.btn-full{width:100%;}
+
+/* ─── CARDS (settings) ─── */
+.card{background:#fff;border-radius:var(--r);padding:18px;margin-bottom:14px;box-shadow:0 2px 10px rgba(13,71,161,.07);border:1px solid rgba(13,71,161,.07);}
+.card-title{font-family:var(--fh);font-size:16px;font-weight:800;color:var(--bd);margin-bottom:4px;}
+.sm{padding:8px 12px;border-radius:var(--rs);font-size:12.5px;font-weight:700;margin-bottom:12px;display:none;}
+.sm.ok{background:#DCFCE7;color:var(--ok);display:block;}.sm.err{background:#FEE2E2;color:var(--err);display:block;}.sm.info{background:#EEF6FF;color:var(--b);display:block;}
+
+/* ─── TOAST ─── */
+.tc{position:fixed;bottom:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:7px;}
+.toast{background:#fff;border-radius:var(--rs);padding:11px 16px;box-shadow:0 8px 28px rgba(0,0,0,.14);display:flex;align-items:center;gap:9px;font-size:13px;font-weight:700;min-width:220px;animation:ti .25s ease;}
+@keyframes ti{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+.toast.ok{border-left:4px solid var(--ok);}.toast.err{border-left:4px solid var(--err);}.toast.info{border-left:4px solid var(--b);}
+#clk{font-family:var(--fh);font-size:11px;font-weight:700;color:rgba(255,255,255,.7);}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="top">
+  <div class="top-brand">🐼 MiniCuts <span style="opacity:.6;font-size:13px;font-weight:700;">Staff Panel</span></div>
+  <div class="top-right">
+    <div id="clk"></div>
+    <div class="badge-staff">✂️ Staff</div>
+    <a href="./index.html" target="_blank" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);color:#fff;padding:5px 11px;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;">📋 Loyalty</a>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <button class="tab active" onclick="showTab('t-queue',this)">📋 Queue</button>
+  <button class="tab" onclick="showTab('t-history',this)">🕐 History</button>
+  <button class="tab" onclick="showTab('t-prizes',this);loadPrizes();">🎁 Game Prizes</button>
+  <button class="tab" onclick="showTab('t-freewash',this);loadFreeWash();">🚿 Free Wash</button>
+  <button class="tab" onclick="showTab('t-config',this);loadCfgScreen();">⚙️ Settings</button>
+</div>
+
+<!-- STATS STRIP -->
+<div class="stats-strip">
+  <div class="sstat"><div class="sstat-n" id="st-w" style="color:var(--warn);">—</div><div class="sstat-l">Waiting</div></div>
+  <div class="sstat-div"></div>
+  <div class="sstat"><div class="sstat-n" id="st-c" style="color:var(--b);">—</div><div class="sstat-l">Called</div></div>
+  <div class="sstat-div"></div>
+  <div class="sstat"><div class="sstat-n" id="st-d" style="color:var(--ok);">—</div><div class="sstat-l">Done Today</div></div>
+  <div class="sstat-div"></div>
+  <div class="sstat"><div class="sstat-n" id="st-n" style="color:var(--y);">—</div><div class="sstat-l">Next Token</div></div>
+</div>
+
+<!-- ══ TAB: QUEUE ══ -->
+<div class="page active" id="t-queue">
+  <div class="filters">
+    <div class="fg" style="min-width:150px;flex:1;"><label class="fl">Stylist</label><select class="fi" id="f-sty" onchange="renderQ()"><option value="">All Stylists</option></select></div>
+    <div class="fg" style="min-width:120px;flex:1;"><label class="fl">Status</label><select class="fi" id="f-sta" onchange="renderQ()"><option value="">All Active</option><option value="waiting">Waiting</option><option value="called">Called</option></select></div>
+    <div class="fg" style="min-width:160px;flex:2;"><label class="fl">Search</label><input class="fi" type="text" id="f-nm" placeholder="Name..." oninput="renderQ()"/></div>
+    <div style="display:flex;gap:8px;align-items:flex-end;">
+      <button class="btn btn-b" onclick="loadQ()">↻ Refresh</button>
+      <button class="btn btn-ghost" onclick="window.open('./minicuts-checkin.html','_blank')">👤 Customer Screen</button>
+    </div>
+  </div>
+
+  <div class="tbl-wrap">
+    <table class="qt" id="qt">
+      <thead><tr>
+        <th>Token</th><th>Name</th><th>Service</th><th>Time</th>
+        <th>Stylist(s)</th><th>Value · Tip · Remark</th><th>Status</th><th>Actions</th>
+      </tr></thead>
+      <tbody id="qt-body"><tr><td colspan="8" style="text-align:center;padding:40px;color:var(--muted);">Loading queue...</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ══ TAB: HISTORY ══ -->
+<div class="page" id="t-history">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-shrink:0;">
+    <div>
+      <div style="font-family:var(--fh);font-size:17px;font-weight:800;color:var(--bd);">🕐 Today's History</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:2px;">All check-ins including completed</div>
+    </div>
+    <button class="btn btn-ghost" onclick="loadQ()">↻ Refresh</button>
+  </div>
+  <div class="tbl-wrap">
+    <table class="qt">
+      <thead><tr><th>Token</th><th>Name</th><th>Service</th><th>Stylist(s)</th><th>Value</th><th>Tip</th><th>Remark</th><th>Status</th><th>Time</th><th>Edit</th></tr></thead>
+      <tbody id="hist-body"><tr><td colspan="10" style="text-align:center;padding:40px;color:var(--muted);">Go to Queue tab and refresh to load data</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ══ TAB: PRIZES ══ -->
+<div class="page" id="t-prizes">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-shrink:0;flex-wrap:wrap;gap:8px;">
+    <div>
+      <div style="font-family:var(--fh);font-size:17px;font-weight:800;color:var(--bd);">🎁 Game Prize Tracker</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:2px;">Players who have crossed prize levels — mark prizes as given</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      <input type="text" id="pz-search" placeholder="🔍 Search player..." oninput="renderPrizes()" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:9px;font-family:var(--fb);font-size:13px;outline:none;width:180px;"/>
+      <select id="pz-filter" onchange="renderPrizes()" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:9px;font-family:var(--fb);font-size:13px;outline:none;background:#fff;cursor:pointer;">
+        <option value="pending">🔔 Prize Pending</option>
+        <option value="all">All Players</option>
+        <option value="given">✅ All Given</option>
+      </select>
+      <button class="btn btn-b" onclick="loadPrizes()">↻ Refresh</button>
+      <div id="pz-summary" style="background:#FEF3C7;color:#92400E;padding:6px 12px;border-radius:8px;font-size:12.5px;font-weight:700;display:none;"></div>
+    </div>
+  </div>
+
+  <!-- Level key -->
+  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">
+    <div style="font-size:11.5px;font-weight:700;color:var(--muted);align-self:center;margin-right:4px;">Levels:</div>
+    <span style="background:#EEF6FF;color:var(--b);padding:3px 10px;border-radius:99px;font-size:11.5px;font-weight:700;">🌟 L1 · 50pts</span>
+    <span style="background:#EEF6FF;color:var(--b);padding:3px 10px;border-radius:99px;font-size:11.5px;font-weight:700;">🏅 L2 · 100pts</span>
+    <span style="background:#EEF6FF;color:var(--b);padding:3px 10px;border-radius:99px;font-size:11.5px;font-weight:700;">🦸 L3 · 150pts</span>
+    <span style="background:#EEF6FF;color:var(--b);padding:3px 10px;border-radius:99px;font-size:11.5px;font-weight:700;">⭐ L4 · 200pts</span>
+    <span style="background:#EEF6FF;color:var(--b);padding:3px 10px;border-radius:99px;font-size:11.5px;font-weight:700;">🔥 L5 · 250pts</span>
+    <span style="background:#EEF6FF;color:var(--b);padding:3px 10px;border-radius:99px;font-size:11.5px;font-weight:700;">🐉 L6 · 300pts</span>
+  </div>
+
+  <div id="pz-list"><div style="text-align:center;padding:40px;color:var(--muted);">Loading prizes...</div></div>
+</div>
+
+<!-- ══ TAB: FREE WASH ══ -->
+<div class="page" id="t-freewash">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+    <div>
+      <div style="font-family:var(--fh);font-size:17px;font-weight:800;color:var(--bd);">🚿 Free Hair Wash Tracker</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:2px;">Customers who have earned their free wash — mark as given when redeemed</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      <input type="text" id="fw-search" placeholder="🔍 Search..." oninput="renderFreeWash()" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:9px;font-family:var(--fb);font-size:13px;outline:none;width:160px;"/>
+      <select id="fw-filter" onchange="renderFreeWash()" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:9px;font-family:var(--fb);font-size:13px;outline:none;background:#fff;cursor:pointer;">
+        <option value="ready">🚿 Ready to Claim</option>
+        <option value="expiring">⏰ Expiring Soon</option>
+        <option value="all">All</option>
+      </select>
+      <button class="btn btn-b" onclick="loadFreeWash()">↻ Refresh</button>
+      <div id="fw-summary" style="padding:6px 12px;border-radius:8px;font-size:12.5px;font-weight:700;display:none;"></div>
+    </div>
+  </div>
+
+  <!-- Info box about expiry -->
+  <div style="background:#FEF3C7;border:1px solid #FCD34D;border-radius:10px;padding:11px 14px;margin-bottom:14px;font-size:12.5px;color:#92400E;font-weight:700;display:flex;gap:10px;align-items:flex-start;">
+    <span style="font-size:18px;flex-shrink:0;">⚠️</span>
+    <div>
+      <div style="margin-bottom:3px;">Free wash must be claimed before passport expiry — Boys: <span id="fw-boy-months">12</span> months · Girls: <span id="fw-girl-months">15</span> months from first stamp.</div>
+      <div style="font-weight:600;">If customer reaches 5 stamps in month 11 but doesn't claim by month 12 → the free wash is lost and cycle resets.</div>
+    </div>
+  </div>
+
+  <div id="fw-list"><div style="text-align:center;padding:40px;color:var(--muted);">Loading...</div></div>
+</div>
+
+<!-- ══ TAB: SETTINGS ══ -->
+<div class="page" id="t-config">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+    <div>
+      <div class="card">
+        <div class="card-title">✂️ Stylist Management</div>
+        <p style="font-size:12.5px;color:var(--muted);margin:6px 0 14px;">Add or remove stylists. One per line.</p>
+        <div class="fg"><label class="fl">Stylists (one per line)</label>
+          <textarea class="fi" id="cfg-sty" rows="8" style="resize:vertical;line-height:1.8;font-size:14px;"></textarea>
+        </div>
+        <div id="cfg-msg" class="sm"></div>
+        <button class="btn btn-y btn-full" onclick="saveCfg()">Save Stylists ✅</button>
+      </div>
+
+      <div class="card">
+        <div class="card-title">💬 WhatsApp Message Links</div>
+        <p style="font-size:12.5px;color:var(--muted);margin:6px 0 14px;">These links are inserted into the WhatsApp message automatically.</p>
+        <div class="fg"><label class="fl">🎫 Loyalty Passport Base URL</label>
+          <input class="fi" type="text" id="cfg-passport" placeholder="https://yasmint2825.github.io/minicuts-loyalty/?customer=1&lookup="/>
+          <div style="font-size:11px;color:var(--muted);margin-top:3px;">Customer mobile is appended automatically</div>
+        </div>
+        <div class="fg"><label class="fl">⭐ Google Review Link</label>
+          <input class="fi" type="text" id="cfg-google" placeholder="https://share.google/..."/>
+        </div>
+        <div class="fg"><label class="fl">📸 Instagram Link</label>
+          <input class="fi" type="text" id="cfg-insta" placeholder="https://instagram.com/minicuts_dso"/>
+        </div>
+        <div id="cfg-links-msg" class="sm"></div>
+        <button class="btn btn-b btn-full" onclick="saveLinks()">Save Links ✅</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <div class="card-title">💬 WhatsApp Message Template</div>
+        <p style="font-size:12.5px;color:var(--muted);margin:6px 0 10px;">Customise the message sent after each stamp. Use these tokens:</p>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;">
+          <span style="background:#EEF6FF;color:var(--b);padding:3px 8px;border-radius:6px;font-size:11.5px;font-weight:700;cursor:pointer;" onclick="insertToken('{name}')">{name}</span>
+          <span style="background:#EEF6FF;color:var(--b);padding:3px 8px;border-radius:6px;font-size:11.5px;font-weight:700;cursor:pointer;" onclick="insertToken('{parent}')">{parent}</span>
+          <span style="background:#EEF6FF;color:var(--b);padding:3px 8px;border-radius:6px;font-size:11.5px;font-weight:700;cursor:pointer;" onclick="insertToken('{stamps}')">{stamps}</span>
+          <span style="background:#EEF6FF;color:var(--b);padding:3px 8px;border-radius:6px;font-size:11.5px;font-weight:700;cursor:pointer;" onclick="insertToken('{left}')">{left}</span>
+          <span style="background:#EEF6FF;color:var(--b);padding:3px 8px;border-radius:6px;font-size:11.5px;font-weight:700;cursor:pointer;" onclick="insertToken('{stylist}')">{stylist}</span>
+          <span style="background:#F0FDF4;color:var(--ok);padding:3px 8px;border-radius:6px;font-size:11.5px;font-weight:700;cursor:pointer;" onclick="insertToken('{passport_link}')">{passport_link}</span>
+          <span style="background:#FFF7ED;color:var(--warn);padding:3px 8px;border-radius:6px;font-size:11.5px;font-weight:700;cursor:pointer;" onclick="insertToken('{google_link}')">{google_link}</span>
+          <span style="background:#FDF2F8;color:#DB2777;padding:3px 8px;border-radius:6px;font-size:11.5px;font-weight:700;cursor:pointer;" onclick="insertToken('{insta_link}')">{insta_link}</span>
+          <span style="background:#FEFCE8;color:#92400E;padding:3px 8px;border-radius:6px;font-size:11.5px;font-weight:700;cursor:pointer;" onclick="insertToken('{free_msg}')">{free_msg}</span>
+        </div>
+        <div class="fg"><label class="fl">Message Template</label>
+          <textarea class="fi" id="cfg-wa-tmpl" rows="18" style="resize:vertical;line-height:1.7;font-size:13px;font-family:inherit;"></textarea>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-ghost" onclick="resetWATemplate()" style="flex:0;">↺ Reset Default</button>
+          <button class="btn btn-y" style="flex:1;" onclick="saveWATemplate()">Save Template ✅</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">📊 Today's Summary</div>
+        <div id="cfg-summary" style="color:var(--muted);font-size:13px;">Go to Queue tab to load data first.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">🔗 Quick Links</div>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px;">
+          <a href="./minicuts-checkin.html" target="_blank" class="btn btn-b btn-full">👤 Customer Check-In Screen</a>
+          <a href="./index.html" target="_blank" class="btn btn-ghost btn-full">📋 Loyalty Dashboard</a>
+          <a href="./minicuts-game.html" target="_blank" class="btn btn-ghost btn-full">🎮 Games App</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div class="tc" id="TC"></div>
+
+<script>
+const SB_URL='https://wtapyfgtwkjyjrjdnhkb.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind0YXB5Zmd0d2tqeWpyamRuaGtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0NDc3ODEsImV4cCI6MjA5NTAyMzc4MX0.y_-iPfb8Pcg9zh42h6RGVBsUVZm80LcA9sPlz_Gl_fA';
+async function sbRaw(path,method='GET',body=null,params=''){
+  const url=SB_URL+'/rest/v1/'+path+(params?'?'+params:'');
+  const h={'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Prefer':'return=representation'};
+  const o={method,headers:h};if(body)o.body=JSON.stringify(body);
+  const r=await fetch(url,o);const t=await r.text();
+  if(!r.ok)throw new Error(t.substring(0,200));
+  return t?JSON.parse(t):[];
+}
+
+// ── Config: all settings live in Supabase staff_config table ──
+const DEFAULT_STYLISTS=['Shakeeb','Farhan','Rizwan','Usman','Hamza','Bilal','Staff'];
+
+async function loadAllConfig(){
+  try{
+    const rows=await sbRaw('staff_config','GET',null,'key=in.(staff_config_data,loyalty_config)&select=key,value&limit=10');
+    const map={};(rows||[]).forEach(r=>{
+      try{map[r.key]=typeof r.value==='string'?JSON.parse(r.value):r.value;}catch(e){map[r.key]=r.value;}
+    });
+    // Staff config (stylists, WA template, links)
+    if(map.staff_config_data){
+      const d=map.staff_config_data;
+      if(d.stylists) STYLISTS=d.stylists;
+      if(d.waTemplate) WA_TEMPLATE=d.waTemplate;
+      if(d.passportBase) WA_PASSPORT_BASE=d.passportBase;
+      if(d.googleLink) WA_GOOGLE=d.googleLink;
+      if(d.instaLink) WA_INSTA=d.instaLink;
+    }
+    // Loyalty config (months, stampsNeeded)
+    if(map.loyalty_config){
+      LCFG=map.loyalty_config;
+    }
+  }catch(e){console.warn('loadAllConfig failed:',e.message);}
+}
+
+async function saveStaffConfig(){
+  const data={stylists:STYLISTS,waTemplate:WA_TEMPLATE,passportBase:WA_PASSPORT_BASE,googleLink:WA_GOOGLE,instaLink:WA_INSTA};
+  // Also mirror to localStorage as fallback
+  localStorage.setItem('mc_ci_cfg',JSON.stringify(data));
+  try{
+    await sbRaw('staff_config','POST',
+      {key:'staff_config_data',value:JSON.stringify(data),updated_at:new Date().toISOString()},
+      'on_conflict=key');
+  }catch(e){
+    // PATCH fallback
+    try{await sbRaw('staff_config','PATCH',{value:JSON.stringify(data),updated_at:new Date().toISOString()},'key=eq.staff_config_data');}
+    catch(e2){console.warn('saveStaffConfig failed:',e2.message);}
+  }
+}
+
+function loadCfgStore(){try{return JSON.parse(localStorage.getItem('mc_ci_cfg')||'{}')}catch(e){return{}}}
+function saveCfgStore(c){
+  localStorage.setItem('mc_ci_cfg',JSON.stringify(c));
+  // Also sync to DB
+  sbRaw('staff_config','POST',{key:'staff_config_data',value:JSON.stringify(c),updated_at:new Date().toISOString()},'on_conflict=key')
+    .catch(()=>sbRaw('staff_config','PATCH',{value:JSON.stringify(c),updated_at:new Date().toISOString()},'key=eq.staff_config_data').catch(()=>{}));
+}
+function loadLoyaltyCfg(){try{return JSON.parse(localStorage.getItem('mc_cfg')||'{}')}catch(e){return{};}}
+let CFG=loadCfgStore();
+let LCFG=loadLoyaltyCfg();
+function boyMonths(){return Number(LCFG.boyMonths)||12;}
+function girlMonths(){return Number(LCFG.girlMonths)||15;}
+function paidNeeded(){return Math.max(1,(Number(LCFG.stampsNeeded)||6)-1);}
+let STYLISTS=CFG.stylists||['Shakeeb','Farhan','Rizwan','Usman','Hamza','Bilal','Staff'];
+const SVCS=['Haircut','Haircut + Wash','Wash Only','Styling','Trim','Other'];
+
+const DEFAULT_WA_TEMPLATE=`Hi {parent}! 👋
+
+Thank you for visiting MiniCuts — {name} looked amazing! ✂️🐼
+
+{free_msg}
+
+🎫 Loyalty Passport:
+{passport_link}
+
+🎮 Play games, earn points & win prizes every visit:
+https://yasmint2825.github.io/minicuts-loyalty/minicuts-game.html
+
+⭐ A small favour:
+We're a small family business that lives for kids like {name}. A quick Google review helps other families find us — 10 seconds, means the world 🙏
+👉 https://g.page/r/CY7wwbQTVi-nEAE/review
+
+📸 Follow us for offers & updates:
+https://www.instagram.com/minicutsdso/
+
+See you soon!
+MiniCuts DSO 🐼`;
+
+let WA_TEMPLATE=CFG.waTemplate||DEFAULT_WA_TEMPLATE;
+let WA_PASSPORT_BASE=CFG.passportBase||'https://yasmint2825.github.io/minicuts-loyalty/?customer=1&lookup=';
+let WA_GOOGLE=CFG.googleLink||'https://g.page/r/CY7wwbQTVi-nEAE/review';
+let WA_INSTA=CFG.instaLink||'https://www.instagram.com/minicutsdso/';
+let _qdata=[];
+
+async function sb(path,method='GET',body=null,params=''){
+  const url=SB_URL+'/rest/v1/'+path+(params?'?'+params:'');
+  const h={'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Prefer':'return=representation'};
+  const o={method,headers:h};if(body)o.body=JSON.stringify(body);
+  const r=await fetch(url,o);const t=await r.text();
+  if(!r.ok)throw new Error(t.substring(0,200));
+  return t?JSON.parse(t):[];
+}
+
+setInterval(()=>{const e=document.getElementById('clk');if(e)e.textContent=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'});},1000);
+
+function today(){const n=new Date();return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');}
+function fmtT(iso){if(!iso)return'—';return new Date(iso).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});}
+function toast(msg,t='ok'){const e=document.createElement('div');e.className='toast '+t;e.innerHTML=(t==='ok'?'✅':t==='err'?'❌':'ℹ️')+' '+msg;document.getElementById('TC').appendChild(e);setTimeout(()=>e.remove(),3500);}
+function showM(el,msg,t){if(!el)return;el.textContent=msg;el.className='sm '+t;el.style.display='block';}
+
+function showTab(id,btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if(btn)btn.classList.add('active');
+}
+
+// QUEUE
+async function loadQ(){
+  const body=document.getElementById('qt-body');
+  if(body) body.innerHTML='<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--muted);">Loading...</td></tr>';
+  try{
+    const rows=await sb('queue','GET',null,'select=*&checkin_date=eq.'+today()+'&order=token_number.asc&limit=200');
+    _qdata=rows||[];
+    populateStyFilter();
+    renderQ();
+    renderHist();
+    updateStats();
+    if(!_qdata.length && body){
+      body.innerHTML='<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--muted);">No check-ins yet today 🐼<br><span style="font-size:12px;">Customers will appear here when they check in</span></td></tr>';
+    }
+  }catch(e){
+    toast('Error: '+e.message,'err');
+    if(body) body.innerHTML='<tr><td colspan="8" style="text-align:center;padding:30px;"><div style="color:var(--err);font-weight:700;margin-bottom:8px;">❌ Failed to load queue</div><div style="color:var(--muted);font-size:12px;margin-bottom:12px;">'+e.message+'</div><div style="font-size:12px;color:var(--muted);">Make sure the <strong>queue</strong> table exists in Supabase.<br>Run the SQL setup below if needed.</div></td></tr>';
+    console.error('loadQ error:',e);
+  }
+}
+
+function populateStyFilter(){
+  const sel=document.getElementById('f-sty');if(!sel)return;
+  const cur=sel.value;sel.innerHTML='<option value="">All Stylists</option>';
+  STYLISTS.forEach(s=>{const o=document.createElement('option');o.value=s;o.textContent=s;sel.appendChild(o);});
+  const used=new Set(_qdata.map(r=>r.stylist).filter(Boolean));
+  used.forEach(s=>{if(!STYLISTS.includes(s)){const o=document.createElement('option');o.value=s;o.textContent=s+'*';sel.appendChild(o);}});
+  sel.value=cur;
+}
+
+function updateStats(){
+  const w=_qdata.filter(r=>r.status==='waiting').length;
+  const c=_qdata.filter(r=>r.status==='called').length;
+  const d=_qdata.filter(r=>r.status==='done').length;
+  const nx=_qdata.find(r=>r.status==='waiting');
+  const e=id=>document.getElementById(id);
+  if(e('st-w'))e('st-w').textContent=w;if(e('st-c'))e('st-c').textContent=c;
+  if(e('st-d'))e('st-d').textContent=d;if(e('st-n'))e('st-n').textContent=nx?String(nx.token_number).padStart(2,'0'):'—';
+}
+
+function renderQ(){
+  const styF=document.getElementById('f-sty')?.value||'';
+  const staF=document.getElementById('f-sta')?.value||'';
+  const nmF=(document.getElementById('f-nm')?.value||'').toLowerCase();
+  // Queue shows only active customers — done and cancelled go to History
+  let data=_qdata.filter(r=>r.status!=='done'&&r.status!=='cancelled');
+  if(styF)data=data.filter(r=>r.stylist===styF);
+  if(staF)data=data.filter(r=>r.status===staF);
+  if(nmF)data=data.filter(r=>(r.customer_name||'').toLowerCase().includes(nmF));
+  const body=document.getElementById('qt-body');if(!body)return;
+  if(!data.length){body.innerHTML='<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--muted);">Queue is clear — no active customers 🐼</td></tr>';return;}
+  body.innerHTML=data.map(row=>buildRow(row)).join('');
+}
+
+function buildRow(r){
+  const done=r.status==='done';const called=r.status==='called';const cancelled=r.status==='cancelled';
+  const guest=r.is_guest||!r.customer_id;const locked=done||cancelled;
+  const sp=done?'<span class="sp sp-d">✅ Done</span>':called?'<span class="sp sp-c">📢 Called</span>':cancelled?'<span class="sp" style="background:#F3F4F6;color:var(--muted);">✕ Cancelled</span>':guest?'<span class="sp sp-g">👤 Guest</span>':'<span class="sp sp-w">⏳ Waiting</span>';
+  const sty1Opts='<option value="">— Stylist 1 —</option>'+STYLISTS.map(s=>'<option value="'+s+'"'+(r.stylist===s?' selected':'')+'>'+s+'</option>').join('');
+  const sty2Opts='<option value="">— Stylist 2 —</option>'+STYLISTS.map(s=>'<option value="'+s+'"'+(r.stylist2===s?' selected':'')+'>'+s+'</option>').join('');
+  const svcOpts=SVCS.map(s=>'<option'+(r.service===s?' selected':'')+'>'+s+'</option>').join('');
+  const remark=escQ(r.remark||'');
+  const tip=r.tip||'';
+  const svcVal=r.service_value||'';
+  return'<tr class="'+(done?'done':called?'called':cancelled?'done':'')+'" id="qr-'+r.id+'">'
+    // Token
+    +'<td><div class="tok-b '+(guest?'guest':'')+'">'+String(r.token_number).padStart(2,'0')+'</div></td>'
+    // Name
+    +'<td><div style="font-weight:800;font-size:13px;">'+(r.customer_name||'')+'</div>'
+      +'<div style="font-size:11px;color:var(--muted);">'+(guest?'👤 Guest':'📱 '+displayMob(r.mobile||''))+'</div></td>'
+    // Service
+    +'<td><select class="isel" onchange="updF(\''+r.id+'\',\'service\',this.value)"'+(locked?' disabled':'')+'>'+svcOpts+'</select></td>'
+    // Time
+    +'<td style="font-size:12px;color:var(--muted);">'+fmtT(r.checkin_time)+'</td>'
+    // Stylists — two dropdowns stacked
+    +'<td>'
+      +'<select class="isel" style="margin-bottom:4px;" onchange="updF(\''+r.id+'\',\'stylist\',this.value)"'+(locked?' disabled':'')+'>'+sty1Opts+'</select>'
+      +'<select class="isel" onchange="updF(\''+r.id+'\',\'stylist2\',this.value)"'+(locked?' disabled':'')+'>'+sty2Opts+'</select>'
+    +'</td>'
+    // Value + Tip + Remark
+    +'<td>'
+      +'<div style="display:flex;gap:5px;margin-bottom:5px;align-items:center;">'
+        +'<span style="font-size:11px;font-weight:700;color:var(--muted);white-space:nowrap;">💵 AED</span>'
+        +'<input class="isel" type="number" min="0" max="9999" step="5" placeholder="Value" value="'+(svcVal||'')+'" style="width:72px;" '+(locked?'disabled ':'')+
+          'onblur="updF(\''+r.id+'\',\'service_value\',this.value?Number(this.value):null)" onkeydown="if(event.key===\'Enter\')this.blur()" title="Service Value AED"/>'
+        +'<span style="font-size:11px;font-weight:700;color:var(--muted);white-space:nowrap;">Tip</span>'
+        +'<input class="isel" type="number" min="0" max="9999" step="5" placeholder="0" value="'+(tip||'')+'" style="width:62px;" '+(locked?'disabled ':'')+
+          'onblur="updF(\''+r.id+'\',\'tip\',this.value?Number(this.value):null)" onkeydown="if(event.key===\'Enter\')this.blur()" title="Tip AED"/>'
+      +'</div>'
+      +'<input class="isel" type="text" placeholder="📝 Remark..." maxlength="120" value="'+remark+'" style="width:100%;" '+(locked?'disabled ':'')+
+        'onblur="updF(\''+r.id+'\',\'remark\',this.value)" onkeydown="if(event.key===\'Enter\')this.blur()"/>'
+    +'</td>'
+    // Status
+    +'<td>'+sp+'</td>'
+    // Actions
+    +'<td><div style="display:flex;gap:4px;flex-direction:column;">'
+    +(done?'<button class="btn btn-ghost btn-sm" onclick="updS(\''+r.id+'\',\'waiting\')">↩ Undo</button>'
+    :cancelled?''
+    :(!called?'<button class="btn btn-b btn-sm" style="white-space:nowrap;" onclick="updS(\''+r.id+'\',\'called\')">📢 Call</button>':'')+
+     '<button class="btn btn-g btn-sm" style="white-space:nowrap;" onclick="markDone(\''+r.id+'\',\''+r.customer_id+'\',\''+escQ(r.customer_name)+'\',\''+r.mobile+'\')">✅ Done+Stamp</button>'+
+     '<button class="btn btn-sm" style="background:#F3F4F6;color:var(--muted);white-space:nowrap;" onclick="cancelToken(\''+r.id+'\',\''+escQ(r.customer_name)+'\')">✕ Cancel</button>')
+    +'</div></td>'
+    +'</tr>';
+}
+
+function displayMob(m){const s=m.replace(/\D/g,'');if(s.startsWith('971'))return'0'+s.slice(3);return m;}
+function escQ(s){return(s||'').replace(/'/g,"\\'").replace(/"/g,'&quot;');}
+
+function renderHist(){
+  const body=document.getElementById('hist-body');if(!body)return;
+  if(!_qdata.length){body.innerHTML='<tr><td colspan="10" style="text-align:center;padding:30px;color:var(--muted);">Refresh the Queue tab to load data</td></tr>';return;}
+  const totalTips=_qdata.filter(r=>r.tip>0).reduce((s,r)=>s+(Number(r.tip)||0),0);
+  const totalRev=_qdata.filter(r=>r.service_value>0).reduce((s,r)=>s+(Number(r.service_value)||0),0);
+  body.innerHTML=_qdata.slice().reverse().map(r=>{
+    const done=r.status==='done';const called=r.status==='called';const cancelled=r.status==='cancelled';const guest=r.is_guest;
+    const sp=done?'<span class="sp sp-d">✅ Done</span>':called?'<span class="sp sp-c">📢 Called</span>':cancelled?'<span class="sp" style="background:#F3F4F6;color:var(--muted);">✕ Cancelled</span>':guest?'<span class="sp sp-g">👤 Guest</span>':'<span class="sp sp-w">⏳ Waiting</span>';
+    const styStr=[r.stylist,r.stylist2].filter(Boolean).join(' & ');
+    return'<tr class="'+(done?'done':called?'called':cancelled?'done':'')+'">'
+      +'<td><div class="tok-b '+(guest?'guest':'')+'">'+String(r.token_number).padStart(2,'0')+'</div></td>'
+      +'<td style="font-weight:700;">'+(r.customer_name||'')+'</td>'
+      +'<td>'+(r.service||'—')+'</td>'
+      +'<td>'+(styStr||'<span style="color:var(--muted);">—</span>')+'</td>'
+      +'<td style="font-weight:800;color:var(--b);">'+(r.service_value?'AED '+r.service_value:'—')+'</td>'
+      +'<td style="font-weight:800;color:var(--ok);">'+(r.tip?'AED '+r.tip:'—')+'</td>'
+      +'<td style="font-size:12px;color:var(--muted);max-width:160px;">'+(r.remark||'—')+'</td>'
+      +'<td>'+sp+'</td>'
+      +'<td style="font-size:12px;color:var(--muted);">'+fmtT(r.checkin_time)+'</td>'
+      +'<td><button class="btn btn-ghost btn-sm" style="font-size:11px;" onclick="editHistRow(\''+r.id+'\')">✏️ Edit</button></td>'
+      +'</tr>';
+  }).join('')
+  +'<tr style="background:#F0FDF4;font-weight:900;border-top:2px solid #86EFAC;">'
+    +'<td colspan="4" style="padding:12px 14px;color:var(--ok);font-size:13px;">💰 Today\'s Totals</td>'
+    +'<td style="padding:12px 14px;color:var(--b);font-size:15px;">AED '+totalRev+'</td>'
+    +'<td style="padding:12px 14px;color:var(--ok);font-size:15px;">AED '+totalTips+'</td>'
+    +'<td colspan="4" style="padding:12px 14px;color:var(--muted);font-size:12px;">Combined: AED '+(totalRev+totalTips)+'</td>'
+  +'</tr>';
+}
+
+function editHistRow(id){
+  const r=_qdata.find(x=>x.id===id);if(!r)return;
+  const sty1Opts=STYLISTS.map(s=>'<option value="'+s+'"'+(r.stylist===s?' selected':'')+'>'+s+'</option>').join('');
+  const sty2Opts=STYLISTS.map(s=>'<option value="'+s+'"'+(r.stylist2===s?' selected':'')+'>'+s+'</option>').join('');
+  const svcOpts=SVCS.map(s=>'<option'+(r.service===s?' selected':'')+'>'+s+'</option>').join('');
+  const ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9000;display:flex;align-items:center;justify-content:center;padding:20px;';
+  ov.innerHTML=`
+    <div style="background:#fff;border-radius:18px;padding:24px;max-width:420px;width:100%;">
+      <div style="font-family:var(--fh);font-size:18px;font-weight:800;color:var(--bd);margin-bottom:4px;">✏️ Edit Record</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:18px;">${r.customer_name} · Token ${String(r.token_number).padStart(2,'0')}</div>
+      <div style="display:grid;gap:12px;">
+        <div><label style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px;">Service</label>
+          <select id="eh-svc" class="fi" style="font-size:13px;">${svcOpts}</select></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div><label style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px;">Stylist 1</label>
+            <select id="eh-sty1" class="fi" style="font-size:13px;"><option value="">— None —</option>${sty1Opts}</select></div>
+          <div><label style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px;">Stylist 2</label>
+            <select id="eh-sty2" class="fi" style="font-size:13px;"><option value="">— None —</option>${sty2Opts}</select></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div><label style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px;">💵 Service Value (AED)</label>
+            <input id="eh-val" class="fi" type="number" min="0" step="5" value="${r.service_value||''}" placeholder="0" style="font-size:13px;"/></div>
+          <div><label style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px;">💰 Tip (AED)</label>
+            <input id="eh-tip" class="fi" type="number" min="0" step="5" value="${r.tip||''}" placeholder="0" style="font-size:13px;"/></div>
+        </div>
+        <div><label style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px;">📝 Remark</label>
+          <input id="eh-rem" class="fi" type="text" maxlength="120" value="${escQ(r.remark||'')}" placeholder="Optional note..." style="font-size:13px;"/></div>
+      </div>
+      <div id="eh-msg" style="display:none;margin-top:10px;padding:8px 12px;border-radius:8px;font-size:12.5px;font-weight:700;"></div>
+      <div style="display:flex;gap:9px;margin-top:18px;">
+        <button style="flex:0;padding:10px 16px;border:1.5px solid var(--border);border-radius:9px;background:transparent;cursor:pointer;font-family:var(--fh);font-size:14px;font-weight:700;" onclick="this.closest('[style*=fixed]').remove()">Cancel</button>
+        <button style="flex:1;padding:11px;background:linear-gradient(135deg,var(--y),#FFB300);color:var(--bd);border:none;border-radius:9px;cursor:pointer;font-family:var(--fh);font-size:15px;font-weight:800;" onclick="saveHistEdit('${id}',this)">Save Changes ✅</button>
+      </div>
+    </div>`;
+  ov.addEventListener('click',e=>{if(e.target===ov)ov.remove();});
+  document.body.appendChild(ov);
+}
+
+async function saveHistEdit(id,btn){
+  const svc=document.getElementById('eh-svc')?.value;
+  const sty1=document.getElementById('eh-sty1')?.value||null;
+  const sty2=document.getElementById('eh-sty2')?.value||null;
+  const val=document.getElementById('eh-val')?.value;
+  const tip=document.getElementById('eh-tip')?.value;
+  const rem=document.getElementById('eh-rem')?.value.trim()||null;
+  const msg=document.getElementById('eh-msg');
+  const service_value=val?Number(val):null;
+  const tipVal=tip?Number(tip):null;
+  if(btn){btn.disabled=true;btn.textContent='Saving...';}
+  try{
+    await sb('queue','PATCH',{service:svc,stylist:sty1,stylist2:sty2,service_value,tip:tipVal,remark:rem},'id=eq.'+id);
+    const r=_qdata.find(x=>x.id===id);
+    if(r){r.service=svc;r.stylist=sty1;r.stylist2=sty2;r.service_value=service_value;r.tip=tipVal;r.remark=rem;}
+    renderHist();
+    toast('Record updated ✅');
+    btn.closest('[style*=fixed]').remove();
+  }catch(e){
+    if(msg){msg.textContent='Error: '+e.message;msg.style.display='block';msg.style.background='#FEE2E2';msg.style.color='var(--err)';}
+    if(btn){btn.disabled=false;btn.textContent='Save Changes ✅';}
+  }
+}
+
+async function updF(id,field,value){
+  try{const u={};u[field]=value;await sb('queue','PATCH',u,'id=eq.'+id);const r=_qdata.find(x=>x.id===id);if(r)r[field]=value;}
+  catch(e){toast('Update error: '+e.message,'err');}
+}
+async function updS(id,status){
+  try{await sb('queue','PATCH',{status},'id=eq.'+id);const r=_qdata.find(x=>x.id===id);if(r)r.status=status;renderQ();renderHist();updateStats();}
+  catch(e){toast('Error: '+e.message,'err');}
+}
+async function cancelToken(id,name){
+  if(!confirm('Remove '+name+' from the queue? (They left before haircut)')) return;
+  try{
+    await sb('queue','PATCH',{status:'cancelled'},'id=eq.'+id);
+    const r=_qdata.find(x=>x.id===id);if(r)r.status='cancelled';
+    _qdata=_qdata.filter(x=>x.id!==id);
+    renderQ();renderHist();updateStats();
+    toast(name+' removed from queue','info');
+  }catch(e){toast('Error: '+e.message,'err');}
+}
+async function markDone(qid,cid,name,mob){
+  const row=document.getElementById('qr-'+qid);
+  const inputs=row?.querySelectorAll('input[type="text"],input[type="number"]');
+  const svcValInput=row?.querySelectorAll('input[type="number"]')[0];
+  const tipInput=row?.querySelectorAll('input[type="number"]')[1];
+  const remarkInput=row?.querySelector('input[type="text"]');
+  const remark=(remarkInput?.value||'').trim()||null;
+  const tip=tipInput?.value?Number(tipInput.value):null;
+  const service_value=svcValInput?.value?Number(svcValInput.value):null;
+  const qRow=_qdata.find(x=>x.id===qid);
+  const stylist=qRow?.stylist||null;
+  const stylist2=qRow?.stylist2||null;
+  const doneBtn=row?.querySelector('.btn-g');if(doneBtn){doneBtn.disabled=true;doneBtn.textContent='...';}
+  try{
+    await sb('queue','PATCH',{status:'done',done_at:new Date().toISOString(),remark,tip,service_value},'id=eq.'+qid);
+    if(cid&&cid!=='null'&&cid){
+      const rows=await sb('customers','GET',null,'select=*&id=eq.'+cid);
+      if(rows?.length){
+        const c=rows[0];
+        // Same-day stamp guard — check visits table for a stamp already today
+        const todayStr=new Date().toISOString().split('T')[0];
+        const todayVisits=await sb('visits','GET',null,'select=id&customer_id=eq.'+cid+'&type=eq.paid&created_at=gte.'+todayStr+'T00:00:00&limit=1');
+        if(todayVisits&&todayVisits.length){
+          toast(name+' already stamped today — cannot add a second stamp on the same day ⚠️','err');
+          if(doneBtn){doneBtn.disabled=false;doneBtn.textContent='✅ Done+Stamp';}
+          return;
+        }
+        const ns=(c.stamps||0)+1;const now=new Date().toISOString();
+        const months=c.gender==='girl'?girlMonths():boyMonths();
+        const fs=c.first_stamp_date||now;
+        const exp=c.expiry_date||(()=>{const d=new Date(fs);d.setMonth(d.getMonth()+months);return d.toISOString();})();
+        await sb('customers','PATCH',{stamps:ns,first_stamp_date:fs,expiry_date:exp,last_visit_date:now},'id=eq.'+cid);
+        await sb('visits','POST',{customer_id:cid,type:'paid',stamp_count_after:ns,cycle_expiry:exp,stylist,stylist2,remark,tip,service_value});
+        const paid=5;const free=ns>=paid;
+        const styStr=[stylist,stylist2].filter(Boolean).join(' & ');
+        toast(name+' — Stamp '+ns+'/'+paid+(free?' 🎁':'')+(styStr?' · '+styStr:'')+(service_value?' · AED '+service_value:'')+(tip?' · Tip '+tip:''));
+        showWAPrompt(name,ns,mob,c.parent,c.gender,stylist,stylist2,remark,tip,service_value);
+      }
+    } else { toast(name+' done (guest)'+(service_value?' · AED '+service_value:'')+(tip?' · Tip AED '+tip:''),'info'); }
+    if(qRow){qRow.status='done';qRow.remark=remark;qRow.tip=tip;qRow.service_value=service_value;}
+    renderQ();renderHist();updateStats();
+  }catch(e){toast('Error: '+e.message,'err');if(doneBtn){doneBtn.disabled=false;doneBtn.textContent='✅ Done+Stamp';}}
+}
+
+function toWANum(mobile){
+  let n=String(mobile||'').replace(/\D/g,'');
+  if(n.startsWith('00971')) n=n.slice(5);
+  else if(n.startsWith('971')) n=n.slice(3);
+  else if(n.startsWith('0'))   n=n.slice(1);
+  return '971'+n;
+}
+function showWAPrompt(name,stamps,mobile,parent,gender,stylist,stylist2,remark,tip,service_value){
+  const paid=5;const free=stamps>=paid;
+  const mob=(mobile||'').replace(/\D/g,'');
+  const isGuest=!mob||mob.startsWith('GUEST');if(isGuest)return;
+  const styStr=[stylist,stylist2].filter(Boolean).join(' & ');
+  const passportLink=WA_PASSPORT_BASE+encodeURIComponent(mobile);
+  const freeMsg=free
+    ?'🎉 Amazing news — '+name+' has earned a FREE Hair Wash! Come in anytime to claim it! 🚿'
+    :'You now have '+stamps+' stamp'+(stamps!==1?'s':'')+' — just '+(paid-stamps)+' more haircut'+(paid-stamps!==1?'s':'')+' for a FREE hair wash! 🚿';
+
+  // Build message from template — substitute all tokens
+  const waMsg=(WA_TEMPLATE||DEFAULT_WA_TEMPLATE)
+    .replace(/\{name\}/g,name)
+    .replace(/\{parent\}/g,parent||name)
+    .replace(/\{stamps\}/g,String(stamps))
+    .replace(/\{left\}/g,String(Math.max(0,paid-stamps)))
+    .replace(/\{stylist\}/g,styStr||'our stylist')
+    .replace(/\{free_msg\}/g,freeMsg)
+    .replace(/\{passport_link\}/g,passportLink)
+    .replace(/\{google_link\}/g,WA_GOOGLE)
+    .replace(/\{insta_link\}/g,WA_INSTA);
+
+  const wa='https://wa.me/'+toWANum(mobile)+'?text='+encodeURIComponent(waMsg);
+  const ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9000;display:flex;align-items:center;justify-content:center;padding:20px;';
+  ov.innerHTML='<div style="background:#fff;border-radius:18px;padding:24px;max-width:420px;width:100%;">'
+    +'<div style="text-align:center;margin-bottom:14px;">'
+      +'<div style="font-size:44px;margin-bottom:8px;">'+(free?'🎁':'✂️')+'</div>'
+      +'<div style="font-family:var(--fh);font-size:19px;font-weight:800;color:var(--bd);">Done! Stamp Added.</div>'
+      +'<div style="font-size:13.5px;color:var(--muted);margin-top:4px;">'+name+' — <strong>'+stamps+'</strong> stamp'+(stamps!==1?'s':'')+(free?' · 🎉 Free wash ready!':' · '+(paid-stamps)+' more')+'</div>'
+    +'</div>'
+    +(styStr||remark||tip||service_value?'<div style="background:#F8FBFF;border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:13px;display:grid;gap:4px;">'
+      +(styStr?'<div>✂️ <strong>Stylist:</strong> '+styStr+'</div>':'')
+      +(service_value?'<div>💵 <strong>Service:</strong> AED '+service_value+'</div>':'')
+      +(tip?'<div style="color:var(--ok);">💰 <strong>Tip:</strong> AED '+tip+'</div>':'')
+      +(remark?'<div>📝 <strong>Remark:</strong> '+remark+'</div>':'')
+      +'</div>':'')
+    // Message preview (editable before sending)
+    +'<div style="margin-bottom:12px;">'
+      +'<div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em;">Message Preview — tap to edit</div>'
+      +'<textarea id="wa-preview" style="width:100%;padding:10px;border:1.5px solid var(--border);border-radius:10px;font-size:12px;line-height:1.6;resize:vertical;font-family:inherit;min-height:140px;outline:none;" onfocus="this.style.borderColor=\'var(--b)\'" onblur="this.style.borderColor=\'var(--border)\'">'+waMsg.replace(/</g,'&lt;')+'</textarea>'
+    +'</div>'
+    +'<a id="wa-send-btn" href="'+wa+'" target="_blank" style="display:block;width:100%;padding:12px;background:#25D366;color:#fff;border-radius:11px;font-family:var(--fh);font-size:15px;font-weight:800;text-decoration:none;margin-bottom:9px;text-align:center;box-sizing:border-box;">💬 Send WhatsApp</a>'
+    +'<button style="width:100%;padding:10px;border:1.5px solid var(--border);border-radius:9px;background:transparent;cursor:pointer;font-family:var(--fh);font-size:14px;font-weight:700;">Close</button>'
+    +'</div>';
+  // Update WA link dynamically if message is edited
+  const preview=ov.querySelector('#wa-preview');
+  const sendBtn=ov.querySelector('#wa-send-btn');
+  if(preview&&sendBtn){
+    preview.addEventListener('input',function(){
+      sendBtn.href='https://wa.me/'+toWANum(mobile)+'?text='+encodeURIComponent(this.value);
+    });
+  }
+  ov.querySelector('button').addEventListener('click',()=>ov.remove());
+  ov.addEventListener('click',e=>{if(e.target===ov)ov.remove();});
+  document.body.appendChild(ov);
+}
+
+// CONFIG
+function loadCfgScreen(){
+  const ta=document.getElementById('cfg-sty');
+  if(ta)ta.value=STYLISTS.join('\n');
+  const tmpl=document.getElementById('cfg-wa-tmpl');
+  if(tmpl)tmpl.value=WA_TEMPLATE;
+  const pass=document.getElementById('cfg-passport');
+  if(pass)pass.value=WA_PASSPORT_BASE;
+  const goog=document.getElementById('cfg-google');
+  if(goog)goog.value=WA_GOOGLE;
+  const inst=document.getElementById('cfg-insta');
+  if(inst)inst.value=WA_INSTA;
+  // Summary
+  const sumEl=document.getElementById('cfg-summary');
+  if(sumEl&&_qdata.length){
+    const done=_qdata.filter(r=>r.status==='done');
+    const totalTips=_qdata.filter(r=>r.tip>0).reduce((s,r)=>s+(Number(r.tip)||0),0);
+    const totalRev=_qdata.filter(r=>r.service_value>0).reduce((s,r)=>s+(Number(r.service_value)||0),0);
+    const byS={};
+    done.forEach(r=>{
+      [r.stylist,r.stylist2].filter(Boolean).forEach(s=>{
+        if(!byS[s])byS[s]={count:0,tips:0,rev:0};
+        byS[s].count++;
+        byS[s].tips+=Number(r.tip)||0;
+      });
+      const pri=r.stylist||'Unassigned';
+      if(!byS[pri])byS[pri]={count:0,tips:0,rev:0};
+      byS[pri].rev+=Number(r.service_value)||0;
+    });
+    sumEl.innerHTML='<div style="font-size:13px;font-weight:700;margin-bottom:10px;color:var(--bd);">Served: <strong>'+done.length+'</strong> · Revenue: <span style="color:var(--b);">AED '+totalRev+'</span> · Tips: <span style="color:var(--ok);">AED '+totalTips+'</span></div>'
+      +Object.entries(byS).map(([s,v])=>'<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;"><span>✂️ <strong>'+s+'</strong></span><span style="display:flex;gap:12px;"><span>'+v.count+' served</span>'+(v.rev?'<span style="color:var(--b);">AED '+v.rev+'</span>':'')+(v.tips?'<span style="color:var(--ok);">Tip '+v.tips+'</span>':'')+'</span></div>').join('');
+  } else if(sumEl){sumEl.innerHTML='<div style="color:var(--muted);font-size:13px;">Load the queue first to see today\'s summary.</div>';}
+}
+
+function saveCfg(){
+  const ta=document.getElementById('cfg-sty');const msg=document.getElementById('cfg-msg');
+  const list=(ta?.value||'').split('\n').map(s=>s.trim()).filter(Boolean);
+  if(!list.length){showM(msg,'Add at least one stylist ❌','err');return;}
+  STYLISTS=list;CFG.stylists=list;saveCfgStore(CFG);
+  showM(msg,'Saved ✅','ok');toast('Stylist list updated');
+  populateStyFilter();
+}
+function saveLinks(){
+  const msg=document.getElementById('cfg-links-msg');
+  WA_PASSPORT_BASE=(document.getElementById('cfg-passport')?.value||'').trim()||WA_PASSPORT_BASE;
+  WA_GOOGLE=(document.getElementById('cfg-google')?.value||'').trim()||WA_GOOGLE;
+  WA_INSTA=(document.getElementById('cfg-insta')?.value||'').trim()||WA_INSTA;
+  CFG.passportBase=WA_PASSPORT_BASE;CFG.googleLink=WA_GOOGLE;CFG.instaLink=WA_INSTA;
+  saveCfgStore(CFG);showM(msg,'Links saved ✅','ok');toast('Links updated');
+}
+
+function saveWATemplate(){
+  const tmpl=document.getElementById('cfg-wa-tmpl')?.value||'';
+  if(!tmpl.trim()){toast('Template cannot be empty','err');return;}
+  WA_TEMPLATE=tmpl;CFG.waTemplate=tmpl;saveCfgStore(CFG);
+  toast('WhatsApp template saved ✅');
+}
+
+function resetWATemplate(){
+  if(!confirm('Reset to default template?')) return;
+  WA_TEMPLATE=DEFAULT_WA_TEMPLATE;
+  const tmpl=document.getElementById('cfg-wa-tmpl');
+  if(tmpl)tmpl.value=DEFAULT_WA_TEMPLATE;
+  delete CFG.waTemplate;saveCfgStore(CFG);
+  toast('Template reset to default');
+}
+
+function insertToken(token){
+  const ta=document.getElementById('cfg-wa-tmpl');
+  if(!ta)return;
+  const start=ta.selectionStart,end=ta.selectionEnd;
+  ta.value=ta.value.substring(0,start)+token+ta.value.substring(end);
+  ta.focus();ta.selectionStart=ta.selectionEnd=start+token.length;
+}
+
+// ══ PRIZES ══
+const GAME_LEVELS=[
+  {level:1,pts:50, badge:'Panda Explorer',  icon:'🌟'},
+  {level:2,pts:100,badge:'Panda Adventurer',icon:'🏅'},
+  {level:3,pts:150,badge:'Panda Hero',      icon:'🦸'},
+  {level:4,pts:200,badge:'Panda Superstar', icon:'⭐'},
+  {level:5,pts:250,badge:'Panda Legend',    icon:'🔥'},
+  {level:6,pts:300,badge:'Dragon Warrior',  icon:'🐉'},
+];
+let _pzPlayers=[],_pzPrizes=[],_pzExpanded={};
+
+async function loadPrizes(){
+  document.getElementById('pz-list').innerHTML='<div style="text-align:center;padding:40px;color:var(--muted);">Loading...</div>';
+  try{
+    const [players,prizes]=await Promise.all([
+      sb('customers','GET',null,'select=id,name,mobile,gender,game_points&game_points=gt.0&order=game_points.desc&limit=500'),
+      sb('prizes_given','GET',null,'select=*&limit=2000').catch(()=>[])
+    ]);
+    _pzPlayers=players||[];_pzPrizes=prizes||[];
+    renderPrizes();
+  }catch(e){
+    document.getElementById('pz-list').innerHTML='<div style="color:var(--err);padding:20px;">Error: '+e.message+'</div>';
+  }
+}
+
+function pzPending(p){
+  const given=new Set((_pzPrizes.filter(x=>x.customer_id===p.id)).map(x=>x.stage_pts));
+  return GAME_LEVELS.filter(l=>p.game_points>=l.pts&&!given.has(l.pts));
+}
+function pzGiven(p){
+  const pp=_pzPrizes.filter(x=>x.customer_id===p.id);
+  const given=new Set(pp.map(x=>x.stage_pts));
+  return GAME_LEVELS.filter(l=>p.game_points>=l.pts&&given.has(l.pts)).map(l=>({...l,givenRow:pp.find(x=>x.stage_pts===l.pts)}));
+}
+
+function renderPrizes(){
+  const search=(document.getElementById('pz-search')?.value||'').toLowerCase();
+  const filter=document.getElementById('pz-filter')?.value||'all';
+  let data=_pzPlayers;
+  if(search) data=data.filter(p=>(p.name||'').toLowerCase().includes(search));
+  if(filter==='pending') data=data.filter(p=>pzPending(p).length>0);
+  if(filter==='given') data=data.filter(p=>pzPending(p).length===0&&pzGiven(p).length>0);
+
+  const totalPending=_pzPlayers.filter(p=>pzPending(p).length>0).length;
+  const sum=document.getElementById('pz-summary');
+  if(sum){
+    if(totalPending>0){sum.style.display='block';sum.style.background='#FEF3C7';sum.style.color='#92400E';sum.textContent='🔔 '+totalPending+' player'+(totalPending!==1?'s':'')+' with prizes pending';}
+    else{sum.style.display='block';sum.style.background='#DCFCE7';sum.style.color='var(--ok)';sum.textContent='✅ All caught up — no prizes pending!';}
+  }
+
+  const el=document.getElementById('pz-list');if(!el)return;
+  if(!data.length){
+    el.innerHTML='<div style="text-align:center;padding:60px;color:var(--muted);">'
+      +(filter==='pending'
+        ?'<div style="font-size:40px;margin-bottom:12px;">🎉</div><div style="font-family:var(--fh);font-size:17px;font-weight:800;color:var(--ok);margin-bottom:6px;">All prizes given!</div><div style="font-size:13px;">Players will reappear here when they reach the next level.</div>'
+        :'<div style="font-size:13px;">No players found 🐼</div>')
+      +'</div>';
+    return;
+  }
+
+  el.innerHTML=data.map(p=>{
+    const pending=pzPending(p);const given=pzGiven(p);
+    const hasPending=pending.length>0;
+    const isExp=_pzExpanded[p.id];
+    const reachedLevels=GAME_LEVELS.filter(l=>p.game_points>=l.pts);
+
+    const pendingTags=pending.map(l=>'<span style="background:#FEF3C7;color:#92400E;border:1px solid #FCD34D;padding:3px 8px;border-radius:99px;font-size:11px;font-weight:800;white-space:nowrap;">🎁 '+l.icon+' L'+l.level+' Prize!</span>').join('');
+    const givenTag=given.length?'<span style="background:#DCFCE7;color:var(--ok);padding:3px 8px;border-radius:99px;font-size:11px;font-weight:800;">✅ '+given.length+' given</span>':'';
+    const curLv=[...GAME_LEVELS].reverse().find(l=>p.game_points>=l.pts);
+    const lvTag=curLv?'<span style="background:#EEF6FF;color:var(--b);padding:3px 8px;border-radius:99px;font-size:11px;font-weight:700;">'+curLv.icon+' L'+curLv.level+'</span>':'';
+
+    const rows=reachedLevels.map(l=>{
+      const gr=(_pzPrizes.filter(x=>x.customer_id===p.id)).find(x=>x.stage_pts===l.pts);
+      return'<div style="display:flex;align-items:center;gap:12px;padding:11px 16px;border-top:1px solid var(--border);background:'+( gr?'#F9FAFB':'linear-gradient(90deg,#FFFBEB,#fff)')+';">'
+        +'<div style="width:36px;height:36px;border-radius:9px;background:'+(gr?'#E5E7EB':'linear-gradient(135deg,var(--y),#FFB300)')+';display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;">'+l.icon+'</div>'
+        +'<div style="flex:1;">'
+          +'<div style="font-weight:800;font-size:13.5px;">Level '+l.level+' · '+l.badge+'</div>'
+          +'<div style="font-size:11.5px;color:var(--muted);">'+l.pts+' pts'+(gr?' · ✅ Given '+fmtT(gr.given_at)+' ('+fmtDate(gr.given_at)+')':' · 🎁 Prize not yet given')+'</div>'
+        +'</div>'
+        +(gr
+          ?'<span style="background:#DCFCE7;color:var(--ok);padding:4px 10px;border-radius:99px;font-size:11px;font-weight:800;flex-shrink:0;">✅ Given</span>'
+          :'<button class="btn btn-y btn-sm" style="flex-shrink:0;" onclick="pzGive(event,\''+p.id+'\',\''+escQ(p.name)+'\','+l.pts+',\'Level '+l.level+' · '+escQ(l.badge)+'\')">🎁 Mark Given</button>'
+        )
+      +'</div>';
+    }).join('');
+
+    return'<div data-pz="'+p.id+'" style="background:#fff;border-radius:13px;margin-bottom:9px;border:'+(hasPending?'2px solid var(--warn)':'1.5px solid var(--border)')+';overflow:hidden;box-shadow:'+(hasPending?'0 0 0 3px rgba(217,119,6,.08)':'none')+';"><div style="display:flex;align-items:center;gap:13px;padding:13px 16px;cursor:pointer;" onclick="pzToggle(\''+p.id+'\')">'
+      +'<div style="width:40px;height:40px;border-radius:50%;background:'+(p.gender==='girl'?'#EC4899':'var(--bd)')+';color:#fff;font-family:var(--fh);font-size:17px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0;">'+p.name.charAt(0).toUpperCase()+'</div>'
+      +'<div style="flex:1;min-width:0;"><div style="font-weight:800;font-size:14.5px;">'+p.name+'</div><div style="font-size:11.5px;color:var(--muted);">'+displayMob(p.mobile||'')+'</div></div>'
+      +'<div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center;">'+pendingTags+givenTag+lvTag+'</div>'
+      +'<div style="font-family:var(--fh);font-size:21px;font-weight:900;color:var(--bd);margin-left:12px;">'+p.game_points+'<span style="font-size:11px;font-weight:700;color:var(--muted);"> pts</span></div>'
+      +'<div style="margin-left:10px;color:var(--muted);">'+(isExp?'▲':'▼')+'</div>'
+    +'</div>'+(isExp&&rows?rows:'')+'</div>';
+  }).join('');
+}
+
+function pzToggle(id){_pzExpanded[id]=!_pzExpanded[id];renderPrizes();}
+
+async function pzGive(e,custId,custName,stagePts,stageLabel){
+  e.stopPropagation();
+  const btn=e.target;
+  if(!confirm('Mark "'+stageLabel+'" as given to '+custName+'?')) return;
+  btn.disabled=true;btn.textContent='Saving...';
+  try{
+    await sb('prizes_given','POST',{customer_id:custId,stage_pts:stagePts,stage_label:stageLabel,given_at:new Date().toISOString(),given_by:'staff'});
+    _pzPrizes.push({customer_id:custId,stage_pts:stagePts,stage_label:stageLabel,given_at:new Date().toISOString(),given_by:'staff'});
+    toast('🎁 Prize marked as given for '+custName);
+    // Check if player still has pending prizes after this one
+    const player=_pzPlayers.find(p=>p.id===custId);
+    const stillPending=player?pzPending(player).length>0:false;
+    if(!stillPending){
+      // No more pending — collapse and fade out card before re-render
+      _pzExpanded[custId]=false;
+      const card=document.querySelector('[data-pz="'+custId+'"]');
+      if(card){
+        card.style.transition='opacity .4s,transform .4s';
+        card.style.opacity='0';card.style.transform='translateX(30px)';
+        setTimeout(()=>renderPrizes(),420);
+      } else { renderPrizes(); }
+    } else {
+      _pzExpanded[custId]=true;
+      renderPrizes();
+    }
+  }catch(e2){
+    toast('Error: '+e2.message,'err');
+    btn.disabled=false;btn.textContent='🎁 Mark Given';
+  }
+}
+
+function fmtDate(iso){if(!iso)return'—';return new Date(iso).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});}
+
+// ══ FREE WASH TRACKER ══
+let _fwData=[];
+
+async function loadFreeWash(){
+  // Fetch loyalty config directly from Supabase so it's always in sync with index.html
+  try{
+    const rows=await sb('staff_config','GET',null,'select=value&key=eq.loyalty_config&limit=1');
+    if(rows&&rows.length){
+      const saved=JSON.parse(rows[0].value||'{}');
+      LCFG=Object.assign({boyMonths:12,girlMonths:15,stampsNeeded:6},saved);
+    }
+  }catch(e){
+    // Fallback to localStorage
+    try{LCFG=JSON.parse(localStorage.getItem('mc_cfg')||'{}');}catch(e2){LCFG={};}
+  }
+  const bm=document.getElementById('fw-boy-months');
+  const gm=document.getElementById('fw-girl-months');
+  if(bm)bm.textContent=boyMonths();
+  if(gm)gm.textContent=girlMonths();
+  document.getElementById('fw-list').innerHTML='<div style="text-align:center;padding:40px;color:var(--muted);">Loading...</div>';
+  try{
+    const paid=paidNeeded();
+    const rows=await sb('customers','GET',null,'select=id,name,mobile,gender,stamps,redemptions,first_stamp_date,expiry_date,last_visit_date,parent&stamps=gte.'+paid+'&order=expiry_date.asc&limit=500');
+    _fwData=rows||[];
+    renderFreeWash();
+  }catch(e){
+    document.getElementById('fw-list').innerHTML='<div style="color:var(--err);padding:20px;">Error: '+e.message+'</div>';
+  }
+}
+
+function renderFreeWash(){
+  const search=(document.getElementById('fw-search')?.value||'').toLowerCase();
+  const filter=document.getElementById('fw-filter')?.value||'ready';
+  const now=new Date();
+  const PAID=paidNeeded();
+
+  let data=_fwData.filter(c=>Number(c.stamps||0)>=PAID);
+  if(search) data=data.filter(c=>(c.name||'').toLowerCase().includes(search));
+
+  // Categorise each
+  data=data.map(c=>{
+    const exp=c.expiry_date?new Date(c.expiry_date):null;
+    const expired=exp&&now>exp;
+    const daysLeft=exp?Math.ceil((exp-now)/864e5):null;
+    const expiringSoon=!expired&&daysLeft!==null&&daysLeft<=30;
+    return{...c,expired,daysLeft,expiringSoon};
+  });
+
+  if(filter==='ready') data=data.filter(c=>!c.expired);
+  if(filter==='expiring') data=data.filter(c=>c.expiringSoon&&!c.expired);
+
+  const readyCount=_fwData.filter(c=>Number(c.stamps||0)>=paidNeeded()&&!(c.expiry_date&&now>new Date(c.expiry_date))).length;
+  const sum=document.getElementById('fw-summary');
+  if(sum){
+    sum.style.display='block';
+    if(readyCount>0){sum.style.background='#FEF3C7';sum.style.color='#92400E';sum.textContent='🚿 '+readyCount+' customer'+(readyCount!==1?'s':'')+' ready to claim';}
+    else{sum.style.background='#DCFCE7';sum.style.color='var(--ok)';sum.textContent='✅ All claimed';}
+  }
+
+  const el=document.getElementById('fw-list');if(!el)return;
+  if(!data.length){
+    el.innerHTML='<div style="text-align:center;padding:60px;color:var(--muted);"><div style="font-size:36px;margin-bottom:10px;">🚿</div><div style="font-size:14px;">'+(filter==='ready'?'No customers ready to claim right now':'No customers found')+'</div></div>';
+    return;
+  }
+
+  el.innerHTML=data.map(c=>{
+    const stamps=Number(c.stamps||0);const PAID=paidNeeded();
+    const bg=c.expiringSoon?'#FFFBEB':c.expired?'#FFF5F5':'#fff';
+    const border=c.expiringSoon?'#FCD34D':c.expired?'#FCA5A5':'var(--border)';
+    const statusBadge=c.expired
+      ?'<span style="background:#FEE2E2;color:var(--err);padding:3px 9px;border-radius:99px;font-size:11px;font-weight:800;">⏰ Expired</span>'
+      :c.expiringSoon
+        ?'<span style="background:#FEF3C7;color:#92400E;padding:3px 9px;border-radius:99px;font-size:11px;font-weight:800;">⚠️ Expires in '+c.daysLeft+'d</span>'
+        :'<span style="background:#DCFCE7;color:var(--ok);padding:3px 9px;border-radius:99px;font-size:11px;font-weight:800;">✅ Ready to Claim</span>';
+    const mob=(c.mobile||'').replace(/\D/g,'');
+    const waMsg='Hi '+(c.parent||c.name)+'!\\n\\n🎉 Great news! '+c.name+' has earned a FREE Hair Wash at MiniCuts!\\n\\n✂️ Come in anytime before '+fmtDate(c.expiry_date)+' to claim it.\\n\\nSee you soon!\\nMiniCuts DSO 🐼';
+    const wa='https://wa.me/'+toWANum(c.mobile)+'?text='+encodeURIComponent(waMsg);
+    return`<div style="display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:13px;margin-bottom:9px;background:${bg};border:1.5px solid ${border};">
+      <div style="width:44px;height:44px;border-radius:50%;background:${c.gender==='girl'?'#EC4899':'var(--bd)'};color:#fff;font-family:var(--fh);font-size:18px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${c.name.charAt(0).toUpperCase()}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:800;font-size:14.5px;">${c.name} ${statusBadge}</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:3px;">📱 ${displayMob(c.mobile||'')} · ${c.gender==='girl'?'👧 Girl':'👦 Boy'} · ${stamps} stamps · Expires ${fmtDate(c.expiry_date)}</div>
+        <div style="font-size:11.5px;color:var(--muted);margin-top:1px;">Times redeemed: ${c.redemptions||0} · First stamp: ${fmtDate(c.first_stamp_date)}</div>
+      </div>
+      <div style="display:flex;gap:7px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;">
+        ${!c.expired?`<a href="${wa}" target="_blank" class="btn btn-ghost btn-sm" style="font-size:12px;text-decoration:none;">💬 Remind</a>`:''}
+        ${!c.expired?`<button class="btn btn-y btn-sm" onclick="markFreeWashGiven('${c.id}','${escQ(c.name)}',this)">🚿 Mark Given</button>`:'<span style="color:var(--err);font-size:12px;font-weight:700;">Expired — cycle reset needed</span>'}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function markFreeWashGiven(id,name,btn){
+  if(!confirm('Mark free hair wash as given to '+name+'? This will reset their stamp card.')) return;
+  btn.disabled=true;btn.textContent='Saving...';
+  try{
+    // Fetch current customer data
+    const rows=await sb('customers','GET',null,'select=*&id=eq.'+id);
+    const c=rows[0];if(!c)throw new Error('Customer not found');
+    const now=new Date().toISOString();
+    const months=c.gender==='girl'?girlMonths():boyMonths();
+    // Archive current cycle
+    await sb('cycles','POST',{customer_id:id,stamps_earned:c.stamps||0,first_stamp_date:c.first_stamp_date,expiry_date:c.expiry_date,ended_at:now,ended_by:'redeemed'}).catch(()=>{});
+    // Reset stamps, increment redemptions
+    const newExpiry=new Date();newExpiry.setMonth(newExpiry.getMonth()+months);
+    await sb('customers','PATCH',{stamps:0,redemptions:(c.redemptions||0)+1,first_stamp_date:null,expiry_date:null,last_visit_date:now},'id=eq.'+id);
+    await sb('visits','POST',{customer_id:id,type:'free',stamp_count_after:0,cycle_expiry:null});
+    toast('🚿 Free wash marked as given for '+name+' — stamp card reset!');
+    loadFreeWash();
+  }catch(e){
+    toast('Error: '+e.message,'err');
+    btn.disabled=false;btn.textContent='🚿 Mark Given';
+  }
+}
+
+// AUTO REFRESH
+setInterval(()=>{if(document.getElementById('t-queue').classList.contains('active'))loadQ();},120000);
+
+// INIT — load config from DB first, then load queue
+loadAllConfig().then(()=>{loadQ();populateStyFilter();});
+</script>
+</body>
+</html>
