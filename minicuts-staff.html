@@ -165,16 +165,59 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
 <!-- ══ TAB: SETTINGS ══ -->
 <div class="page" id="t-config">
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
-    <div class="card">
-      <div class="card-title">✂️ Stylist Management</div>
-      <p style="font-size:12.5px;color:var(--muted);margin:6px 0 14px;">Add or remove stylists. One per line. These appear in the queue dropdown.</p>
-      <div class="fg"><label class="fl">Stylists (one per line)</label>
-        <textarea class="fi" id="cfg-sty" rows="10" style="resize:vertical;line-height:1.8;font-size:14px;"></textarea>
-      </div>
-      <div id="cfg-msg" class="sm"></div>
-      <button class="btn btn-y btn-full" onclick="saveCfg()">Save Stylists ✅</button>
-    </div>
     <div>
+      <div class="card">
+        <div class="card-title">✂️ Stylist Management</div>
+        <p style="font-size:12.5px;color:var(--muted);margin:6px 0 14px;">Add or remove stylists. One per line.</p>
+        <div class="fg"><label class="fl">Stylists (one per line)</label>
+          <textarea class="fi" id="cfg-sty" rows="8" style="resize:vertical;line-height:1.8;font-size:14px;"></textarea>
+        </div>
+        <div id="cfg-msg" class="sm"></div>
+        <button class="btn btn-y btn-full" onclick="saveCfg()">Save Stylists ✅</button>
+      </div>
+
+      <div class="card">
+        <div class="card-title">💬 WhatsApp Message Links</div>
+        <p style="font-size:12.5px;color:var(--muted);margin:6px 0 14px;">These links are inserted into the WhatsApp message automatically.</p>
+        <div class="fg"><label class="fl">🎫 Loyalty Passport Base URL</label>
+          <input class="fi" type="text" id="cfg-passport" placeholder="https://yasmint2825.github.io/minicuts-loyalty/?customer=1&lookup="/>
+          <div style="font-size:11px;color:var(--muted);margin-top:3px;">Customer mobile is appended automatically</div>
+        </div>
+        <div class="fg"><label class="fl">⭐ Google Review Link</label>
+          <input class="fi" type="text" id="cfg-google" placeholder="https://share.google/..."/>
+        </div>
+        <div class="fg"><label class="fl">📸 Instagram Link</label>
+          <input class="fi" type="text" id="cfg-insta" placeholder="https://instagram.com/minicuts_dso"/>
+        </div>
+        <div id="cfg-links-msg" class="sm"></div>
+        <button class="btn btn-b btn-full" onclick="saveLinks()">Save Links ✅</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <div class="card-title">💬 WhatsApp Message Template</div>
+        <p style="font-size:12.5px;color:var(--muted);margin:6px 0 10px;">Customise the message sent after each stamp. Use these tokens:</p>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;">
+          <span style="background:#EEF6FF;color:var(--b);padding:3px 8px;border-radius:6px;font-size:11.5px;font-weight:700;cursor:pointer;" onclick="insertToken('{name}')">{name}</span>
+          <span style="background:#EEF6FF;color:var(--b);padding:3px 8px;border-radius:6px;font-size:11.5px;font-weight:700;cursor:pointer;" onclick="insertToken('{parent}')">{parent}</span>
+          <span style="background:#EEF6FF;color:var(--b);padding:3px 8px;border-radius:6px;font-size:11.5px;font-weight:700;cursor:pointer;" onclick="insertToken('{stamps}')">{stamps}</span>
+          <span style="background:#EEF6FF;color:var(--b);padding:3px 8px;border-radius:6px;font-size:11.5px;font-weight:700;cursor:pointer;" onclick="insertToken('{left}')">{left}</span>
+          <span style="background:#EEF6FF;color:var(--b);padding:3px 8px;border-radius:6px;font-size:11.5px;font-weight:700;cursor:pointer;" onclick="insertToken('{stylist}')">{stylist}</span>
+          <span style="background:#F0FDF4;color:var(--ok);padding:3px 8px;border-radius:6px;font-size:11.5px;font-weight:700;cursor:pointer;" onclick="insertToken('{passport_link}')">{passport_link}</span>
+          <span style="background:#FFF7ED;color:var(--warn);padding:3px 8px;border-radius:6px;font-size:11.5px;font-weight:700;cursor:pointer;" onclick="insertToken('{google_link}')">{google_link}</span>
+          <span style="background:#FDF2F8;color:#DB2777;padding:3px 8px;border-radius:6px;font-size:11.5px;font-weight:700;cursor:pointer;" onclick="insertToken('{insta_link}')">{insta_link}</span>
+          <span style="background:#FEFCE8;color:#92400E;padding:3px 8px;border-radius:6px;font-size:11.5px;font-weight:700;cursor:pointer;" onclick="insertToken('{free_msg}')">{free_msg}</span>
+        </div>
+        <div class="fg"><label class="fl">Message Template</label>
+          <textarea class="fi" id="cfg-wa-tmpl" rows="18" style="resize:vertical;line-height:1.7;font-size:13px;font-family:inherit;"></textarea>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-ghost" onclick="resetWATemplate()" style="flex:0;">↺ Reset Default</button>
+          <button class="btn btn-y" style="flex:1;" onclick="saveWATemplate()">Save Template ✅</button>
+        </div>
+      </div>
+
       <div class="card">
         <div class="card-title">📊 Today's Summary</div>
         <div id="cfg-summary" style="color:var(--muted);font-size:13px;">Go to Queue tab to load data first.</div>
@@ -202,6 +245,38 @@ function saveCfgStore(c){localStorage.setItem('mc_ci_cfg',JSON.stringify(c));}
 let CFG=loadCfgStore();
 let STYLISTS=CFG.stylists||['Shakeeb','Farhan','Rizwan','Usman','Hamza','Bilal','Staff'];
 const SVCS=['Haircut','Haircut + Wash','Wash Only','Styling','Trim','Other'];
+
+const DEFAULT_WA_TEMPLATE=`Hi {parent}! 👋
+
+Thank you for visiting MiniCuts today — {name} looked absolutely amazing! ✂️🐼
+
+{free_msg}
+
+🎫 Check {name}'s loyalty passport anytime:
+{passport_link}
+
+——
+
+⭐ A small favour from our hearts:
+
+We're a small family business that lives and breathes for kids like {name}. Every Google review genuinely helps other families find us — it takes just 10 seconds and means the world to our team.
+
+👉 {google_link}
+
+If you enjoyed your visit today, even a few words would make our day 🙏
+
+——
+
+📸 Follow us on Instagram for tips, offers & MiniCuts moments:
+{insta_link}
+
+See you soon!
+MiniCuts DSO 🐼`;
+
+let WA_TEMPLATE=CFG.waTemplate||DEFAULT_WA_TEMPLATE;
+let WA_PASSPORT_BASE=CFG.passportBase||'https://yasmint2825.github.io/minicuts-loyalty/?customer=1&lookup=';
+let WA_GOOGLE=CFG.googleLink||'https://share.google/xpTR5fVOVbt4pwg8X';
+let WA_INSTA=CFG.instaLink||'https://instagram.com/minicuts_dso';
 let _qdata=[];
 
 async function sb(path,method='GET',body=null,params=''){
@@ -438,26 +513,54 @@ function showWAPrompt(name,stamps,mobile,parent,gender,stylist,stylist2,remark,t
   const mob=(mobile||'').replace(/\D/g,'');
   const isGuest=!mob||mob.startsWith('GUEST');if(isGuest)return;
   const styStr=[stylist,stylist2].filter(Boolean).join(' & ');
-  const waMsg='Hi '+(parent||name)+'!\n\nThank you for visiting MiniCuts — '+name+' looked amazing! ✂️🐼\n\n'
-    +(free?'🎉 You\'ve earned a FREE Hair Wash! Come in anytime to claim it!':'You now have '+stamps+' stamp'+(stamps!==1?'s':'')+' — just '+(paid-stamps)+' more for a free hair wash! 🚿')
-    +(styStr?'\n\nStylist today: '+styStr:'')
-    +'\n\nSee you soon!\nMiniCuts DSO';
+  const passportLink=WA_PASSPORT_BASE+encodeURIComponent(mobile);
+  const freeMsg=free
+    ?'🎉 Amazing news — '+name+' has earned a FREE Hair Wash! Come in anytime to claim it! 🚿'
+    :'You now have '+stamps+' stamp'+(stamps!==1?'s':'')+' — just '+(paid-stamps)+' more haircut'+(paid-stamps!==1?'s':'')+' for a FREE hair wash! 🚿';
+
+  // Build message from template — substitute all tokens
+  const waMsg=(WA_TEMPLATE||DEFAULT_WA_TEMPLATE)
+    .replace(/\{name\}/g,name)
+    .replace(/\{parent\}/g,parent||name)
+    .replace(/\{stamps\}/g,String(stamps))
+    .replace(/\{left\}/g,String(Math.max(0,paid-stamps)))
+    .replace(/\{stylist\}/g,styStr||'our stylist')
+    .replace(/\{free_msg\}/g,freeMsg)
+    .replace(/\{passport_link\}/g,passportLink)
+    .replace(/\{google_link\}/g,WA_GOOGLE)
+    .replace(/\{insta_link\}/g,WA_INSTA);
+
   const wa='https://wa.me/'+toWANum(mobile)+'?text='+encodeURIComponent(waMsg);
   const ov=document.createElement('div');
   ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9000;display:flex;align-items:center;justify-content:center;padding:20px;';
-  ov.innerHTML='<div style="background:#fff;border-radius:18px;padding:24px;max-width:380px;width:100%;text-align:center;">'
-    +'<div style="font-size:44px;margin-bottom:8px;">'+(free?'🎁':'✂️')+'</div>'
-    +'<div style="font-family:var(--fh);font-size:19px;font-weight:800;color:var(--bd);margin-bottom:4px;">Done! Stamp Added.</div>'
-    +'<div style="font-size:13.5px;color:var(--muted);margin-bottom:12px;line-height:1.6;">'+name+' — <strong>'+stamps+'</strong> stamp'+(stamps!==1?'s':'')+(free?' · 🎉 Free wash ready!':' · '+(paid-stamps)+' more')+'</div>'
-    +(styStr||remark||tip||service_value?'<div style="background:#F8FBFF;border-radius:10px;padding:10px 12px;margin-bottom:12px;text-align:left;font-size:13px;display:grid;gap:4px;">'
+  ov.innerHTML='<div style="background:#fff;border-radius:18px;padding:24px;max-width:420px;width:100%;">'
+    +'<div style="text-align:center;margin-bottom:14px;">'
+      +'<div style="font-size:44px;margin-bottom:8px;">'+(free?'🎁':'✂️')+'</div>'
+      +'<div style="font-family:var(--fh);font-size:19px;font-weight:800;color:var(--bd);">Done! Stamp Added.</div>'
+      +'<div style="font-size:13.5px;color:var(--muted);margin-top:4px;">'+name+' — <strong>'+stamps+'</strong> stamp'+(stamps!==1?'s':'')+(free?' · 🎉 Free wash ready!':' · '+(paid-stamps)+' more')+'</div>'
+    +'</div>'
+    +(styStr||remark||tip||service_value?'<div style="background:#F8FBFF;border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:13px;display:grid;gap:4px;">'
       +(styStr?'<div>✂️ <strong>Stylist:</strong> '+styStr+'</div>':'')
       +(service_value?'<div>💵 <strong>Service:</strong> AED '+service_value+'</div>':'')
       +(tip?'<div style="color:var(--ok);">💰 <strong>Tip:</strong> AED '+tip+'</div>':'')
       +(remark?'<div>📝 <strong>Remark:</strong> '+remark+'</div>':'')
       +'</div>':'')
-    +'<a href="'+wa+'" target="_blank" style="display:block;width:100%;padding:12px;background:#25D366;color:#fff;border-radius:11px;font-family:var(--fh);font-size:15px;font-weight:800;text-decoration:none;margin-bottom:9px;">💬 Send WhatsApp</a>'
+    // Message preview (editable before sending)
+    +'<div style="margin-bottom:12px;">'
+      +'<div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em;">Message Preview — tap to edit</div>'
+      +'<textarea id="wa-preview" style="width:100%;padding:10px;border:1.5px solid var(--border);border-radius:10px;font-size:12px;line-height:1.6;resize:vertical;font-family:inherit;min-height:140px;outline:none;" onfocus="this.style.borderColor=\'var(--b)\'" onblur="this.style.borderColor=\'var(--border)\'">'+waMsg.replace(/</g,'&lt;')+'</textarea>'
+    +'</div>'
+    +'<a id="wa-send-btn" href="'+wa+'" target="_blank" style="display:block;width:100%;padding:12px;background:#25D366;color:#fff;border-radius:11px;font-family:var(--fh);font-size:15px;font-weight:800;text-decoration:none;margin-bottom:9px;text-align:center;box-sizing:border-box;">💬 Send WhatsApp</a>'
     +'<button style="width:100%;padding:10px;border:1.5px solid var(--border);border-radius:9px;background:transparent;cursor:pointer;font-family:var(--fh);font-size:14px;font-weight:700;">Close</button>'
     +'</div>';
+  // Update WA link dynamically if message is edited
+  const preview=ov.querySelector('#wa-preview');
+  const sendBtn=ov.querySelector('#wa-send-btn');
+  if(preview&&sendBtn){
+    preview.addEventListener('input',function(){
+      sendBtn.href='https://wa.me/'+toWANum(mobile)+'?text='+encodeURIComponent(this.value);
+    });
+  }
   ov.querySelector('button').addEventListener('click',()=>ov.remove());
   ov.addEventListener('click',e=>{if(e.target===ov)ov.remove();});
   document.body.appendChild(ov);
@@ -467,6 +570,14 @@ function showWAPrompt(name,stamps,mobile,parent,gender,stylist,stylist2,remark,t
 function loadCfgScreen(){
   const ta=document.getElementById('cfg-sty');
   if(ta)ta.value=STYLISTS.join('\n');
+  const tmpl=document.getElementById('cfg-wa-tmpl');
+  if(tmpl)tmpl.value=WA_TEMPLATE;
+  const pass=document.getElementById('cfg-passport');
+  if(pass)pass.value=WA_PASSPORT_BASE;
+  const goog=document.getElementById('cfg-google');
+  if(goog)goog.value=WA_GOOGLE;
+  const inst=document.getElementById('cfg-insta');
+  if(inst)inst.value=WA_INSTA;
   // Summary
   const sumEl=document.getElementById('cfg-summary');
   if(sumEl&&_qdata.length){
@@ -496,6 +607,39 @@ function saveCfg(){
   STYLISTS=list;CFG.stylists=list;saveCfgStore(CFG);
   showM(msg,'Saved ✅','ok');toast('Stylist list updated');
   populateStyFilter();
+}
+
+function saveLinks(){
+  const msg=document.getElementById('cfg-links-msg');
+  WA_PASSPORT_BASE=(document.getElementById('cfg-passport')?.value||'').trim()||WA_PASSPORT_BASE;
+  WA_GOOGLE=(document.getElementById('cfg-google')?.value||'').trim()||WA_GOOGLE;
+  WA_INSTA=(document.getElementById('cfg-insta')?.value||'').trim()||WA_INSTA;
+  CFG.passportBase=WA_PASSPORT_BASE;CFG.googleLink=WA_GOOGLE;CFG.instaLink=WA_INSTA;
+  saveCfgStore(CFG);showM(msg,'Links saved ✅','ok');toast('Links updated');
+}
+
+function saveWATemplate(){
+  const tmpl=document.getElementById('cfg-wa-tmpl')?.value||'';
+  if(!tmpl.trim()){toast('Template cannot be empty','err');return;}
+  WA_TEMPLATE=tmpl;CFG.waTemplate=tmpl;saveCfgStore(CFG);
+  toast('WhatsApp template saved ✅');
+}
+
+function resetWATemplate(){
+  if(!confirm('Reset to default template?')) return;
+  WA_TEMPLATE=DEFAULT_WA_TEMPLATE;
+  const tmpl=document.getElementById('cfg-wa-tmpl');
+  if(tmpl)tmpl.value=DEFAULT_WA_TEMPLATE;
+  delete CFG.waTemplate;saveCfgStore(CFG);
+  toast('Template reset to default');
+}
+
+function insertToken(token){
+  const ta=document.getElementById('cfg-wa-tmpl');
+  if(!ta)return;
+  const start=ta.selectionStart,end=ta.selectionEnd;
+  ta.value=ta.value.substring(0,start)+token+ta.value.substring(end);
+  ta.focus();ta.selectionStart=ta.selectionEnd=start+token.length;
 }
 
 // AUTO REFRESH
