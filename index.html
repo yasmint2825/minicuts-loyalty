@@ -503,7 +503,10 @@ async function archiveCycle(customerId,stamps,firstStampDate,expiryDate,endedBy)
       
       <div class="page active" id="page-dashboard">
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:18px;">
-          <div><div style="font-family:var(--fh);font-size:21px;font-weight:800;">Welcome back! 🐼</div><div style="color:var(--muted);font-size:13.5px;">Loyalty overview — click any widget to filter customers</div></div>
+          <div>
+            <div style="font-family:var(--fh);font-size:21px;font-weight:800;">Welcome back! 🐼</div>
+            <div style="color:var(--muted);font-size:13.5px;">Loyalty overview — click any widget to filter customers · <span id="dash-last-updated" style="color:var(--ok);font-weight:700;">Auto-refreshes every 60s</span></div>
+          </div>
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
             <label style="font-size:12px;font-weight:700;color:var(--muted);">From</label>
             <input type="date" id="dash-from" class="fi" style="width:138px;padding:7px 10px;font-size:13px;" onchange="renderDash()">
@@ -1255,9 +1258,26 @@ async function renderDash(){
     document.getElementById('DS_RETURNED').textContent=returnedCount;
     document.getElementById('DS_RETURNED').style.color='var(--ok)';
 
+    // Update last-refreshed timestamp
+    const lu=document.getElementById('dash-last-updated');
+    if(lu){
+      const t=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+      lu.textContent='Last updated: '+t+' · Auto-refreshes every 60s';
+    }
 
   }catch(e){document.getElementById('SR').innerHTML='<div style="color:var(--err);padding:20px;font-size:13px;">⚠ Error: '+e.message+'</div>';}
 }
+
+// ── Auto-refresh dashboard + after-service every 60s when dashboard is active ──
+setInterval(function(){
+  if(document.getElementById('page-dashboard')?.classList.contains('active')){
+    renderDash();
+    if(typeof loadAfterService==='function') loadAfterService();
+  }
+  if(document.getElementById('page-customers')?.classList.contains('active')){
+    if(typeof loadCustomers==='function') loadCustomers();
+  }
+}, 60000);
 
 // ══ CUSTOMERS ══
 var allC=[];
@@ -2277,6 +2297,9 @@ function buildLookupHtml(msg){
     '<button class="btn bp" onclick="custLookup()" style="width:100%;padding:12px;font-size:15px;font-weight:800;margin-bottom:10px;">'+
       '&#x1F50D; Check My Stamps &amp; Rewards'+
     '</button>'+
+    '<button onclick="showReg()" style="width:100%;padding:11px;border:2px solid var(--y);border-radius:var(--rs);background:var(--yl);color:#92400E;font-family:var(--fb);font-weight:800;font-size:14px;cursor:pointer;margin-bottom:14px;">'+
+      '🐼 New? Register Here →'+
+    '</button>'+
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">'+
       '<a href="javascript:void(0)" onclick="openGamesPage()" style="display:flex;flex-direction:column;align-items:center;padding:12px 8px;background:linear-gradient(135deg,#FF6B00,#FF8C00);border-radius:12px;text-decoration:none;gap:4px;box-shadow:0 4px 12px rgba(255,107,0,.35);">'+
         '<span style="font-size:26px;">&#x1F3AE;</span>'+
@@ -2292,6 +2315,10 @@ function buildLookupHtml(msg){
   '</div>';
     '<button class="btn bp" onclick="custLookup()" style="width:100%;padding:12px;font-size:15px;font-weight:800;margin-bottom:10px;">'+
       '&#x1F50D; Check My Stamps &amp; Rewards'+
+    '</button>'+
+    '<button onclick="showReg()" style="width:100%;padding:11px;border:2px solid var(--y);border-radius:var(--rs);background:var(--yl);color:#92400E;font-family:var(--fb);font-weight:800;font-size:14px;cursor:pointer;margin-bottom:14px;">'+
+      '🐼 New? Register Here →'+
+    '</button>'+
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">'+
       '<a href="javascript:void(0)" onclick="openGamesPage()" style="display:flex;flex-direction:column;align-items:center;padding:12px 8px;background:linear-gradient(135deg,#FF6B00,#FF8C00);border-radius:12px;text-decoration:none;gap:4px;box-shadow:0 4px 12px rgba(255,107,0,.35);">'+
         '<span style="font-size:26px;">&#x1F3AE;</span>'+
