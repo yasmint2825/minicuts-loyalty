@@ -126,7 +126,7 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
 <div class="page active" id="t-queue">
   <div class="filters">
     <div class="fg" style="min-width:150px;flex:1;"><label class="fl">Stylist</label><select class="fi" id="f-sty" onchange="renderQ()"><option value="">All Stylists</option></select></div>
-    <div class="fg" style="min-width:120px;flex:1;"><label class="fl">Status</label><select class="fi" id="f-sta" onchange="renderQ()"><option value="">All</option><option value="waiting">Waiting</option><option value="called">Called</option><option value="done">Done</option></select></div>
+    <div class="fg" style="min-width:120px;flex:1;"><label class="fl">Status</label><select class="fi" id="f-sta" onchange="renderQ()"><option value="">All Active</option><option value="waiting">Waiting</option><option value="called">Called</option></select></div>
     <div class="fg" style="min-width:160px;flex:2;"><label class="fl">Search</label><input class="fi" type="text" id="f-nm" placeholder="Name..." oninput="renderQ()"/></div>
     <div style="display:flex;gap:8px;align-items:flex-end;">
       <button class="btn btn-b" onclick="loadQ()">↻ Refresh</button>
@@ -271,12 +271,13 @@ function renderQ(){
   const styF=document.getElementById('f-sty')?.value||'';
   const staF=document.getElementById('f-sta')?.value||'';
   const nmF=(document.getElementById('f-nm')?.value||'').toLowerCase();
-  let data=_qdata;
+  // Queue shows only active customers — done and cancelled go to History
+  let data=_qdata.filter(r=>r.status!=='done'&&r.status!=='cancelled');
   if(styF)data=data.filter(r=>r.stylist===styF);
   if(staF)data=data.filter(r=>r.status===staF);
   if(nmF)data=data.filter(r=>(r.customer_name||'').toLowerCase().includes(nmF));
   const body=document.getElementById('qt-body');if(!body)return;
-  if(!data.length){body.innerHTML='<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--muted);">No customers match the filter 🐼</td></tr>';return;}
+  if(!data.length){body.innerHTML='<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--muted);">Queue is clear — no active customers 🐼</td></tr>';return;}
   body.innerHTML=data.map(row=>buildRow(row)).join('');
 }
 
@@ -498,7 +499,7 @@ function saveCfg(){
 }
 
 // AUTO REFRESH
-setInterval(()=>{if(document.getElementById('t-queue').classList.contains('active'))loadQ();},30000);
+setInterval(()=>{if(document.getElementById('t-queue').classList.contains('active'))loadQ();},120000);
 
 // INIT
 loadQ();

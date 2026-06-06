@@ -551,11 +551,9 @@ async function proceedCheckin(){
 }
 async function doCI(custId,name,mob,svc,heardVia){
   const t=today();
-  const ex=await sb('queue','GET',null,'select=token_number&checkin_date=eq.'+t+'&limit=200');
-  const usedTokens=new Set((ex||[]).map(r=>Number(r.token_number)));
-  let tok;
-  do{ tok=Math.floor(Math.random()*90)+10; } // 10-99
-  while(usedTokens.has(tok));
+  const ex=await sb('queue','GET',null,'select=token_number&checkin_date=eq.'+t+'&order=token_number.desc&limit=1');
+  const last=(ex&&ex.length)?Number(ex[0].token_number)||0:0;
+  const tok=last+1;
   await sb('queue','POST',{customer_id:custId||null,customer_name:name,mobile:mob||null,service:svc||'Haircut',token_number:tok,checkin_date:t,checkin_time:new Date().toISOString(),status:'waiting',is_guest:!custId,stylist:null,heard_via:heardVia||null});
   // Save heard_via to customer record if not already set
   if(custId&&heardVia){
