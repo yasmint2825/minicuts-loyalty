@@ -350,9 +350,16 @@ function getWAMsg(c,type){
   const tmpl=CFG[key]||DC[key]||'Hi! Your MiniCuts loyalty passport needs attention.';
   return tmpl.replace(/{name}/g,c.name);
 }
+function toWANum(mobile){
+  // Normalise any stored format to 971XXXXXXXXX for WhatsApp
+  let n=String(mobile||'').replace(/\D/g,'');
+  if(n.startsWith('00971')) n=n.slice(5);      // 00971XXXXXXXX -> XXXXXXXXX
+  else if(n.startsWith('971')) n=n.slice(3);   // 971XXXXXXXX  -> XXXXXXXXX
+  else if(n.startsWith('0'))   n=n.slice(1);   // 05XXXXXXXX   -> 5XXXXXXXX
+  return '971'+n;  // always 971 + 9 digits
+}
 function openWA(mobile,msg){
-  const num=mobile.replace(/\D/g,'');
-  const wa='https://wa.me/971'+num.replace(/^0/,'')+'?text='+encodeURIComponent(msg);
+  const wa='https://wa.me/'+toWANum(mobile)+'?text='+encodeURIComponent(msg);
   window.open(wa,'_blank');
 }
 
@@ -462,7 +469,6 @@ async function archiveCycle(customerId,stamps,firstStampDate,expiryDate,endedBy)
     <nav class="nav">
       <div class="nav-s">Main</div>
       <button class="ni" onclick="showPage('dashboard',this);closeSidebar()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Dashboard</button>
-      <button class="ni" onclick="showPage('today',this);closeSidebar()" class="ni active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Today</button>
       <button class="ni" onclick="showPage('customers',this);closeSidebar()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Customers</button>
       <button class="ni" onclick="showPage('newcustomer',this);closeSidebar()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>New Customer</button>
       <div class="nav-s">Tools</div>
@@ -495,25 +501,7 @@ async function archiveCycle(customerId,stamps,firstStampDate,expiryDate,endedBy)
 
       <!-- DASHBOARD -->
       
-      <div class="page active" id="page-today">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
-          <div>
-            <div style="font-family:var(--fh);font-size:21px;font-weight:800;">📋 Today's Customers</div>
-            <div style="color:var(--muted);font-size:13px;margin-top:2px;">One-tap stamp · Stamped customers stay removed · <span style="color:var(--ok);font-weight:700;">🔄 Auto-refreshes every 30s</span></div>
-          </div>
-          <button class="btn bp" onclick="loadToday()" style="padding:8px 16px;font-size:13px;">↻ Refresh Now</button>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
-          <input type="text" id="todayNameFilter"   placeholder="🔍 Filter by name..."   oninput="renderToday()" style="padding:9px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:13px;outline:none;font-family:var(--fb);">
-          <input type="tel"  id="todayMobileFilter" placeholder="🔍 Filter by mobile..." oninput="renderToday()" style="padding:9px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:13px;outline:none;font-family:var(--fb);">
-        </div>
-        <div id="todayStats" style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;"></div>
-        <div id="todayList">
-          <div style="text-align:center;padding:40px;color:var(--muted);font-size:13px;">Tap ↻ Refresh to load today's customers</div>
-        </div>
-      </div>
-
-      <div class="page" id="page-dashboard">
+      <div class="page active" id="page-dashboard">
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:18px;">
           <div><div style="font-family:var(--fh);font-size:21px;font-weight:800;">Welcome back! 🐼</div><div style="color:var(--muted);font-size:13.5px;">Loyalty overview — click any widget to filter customers</div></div>
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
@@ -1067,9 +1055,8 @@ function showStaffPanel(u){
   document.getElementById('SAV').textContent=u.charAt(0).toUpperCase();
   renderDash();
   loadAfterService();
-  // Auto-load Today on login — Today is the default active page
-  loadToday();
-  startTodayAutoRefresh();
+  // Auto-load Dashboard on login
+  showPage('dashboard', document.querySelector('.ni[onclick*=dashboard]'));
 }
 
 
@@ -1083,9 +1070,7 @@ function doLogout(){
 
 // ══ NAV ══
 function showPage(id,btn){
-  stopTodayAutoRefresh(); // always clear on navigation
-  if(id==='today') setTimeout(loadToday,60);
-  if(id==='today') setTimeout(startTodayAutoRefresh,500);
+  stopTodayAutoRefresh(); // clear any lingering timer
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.ni').forEach(n=>n.classList.remove('active'));
   document.getElementById('page-'+id).classList.add('active');
@@ -1120,15 +1105,8 @@ async function loadAfterService(){
       }
       return true;
     });
-    // Deduplicate by mobile — keep only the most recent entry per mobile
-    const seenMobiles=new Map();
-    rawPending.forEach(c=>{
-      const lastActivity=new Date(c.last_visit_date||c.created_at);
-      if(!seenMobiles.has(c.mobile)||lastActivity>seenMobiles.get(c.mobile).lastActivity){
-        seenMobiles.set(c.mobile,{...c,lastActivity});
-      }
-    });
-    const pending=[...seenMobiles.values()];
+    // Each child is a separate record — show all, even if same mobile
+    const pending=rawPending;
 
     if(!pending.length){
       el.innerHTML=`<div style="text-align:center;padding:24px;">
@@ -2553,121 +2531,7 @@ async function exportCSV(){
 }
 
 // ══ TODAY'S CUSTOMERS ══
-var todayData=[];
-var todayStampedIds=new Set(); // tracks IDs stamped this session — survives refresh
-var todayAutoRefreshTimer=null;
-
-function startTodayAutoRefresh(){
-  stopTodayAutoRefresh();
-  todayAutoRefreshTimer=setInterval(()=>{
-    // Only refresh if Today page is still active
-    if(document.getElementById('page-today')?.classList.contains('active')){
-      loadToday(true); // silent=true — no loading spinner on auto-refresh
-    } else {
-      stopTodayAutoRefresh();
-    }
-  },30000); // every 30 seconds
-}
-function stopTodayAutoRefresh(){
-  if(todayAutoRefreshTimer){clearInterval(todayAutoRefreshTimer);todayAutoRefreshTimer=null;}
-}
-
-async function loadToday(silent=false){
-  if(!silent) document.getElementById('todayList').innerHTML='<div class="loading" style="text-align:center;padding:20px;color:var(--muted);">Loading...</div>';
-  try{
-    const today=new Date().toISOString().split('T')[0];
-    // Fetch customers registered today OR with last_visit today
-    const rows=await sbFresh('customers','select=*&or=(created_at.gte.'+today+'T00:00:00,last_visit_date.gte.'+today+'T00:00:00)&order=created_at.desc');
-    // Exclude already-stamped today: last_visit_date is today (survives re-login)
-    // Also exclude IDs stamped this session (belt-and-suspenders)
-    todayData=(rows||[]).filter(c=>{
-      if(todayStampedIds.has(c.id)) return false;
-      if(c.last_visit_date&&c.last_visit_date.startsWith(today)) return false;
-      return true;
-    });
-    renderToday();
-    // Stats — count against full rows (before session filter) for accuracy
-    const allToday=rows||[];
-    const statsEl=document.getElementById('todayStats');
-    const newToday=allToday.filter(c=>c.created_at&&c.created_at.startsWith(today));
-    const visited=allToday.filter(c=>c.last_visit_date&&c.last_visit_date.startsWith(today));
-    // Show last-refreshed time
-    const now=new Date();
-    const hhmm=now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
-    if(statsEl) statsEl.innerHTML=
-      '<div style="background:#EFF6FF;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;color:#1565C0;">📝 '+newToday.length+' New Today</div>'+
-      '<div style="background:#F0FDF4;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;color:#16A34A;">✂️ '+visited.length+' Stamped</div>'+
-      '<div style="background:#FFF7ED;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;color:#D97706;">👥 '+allToday.length+' Total</div>'+
-      '<div style="background:#F3F4F6;border-radius:8px;padding:6px 12px;font-size:12px;color:var(--muted);">🔄 '+hhmm+'</div>';
-  }catch(e){document.getElementById('todayList').innerHTML='<div style="color:red;padding:12px;">Error: '+e.message+'</div>';}
-}
-
-function renderToday(){
-  const el=document.getElementById('todayList');
-  if(!el) return;
-  const nameF=(document.getElementById('todayNameFilter')?.value||'').toLowerCase();
-  const mobF=(document.getElementById('todayMobileFilter')?.value||'').trim();
-  const today=new Date().toISOString().split('T')[0];
-  let data=[...todayData];
-  if(nameF) data=data.filter(c=>(c.name||'').toLowerCase().includes(nameF));
-  if(mobF)  data=data.filter(c=>(c.mobile||'').includes(mobF));
-  if(!data.length){
-    el.innerHTML='<div style="text-align:center;padding:24px;color:var(--muted);font-size:13px;">No customers found for today</div>';
-    return;
-  }
-  const paid=paidNeeded();
-  el.innerHTML=data.map(c=>{
-    const stamps=parseInt(c.stamps)||0;
-    const isNew=c.created_at&&c.created_at.startsWith(today);
-    const visited=c.last_visit_date&&c.last_visit_date.startsWith(today);
-    const stamped=visited||stamps>0;
-    const pct=Math.min((stamps/paid)*100,100);
-    const rowId='today-row-'+c.id;
-    return'<div id="'+rowId+'" data-id="'+c.id+'" data-mobile="'+c.mobile+'" data-gender="'+c.gender+'" style="display:flex;align-items:center;gap:10px;padding:10px 12px;margin-bottom:6px;border-radius:12px;background:'+(isNew?'#EFF6FF':'#F9FAFB')+';border:1px solid '+(isNew?'#BFDBFE':'#E5E7EB')+';">'+
-      '<div style="flex:1;min-width:0;">'+
-        '<div style="display:flex;align-items:center;gap:6px;">'+
-          '<div style="font-size:13px;font-weight:800;color:#1A1A2E;">'+c.name+'</div>'+
-          (isNew?'<span style="font-size:9px;background:#1565C0;color:#fff;padding:2px 6px;border-radius:99px;font-weight:700;">NEW</span>':'')+
-        '</div>'+
-        '<div style="font-size:11px;color:var(--muted);">'+c.mobile+'</div>'+
-        '<div style="display:flex;align-items:center;gap:6px;margin-top:4px;">'+
-          '<div style="flex:1;height:5px;background:#E5E7EB;border-radius:99px;overflow:hidden;max-width:80px;">'+
-            '<div style="height:100%;width:'+pct+'%;background:#FFD600;border-radius:99px;"></div>'+
-          '</div>'+
-          '<div style="font-size:10px;color:var(--muted);font-weight:700;">'+stamps+'/'+paid+' stamps</div>'+
-        '</div>'+
-      '</div>'+
-      '<div style="display:flex;gap:6px;flex-shrink:0;">'+
-        '<button class="btn bp bsm" onclick="todayStampRow(this)" '+(stamps>=paid?'disabled style="opacity:.4;"':'')+'>✅ Stamp</button>'+
-        '<button class="btn bg2 bsm" onclick="todayWA(this)">💬</button>'+
-      '</div>'+
-    '</div>';
-  }).join('');
-}
-
-async function todayStampRow(btn){
-  const row=btn.closest('[data-id]');
-  if(!row) return;
-  const id=row.dataset.id;
-  btn.disabled=true; btn.textContent='Stamping...';
-  await addStamp(id);
-  // Remember this ID — exclude from list even after auto-refresh
-  todayStampedIds.add(id);
-  todayData=todayData.filter(c=>c.id!==id);
-  row.style.transition='opacity .4s,transform .4s';
-  row.style.opacity='0';
-  row.style.transform='translateX(40px)';
-  setTimeout(()=>row.remove(),420);
-}
-
-function todayWA(btn){
-  const row=btn.closest('[data-id]');
-  if(!row) return;
-  const mobile=row.dataset.mobile;
-  const gender=row.dataset.gender;
-  const name=row.querySelector('[style*="font-weight:800"]')?.textContent||'Customer';
-  openWA(mobile,name,'nudge',gender);
-}
+function stopTodayAutoRefresh(){} // Today page removed — stub kept for safety
 
 // ── Populate static DOB selects (NC6 for new customer, EDOB for edit modal) ──
 (function populateDobSelects(){
