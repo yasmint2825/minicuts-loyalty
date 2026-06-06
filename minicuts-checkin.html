@@ -119,6 +119,9 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
     </div>
     <div id="lu-st" style="display:none;padding:9px 12px;border-radius:10px;font-size:12.5px;font-weight:700;margin-bottom:10px;"></div>
     <div id="lu-kids" style="display:none;"></div>
+    <div id="lu-reg-sibling" style="display:none;margin-bottom:10px;">
+      <button class="btn btn-ghost btn-full" onclick="showReg(getM())" style="border-style:dashed;">➕ Register New Child for this Number</button>
+    </div>
     <div id="lu-act" style="display:none;">
       <div id="lu-sum" style="background:#EEF6FF;border-radius:10px;padding:8px 12px;margin-bottom:10px;font-size:12.5px;font-weight:700;color:var(--b);display:none;"></div>
 
@@ -136,7 +139,6 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
       </div>
 
       <button class="btn btn-y btn-full" id="lu-btn" onclick="proceedCheckin()" style="margin-bottom:8px;">✅ Check In</button>
-      <button class="btn btn-ghost btn-full" onclick="showReg(getM())">+ Register New Child for this Number</button>
     </div>
     <div id="lu-nf" style="display:none;margin-top:6px;">
       <div class="sm warn" style="display:block;">Mobile not registered yet. Register to get started!</div>
@@ -346,7 +348,7 @@ function setPhF(pId,nId,mob){const p=splitM(mob);const ps=document.getElementByI
 function onLookup(){
   clearTimeout(_luTimer);
   const num=(document.getElementById('lu-num')?.value||'').replace(/\D/g,'');
-  ['lu-st','lu-kids','lu-act','lu-nf'].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display='none';});
+  ['lu-st','lu-kids','lu-act','lu-nf','lu-reg-sibling'].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display='none';});
   _sel=[];
   if(num.length!==7)return;
   const st=document.getElementById('lu-st');
@@ -397,6 +399,9 @@ async function doLookup(){
       ke.appendChild(row);
     });
     ke.style.display='block';
+    // Always show Register New Child once kids are found
+    const sibBtn=document.getElementById('lu-reg-sibling');
+    if(sibBtn) sibBtn.style.display='block';
     // Auto-tick only if exactly one kid and not already queued
     const eligibleKids=kids.filter(k=>!alreadyQueued.has(k.id));
     if(eligibleKids.length===1){
@@ -404,19 +409,12 @@ async function doLookup(){
       const cb=document.getElementById('cb-'+k.id);
       if(cb){cb.checked=true;_sel=[{id:k.id,name:k.name,mobile:k.mobile,heard_via:k.heard_via||null,stamps:k.stamps||0,game_points:k.game_points||0}];updBtn();document.getElementById('kr-'+k.id)?.classList.add('selected');}
     } else if(eligibleKids.length===0){
-      // All kids already in queue — show message but keep "Register New Child" visible
       st.textContent='⏳ Already checked in and waiting — no action needed';
       st.style.background='#FEF3C7';st.style.color='var(--warn)';
-      // Show lu-act just for the Register New Child button (hide Check In button)
+      // Hide check-in button but keep register sibling visible
       const act=document.getElementById('lu-act');
       if(act){
-        act.style.display='block';
-        const btn=document.getElementById('lu-btn');
-        if(btn) btn.style.display='none';
-        const hearEl=document.getElementById('lu-hear');
-        if(hearEl) hearEl.style.display='none';
-        const sum=document.getElementById('lu-sum');
-        if(sum) sum.style.display='none';
+        act.style.display='none';
       }
     }
   }catch(e){st.textContent='Error: '+e.message;st.style.background='#FEE2E2';st.style.color='var(--err)';}
@@ -636,7 +634,7 @@ function goGames(){window.open('./minicuts-game.html'+(window._ciMob?'?mobile='+
 function goPassport(){window.open('./index.html?customer=1&lookup='+encodeURIComponent(window._ciMob||''),'_blank');}
 function resetCI(){
   document.getElementById('lu-num').value='';
-  ['lu-st','lu-kids','lu-act','lu-nf'].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display='none';});
+  ['lu-st','lu-kids','lu-act','lu-nf','lu-reg-sibling'].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display='none';});
   _sel=[];_hearAbout=null;
   document.querySelectorAll('.hear-btn').forEach(b=>{b.style.background='#fff';b.style.borderColor='var(--border)';b.style.color='var(--text)';});
   navTo('s-lookup','bn-ci');
