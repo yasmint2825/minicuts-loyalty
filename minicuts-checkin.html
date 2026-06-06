@@ -92,7 +92,6 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
   <div style="font-size:12px;color:rgba(255,255,255,.65);margin-top:2px;">Register · Get token · Play games</div>
   <div class="q-strip">
     <div class="qstat"><div class="qstat-n" id="qs-w">—</div><div class="qstat-l">Waiting</div></div>
-    <div class="qstat"><div class="qstat-n" id="qs-s">—</div><div class="qstat-l">Served Today</div></div>
     <div class="qstat"><div class="qstat-n" id="qs-n">—</div><div class="qstat-l">Next Token</div></div>
   </div>
 </div>
@@ -497,14 +496,27 @@ async function doRegAll(){
   showM(msg,'Registering...','info');
   try{
     const results=[];
+    // Check for duplicates before registering
+    const existCheck=await sb('customers','GET',null,'select=id,name&mobile=eq.'+encodeURIComponent(mob)+'&limit=50');
+    const existingNames=new Set((existCheck||[]).map(c=>c.name.trim().toLowerCase()));
     for(const k of kids){
+      if(existingNames.has(k.name.trim().toLowerCase())){
+        showM(msg,k.name+' is already registered under this mobile number ❌','err');
+        if(btn){btn.disabled=false;btn.textContent='Register & Check In ✅';}
+        return;
+      }
       const res=await sb('customers','POST',{name:k.name,mobile:mob,parent:par||null,gender:k.gender,dob:k.dob,location:loc||null,stamps:0,redemptions:0,game_points:0,game_spins:0,heard_via:_regHearAbout});
       const nc=Array.isArray(res)?res[0]:res;if(!nc?.id)throw new Error('Registration failed for '+k.name);
       results.push({customer:nc,svc:k.svc});
     }
     showM(msg,'✅ Registered! Issuing tokens...','ok');
     const tokens=[];
-    for(const {customer,svc} of results){const tok=await doCI(customer.id,customer.name,customer.mobile,svc,_regHearAbout);tokens.push({name:customer.name,token:tok,id:customer.id,mobile:customer.mobile,stamps:0,game_points:0});}
+    for(const {customer,svc} of results){
+      const tok=await doCI(customer.id,customer.name,customer.mobile,svc,_regHearAbout);
+      tokens.push({name:customer.name,token:tok,id:customer.id,mobile:customer.mobile,stamps:0,game_points:0});
+    }
+    // Set _sel so buildPassportStrip works on the token screen
+    _sel=tokens.map(t=>({id:t.id,name:t.name,mobile:t.mobile,stamps:0,game_points:0,heard_via:_regHearAbout}));
     if(tokens.length===1)showTok(tokens[0].token,tokens[0].name,tokens[0].id,'Registered & checked in! ✅',mob);
     else showFamTok(tokens,mob);
   }catch(e){showM(msg,'Error: '+e.message,'err');}
@@ -540,9 +552,11 @@ async function proceedCheckin(){
 }
 async function doCI(custId,name,mob,svc,heardVia){
   const t=today();
-  const ex=await sb('queue','GET',null,'select=token_number&checkin_date=eq.'+t+'&order=token_number.desc&limit=1');
-  const last=(ex&&ex.length)?Number(ex[0].token_number)||0:0;
-  const tok=last+1;
+  const ex=await sb('queue','GET',null,'select=token_number&checkin_date=eq.'+t+'&limit=200');
+  const usedTokens=new Set((ex||[]).map(r=>Number(r.token_number)));
+  let tok;
+  do{ tok=Math.floor(Math.random()*90)+10; } // 10-99
+  while(usedTokens.has(tok));
   await sb('queue','POST',{customer_id:custId||null,customer_name:name,mobile:mob||null,service:svc||'Haircut',token_number:tok,checkin_date:t,checkin_time:new Date().toISOString(),status:'waiting',is_guest:!custId,stylist:null,heard_via:heardVia||null});
   // Save heard_via to customer record if not already set
   if(custId&&heardVia){
@@ -669,7 +683,7 @@ async function refreshStats(){
   const s=(r||[]).filter(x=>x.status==='done').length;
   const nx=(r||[]).find(x=>x.status==='waiting');
   const e=id=>document.getElementById(id);
-  if(e('qs-w'))e('qs-w').textContent=w;if(e('qs-s'))e('qs-s').textContent=s;if(e('qs-n'))e('qs-n').textContent=nx?String(nx.token_number).padStart(2,'0'):'—';
+  if(e('qs-w'))e('qs-w').textContent=w;if(e('qs-n'))e('qs-n').textContent=nx?String(nx.token_number).padStart(2,'0'):'—';
   }catch(e){}
 }
 
