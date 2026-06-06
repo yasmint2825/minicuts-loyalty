@@ -107,7 +107,7 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
 <!-- TABS -->
 <div class="tabs">
   <button class="tab active" onclick="showTab('t-queue',this)">📋 Queue</button>
-  <button class="tab" onclick="showTab('t-history',this)">🕐 History</button>
+  <button class="tab" onclick="showTab('t-history',this);histSetDate(today());loadHist();">🕐 History</button>
   <button class="tab" onclick="showTab('t-prizes',this);loadPrizes();">🎁 Game Prizes</button>
   <button class="tab" onclick="showTab('t-freewash',this);loadFreeWash();">🚿 Free Wash</button>
   <button class="tab" onclick="showTab('t-config',this);loadCfgScreen();">⚙️ Settings</button>
@@ -149,17 +149,27 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
 
 <!-- ══ TAB: HISTORY ══ -->
 <div class="page" id="t-history">
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-shrink:0;">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-shrink:0;flex-wrap:wrap;gap:10px;">
     <div>
-      <div style="font-family:var(--fh);font-size:17px;font-weight:800;color:var(--bd);">🕐 Today's History</div>
-      <div style="font-size:12px;color:var(--muted);margin-top:2px;">All check-ins including completed</div>
+      <div style="font-family:var(--fh);font-size:17px;font-weight:800;color:var(--bd);">🕐 History</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:2px;">Browse any date — all check-ins including completed</div>
     </div>
-    <button class="btn btn-ghost" onclick="loadQ()">↻ Refresh</button>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      <div style="display:flex;gap:6px;align-items:center;background:#fff;border:1.5px solid var(--border);border-radius:9px;padding:6px 10px;">
+        <span style="font-size:12px;font-weight:700;color:var(--muted);">📅 Date:</span>
+        <input type="date" id="hist-date" style="border:none;outline:none;font-family:var(--fb);font-size:13px;color:var(--text);background:transparent;cursor:pointer;" onchange="loadHist()"/>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="histNav(-1)">← Prev</button>
+      <button class="btn btn-ghost btn-sm" onclick="histSetDate(today());loadHist();">Today</button>
+      <button class="btn btn-ghost btn-sm" onclick="histNav(1)">Next →</button>
+      <button class="btn btn-b btn-sm" onclick="loadHist()">↻ Load</button>
+    </div>
   </div>
+  <div id="hist-summary" style="display:none;background:#F0FDF4;border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:13px;font-weight:700;color:var(--ok);"></div>
   <div class="tbl-wrap">
     <table class="qt">
       <thead><tr><th>Token</th><th>Name</th><th>Service</th><th>Stylist(s)</th><th>Value</th><th>Tip</th><th>Remark</th><th>Status</th><th>Time</th><th>Edit</th></tr></thead>
-      <tbody id="hist-body"><tr><td colspan="10" style="text-align:center;padding:40px;color:var(--muted);">Go to Queue tab and refresh to load data</td></tr></tbody>
+      <tbody id="hist-body"><tr><td colspan="10" style="text-align:center;padding:40px;color:var(--muted);">Select a date and click Load ↻</td></tr></tbody>
     </table>
   </div>
 </div>
@@ -306,8 +316,62 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
 <script>
 const SB_URL='https://wtapyfgtwkjyjrjdnhkb.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind0YXB5Zmd0d2tqeWpyamRuaGtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0NDc3ODEsImV4cCI6MjA5NTAyMzc4MX0.y_-iPfb8Pcg9zh42h6RGVBsUVZm80LcA9sPlz_Gl_fA';
+async function sbRaw(path,method='GET',body=null,params=''){
+  const url=SB_URL+'/rest/v1/'+path+(params?'?'+params:'');
+  const h={'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Prefer':'return=representation'};
+  const o={method,headers:h};if(body)o.body=JSON.stringify(body);
+  const r=await fetch(url,o);const t=await r.text();
+  if(!r.ok)throw new Error(t.substring(0,200));
+  return t?JSON.parse(t):[];
+}
+
+// ── Config: all settings live in Supabase staff_config table ──
+const DEFAULT_STYLISTS=['Shakeeb','Farhan','Rizwan','Usman','Hamza','Bilal','Staff'];
+
+async function loadAllConfig(){
+  try{
+    const rows=await sbRaw('staff_config','GET',null,'key=in.(staff_config_data,loyalty_config)&select=key,value&limit=10');
+    const map={};(rows||[]).forEach(r=>{
+      try{map[r.key]=typeof r.value==='string'?JSON.parse(r.value):r.value;}catch(e){map[r.key]=r.value;}
+    });
+    // Staff config (stylists, WA template, links)
+    if(map.staff_config_data){
+      const d=map.staff_config_data;
+      if(d.stylists) STYLISTS=d.stylists;
+      if(d.waTemplate) WA_TEMPLATE=d.waTemplate;
+      if(d.passportBase) WA_PASSPORT_BASE=d.passportBase;
+      if(d.googleLink) WA_GOOGLE=d.googleLink;
+      if(d.instaLink) WA_INSTA=d.instaLink;
+    }
+    // Loyalty config (months, stampsNeeded)
+    if(map.loyalty_config){
+      LCFG=map.loyalty_config;
+    }
+  }catch(e){console.warn('loadAllConfig failed:',e.message);}
+}
+
+async function saveStaffConfig(){
+  const data={stylists:STYLISTS,waTemplate:WA_TEMPLATE,passportBase:WA_PASSPORT_BASE,googleLink:WA_GOOGLE,instaLink:WA_INSTA};
+  // Also mirror to localStorage as fallback
+  localStorage.setItem('mc_ci_cfg',JSON.stringify(data));
+  try{
+    await sbRaw('staff_config','POST',
+      {key:'staff_config_data',value:JSON.stringify(data),updated_at:new Date().toISOString()},
+      'on_conflict=key');
+  }catch(e){
+    // PATCH fallback
+    try{await sbRaw('staff_config','PATCH',{value:JSON.stringify(data),updated_at:new Date().toISOString()},'key=eq.staff_config_data');}
+    catch(e2){console.warn('saveStaffConfig failed:',e2.message);}
+  }
+}
+
 function loadCfgStore(){try{return JSON.parse(localStorage.getItem('mc_ci_cfg')||'{}')}catch(e){return{}}}
-function saveCfgStore(c){localStorage.setItem('mc_ci_cfg',JSON.stringify(c));}
+function saveCfgStore(c){
+  localStorage.setItem('mc_ci_cfg',JSON.stringify(c));
+  // Also sync to DB
+  sbRaw('staff_config','POST',{key:'staff_config_data',value:JSON.stringify(c),updated_at:new Date().toISOString()},'on_conflict=key')
+    .catch(()=>sbRaw('staff_config','PATCH',{value:JSON.stringify(c),updated_at:new Date().toISOString()},'key=eq.staff_config_data').catch(()=>{}));
+}
 function loadLoyaltyCfg(){try{return JSON.parse(localStorage.getItem('mc_cfg')||'{}')}catch(e){return{};}}
 let CFG=loadCfgStore();
 let LCFG=loadLoyaltyCfg();
@@ -476,12 +540,42 @@ function buildRow(r){
 function displayMob(m){const s=m.replace(/\D/g,'');if(s.startsWith('971'))return'0'+s.slice(3);return m;}
 function escQ(s){return(s||'').replace(/'/g,"\\'").replace(/"/g,'&quot;');}
 
+// ══ HISTORY (date-browsable) ══
+let _histData=[];
+
+function histSetDate(d){const el=document.getElementById('hist-date');if(el)el.value=d;}
+function histGetDate(){return document.getElementById('hist-date')?.value||today();}
+function histNav(dir){
+  const d=new Date(histGetDate()+'T12:00:00');
+  d.setDate(d.getDate()+dir);
+  histSetDate(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'));
+  loadHist();
+}
+async function loadHist(){
+  const date=histGetDate();
+  const body=document.getElementById('hist-body');
+  if(body)body.innerHTML='<tr><td colspan="10" style="text-align:center;padding:30px;color:var(--muted);">Loading '+date+'...</td></tr>';
+  const sumEl=document.getElementById('hist-summary');if(sumEl)sumEl.style.display='none';
+  try{
+    const rows=await sb('queue','GET',null,'select=*&checkin_date=eq.'+date+'&order=token_number.asc&limit=500');
+    _histData=rows||[];renderHist();
+  }catch(e){if(body)body.innerHTML='<tr><td colspan="10" style="color:var(--err);padding:16px;">Error: '+e.message+'</td></tr>';}
+}
 function renderHist(){
   const body=document.getElementById('hist-body');if(!body)return;
-  if(!_qdata.length){body.innerHTML='<tr><td colspan="10" style="text-align:center;padding:30px;color:var(--muted);">Refresh the Queue tab to load data</td></tr>';return;}
-  const totalTips=_qdata.filter(r=>r.tip>0).reduce((s,r)=>s+(Number(r.tip)||0),0);
-  const totalRev=_qdata.filter(r=>r.service_value>0).reduce((s,r)=>s+(Number(r.service_value)||0),0);
-  body.innerHTML=_qdata.slice().reverse().map(r=>{
+  const date=histGetDate();const isToday=date===today();
+  const data=_histData;
+  if(!data.length){body.innerHTML='<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--muted);">No records for '+date+' 🐼</td></tr>';return;}
+  const totalTips=data.filter(r=>r.tip>0).reduce((s,r)=>s+(Number(r.tip)||0),0);
+  const totalRev=data.filter(r=>r.service_value>0).reduce((s,r)=>s+(Number(r.service_value)||0),0);
+  const done=data.filter(r=>r.status==='done').length;
+  const sumEl=document.getElementById('hist-summary');
+  if(sumEl){sumEl.style.display='block';
+    sumEl.innerHTML='📊 <strong>'+date+(isToday?' (Today)':'')+'</strong> · '+data.length+' check-ins · '+done+' served'
+      +(totalRev?' · Revenue: <strong style="color:var(--b);">AED '+totalRev+'</strong>':'')
+      +(totalTips?' · Tips: <strong style="color:var(--ok);">AED '+totalTips+'</strong>':'')
+      +(totalRev||totalTips?' · Combined: <strong>AED '+(totalRev+totalTips)+'</strong>':'');}
+  body.innerHTML=data.slice().reverse().map(r=>{
     const done=r.status==='done';const called=r.status==='called';const cancelled=r.status==='cancelled';const guest=r.is_guest;
     const sp=done?'<span class="sp sp-d">✅ Done</span>':called?'<span class="sp sp-c">📢 Called</span>':cancelled?'<span class="sp" style="background:#F3F4F6;color:var(--muted);">✕ Cancelled</span>':guest?'<span class="sp sp-g">👤 Guest</span>':'<span class="sp sp-w">⏳ Waiting</span>';
     const styStr=[r.stylist,r.stylist2].filter(Boolean).join(' & ');
@@ -499,7 +593,7 @@ function renderHist(){
       +'</tr>';
   }).join('')
   +'<tr style="background:#F0FDF4;font-weight:900;border-top:2px solid #86EFAC;">'
-    +'<td colspan="4" style="padding:12px 14px;color:var(--ok);font-size:13px;">💰 Today\'s Totals</td>'
+    +'<td colspan="4" style="padding:12px 14px;color:var(--ok);font-size:13px;">💰 Totals</td>'
     +'<td style="padding:12px 14px;color:var(--b);font-size:15px;">AED '+totalRev+'</td>'
     +'<td style="padding:12px 14px;color:var(--ok);font-size:15px;">AED '+totalTips+'</td>'
     +'<td colspan="4" style="padding:12px 14px;color:var(--muted);font-size:12px;">Combined: AED '+(totalRev+totalTips)+'</td>'
@@ -507,7 +601,7 @@ function renderHist(){
 }
 
 function editHistRow(id){
-  const r=_qdata.find(x=>x.id===id);if(!r)return;
+  const r=_histData.find(x=>x.id===id)||_qdata.find(x=>x.id===id);if(!r)return;
   const sty1Opts=STYLISTS.map(s=>'<option value="'+s+'"'+(r.stylist===s?' selected':'')+'>'+s+'</option>').join('');
   const sty2Opts=STYLISTS.map(s=>'<option value="'+s+'"'+(r.stylist2===s?' selected':'')+'>'+s+'</option>').join('');
   const svcOpts=SVCS.map(s=>'<option'+(r.service===s?' selected':'')+'>'+s+'</option>').join('');
@@ -558,7 +652,7 @@ async function saveHistEdit(id,btn){
   if(btn){btn.disabled=true;btn.textContent='Saving...';}
   try{
     await sb('queue','PATCH',{service:svc,stylist:sty1,stylist2:sty2,service_value,tip:tipVal,remark:rem},'id=eq.'+id);
-    const r=_qdata.find(x=>x.id===id);
+    const r=_histData.find(x=>x.id===id)||_qdata.find(x=>x.id===id);
     if(r){r.service=svc;r.stylist=sty1;r.stylist2=sty2;r.service_value=service_value;r.tip=tipVal;r.remark=rem;}
     renderHist();
     toast('Record updated ✅');
@@ -738,7 +832,6 @@ function saveCfg(){
   showM(msg,'Saved ✅','ok');toast('Stylist list updated');
   populateStyFilter();
 }
-
 function saveLinks(){
   const msg=document.getElementById('cfg-links-msg');
   WA_PASSPORT_BASE=(document.getElementById('cfg-passport')?.value||'').trim()||WA_PASSPORT_BASE;
@@ -1021,8 +1114,8 @@ async function markFreeWashGiven(id,name,btn){
 // AUTO REFRESH
 setInterval(()=>{if(document.getElementById('t-queue').classList.contains('active'))loadQ();},120000);
 
-// INIT
-loadQ();
+// INIT — load config from DB first, then load queue
+loadAllConfig().then(()=>{loadQ();populateStyFilter();});
 </script>
 </body>
 </html>

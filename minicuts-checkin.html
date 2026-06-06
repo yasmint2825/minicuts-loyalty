@@ -286,10 +286,23 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
 const SB_URL='https://wtapyfgtwkjyjrjdnhkb.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind0YXB5Zmd0d2tqeWpyamRuaGtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0NDc3ODEsImV4cCI6MjA5NTAyMzc4MX0.y_-iPfb8Pcg9zh42h6RGVBsUVZm80LcA9sPlz_Gl_fA';
 function loadCfg(){try{return JSON.parse(localStorage.getItem('mc_ci_cfg')||'{}')}catch(e){return{}}}
-const CFG=loadCfg();
-const STYLISTS=CFG.stylists||['Shakeeb','Farhan','Rizwan','Usman','Hamza','Bilal','Staff'];
+let CFG=loadCfg();
+let STYLISTS=CFG.stylists||['Shakeeb','Farhan','Rizwan','Usman','Hamza','Bilal','Staff'];
 const SVCS=['Haircut','Haircut + Wash','Wash Only','Styling','Trim','Other'];
 let _qdata=[],_sel=[],_luTimer=null,_genders={},_kcount=0,_hearAbout=null,_regHearAbout=null;
+
+// Load stylists from DB on startup
+(async function loadStylists(){
+  try{
+    const r=await fetch(SB_URL+'/rest/v1/staff_config?key=eq.staff_config_data&select=value&limit=1',
+      {headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY}});
+    const rows=await r.json();
+    if(rows&&rows.length){
+      const d=typeof rows[0].value==='string'?JSON.parse(rows[0].value):rows[0].value;
+      if(d.stylists&&d.stylists.length) STYLISTS=d.stylists;
+    }
+  }catch(e){/* use defaults */}
+})();
 
 function setHear(btn,val){
   _hearAbout=val;

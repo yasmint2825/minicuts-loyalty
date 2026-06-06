@@ -271,9 +271,34 @@ const DC={
   user:'admin', pass:'minicuts123', resetCode:'MINICUTS2025',
   afterServiceMsg:'Hi {parent}!\n\nThank you for visiting MiniCuts - we loved having {name} with us today!\n\nStamps: {stamps} collected - just {needed} more for a free hair wash!\n{game_points}\n\nCheck your loyalty passport:\n{passport_link}\n\nIf you enjoyed your visit, a Google review means the world to us:\nhttps://share.google/xpTR5fVOVbt4pwg8X\n\nSee you soon!\nMiniCuts DSO'
 };
-let CFG=loadCfg();
+let CFG={...DC};
+
+// ── Config: load from Supabase, fallback to localStorage, fallback to defaults ──
+async function loadCfgFromDB(){
+  try{
+    const r=await fetch(SB_URL+'/rest/v1/staff_config?key=eq.loyalty_config&select=value&limit=1',
+      {headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY}});
+    const rows=await r.json();
+    if(rows&&rows.length){
+      const saved=typeof rows[0].value==='string'?JSON.parse(rows[0].value):rows[0].value;
+      CFG=Object.assign({},DC,saved);return;
+    }
+  }catch(e){}
+  // Fallback to localStorage
+  try{const s=localStorage.getItem('mc_cfg');if(s)CFG=Object.assign({},DC,JSON.parse(s));}catch(e){}
+}
 function loadCfg(){try{return Object.assign({},DC,JSON.parse(localStorage.getItem('mc_cfg')||'{}'));}catch(e){return{...DC};}}
-function saveCfg(){localStorage.setItem('mc_cfg',JSON.stringify(CFG));}
+async function saveCfg(){
+  // Save to localStorage for immediate use
+  localStorage.setItem('mc_cfg',JSON.stringify(CFG));
+  // Save to Supabase for cross-device access
+  try{
+    await fetch(SB_URL+'/rest/v1/staff_config?on_conflict=key',{
+      method:'POST',headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates'},
+      body:JSON.stringify({key:'loyalty_config',value:JSON.stringify(CFG),updated_at:new Date().toISOString()})
+    });
+  }catch(e){console.warn('saveCfg to DB failed:',e.message);}
+}
 
 // ── Save credentials to Supabase staff_config table ──
 // Run once in Supabase SQL editor to create the table:
@@ -769,11 +794,12 @@ async function archiveCycle(customerId,stamps,firstStampDate,expiryDate,endedBy)
             <div style="display:grid;grid-template-columns:50px 1fr 80px;gap:10px;font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;padding:0 10px;">
               <span>Level</span><span>Badge &amp; Prize</span><span>Points</span>
             </div>
-            ${GAME_LEVELS.map(l=>`<div style="display:grid;grid-template-columns:50px 1fr 80px;gap:10px;align-items:center;background:#F8FBFF;border-radius:10px;padding:10px 12px;border:1px solid var(--border);">
-              <div style="font-size:20px;text-align:center;">${l.icon}</div>
-              <div><div style="font-weight:800;font-size:13.5px;">${l.badge}</div><div style="font-size:11.5px;color:var(--muted);">Level ${l.level}</div></div>
-              <div style="font-family:var(--fh);font-size:15px;font-weight:900;color:var(--b);">${l.pts} pts</div>
-            </div>`).join('')}
+            <div style="display:grid;grid-template-columns:50px 1fr 80px;gap:10px;align-items:center;background:#F8FBFF;border-radius:10px;padding:10px 12px;border:1px solid var(--border);"><div style="font-size:20px;text-align:center;">🌟</div><div><div style="font-weight:800;font-size:13.5px;">Panda Explorer</div><div style="font-size:11.5px;color:var(--muted);">Level 1</div></div><div style="font-family:var(--fh);font-size:15px;font-weight:900;color:var(--b);">50 pts</div></div>
+            <div style="display:grid;grid-template-columns:50px 1fr 80px;gap:10px;align-items:center;background:#F8FBFF;border-radius:10px;padding:10px 12px;border:1px solid var(--border);"><div style="font-size:20px;text-align:center;">🏅</div><div><div style="font-weight:800;font-size:13.5px;">Panda Adventurer</div><div style="font-size:11.5px;color:var(--muted);">Level 2</div></div><div style="font-family:var(--fh);font-size:15px;font-weight:900;color:var(--b);">100 pts</div></div>
+            <div style="display:grid;grid-template-columns:50px 1fr 80px;gap:10px;align-items:center;background:#F8FBFF;border-radius:10px;padding:10px 12px;border:1px solid var(--border);"><div style="font-size:20px;text-align:center;">🦸</div><div><div style="font-weight:800;font-size:13.5px;">Panda Hero</div><div style="font-size:11.5px;color:var(--muted);">Level 3</div></div><div style="font-family:var(--fh);font-size:15px;font-weight:900;color:var(--b);">150 pts</div></div>
+            <div style="display:grid;grid-template-columns:50px 1fr 80px;gap:10px;align-items:center;background:#F8FBFF;border-radius:10px;padding:10px 12px;border:1px solid var(--border);"><div style="font-size:20px;text-align:center;">⭐</div><div><div style="font-weight:800;font-size:13.5px;">Panda Superstar</div><div style="font-size:11.5px;color:var(--muted);">Level 4</div></div><div style="font-family:var(--fh);font-size:15px;font-weight:900;color:var(--b);">200 pts</div></div>
+            <div style="display:grid;grid-template-columns:50px 1fr 80px;gap:10px;align-items:center;background:#F8FBFF;border-radius:10px;padding:10px 12px;border:1px solid var(--border);"><div style="font-size:20px;text-align:center;">🔥</div><div><div style="font-weight:800;font-size:13.5px;">Panda Legend</div><div style="font-size:11.5px;color:var(--muted);">Level 5</div></div><div style="font-family:var(--fh);font-size:15px;font-weight:900;color:var(--b);">250 pts</div></div>
+            <div style="display:grid;grid-template-columns:50px 1fr 80px;gap:10px;align-items:center;background:#F8FBFF;border-radius:10px;padding:10px 12px;border:1px solid var(--border);"><div style="font-size:20px;text-align:center;">🐉</div><div><div style="font-weight:800;font-size:13.5px;">Dragon Warrior</div><div style="font-size:11.5px;color:var(--muted);">Level 6</div></div><div style="font-family:var(--fh);font-size:15px;font-weight:900;color:var(--b);">300 pts</div></div>
           </div>
           <div style="margin-top:12px;font-size:11.5px;color:var(--muted);background:#F8FBFF;border-radius:8px;padding:8px 12px;">
             💡 Open any customer profile → 🎁 Prizes tab to see which levels they've reached and mark prizes as given.
@@ -1075,10 +1101,12 @@ function showStaffPanel(u){
   document.getElementById('MA').style.display='flex';
   document.getElementById('SN').textContent=u.charAt(0).toUpperCase()+u.slice(1);
   document.getElementById('SAV').textContent=u.charAt(0).toUpperCase();
-  renderDash();
-  loadAfterService();
-  // Auto-load Dashboard on login
-  showPage('dashboard', document.querySelector('.ni[onclick*=dashboard]'));
+  // Load config from DB first, then render
+  loadCfgFromDB().then(()=>{
+    renderDash();
+    loadAfterService();
+    showPage('dashboard', document.querySelector('.ni[onclick*=dashboard]'));
+  });
 }
 
 
@@ -2610,14 +2638,6 @@ function saveConfig(){
   CFG.girlWABirthday=document.getElementById('CFG_WB').value||DC.girlWABirthday;
   CFG.afterServiceMsg=document.getElementById('CF_AS_MSG').value||DC.afterServiceMsg;
   saveCfg();
-  // Save key loyalty settings to Supabase so staff.html can read them cross-device
-  sb('staff_config','POST',
-    {key:'loyalty_config',value:JSON.stringify({boyMonths:CFG.boyMonths,girlMonths:CFG.girlMonths,stampsNeeded:CFG.stampsNeeded}),updated_at:new Date().toISOString()},
-    'on_conflict=key'
-  ).catch(()=>sb('staff_config','PATCH',
-    {value:JSON.stringify({boyMonths:CFG.boyMonths,girlMonths:CFG.girlMonths,stampsNeeded:CFG.stampsNeeded}),updated_at:new Date().toISOString()},
-    'key=eq.loyalty_config'
-  ).catch(()=>{}));
   toast('Settings saved!');
 }
 function resetASMsg(){
