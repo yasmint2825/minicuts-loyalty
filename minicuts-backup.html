@@ -11,6 +11,404 @@
 :root{--y:#FFD600;--b:#1565C0;--bd:#0D47A1;--ok:#16A34A;--err:#DC2626;--bg:#F0F4FF;--text:#1A1A2E;--muted:#6B7280;--border:#E5E7EB;--fh:'Baloo 2',cursive;--fb:'Nunito',sans-serif;}
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:var(--fb);background:var(--bg);min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;}
+.card{background:#fff;border-radius:18px;max-width:580px;width:100%;box-shadow:0 8px 40px rgba(13,71,161,.12);overflow:hidden;}
+.logo{text-align:center;padding:28px 36px 0;}
+.logo-icon{font-size:48px;}
+.logo-title{font-family:var(--fh);font-size:22px;font-weight:900;color:var(--bd);margin-top:4px;}
+.logo-sub{font-size:12.5px;color:var(--muted);margin-top:2px;}
+/* TABS */
+.tab-bar{display:flex;border-bottom:2px solid var(--border);margin:18px 0 0;padding:0 36px;}
+.tab-btn{padding:10px 18px;font-family:var(--fb);font-size:13.5px;font-weight:700;color:var(--muted);background:transparent;border:none;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .15s;}
+.tab-btn.active{color:var(--b);border-bottom-color:var(--b);}
+.tab-pane{display:none;padding:22px 36px 28px;}
+.tab-pane.active{display:block;}
+/* TABLES */
+.tables{display:flex;flex-direction:column;gap:8px;margin-bottom:20px;}
+.trow{display:flex;align-items:center;justify-content:space-between;background:#F8FBFF;border:1px solid var(--border);border-radius:10px;padding:10px 14px;}
+.tname{font-weight:800;font-size:13px;color:var(--text);}
+.tdesc{font-size:11px;color:var(--muted);margin-top:1px;}
+.tcount{font-family:var(--fh);font-size:18px;font-weight:900;color:var(--b);}
+.tcount.loading{color:var(--muted);font-size:12px;font-family:var(--fb);}
+.tcount.err{color:var(--err);font-size:11px;}
+.zip-info{background:#EEF6FF;border-radius:10px;padding:11px 14px;margin-bottom:18px;font-size:12.5px;color:var(--b);font-weight:700;line-height:1.7;}
+.btn-backup{width:100%;padding:15px;background:linear-gradient(135deg,var(--bd),var(--b));color:#fff;border:none;border-radius:12px;font-family:var(--fh);font-size:16px;font-weight:900;cursor:pointer;transition:transform .15s,box-shadow .15s;display:flex;align-items:center;justify-content:center;gap:10px;}
+.btn-backup:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(13,71,161,.3);}
+.btn-backup:disabled{opacity:.6;cursor:not-allowed;transform:none;}
+.progress{margin-top:14px;display:none;}
+.prog-bar{height:7px;background:#E5E7EB;border-radius:99px;overflow:hidden;margin-bottom:7px;}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--y),#FFB300);border-radius:99px;transition:width .4s;width:0%;}
+.prog-label{font-size:12px;font-weight:700;color:var(--muted);text-align:center;}
+.result{margin-top:14px;display:none;border-radius:10px;padding:13px 15px;font-size:12.5px;font-weight:700;line-height:1.7;}
+.result.ok{background:#DCFCE7;color:var(--ok);}
+.result.err{background:#FEE2E2;color:var(--err);}
+.history{margin-top:18px;border-top:1px solid var(--border);padding-top:14px;}
+.hist-list{display:flex;flex-direction:column;gap:5px;max-height:130px;overflow-y:auto;margin-top:8px;}
+.hist-row{display:flex;align-items:center;justify-content:space-between;font-size:11.5px;padding:6px 10px;background:#F8FBFF;border-radius:8px;gap:8px;}
+.env-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:99px;font-size:11.5px;font-weight:800;}
+.env-prod{background:#DCFCE7;color:var(--ok);}
+.env-dev{background:#FEE2E2;color:var(--err);}
+/* SETTINGS */
+.browser-block{border:1.5px solid var(--border);border-radius:12px;margin-bottom:12px;overflow:hidden;}
+.browser-header{display:flex;align-items:center;gap:10px;padding:12px 15px;background:#F8FBFF;cursor:pointer;font-weight:800;font-size:13.5px;}
+.browser-header:hover{background:#EEF6FF;}
+.browser-body{padding:14px 16px;font-size:12.5px;color:var(--text);line-height:1.8;display:none;}
+.browser-body.open{display:block;}
+.step{display:flex;gap:10px;margin-bottom:8px;align-items:flex-start;}
+.step-num{width:22px;height:22px;border-radius:50%;background:var(--b);color:#fff;font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;}
+.step-text{flex:1;}
+kbd{background:#F3F4F6;border:1px solid var(--border);border-radius:5px;padding:1px 6px;font-size:11.5px;font-family:monospace;font-weight:700;}
+.folder-input-row{display:flex;gap:8px;align-items:center;margin-top:14px;background:#F8FBFF;border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;}
+.folder-input{flex:1;border:none;background:transparent;font-family:var(--fb);font-size:13px;outline:none;color:var(--text);}
+.save-btn{padding:7px 14px;background:var(--b);color:#fff;border:none;border-radius:8px;font-family:var(--fh);font-size:12.5px;font-weight:800;cursor:pointer;}
+.saved-path{margin-top:8px;font-size:12px;color:var(--ok);font-weight:700;display:none;}
+</style>
+</head>
+<body>
+<div class="card">
+
+  <div class="logo">
+    <div class="logo-icon">🐼</div>
+    <div class="logo-title">MiniCuts · Data Backup</div>
+    <div class="logo-sub">Full database export — ZIP file with date</div>
+  </div>
+
+  <div style="text-align:center;padding:10px 0 0;">
+    <span class="env-badge env-prod" id="env-badge">🟢 PRODUCTION Database</span>
+  </div>
+
+  <!-- TABS -->
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab(this,'tab-backup')">⬇️ Backup</button>
+    <button class="tab-btn" onclick="switchTab(this,'tab-settings')">⚙️ Settings</button>
+  </div>
+
+  <!-- TAB: BACKUP -->
+  <div class="tab-pane active" id="tab-backup">
+
+    <div class="tables">
+      <div class="trow"><div><div class="tname">👤 Customers</div><div class="tdesc">All registered customers & loyalty data</div></div><div class="tcount loading" id="cnt-customers">loading...</div></div>
+      <div class="trow"><div><div class="tname">✂️ Visits</div><div class="tdesc">Stamp history & redeemed cycles</div></div><div class="tcount loading" id="cnt-visits">loading...</div></div>
+      <div class="trow"><div><div class="tname">📋 Queue</div><div class="tdesc">Check-ins, tokens, service values & tips</div></div><div class="tcount loading" id="cnt-queue">loading...</div></div>
+      <div class="trow"><div><div class="tname">🔄 Cycles</div><div class="tdesc">Completed loyalty cycles</div></div><div class="tcount loading" id="cnt-cycles">loading...</div></div>
+      <div class="trow"><div><div class="tname">🎁 Prizes Given</div><div class="tdesc">Game prize redemption history</div></div><div class="tcount loading" id="cnt-prizes">loading...</div></div>
+      <div class="trow"><div><div class="tname">🎮 Game Sessions</div><div class="tdesc">All game plays and points earned</div></div><div class="tcount loading" id="cnt-games">loading...</div></div>
+    </div>
+
+    <div class="zip-info" id="zip-info-box">
+      📦 File: <strong id="filename-preview">MiniCuts-Backup-YYYY-MM-DD-HHMM.zip</strong><br>
+      📁 Saves to: <strong id="save-location-display">Browser default Downloads folder</strong>
+    </div>
+
+    <button class="btn-backup" id="backup-btn" onclick="runBackup()">
+      📦 Download Backup ZIP
+    </button>
+
+    <div class="progress" id="progress">
+      <div class="prog-bar"><div class="prog-fill" id="prog-fill"></div></div>
+      <div class="prog-label" id="prog-label">Preparing...</div>
+    </div>
+
+    <div class="result" id="result"></div>
+
+    <div class="history" id="history-section" style="display:none;">
+      <div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;">📅 Previous Backups</div>
+      <div class="hist-list" id="hist-list"></div>
+    </div>
+
+  </div>
+
+  <!-- TAB: SETTINGS -->
+  <div class="tab-pane" id="tab-settings">
+
+    <div style="font-family:var(--fh);font-size:16px;font-weight:800;color:var(--bd);margin-bottom:4px;">📁 Download Location</div>
+    <div style="font-size:12.5px;color:var(--muted);margin-bottom:16px;line-height:1.6;">Browsers always save to their configured Downloads folder. Set a note here as a reminder, or follow the steps below to change your browser's download folder to a specific path (e.g. a Google Drive or OneDrive sync folder).</div>
+
+    <!-- Custom note field -->
+    <div style="font-size:12px;font-weight:800;color:var(--text);margin-bottom:6px;">📝 My backup folder (reminder note)</div>
+    <div class="folder-input-row">
+      <span style="font-size:16px;">📂</span>
+      <input class="folder-input" type="text" id="folder-note" placeholder="e.g. D:\Backups\MiniCuts or Google Drive\MiniCuts Backups" />
+      <button class="save-btn" onclick="saveFolderNote()">Save</button>
+    </div>
+    <div class="saved-path" id="saved-path-msg">✅ Saved! This note will show on the Backup tab.</div>
+
+    <div style="height:1px;background:var(--border);margin:20px 0;"></div>
+
+    <div style="font-family:var(--fh);font-size:15px;font-weight:800;color:var(--bd);margin-bottom:14px;">🌐 How to change Downloads folder in your browser</div>
+
+    <!-- Chrome -->
+    <div class="browser-block">
+      <div class="browser-header" onclick="toggleBrowser('chrome')">
+        <span style="font-size:18px;">🟡</span> Google Chrome
+        <span style="margin-left:auto;color:var(--muted);font-size:13px;" id="chrome-arrow">▼</span>
+      </div>
+      <div class="browser-body" id="chrome-body">
+        <div class="step"><div class="step-num">1</div><div class="step-text">Click the <strong>three dots ⋮</strong> menu (top right) → <strong>Settings</strong></div></div>
+        <div class="step"><div class="step-num">2</div><div class="step-text">Search for <kbd>Downloads</kbd> in the settings search bar</div></div>
+        <div class="step"><div class="step-num">3</div><div class="step-text">Click <strong>Change</strong> next to the current download location</div></div>
+        <div class="step"><div class="step-num">4</div><div class="step-text">Navigate to your desired folder (e.g. <kbd>Google Drive sync folder\MiniCuts Backups</kbd>) and click <strong>Select Folder</strong></div></div>
+        <div class="step"><div class="step-num">5</div><div class="step-text">Optionally turn OFF <em>"Ask where to save each file"</em> so it saves automatically every time</div></div>
+      </div>
+    </div>
+
+    <!-- Edge -->
+    <div class="browser-block">
+      <div class="browser-header" onclick="toggleBrowser('edge')">
+        <span style="font-size:18px;">🔵</span> Microsoft Edge
+        <span style="margin-left:auto;color:var(--muted);font-size:13px;" id="edge-arrow">▼</span>
+      </div>
+      <div class="browser-body" id="edge-body">
+        <div class="step"><div class="step-num">1</div><div class="step-text">Click <strong>⋯ Settings and more</strong> (top right) → <strong>Settings</strong></div></div>
+        <div class="step"><div class="step-num">2</div><div class="step-text">Go to <strong>Downloads</strong> from the left menu</div></div>
+        <div class="step"><div class="step-num">3</div><div class="step-text">Click <strong>Change</strong> next to Location and pick your folder</div></div>
+        <div class="step"><div class="step-num">4</div><div class="step-text">Turn off <em>"Ask me what to do with each download"</em> for automatic saving</div></div>
+      </div>
+    </div>
+
+    <!-- Firefox -->
+    <div class="browser-block">
+      <div class="browser-header" onclick="toggleBrowser('firefox')">
+        <span style="font-size:18px;">🦊</span> Mozilla Firefox
+        <span style="margin-left:auto;color:var(--muted);font-size:13px;" id="firefox-arrow">▼</span>
+      </div>
+      <div class="browser-body" id="firefox-body">
+        <div class="step"><div class="step-num">1</div><div class="step-text">Click <strong>☰ Menu</strong> → <strong>Settings</strong></div></div>
+        <div class="step"><div class="step-num">2</div><div class="step-text">Under <strong>Files and Applications</strong> → <strong>Downloads</strong></div></div>
+        <div class="step"><div class="step-num">3</div><div class="step-text">Select <em>"Save files to"</em> and click <strong>Browse</strong> to pick your folder</div></div>
+      </div>
+    </div>
+
+    <!-- Safari -->
+    <div class="browser-block">
+      <div class="browser-header" onclick="toggleBrowser('safari')">
+        <span style="font-size:18px;">🧭</span> Safari (Mac)
+        <span style="margin-left:auto;color:var(--muted);font-size:13px;" id="safari-arrow">▼</span>
+      </div>
+      <div class="browser-body" id="safari-body">
+        <div class="step"><div class="step-num">1</div><div class="step-text">Click <strong>Safari</strong> menu → <strong>Settings</strong> (or <kbd>⌘,</kbd>)</div></div>
+        <div class="step"><div class="step-num">2</div><div class="step-text">Go to <strong>General</strong> tab</div></div>
+        <div class="step"><div class="step-num">3</div><div class="step-text">Change <em>"File download location"</em> to your desired folder</div></div>
+      </div>
+    </div>
+
+    <div style="background:#F0FDF4;border-radius:10px;padding:12px 14px;margin-top:16px;font-size:12.5px;color:var(--ok);font-weight:700;line-height:1.7;">
+      💡 <strong>Pro tip:</strong> Set your download folder to a <strong>Google Drive</strong> or <strong>OneDrive sync folder</strong>. Every backup will automatically upload to the cloud within seconds — zero extra effort.
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+const SB_URL='https://wtapyfgtwkjyjrjdnhkb.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind0YXB5Zmd0d2tqeWpyamRuaGtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0NDc3ODEsImV4cCI6MjA5NTAyMzc4MX0.y_-iPfb8Pcg9zh42h6RGVBsUVZm80LcA9sPlz_Gl_fA';
+const IS_DEV=SB_URL.includes('flczmpsc');
+if(IS_DEV){
+  document.getElementById('env-badge').className='env-badge env-dev';
+  document.getElementById('env-badge').textContent='🔴 DEV / TEST Database';
+}
+
+// Load saved folder note
+(function(){
+  const note=localStorage.getItem('mc_bkp_folder')||'';
+  if(note){
+    document.getElementById('folder-note').value=note;
+    document.getElementById('save-location-display').textContent=note;
+  }
+  // Update filename preview
+  const now=new Date();
+  const env=IS_DEV?'_DEV':'';
+  document.getElementById('filename-preview').textContent=
+    'MiniCuts-Backup'+env+'-'+now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0')+'-HHMM.zip';
+})();
+
+function saveFolderNote(){
+  const val=document.getElementById('folder-note').value.trim();
+  localStorage.setItem('mc_bkp_folder',val);
+  document.getElementById('saved-path-msg').style.display='block';
+  document.getElementById('save-location-display').textContent=val||'Browser default Downloads folder';
+  setTimeout(()=>document.getElementById('saved-path-msg').style.display='none',2500);
+}
+
+function switchTab(btn,id){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById(id).classList.add('active');
+}
+
+function toggleBrowser(name){
+  const body=document.getElementById(name+'-body');
+  const arrow=document.getElementById(name+'-arrow');
+  const open=body.classList.contains('open');
+  body.classList.toggle('open',!open);
+  arrow.textContent=open?'▼':'▲';
+}
+
+async function sbFetch(table,params=''){
+  let all=[];let from=0;const PAGE=1000;
+  while(true){
+    const url=SB_URL+'/rest/v1/'+table+'?'+(params?params+'&':'')+'limit='+PAGE+'&offset='+from;
+    const r=await fetch(url,{headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY}});
+    if(!r.ok) throw new Error(table+': '+(await r.text()).substring(0,100));
+    const data=await r.json();
+    all=[...all,...data];
+    if(data.length<PAGE) break;
+    from+=PAGE;
+  }
+  return all;
+}
+
+async function getCount(table,elId){
+  try{
+    const r=await fetch(SB_URL+'/rest/v1/'+table+'?select=id&limit=1',
+      {headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY,'Prefer':'count=exact'}});
+    const count=r.headers.get('content-range')?.split('/')[1]||'?';
+    document.getElementById(elId).textContent=Number(count).toLocaleString();
+    document.getElementById(elId).className='tcount';
+  }catch(e){
+    document.getElementById(elId).textContent='—';
+    document.getElementById(elId).className='tcount err';
+  }
+}
+
+function toCSV(data){
+  if(!data||!data.length) return 'No data';
+  const h=Object.keys(data[0]);
+  const esc=v=>{const s=v===null||v===undefined?'':String(v);return s.includes(',')||s.includes('"')||s.includes('\n')?'"'+s.replace(/"/g,'""')+'"':s;};
+  return[h.join(','),...data.map(r=>h.map(k=>esc(r[k])).join(','))].join('\n');
+}
+function setProgress(pct,label){
+  document.getElementById('prog-fill').style.width=pct+'%';
+  document.getElementById('prog-label').textContent=label;
+}
+function d2(n){return String(n).padStart(2,'0');}
+
+async function runBackup(){
+  const btn=document.getElementById('backup-btn');
+  const prog=document.getElementById('progress');
+  const result=document.getElementById('result');
+  btn.disabled=true;btn.textContent='⏳ Backing up...';
+  prog.style.display='block';result.style.display='none';
+
+  const tables=[
+    {key:'customers',    label:'Customers',     params:'select=*&order=created_at.asc'},
+    {key:'visits',       label:'Visits',         params:'select=*&order=created_at.asc'},
+    {key:'queue',        label:'Queue',          params:'select=*&order=created_at.asc'},
+    {key:'cycles',       label:'Cycles',         params:'select=*&order=ended_at.asc'},
+    {key:'prizes_given', label:'Prizes_Given',   params:'select=*&order=given_at.asc'},
+    {key:'game_sessions',label:'Game_Sessions',  params:'select=*&order=played_at.asc'},
+  ];
+
+  try{
+    const now=new Date();
+    const ds=now.getFullYear()+'-'+d2(now.getMonth()+1)+'-'+d2(now.getDate());
+    const ts=d2(now.getHours())+d2(now.getMinutes());
+    const env=IS_DEV?'_DEV':'';
+    const baseName='MiniCuts-Backup'+env+'-'+ds+'-'+ts;
+
+    const zip=new JSZip();
+    const wb=XLSX.utils.book_new();
+    let totalRows=0;const counts={};
+
+    for(let i=0;i<tables.length;i++){
+      const t=tables[i];
+      setProgress(Math.round((i/tables.length)*80),'Fetching '+t.label+'...');
+      const data=await sbFetch(t.key,t.params);
+      counts[t.label]=data.length;totalRows+=data.length;
+      zip.file(t.label+'.csv',toCSV(data));
+      const ws=data.length?XLSX.utils.json_to_sheet(data):XLSX.utils.aoa_to_sheet([['No data yet']]);
+      if(data.length){ws['!cols']=Object.keys(data[0]).map(k=>({wch:Math.max(k.length,12)}));}
+      XLSX.utils.book_append_sheet(wb,ws,t.label.substring(0,31));
+    }
+
+    setProgress(87,'Building summary...');
+    const summaryLines=[
+      'MiniCuts DSO — Database Backup',
+      '',
+      'Date,'+now.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}),
+      'Time,'+now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}),
+      'Environment,'+(IS_DEV?'DEV / TEST':'PRODUCTION'),
+      '',
+      'Table,Rows',
+      ...tables.map(t=>t.label+','+counts[t.label]),
+      '',
+      'Total Rows,'+totalRows,
+      '',
+      'Saved to,'+(localStorage.getItem('mc_bkp_folder')||'Browser Downloads folder'),
+    ];
+    zip.file('_Backup_Summary.txt',summaryLines.join('\n'));
+
+    setProgress(92,'Building Excel...');
+    const xlsBin=XLSX.write(wb,{bookType:'xlsx',type:'array'});
+    zip.file(baseName+'.xlsx',xlsBin);
+
+    setProgress(95,'Compressing...');
+    const zipBlob=await zip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:6}},
+      m=>setProgress(95+Math.round(m.percent*.05),'Compressing... '+Math.round(m.percent)+'%'));
+
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(zipBlob);
+    a.download=baseName+'.zip';
+    a.click();
+    setTimeout(()=>URL.revokeObjectURL(a.href),10000);
+    setProgress(100,'Done! 🎉');
+
+    saveHistory(ds+' '+now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}),baseName+'.zip',totalRows);
+
+    result.style.display='block';result.className='result ok';
+    result.innerHTML='✅ <strong>'+baseName+'.zip</strong> downloaded!<br>'
+      +'📊 '+totalRows.toLocaleString()+' rows · 6 CSV files + Excel + summary<br>'
+      +(localStorage.getItem('mc_bkp_folder')?'📁 Move to: <strong>'+localStorage.getItem('mc_bkp_folder')+'</strong>':'📁 Check your Downloads folder');
+
+  }catch(e){
+    result.style.display='block';result.className='result err';
+    result.textContent='❌ Backup failed: '+e.message;
+    setProgress(0,'Failed');
+  }finally{
+    btn.disabled=false;btn.textContent='📦 Download Backup ZIP';
+    setTimeout(()=>{prog.style.display='none';},3000);
+  }
+}
+
+function saveHistory(datetime,filename,rows){
+  try{
+    const h=JSON.parse(localStorage.getItem('mc_bkp_hist')||'[]');
+    h.unshift({datetime,filename,rows});
+    localStorage.setItem('mc_bkp_hist',JSON.stringify(h.slice(0,10)));
+    renderHistory(h.slice(0,10));
+  }catch(e){}
+}
+function renderHistory(h){
+  if(!h||!h.length) return;
+  document.getElementById('history-section').style.display='block';
+  document.getElementById('hist-list').innerHTML=h.map(x=>
+    '<div class="hist-row">'
+      +'<span style="font-weight:700;color:var(--text);">'+x.datetime+'</span>'
+      +'<span style="color:var(--b);font-weight:700;">'+Number(x.rows).toLocaleString()+' rows</span>'
+      +'<span style="color:var(--muted);font-size:10.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:160px;">'+x.filename+'</span>'
+    +'</div>'
+  ).join('');
+}
+
+(async()=>{
+  await Promise.all([
+    getCount('customers','cnt-customers'),getCount('visits','cnt-visits'),
+    getCount('queue','cnt-queue'),getCount('cycles','cnt-cycles'),
+    getCount('prizes_given','cnt-prizes'),getCount('game_sessions','cnt-games'),
+  ]);
+  try{renderHistory(JSON.parse(localStorage.getItem('mc_bkp_hist')||'[]'));}catch(e){}
+})();
+</script>
+</body>
+</html>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800;900&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+:root{--y:#FFD600;--b:#1565C0;--bd:#0D47A1;--ok:#16A34A;--err:#DC2626;--bg:#F0F4FF;--text:#1A1A2E;--muted:#6B7280;--border:#E5E7EB;--fh:'Baloo 2',cursive;--fb:'Nunito',sans-serif;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--fb);background:var(--bg);min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;}
 .card{background:#fff;border-radius:18px;padding:36px;max-width:560px;width:100%;box-shadow:0 8px 40px rgba(13,71,161,.12);}
 .logo{text-align:center;margin-bottom:28px;}
 .logo-icon{font-size:52px;}
