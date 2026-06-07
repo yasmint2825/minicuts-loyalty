@@ -47,27 +47,25 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
 .qt thead{background:var(--bd);position:sticky;top:0;z-index:10;}
 .qt thead th{color:#fff;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:10px 10px;text-align:left;white-space:nowrap;overflow:hidden;}
 /* Column widths */
-.qt th:nth-child(1),.qt td:nth-child(1){width:58px;}   /* Token */
-.qt th:nth-child(2),.qt td:nth-child(2){width:140px;}  /* Name */
-.qt th:nth-child(3),.qt td:nth-child(3){width:110px;}  /* Service */
-.qt th:nth-child(4),.qt td:nth-child(4){width:55px;}   /* Time */
-.qt th:nth-child(5),.qt td:nth-child(5){width:190px;}  /* Stylists */
-.qt th:nth-child(6),.qt td:nth-child(6){width:auto;}   /* Remark, Value & Tip — flex fill */
-.qt th:nth-child(7),.qt td:nth-child(7){width:74px;}   /* Status */
-.qt th:nth-child(8),.qt td:nth-child(8){width:128px;}  /* Actions */
+.qt th:nth-child(1),.qt td:nth-child(1){width:50px;}
+.qt th:nth-child(2),.qt td:nth-child(2){width:150px;}
+.qt th:nth-child(3),.qt td:nth-child(3){width:95px;}
+.qt th:nth-child(4),.qt td:nth-child(4){width:46px;}
+.qt th:nth-child(5),.qt td:nth-child(5){width:160px;}
+.qt th:nth-child(6),.qt td:nth-child(6){width:200px;}
+.qt th:nth-child(7),.qt td:nth-child(7){width:66px;}
+.qt th:nth-child(8),.qt td:nth-child(8){width:110px;}
 .qt tbody tr{border-bottom:1px solid var(--border);transition:background .1s;}
 .qt tbody tr:hover{background:#F8FBFF;}
 .qt tbody tr.done{opacity:.5;background:#FAFAFA;}
 .qt tbody tr.called{background:#EEF6FF;}
-.qt td{padding:8px 10px;font-size:13px;vertical-align:middle;}
-.tok-b{width:38px;height:38px;border-radius:9px;background:linear-gradient(135deg,var(--bd),var(--bm));color:var(--y);font-family:var(--fh);font-size:15px;font-weight:900;display:inline-flex;align-items:center;justify-content:center;}
-.tok-b.guest{background:linear-gradient(135deg,#6B7280,#9CA3AF);}
-.sp{display:inline-flex;align-items:center;padding:2px 7px;border-radius:99px;font-size:10.5px;font-weight:800;white-space:nowrap;}
-.sp-w{background:#FEF3C7;color:#92400E;}.sp-d{background:#DCFCE7;color:var(--ok);}.sp-c{background:#EEF6FF;color:var(--b);}.sp-g{background:#F3F4F6;color:var(--muted);}
-
-/* ─── INLINE INPUTS ─── */
-.isel{font-size:12px;padding:5px 7px;border:1.5px solid var(--border);border-radius:6px;background:#fff;outline:none;cursor:pointer;width:100%;}
+.qt td{padding:6px 8px;font-size:12.5px;vertical-align:middle;}
+.isel{font-size:11.5px;padding:4px 6px;border:1.5px solid var(--border);border-radius:6px;background:#fff;outline:none;cursor:pointer;width:100%;}
 .isel:focus{border-color:var(--b);}
+.tok-b{width:34px;height:34px;border-radius:8px;background:linear-gradient(135deg,var(--bd),var(--bm));color:var(--y);font-family:var(--fh);font-size:14px;font-weight:900;display:inline-flex;align-items:center;justify-content:center;}
+.tok-b.guest{background:linear-gradient(135deg,#6B7280,#9CA3AF);}
+.sp{display:inline-flex;align-items:center;padding:2px 6px;border-radius:99px;font-size:10px;font-weight:800;white-space:nowrap;}
+.sp-w{background:#FEF3C7;color:#92400E;}.sp-d{background:#DCFCE7;color:var(--ok);}.sp-c{background:#EEF6FF;color:var(--b);}.sp-g{background:#F3F4F6;color:var(--muted);}
 
 /* ─── BUTTONS ─── */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:7px 12px;border-radius:var(--rs);font-family:var(--fh);font-weight:800;font-size:13px;cursor:pointer;border:none;transition:transform .12s;line-height:1;white-space:nowrap;}
@@ -433,12 +431,17 @@ function showTab(id,btn){
 }
 
 // QUEUE
+let _custMap={};   // customer_id -> customer data
+let _prizesMap={}; // customer_id -> array of prizes_given rows
+
 async function loadQ(){
   const body=document.getElementById('qt-body');
   if(body) body.innerHTML='<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--muted);">Loading...</td></tr>';
   try{
     const rows=await sb('queue','GET',null,'select=*&checkin_date=eq.'+today()+'&order=token_number.asc&limit=200');
     _qdata=rows||[];
+    // Enrich with customer loyalty data
+    await enrichCustomerData();
     populateStyFilter();
     renderQ();
     renderHist();
@@ -448,9 +451,30 @@ async function loadQ(){
     }
   }catch(e){
     toast('Error: '+e.message,'err');
-    if(body) body.innerHTML='<tr><td colspan="8" style="text-align:center;padding:30px;"><div style="color:var(--err);font-weight:700;margin-bottom:8px;">❌ Failed to load queue</div><div style="color:var(--muted);font-size:12px;margin-bottom:12px;">'+e.message+'</div><div style="font-size:12px;color:var(--muted);">Make sure the <strong>queue</strong> table exists in Supabase.<br>Run the SQL setup below if needed.</div></td></tr>';
+    if(body) body.innerHTML='<tr><td colspan="8" style="text-align:center;padding:30px;"><div style="color:var(--err);font-weight:700;margin-bottom:8px;">❌ Failed to load queue</div><div style="color:var(--muted);font-size:12px;margin-bottom:12px;">'+e.message+'</div></td></tr>';
     console.error('loadQ error:',e);
   }
+}
+
+async function enrichCustomerData(){
+  const custIds=_qdata.map(r=>r.customer_id).filter(Boolean);
+  if(!custIds.length){console.log('enrichCustomerData: no customer IDs in queue');return;}
+  console.log('enrichCustomerData: fetching',custIds.length,'customers',custIds);
+  try{
+    // Use individual OR queries to avoid id=in() formatting issues
+    const idFilter=custIds.map(id=>'id.eq.'+id).join(',');
+    const custs=await sb('customers','GET',null,'select=id,name,stamps,game_points,expiry_date,gender,parent,mobile&or=('+idFilter+')&limit=200');
+    console.log('enrichCustomerData: got',custs?.length,'customer records',custs);
+    _custMap={};(custs||[]).forEach(c=>{_custMap[c.id]=c;});
+    // Fetch prizes
+    const prizeFilter=custIds.map(id=>'customer_id.eq.'+id).join(',');
+    const prizes=await sb('prizes_given','GET',null,'or=('+prizeFilter+')&limit=500').catch(e=>{console.warn('prizes fetch failed:',e.message);return[];});
+    _prizesMap={};(prizes||[]).forEach(p=>{
+      if(!_prizesMap[p.customer_id]) _prizesMap[p.customer_id]=[];
+      _prizesMap[p.customer_id].push(p);
+    });
+    console.log('enrichCustomerData: _custMap keys=',Object.keys(_custMap));
+  }catch(e){console.error('enrichCustomerData error:',e.message);}
 }
 
 function populateStyFilter(){
@@ -486,6 +510,44 @@ function renderQ(){
   body.innerHTML=data.map(row=>buildRow(row)).join('');
 }
 
+function buildLoyaltyInCell(r){
+  const cid=r.customer_id;if(!cid||r.is_guest)return'';
+  const c=_custMap[cid];
+  if(!c){console.log('buildLoyaltyInCell: no customer data for',cid,'_custMap keys=',Object.keys(_custMap));return'';}
+  console.log('buildLoyaltyInCell:',c.name,'stamps=',c.stamps,'pts=',c.game_points);
+  const PAID=paidNeeded();
+  const stamps=Number(c.stamps||0);
+  const pts=Number(c.game_points||0);
+  const now=new Date();
+  const exp=c.expiry_date?new Date(c.expiry_date):null;
+  const freeWashReady=stamps>=PAID&&!(exp&&now>exp);
+  const prizes=_prizesMap[cid]||[];
+  const givenPts=new Set(prizes.map(p=>p.stage_pts));
+  const pendingLevels=GAME_LEVELS.filter(l=>pts>=l.pts&&!givenPts.has(l.pts));
+  const done=r.status==='done'||r.status==='cancelled';
+  if(!freeWashReady&&!pendingLevels.length) return'';
+
+  let pills='<span style="display:inline-flex;flex-wrap:wrap;gap:3px;margin-left:4px;vertical-align:middle;">';
+  if(freeWashReady){
+    if(done){
+      pills+='<span style="background:#DCFCE7;color:#16A34A;padding:1px 7px;border-radius:99px;font-size:10px;font-weight:700;">🚿 Free Wash</span>';
+    } else {
+      pills+='<button onclick="queueGiveFreeWash(\''+cid+'\',\''+escQ(c.name)+'\',\''+r.id+'\',\''+escQ(c.mobile||'')+'\')" '
+        +'style="background:#16A34A;color:#fff;border:none;border-radius:99px;padding:1px 8px;font-size:10.5px;font-weight:800;cursor:pointer;font-family:var(--fh);line-height:1.6;">🚿 Free Wash</button>';
+    }
+  }
+  pendingLevels.forEach(l=>{
+    if(done){
+      pills+='<span style="background:#FEF3C7;color:#92400E;padding:1px 7px;border-radius:99px;font-size:10px;font-weight:700;">'+l.icon+' L'+l.level+'</span>';
+    } else {
+      pills+='<button onclick="queueGivePrize(\''+cid+'\',\''+escQ(c.name)+'\','+l.pts+',\'Level '+l.level+' · '+escQ(l.badge)+'\')" '
+        +'style="background:linear-gradient(135deg,#FFD600,#FFB300);color:#0D47A1;border:none;border-radius:99px;padding:1px 8px;font-size:10.5px;font-weight:800;cursor:pointer;font-family:var(--fh);line-height:1.6;">'+l.icon+' L'+l.level+'</button>';
+    }
+  });
+  pills+='</span>';
+  return pills;
+}
+
 function buildRow(r){
   const done=r.status==='done';const called=r.status==='called';const cancelled=r.status==='cancelled';
   const guest=r.is_guest||!r.customer_id;const locked=done||cancelled;
@@ -496,49 +558,95 @@ function buildRow(r){
   const remark=escQ(r.remark||'');
   const tip=r.tip||'';
   const svcVal=r.service_value||'';
+
+  // Loyalty pills
+  const cid=r.customer_id;
+  const c=cid?_custMap[cid]:null;
+  const loyaltyCell=buildLoyaltyInCell(r);
+
   return'<tr class="'+(done?'done':called?'called':cancelled?'done':'')+'" id="qr-'+r.id+'">'
-    // Token
     +'<td><div class="tok-b '+(guest?'guest':'')+'">'+String(r.token_number).padStart(2,'0')+'</div></td>'
-    // Name
-    +'<td><div style="font-weight:800;font-size:13px;">'+(r.customer_name||'')+'</div>'
-      +'<div style="font-size:11px;color:var(--muted);">'+(guest?'👤 Guest':'📱 '+displayMob(r.mobile||''))+'</div></td>'
+    // Name + pills on mobile line
+    +'<td>'
+      +'<div style="font-weight:800;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+(r.customer_name||'')+'</div>'
+      +'<div style="font-size:10.5px;color:var(--muted);display:flex;align-items:center;flex-wrap:wrap;gap:2px;">'
+        +(guest?'👤 Guest':'📱 '+displayMob(r.mobile||''))
+        +loyaltyCell
+      +'</div>'
+    +'</td>'
     // Service
     +'<td><select class="isel" onchange="updF(\''+r.id+'\',\'service\',this.value)"'+(locked?' disabled':'')+'>'+svcOpts+'</select></td>'
     // Time
-    +'<td style="font-size:12px;color:var(--muted);">'+fmtT(r.checkin_time)+'</td>'
-    // Stylists — two dropdowns stacked
-    +'<td>'
-      +'<select class="isel" style="margin-bottom:4px;" onchange="updF(\''+r.id+'\',\'stylist\',this.value)"'+(locked?' disabled':'')+'>'+sty1Opts+'</select>'
-      +'<select class="isel" onchange="updF(\''+r.id+'\',\'stylist2\',this.value)"'+(locked?' disabled':'')+'>'+sty2Opts+'</select>'
-    +'</td>'
-    // Value + Tip + Remark
-    +'<td>'
-      +'<div style="display:flex;gap:5px;margin-bottom:5px;align-items:center;">'
-        +'<span style="font-size:11px;font-weight:700;color:var(--muted);white-space:nowrap;">💵 AED</span>'
-        +'<input class="isel" type="number" min="0" max="9999" step="5" placeholder="Value" value="'+(svcVal||'')+'" style="width:72px;" '+(locked?'disabled ':'')+
-          'onblur="updF(\''+r.id+'\',\'service_value\',this.value?Number(this.value):null)" onkeydown="if(event.key===\'Enter\')this.blur()" title="Service Value AED"/>'
-        +'<span style="font-size:11px;font-weight:700;color:var(--muted);white-space:nowrap;">Tip</span>'
-        +'<input class="isel" type="number" min="0" max="9999" step="5" placeholder="0" value="'+(tip||'')+'" style="width:62px;" '+(locked?'disabled ':'')+
-          'onblur="updF(\''+r.id+'\',\'tip\',this.value?Number(this.value):null)" onkeydown="if(event.key===\'Enter\')this.blur()" title="Tip AED"/>'
+    +'<td style="font-size:11px;color:var(--muted);">'+fmtT(r.checkin_time)+'</td>'
+    // Stylists side by side
+    +'<td><div style="display:flex;gap:3px;">'
+      +'<select class="isel" style="flex:1;min-width:0;" onchange="updF(\''+r.id+'\',\'stylist\',this.value)"'+(locked?' disabled':'')+'>'+sty1Opts+'</select>'
+      +'<select class="isel" style="flex:1;min-width:0;" onchange="updF(\''+r.id+'\',\'stylist2\',this.value)"'+(locked?' disabled':'')+'>'+sty2Opts+'</select>'
+    +'</div></td>'
+    // Val + Tip on top row with labels, Remark smaller below
+    +'<td><div style="display:flex;gap:3px;align-items:center;margin-bottom:3px;">'
+      +'<div style="display:flex;flex-direction:column;align-items:center;gap:1px;">'
+        +'<span style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;">AED</span>'
+        +'<input class="isel" type="number" min="0" max="9999" step="5" placeholder="—" value="'+(svcVal||'')+'" style="width:52px;text-align:center;" '+(locked?'disabled ':'')+
+          'onblur="updF(\''+r.id+'\',\'service_value\',this.value?Number(this.value):null)" onkeydown="if(event.key===\'Enter\')this.blur()"/>'
       +'</div>'
-      +'<input class="isel" type="text" placeholder="📝 Remark..." maxlength="120" value="'+remark+'" style="width:100%;" '+(locked?'disabled ':'')+
-        'onblur="updF(\''+r.id+'\',\'remark\',this.value)" onkeydown="if(event.key===\'Enter\')this.blur()"/>'
+      +'<div style="display:flex;flex-direction:column;align-items:center;gap:1px;">'
+        +'<span style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;">Tip</span>'
+        +'<input class="isel" type="number" min="0" max="9999" step="5" placeholder="—" value="'+(tip||'')+'" style="width:44px;text-align:center;" '+(locked?'disabled ':'')+
+          'onblur="updF(\''+r.id+'\',\'tip\',this.value?Number(this.value):null)" onkeydown="if(event.key===\'Enter\')this.blur()"/>'
+      +'</div>'
+    +'</div>'
+    +'<input class="isel" type="text" placeholder="Remark..." maxlength="40" value="'+remark+'" style="width:100%;font-size:10.5px;padding:3px 5px;color:var(--muted);" '+(locked?'disabled ':'')+
+      'onblur="updF(\''+r.id+'\',\'remark\',this.value)" onkeydown="if(event.key===\'Enter\')this.blur()"/>'
     +'</td>'
     // Status
     +'<td>'+sp+'</td>'
     // Actions
-    +'<td><div style="display:flex;gap:4px;flex-direction:column;">'
+    +'<td><div style="display:flex;gap:3px;flex-direction:column;">'
     +(done?'<button class="btn btn-ghost btn-sm" onclick="updS(\''+r.id+'\',\'waiting\')">↩ Undo</button>'
     :cancelled?''
     :(!called?'<button class="btn btn-b btn-sm" style="white-space:nowrap;" onclick="updS(\''+r.id+'\',\'called\')">📢 Call</button>':'')+
-     '<button class="btn btn-g btn-sm" style="white-space:nowrap;" onclick="markDone(\''+r.id+'\',\''+r.customer_id+'\',\''+escQ(r.customer_name)+'\',\''+r.mobile+'\')">✅ Done+Stamp</button>'+
-     '<button class="btn btn-sm" style="background:#F3F4F6;color:var(--muted);white-space:nowrap;" onclick="cancelToken(\''+r.id+'\',\''+escQ(r.customer_name)+'\')">✕ Cancel</button>')
+     '<button class="btn btn-g btn-sm" style="white-space:nowrap;" onclick="markDone(\''+r.id+'\',\''+r.customer_id+'\',\''+escQ(r.customer_name)+'\',\''+r.mobile+'\')">✅ Stamp</button>'+
+     '<button class="btn btn-sm" style="background:#F3F4F6;color:var(--muted);white-space:nowrap;" onclick="cancelToken(\''+r.id+'\',\''+escQ(r.customer_name)+'\')">✕</button>')
     +'</div></td>'
     +'</tr>';
 }
 
 function displayMob(m){const s=m.replace(/\D/g,'');if(s.startsWith('971'))return'0'+s.slice(3);return m;}
 function escQ(s){return(s||'').replace(/'/g,"\\'").replace(/"/g,'&quot;');}
+
+async function queueGiveFreeWash(custId,name,queueId,mobile){
+  if(!confirm('Mark FREE HAIR WASH as given to '+name+'?\n\nThis will reset their stamp card.')) return;
+  try{
+    const rows=await sb('customers','GET',null,'select=*&id=eq.'+custId);
+    const c=rows?.[0];if(!c)throw new Error('Customer not found');
+    const now=new Date().toISOString();
+    const months=c.gender==='girl'?girlMonths():boyMonths();
+    await sb('cycles','POST',{customer_id:custId,stamps_earned:c.stamps||0,first_stamp_date:c.first_stamp_date,expiry_date:c.expiry_date,ended_at:now,ended_by:'redeemed'}).catch(()=>{});
+    await sb('customers','PATCH',{stamps:0,redemptions:(c.redemptions||0)+1,first_stamp_date:null,expiry_date:null,last_visit_date:now},'id=eq.'+custId);
+    await sb('visits','POST',{customer_id:custId,type:'free',stamp_count_after:0});
+    // Update local cache
+    if(_custMap[custId]){_custMap[custId].stamps=0;_custMap[custId].expiry_date=null;}
+    toast('🚿 Free wash redeemed for '+name+' — stamp card reset!');
+    renderQ();
+    // WhatsApp nudge
+    if(mobile&&!mobile.startsWith('GUEST')){
+      const wa='https://wa.me/'+toWANum(mobile)+'?text='+encodeURIComponent('Hi '+name+'! 🎉 Your FREE Hair Wash has been redeemed at MiniCuts today! Hope '+name+' loved it! ✂️🐼\n\nSee you next time!\nMiniCuts DSO');
+      if(confirm('Open WhatsApp to notify '+name+'?')) window.open(wa,'_blank');
+    }
+  }catch(e){toast('Error: '+e.message,'err');}
+}
+
+async function queueGivePrize(custId,name,stagePts,stageLabel){
+  if(!confirm('Mark "'+stageLabel+'" as given to '+name+'?')) return;
+  try{
+    await sb('prizes_given','POST',{customer_id:custId,stage_pts:stagePts,stage_label:stageLabel,given_at:new Date().toISOString(),given_by:'staff'});
+    if(!_prizesMap[custId]) _prizesMap[custId]=[];
+    _prizesMap[custId].push({customer_id:custId,stage_pts:stagePts,stage_label:stageLabel,given_at:new Date().toISOString()});
+    toast('🎁 '+stageLabel+' given to '+name+'!');
+    renderQ();
+  }catch(e){toast('Error: '+e.message,'err');}
+}
 
 // ══ HISTORY (date-browsable) ══
 let _histData=[];
