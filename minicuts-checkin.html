@@ -562,6 +562,18 @@ async function proceedCheckin(){
 }
 async function doCI(custId,name,mob,svc,heardVia){
   const t=today();
+
+  // Hard duplicate guard — check if this customer is already active in today's queue
+  if(custId){
+    const active=await sb('queue','GET',null,
+      'select=id,token_number,status&customer_id=eq.'+custId+
+      '&checkin_date=eq.'+t+'&status=in.(waiting,called)&limit=1');
+    if(active&&active.length){
+      const existing=active[0];
+      throw new Error(name+' is already in the queue (Token #'+String(existing.token_number).padStart(2,'0')+' · '+existing.status+'). Cannot check in twice.');
+    }
+  }
+
   const ex=await sb('queue','GET',null,'select=token_number&checkin_date=eq.'+t+'&order=token_number.desc&limit=1');
   const last=(ex&&ex.length)?Number(ex[0].token_number)||0:0;
   const tok=last+1;
