@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>MiniCuts · Backup</title>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800;900&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+:root{--y:#FFD600;--b:#1565C0;--bd:#0D47A1;--ok:#16A34A;--err:#DC2626;--bg:#F0F4FF;--text:#1A1A2E;--muted:#6B7280;--border:#E5E7EB;--fh:'Baloo 2',cursive;--fb:'Nunito',sans-serif;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--fb);background:var(--bg);min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;}
+.card{background:#fff;border-radius:18px;padding:36px;max-width:560px;width:100%;box-shadow:0 8px 40px rgba(13,71,161,.12);}
+.logo{text-align:center;margin-bottom:28px;}
+.logo-icon{font-size:52px;}
+.logo-title{font-family:var(--fh);font-size:24px;font-weight:900;color:var(--bd);margin-top:6px;}
+.logo-sub{font-size:13px;color:var(--muted);margin-top:3px;}
+.tables{display:flex;flex-direction:column;gap:8px;margin-bottom:24px;}
+.trow{display:flex;align-items:center;justify-content:space-between;background:#F8FBFF;border:1px solid var(--border);border-radius:10px;padding:11px 15px;}
+.tname{font-weight:800;font-size:13px;color:var(--text);}
+.tdesc{font-size:11px;color:var(--muted);margin-top:1px;}
+.tcount{font-family:var(--fh);font-size:18px;font-weight:900;color:var(--b);}
+.tcount.loading{color:var(--muted);font-size:12px;font-family:var(--fb);}
+.tcount.err{color:var(--err);font-size:11px;font-family:var(--fb);}
+.zip-info{background:#EEF6FF;border-radius:10px;padding:12px 15px;margin-bottom:18px;font-size:12.5px;color:var(--b);font-weight:700;line-height:1.7;}
+.btn-backup{width:100%;padding:16px;background:linear-gradient(135deg,var(--bd),var(--b));color:#fff;border:none;border-radius:12px;font-family:var(--fh);font-size:17px;font-weight:900;cursor:pointer;transition:transform .15s,box-shadow .15s;display:flex;align-items:center;justify-content:center;gap:10px;}
+.btn-backup:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(13,71,161,.3);}
+.btn-backup:disabled{opacity:.6;cursor:not-allowed;transform:none;box-shadow:none;}
+.progress{margin-top:16px;display:none;}
+.prog-bar{height:8px;background:#E5E7EB;border-radius:99px;overflow:hidden;margin-bottom:8px;}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--y),#FFB300);border-radius:99px;transition:width .4s;width:0%;}
+.prog-label{font-size:12.5px;font-weight:700;color:var(--muted);text-align:center;}
+.result{margin-top:16px;display:none;border-radius:10px;padding:14px 16px;font-size:13px;font-weight:700;line-height:1.7;}
+.result.ok{background:#DCFCE7;color:var(--ok);}
+.result.err{background:#FEE2E2;color:var(--err);}
+.history{margin-top:20px;border-top:1px solid var(--border);padding-top:16px;}
+.history-title{font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;}
+.hist-list{display:flex;flex-direction:column;gap:5px;max-height:150px;overflow-y:auto;}
+.hist-row{display:flex;align-items:center;justify-content:space-between;font-size:12px;padding:6px 10px;background:#F8FBFF;border-radius:8px;}
+.env-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:99px;font-size:11.5px;font-weight:800;margin-bottom:16px;}
+.env-prod{background:#DCFCE7;color:var(--ok);}
+.env-dev{background:#FEE2E2;color:var(--err);}
+.tip{background:#FEF3C7;border-radius:10px;padding:11px 14px;font-size:12px;color:#92400E;font-weight:700;margin-top:14px;line-height:1.7;}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">
+    <div class="logo-icon">🐼</div>
+    <div class="logo-title">MiniCuts · Data Backup</div>
+    <div class="logo-sub">Full database export — ZIP file with date</div>
+  </div>
+
+  <div style="text-align:center;margin-bottom:18px;">
+    <span class="env-badge env-prod" id="env-badge">🟢 PRODUCTION Database</span>
+  </div>
+
+  <div class="tables" id="tables-preview">
+    <div class="trow"><div><div class="tname">👤 Customers</div><div class="tdesc">All registered customers & loyalty data</div></div><div class="tcount loading" id="cnt-customers">loading...</div></div>
+    <div class="trow"><div><div class="tname">✂️ Visits</div><div class="tdesc">Stamp history & redeemed cycles</div></div><div class="tcount loading" id="cnt-visits">loading...</div></div>
+    <div class="trow"><div><div class="tname">📋 Queue</div><div class="tdesc">Check-ins, tokens, service values & tips</div></div><div class="tcount loading" id="cnt-queue">loading...</div></div>
+    <div class="trow"><div><div class="tname">🔄 Cycles</div><div class="tdesc">Completed loyalty cycles</div></div><div class="tcount loading" id="cnt-cycles">loading...</div></div>
+    <div class="trow"><div><div class="tname">🎁 Prizes Given</div><div class="tdesc">Game prize redemption history</div></div><div class="tcount loading" id="cnt-prizes">loading...</div></div>
+    <div class="trow"><div><div class="tname">🎮 Game Sessions</div><div class="tdesc">All game plays and points earned</div></div><div class="tcount loading" id="cnt-games">loading...</div></div>
+  </div>
+
+  <div class="zip-info">
+    📦 Downloads as: <strong>MiniCuts-Backup-YYYY-MM-DD-HHMM.zip</strong><br>
+    📁 Contains: <strong>1 Excel file</strong> (all tables, one sheet each) + <strong>6 CSV files</strong> (one per table)<br>
+    💾 Saves to your browser's <strong>Downloads folder</strong>
+  </div>
+
+  <button class="btn-backup" id="backup-btn" onclick="runBackup()">
+    📦 Download Backup ZIP
+  </button>
+
+  <div class="progress" id="progress">
+    <div class="prog-bar"><div class="prog-fill" id="prog-fill"></div></div>
+    <div class="prog-label" id="prog-label">Preparing...</div>
+  </div>
+
+  <div class="result" id="result"></div>
+
+  <div class="tip">
+    💡 <strong>To change download location:</strong> In Chrome → Settings → Downloads → change folder to wherever you want (e.g. a Google Drive sync folder). The ZIP will automatically land there every time.
+  </div>
+
+  <div class="history" id="history-section" style="display:none;">
+    <div class="history-title">📅 Previous Backups (this browser)</div>
+    <div class="hist-list" id="hist-list"></div>
+  </div>
+</div>
+
+<script>
+const SB_URL='https://wtapyfgtwkjyjrjdnhkb.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind0YXB5Zmd0d2tqeWpyamRuaGtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0NDc3ODEsImV4cCI6MjA5NTAyMzc4MX0.y_-iPfb8Pcg9zh42h6RGVBsUVZm80LcA9sPlz_Gl_fA';
+const IS_DEV=SB_URL.includes('flczmpsc');
+if(IS_DEV){
+  document.getElementById('env-badge').className='env-badge env-dev';
+  document.getElementById('env-badge').textContent='🔴 DEV / TEST Database';
+}
+
+async function sbFetch(table,params=''){
+  let all=[];let from=0;const PAGE=1000;
+  while(true){
+    const url=SB_URL+'/rest/v1/'+table+'?'+(params?params+'&':'')+'limit='+PAGE+'&offset='+from;
+    const r=await fetch(url,{headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY}});
+    if(!r.ok) throw new Error(table+': '+(await r.text()).substring(0,100));
+    const data=await r.json();
+    all=[...all,...data];
+    if(data.length<PAGE) break;
+    from+=PAGE;
+  }
+  return all;
+}
+
+async function getCount(table,elId){
+  try{
+    const r=await fetch(SB_URL+'/rest/v1/'+table+'?select=id&limit=1',
+      {headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY,'Prefer':'count=exact'}});
+    const count=r.headers.get('content-range')?.split('/')[1]||'?';
+    document.getElementById(elId).textContent=Number(count).toLocaleString();
+    document.getElementById(elId).className='tcount';
+  }catch(e){
+    document.getElementById(elId).textContent='—';
+    document.getElementById(elId).className='tcount err';
+  }
+}
+
+// JSON to CSV converter
+function toCSV(data){
+  if(!data||!data.length) return 'No data';
+  const headers=Object.keys(data[0]);
+  const escape=v=>{
+    const s=v===null||v===undefined?'':String(v);
+    return s.includes(',')||s.includes('"')||s.includes('\n')?'"'+s.replace(/"/g,'""')+'"':s;
+  };
+  return[headers.join(','),...data.map(r=>headers.map(h=>escape(r[h])).join(','))].join('\n');
+}
+
+function setProgress(pct,label){
+  document.getElementById('prog-fill').style.width=pct+'%';
+  document.getElementById('prog-label').textContent=label;
+}
+
+// Build date string
+function dateStr(d){
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function timeStr(d){
+  return String(d.getHours()).padStart(2,'0')+String(d.getMinutes()).padStart(2,'0');
+}
+
+async function runBackup(){
+  const btn=document.getElementById('backup-btn');
+  const prog=document.getElementById('progress');
+  const result=document.getElementById('result');
+  btn.disabled=true;
+  btn.textContent='⏳ Backing up...';
+  prog.style.display='block';
+  result.style.display='none';
+
+  const tables=[
+    {key:'customers',   label:'Customers',    params:'select=*&order=created_at.asc'},
+    {key:'visits',      label:'Visits',        params:'select=*&order=created_at.asc'},
+    {key:'queue',       label:'Queue',         params:'select=*&order=created_at.asc'},
+    {key:'cycles',      label:'Cycles',        params:'select=*&order=created_at.asc'},
+    {key:'prizes_given',label:'Prizes_Given',  params:'select=*&order=given_at.asc'},
+    {key:'game_sessions',label:'Game_Sessions',params:'select=*&order=played_at.asc'},
+  ];
+
+  try{
+    const now=new Date();
+    const ds=dateStr(now);
+    const ts=timeStr(now);
+    const env=IS_DEV?'_DEV':'';
+    const baseName='MiniCuts-Backup'+env+'-'+ds+'-'+ts;
+
+    const zip=new JSZip();
+    const wb=XLSX.utils.book_new();
+    let totalRows=0;
+    const counts={};
+
+    // Fetch all tables
+    for(let i=0;i<tables.length;i++){
+      const t=tables[i];
+      setProgress(Math.round((i/tables.length)*80),'Fetching '+t.label+'...');
+      const data=await sbFetch(t.key,t.params);
+      counts[t.label]=data.length;
+      totalRows+=data.length;
+
+      // Add CSV to ZIP
+      zip.file(t.label+'.csv', toCSV(data));
+
+      // Add sheet to Excel workbook
+      const ws=data.length
+        ?XLSX.utils.json_to_sheet(data)
+        :XLSX.utils.aoa_to_sheet([['No data yet']]);
+      if(data.length){
+        const cols=Object.keys(data[0]).map(k=>({wch:Math.max(k.length,12)}));
+        ws['!cols']=cols;
+      }
+      XLSX.utils.book_append_sheet(wb,ws,t.label.substring(0,31));
+    }
+
+    // Build summary CSV
+    setProgress(85,'Building summary...');
+    const summaryLines=[
+      'MiniCuts DSO — Database Backup',
+      '',
+      'Backup Date,'+now.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}),
+      'Backup Time,'+now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}),
+      'Environment,'+(IS_DEV?'DEV / TEST':'PRODUCTION'),
+      '',
+      'Table,Rows',
+      ...tables.map(t=>t.label+','+counts[t.label]),
+      '',
+      'Total Rows,'+totalRows,
+    ];
+    zip.file('_Backup_Summary.txt',summaryLines.join('\n'));
+
+    // Generate Excel binary and add to ZIP
+    setProgress(90,'Building Excel file...');
+    const xlsBinary=XLSX.write(wb,{bookType:'xlsx',type:'array'});
+    zip.file(baseName+'.xlsx', xlsBinary);
+
+    // Generate ZIP
+    setProgress(95,'Compressing...');
+    const zipBlob=await zip.generateAsync({
+      type:'blob',
+      compression:'DEFLATE',
+      compressionOptions:{level:6}
+    },meta=>{
+      setProgress(95+Math.round(meta.percent*0.05),'Compressing... '+Math.round(meta.percent)+'%');
+    });
+
+    // Trigger download
+    setProgress(100,'Done! 🎉');
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(zipBlob);
+    a.download=baseName+'.zip';
+    a.click();
+    setTimeout(()=>URL.revokeObjectURL(a.href),10000);
+
+    // Save history
+    saveHistory(ds+' '+now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}),baseName+'.zip',totalRows);
+
+    result.style.display='block';
+    result.className='result ok';
+    result.innerHTML=
+      '✅ <strong>'+baseName+'.zip</strong> saved to Downloads!<br><br>'
+      +'📦 Contains: <strong>'+baseName+'.xlsx</strong> + '
+      +tables.length+' CSV files + summary<br>'
+      +'📊 Total: <strong>'+totalRows.toLocaleString()+' rows</strong> across '+tables.length+' tables';
+
+  }catch(e){
+    result.style.display='block';
+    result.className='result err';
+    result.textContent='❌ Backup failed: '+e.message;
+    setProgress(0,'Failed');
+  }finally{
+    btn.disabled=false;
+    btn.textContent='📦 Download Backup ZIP';
+    setTimeout(()=>{prog.style.display='none';},3000);
+  }
+}
+
+function saveHistory(datetime,filename,rows){
+  try{
+    const h=JSON.parse(localStorage.getItem('mc_bkp_hist')||'[]');
+    h.unshift({datetime,filename,rows});
+    localStorage.setItem('mc_bkp_hist',JSON.stringify(h.slice(0,10)));
+    renderHistory(h.slice(0,10));
+  }catch(e){}
+}
+
+function renderHistory(h){
+  if(!h||!h.length) return;
+  document.getElementById('history-section').style.display='block';
+  document.getElementById('hist-list').innerHTML=h.map(x=>
+    '<div class="hist-row">'
+      +'<span style="font-weight:700;color:var(--text);">'+x.datetime+'</span>'
+      +'<span style="color:var(--b);font-weight:700;">'+Number(x.rows).toLocaleString()+' rows</span>'
+      +'<span style="color:var(--muted);font-size:11px;">'+x.filename+'</span>'
+    +'</div>'
+  ).join('');
+}
+
+// Init
+(async()=>{
+  await Promise.all([
+    getCount('customers','cnt-customers'),
+    getCount('visits','cnt-visits'),
+    getCount('queue','cnt-queue'),
+    getCount('cycles','cnt-cycles'),
+    getCount('prizes_given','cnt-prizes'),
+    getCount('game_sessions','cnt-games'),
+  ]);
+  try{renderHistory(JSON.parse(localStorage.getItem('mc_bkp_hist')||'[]'));}catch(e){}
+})();
+</script>
+</body>
+</html>
