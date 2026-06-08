@@ -143,10 +143,18 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
     <div id="lu-nf" style="display:none;margin-top:6px;">
       <div class="sm warn" style="display:block;">Mobile not registered yet. Register to get started!</div>
       <button class="btn btn-b btn-full" onclick="showReg(getM())" style="margin-bottom:8px;">📝 Register (New Customer)</button>
-      <button class="btn btn-ghost btn-full" onclick="showGuest()">👤 Continue as Guest</button>
+      <button class="btn btn-ghost btn-full" onclick="showGuest()" style="opacity:.55;font-size:13px;">Continue without phone</button>
     </div>
-    <div style="text-align:center;margin-top:14px;padding-top:14px;border-top:1px solid var(--border);">
-      <button class="btn btn-ghost btn-sm" onclick="showGuest()">👤 Guest Check-In (no phone)</button>
+    <div style="text-align:center;margin-top:16px;padding-top:14px;border-top:1px solid var(--border);">
+      <div style="background:linear-gradient(135deg,#FFF9E6,#EEF6FF);border-radius:12px;padding:12px 14px;margin-bottom:10px;text-align:left;">
+        <div style="font-family:var(--fh);font-size:13px;font-weight:800;color:var(--bd);margin-bottom:5px;">📱 Check in with your number to unlock:</div>
+        <div style="font-size:12px;color:var(--muted);line-height:1.7;">
+          ✂️ Track your queue position<br>
+          🎁 Earn stamps towards a free hair wash<br>
+          🎮 Unlock games &amp; win prizes after your haircut
+        </div>
+      </div>
+      <button onclick="showGuest()" style="background:none;border:none;color:var(--muted);font-size:11.5px;font-weight:700;cursor:pointer;font-family:var(--fb);text-decoration:underline;">No phone? Continue as guest →</button>
     </div>
   </div>
 </div>
@@ -363,7 +371,13 @@ function onLookup(){
   const num=(document.getElementById('lu-num')?.value||'').replace(/\D/g,'');
   ['lu-st','lu-kids','lu-act','lu-nf','lu-reg-sibling'].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display='none';});
   _sel=[];
-  if(num.length!==7)return;
+  if(num.length===0)return;
+  if(num.length<7){
+    const st=document.getElementById('lu-st');
+    st.textContent='Please enter all 7 digits of your number 👆';
+    st.style.display='block';st.style.background='#FEF3C7';st.style.color='var(--warn)';
+    return;
+  }
   const st=document.getElementById('lu-st');
   st.textContent='Looking up... 🔍';st.style.display='block';st.style.background='#EEF6FF';st.style.color='var(--b)';
   _luTimer=setTimeout(doLookup,500);
