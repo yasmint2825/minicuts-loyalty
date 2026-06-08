@@ -3,321 +3,486 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0"/>
-<title>MiniCuts Smart Parent Guide 🐼</title>
+<title>MiniCuts Smart Parent Guide</title>
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800;900&family=Nunito:wght@500;600;700;800;900&display=swap" rel="stylesheet"/>
 <style>
 :root{
-  --y:#FFD600;--yd:#F0C000;--b:#1565C0;--bd:#0D47A1;--bm:#1976D2;
-  --ok:#16A34A;--err:#DC2626;--warn:#D97706;
-  --orange:#F97316;--pink:#EC4899;--purple:#7C3AED;
-  --dark:#0D1B3E;--text:#334155;--muted:#64748B;
-  --bg:#F0F6FF;--white:#fff;
-  --fh:'Baloo 2',cursive;--fb:'Nunito',sans-serif;
-  --r:18px;--sh:0 4px 20px rgba(13,71,161,.1);
+  --y:#FFD600;--b:#1565C0;--bd:#0D47A1;--bm:#1976D2;
+  --ok:#16A34A;--orange:#F97316;--pink:#EC4899;--purple:#7C3AED;
+  --dark:#0D1B3E;--text:#334155;--muted:#64748B;--white:#fff;
+  --sky:#EEF6FF;--cream:#FFFDF0;
+  --radius:20px;
+  --shadow:0 8px 32px rgba(13,71,161,.13);
+  --card-shadow:0 4px 18px rgba(13,71,161,.09);
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+input,select,textarea{user-select:text;-webkit-user-select:text;}
 html{scroll-behavior:smooth;}
-body{font-family:var(--fb);background:var(--bg);color:var(--dark);min-height:100vh;overflow-x:hidden;}
-
-/* ─── TOP PROGRESS ─── */
-.xp-bar-wrap{height:5px;background:#E2E8F0;position:sticky;top:0;z-index:100;}
-.xp-bar-fill{height:100%;background:linear-gradient(90deg,var(--b),var(--y));width:0%;transition:width .5s ease;}
+body{
+  font-family:'Nunito',sans-serif;
+  background:#F0F6FF;
+  color:var(--dark);
+  min-height:100vh;
+  overflow-x:hidden;
+}
 
 /* ─── HERO ─── */
-.hero{background:linear-gradient(135deg,#0D47A1 0%,#1565C0 55%,#1E88E5 100%);padding:20px 16px 28px;position:relative;overflow:hidden;}
-.hero::before{content:'';position:absolute;right:-60px;top:-60px;width:220px;height:220px;background:rgba(255,214,0,.15);border-radius:50%;pointer-events:none;}
-.hero::after{content:'✂️';position:absolute;right:14px;bottom:8px;font-size:80px;opacity:.07;pointer-events:none;}
-.hero-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;position:relative;z-index:1;}
-.logo-pill{display:inline-flex;align-items:center;gap:7px;background:rgba(255,255,255,.13);border:1.5px solid rgba(255,255,255,.22);color:#fff;padding:7px 14px;border-radius:99px;font-family:var(--fh);font-size:13px;font-weight:800;}
-.xp-pill{background:var(--y);color:var(--bd);padding:6px 13px;border-radius:99px;font-family:var(--fh);font-size:13px;font-weight:900;display:flex;align-items:center;gap:5px;transition:transform .2s;}
-.xp-pill.bump{animation:bump .35s ease;}
-@keyframes bump{0%,100%{transform:scale(1)}50%{transform:scale(1.25)}}
+.hero{
+  background:linear-gradient(135deg,var(--bd) 0%,var(--b) 55%,#1E88E5 100%);
+  padding:20px 16px 28px;
+  position:relative;
+  overflow:hidden;
+}
+.hero::before{
+  content:'';position:absolute;right:-60px;top:-60px;
+  width:220px;height:220px;background:rgba(255,214,0,.18);
+  border-radius:50%;pointer-events:none;
+}
+.hero::after{
+  content:'✂️';position:absolute;right:20px;bottom:10px;
+  font-size:80px;opacity:.08;pointer-events:none;line-height:1;
+}
+.hero-brand{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:20px;position:relative;z-index:1;
+}
+.logo-pill{
+  display:inline-flex;align-items:center;gap:8px;
+  background:rgba(255,255,255,.14);border:1.5px solid rgba(255,255,255,.25);
+  color:#fff;padding:7px 14px;border-radius:99px;
+  font-family:'Baloo 2',cursive;font-size:14px;font-weight:800;
+}
+.hero-badge{
+  background:var(--y);color:var(--bd);
+  padding:6px 12px;border-radius:99px;
+  font-family:'Baloo 2',cursive;font-size:12px;font-weight:800;
+  white-space:nowrap;
+}
 .hero-body{position:relative;z-index:1;}
-.hero h1{font-family:var(--fh);font-size:clamp(22px,5.5vw,38px);font-weight:900;color:#fff;line-height:1.1;margin-bottom:8px;}
+.hero h1{
+  font-family:'Baloo 2',cursive;
+  font-size:clamp(24px,6vw,42px);
+  font-weight:900;color:#fff;
+  line-height:1.1;margin-bottom:10px;
+  letter-spacing:-0.5px;
+}
 .hero h1 em{color:var(--y);font-style:normal;}
-.hero-sub{color:rgba(255,255,255,.78);font-size:13.5px;line-height:1.5;margin-bottom:16px;}
-.hero-chips{display:flex;flex-wrap:wrap;gap:7px;}
-.hero-chip{background:rgba(255,255,255,.11);border:1px solid rgba(255,255,255,.2);color:#fff;padding:6px 12px;border-radius:99px;font-size:12px;font-weight:700;}
+.hero-sub{color:rgba(255,255,255,.8);font-size:14px;line-height:1.55;margin-bottom:18px;}
+.hero-chips{display:flex;flex-wrap:wrap;gap:8px;}
+.hero-chip{
+  background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22);
+  color:#fff;padding:7px 12px;border-radius:99px;font-size:12px;font-weight:700;
+}
 
 /* ─── STICKY NAV ─── */
 .sticky-nav{
-  position:sticky;top:5px;z-index:99;
-  background:rgba(255,255,255,.97);backdrop-filter:blur(14px);
-  border-bottom:2px solid rgba(13,71,161,.08);
-  display:flex;overflow-x:auto;gap:0;
-  box-shadow:0 4px 18px rgba(13,71,161,.1);
+  position:sticky;top:0;z-index:10;
+  background:rgba(255,255,255,.97);backdrop-filter:blur(12px);
+  border-bottom:2px solid rgba(13,71,161,.1);
+  padding:10px 12px;overflow-x:auto;
+  display:flex;gap:8px;
+  box-shadow:0 2px 12px rgba(13,71,161,.08);
 }
 .sticky-nav::-webkit-scrollbar{height:0;}
-.snav{
-  flex:1;min-width:52px;flex-shrink:0;
-  display:flex;flex-direction:column;align-items:center;
-  padding:8px 4px 7px;border:none;background:transparent;
-  cursor:pointer;position:relative;
-  transition:color .15s;
-  font-family:var(--fb);
+.snav-btn{
+  flex-shrink:0;padding:10px 16px;
+  background:#F1F5F9;border:1.5px solid rgba(13,71,161,.12);
+  border-radius:99px;
+  font-family:'Baloo 2',cursive;font-size:13px;font-weight:800;
+  color:var(--b);cursor:pointer;white-space:nowrap;
+  transition:background .18s,color .18s,border-color .18s,box-shadow .18s,transform .12s;
 }
-.snav::after{
-  content:'';position:absolute;bottom:0;left:8%;right:8%;
-  height:3px;border-radius:3px 3px 0 0;background:var(--b);
-  transform:scaleX(0);transition:transform .2s;
+.snav-btn:active{transform:scale(.95);}
+.snav-btn.active{
+  background:linear-gradient(135deg,var(--bd),var(--b));
+  color:#fff;border-color:transparent;
+  box-shadow:0 4px 14px rgba(13,71,161,.28);
 }
-.snav.active::after{transform:scaleX(1);}
-.snav .sn-icon{font-size:20px;transition:transform .2s;line-height:1.2;}
-.snav.active .sn-icon{transform:scale(1.2);}
-.snav .sn-label{font-size:9.5px;font-weight:800;color:var(--muted);transition:color .15s;margin-top:1px;letter-spacing:.01em;}
-.snav.active .sn-label{color:var(--b);}
-.snav .sn-dot{width:5px;height:5px;border-radius:50%;background:#E5E7EB;margin-top:3px;transition:background .2s;}
-.snav.visited .sn-dot{background:var(--ok);}
-.snav.active .sn-dot{background:var(--b);}
 
 /* ─── SHELL ─── */
-.shell{padding:14px 14px 100px;max-width:520px;margin:0 auto;}
+.shell{padding:16px 14px 100px;max-width:520px;margin:0 auto;}
 
 /* ─── SECTION PANELS ─── */
 .section-panel{display:none;}
-.section-panel.active{display:block;animation:fadeUp .28s ease both;}
-@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.section-panel.active{display:block;}
 
 /* ─── CARDS ─── */
-.card{background:#fff;border-radius:var(--r);padding:18px;margin-bottom:13px;box-shadow:var(--sh);border:1px solid rgba(13,71,161,.06);}
-.card-title{font-family:var(--fh);font-size:17px;font-weight:800;color:var(--bd);margin-bottom:3px;}
-.card-sub{color:var(--muted);font-size:13px;line-height:1.5;margin-bottom:13px;}
-.eyebrow{font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.08em;color:var(--b);margin-bottom:4px;}
-.icon-bub{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;font-size:19px;background:linear-gradient(135deg,var(--y),#FFB300);flex-shrink:0;box-shadow:0 4px 12px rgba(255,214,0,.28);}
-.card-header{display:flex;align-items:flex-start;gap:12px;margin-bottom:13px;}
-
-/* ─── SECTION HEADER STRIP ─── */
-.sec-strip{background:linear-gradient(135deg,var(--bd),var(--bm));border-radius:var(--r);padding:16px;margin-bottom:13px;position:relative;overflow:hidden;}
-.sec-strip::after{position:absolute;right:12px;bottom:-4px;font-size:52px;opacity:.11;pointer-events:none;}
-.sec-strip .ss-label{font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.08em;color:var(--y);margin-bottom:5px;}
-.sec-strip .ss-title{font-family:var(--fh);font-size:18px;font-weight:800;color:#fff;line-height:1.3;}
-.sec-strip .ss-sub{font-size:12.5px;color:rgba(255,255,255,.72);margin-top:5px;}
-
-/* ─── EXPLORE NUDGE ─── */
-.nudge{
-  background:linear-gradient(135deg,#0D47A1,#1565C0);
-  border-radius:16px;padding:16px;margin:6px 0 14px;
-  display:flex;align-items:center;gap:13px;
-  cursor:pointer;transition:transform .15s,box-shadow .15s;
-  box-shadow:0 6px 20px rgba(13,71,161,.22);
-  animation:pulseGlow 2.5s ease-in-out infinite;
+.card{
+  background:#fff;border-radius:var(--radius);
+  padding:18px;margin-bottom:14px;
+  box-shadow:var(--card-shadow);
+  border:1px solid rgba(13,71,161,.07);
 }
-@keyframes pulseGlow{0%,100%{box-shadow:0 6px 20px rgba(13,71,161,.22)}50%{box-shadow:0 8px 28px rgba(13,71,161,.38)}}
-.nudge:active{transform:scale(.98);}
-.nudge-icon{font-size:30px;flex-shrink:0;}
-.nudge-text{flex:1;}
-.nudge-title{font-family:var(--fh);font-size:15px;font-weight:800;color:#fff;margin-bottom:2px;}
-.nudge-sub{font-size:12px;color:rgba(255,255,255,.72);font-weight:700;}
-.nudge-arrow{background:var(--y);color:var(--bd);width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:900;flex-shrink:0;}
+.card-title{
+  font-family:'Baloo 2',cursive;font-size:18px;font-weight:800;
+  color:var(--bd);margin-bottom:4px;
+}
+.card-sub{color:var(--muted);font-size:13px;line-height:1.5;margin-bottom:14px;}
+.eyebrow{
+  font-size:10px;font-weight:900;text-transform:uppercase;
+  letter-spacing:.08em;color:var(--b);margin-bottom:5px;
+}
+.icon-bub{
+  width:44px;height:44px;border-radius:14px;
+  display:grid;place-items:center;font-size:20px;
+  background:linear-gradient(135deg,var(--y),#FFB300);
+  flex-shrink:0;box-shadow:0 6px 14px rgba(255,214,0,.3);
+}
+.card-header{display:flex;align-items:flex-start;gap:12px;margin-bottom:14px;}
+.card-header .icon-bub{margin-top:2px;}
 
-/* ─── SCORE STRIP ─── */
-.score-strip{display:flex;gap:8px;margin-bottom:13px;}
-.score-tile{flex:1;background:#fff;border-radius:14px;padding:12px 10px;text-align:center;box-shadow:var(--sh);}
-.score-num{font-family:var(--fh);font-size:21px;font-weight:900;color:var(--bd);}
-.score-lbl{font-size:10.5px;color:var(--muted);font-weight:700;margin-top:2px;line-height:1.3;}
+/* ─── FUN FACT STRIP ─── */
+.funfact-strip{
+  background:linear-gradient(135deg,var(--bd),var(--b));
+  border-radius:var(--radius);padding:16px;margin-bottom:14px;
+  position:relative;overflow:hidden;
+}
+.funfact-strip::after{content:'💡';position:absolute;right:12px;bottom:-4px;font-size:52px;opacity:.12;}
+.funfact-label{
+  font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.08em;
+  color:var(--y);margin-bottom:6px;
+}
+.funfact-text{
+  font-family:'Baloo 2',cursive;font-size:16px;font-weight:700;
+  color:#fff;line-height:1.4;position:relative;z-index:1;
+}
+.funfact-btn{
+  margin-top:12px;background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.25);
+  color:#fff;padding:8px 16px;border-radius:99px;
+  font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer;
+}
+.funfact-btn:active{transform:scale(.97);}
 
-/* ─── FUNFACT STRIP ─── */
-.funfact-strip{background:linear-gradient(135deg,#0D47A1,#1565C0);border-radius:var(--r);padding:16px;margin-bottom:13px;position:relative;overflow:hidden;}
-.funfact-strip::after{content:'💡';position:absolute;right:10px;bottom:-4px;font-size:52px;opacity:.11;}
-.funfact-label{font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.08em;color:var(--y);margin-bottom:5px;}
-.funfact-text{font-family:var(--fh);font-size:15px;font-weight:700;color:#fff;line-height:1.4;position:relative;z-index:1;min-height:44px;}
-.funfact-btn{margin-top:12px;background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.25);color:#fff;padding:8px 16px;border-radius:99px;font-family:var(--fb);font-size:13px;font-weight:800;cursor:pointer;}
-
-/* ─── ROUTINE QUIZ (existing) ─── */
-.progress-bar-wrap{margin-bottom:15px;}
-.progress-top{display:flex;justify-content:space-between;margin-bottom:6px;font-size:11.5px;font-weight:800;color:var(--muted);}
-.progress-track{height:7px;background:#E8F0FE;border-radius:99px;overflow:hidden;}
-.progress-fill{height:100%;background:linear-gradient(90deg,var(--b),var(--y));border-radius:99px;transition:width .3s ease;}
-.q-text{font-family:var(--fh);font-size:18px;font-weight:800;color:var(--bd);margin-bottom:13px;line-height:1.25;}
-.opt-grid{display:grid;gap:8px;}
-.opt-btn{width:100%;min-height:48px;text-align:left;padding:13px 15px;border:2px solid #E2EBF8;background:#fff;color:var(--dark);border-radius:13px;font-family:var(--fb);font-size:13.5px;font-weight:700;cursor:pointer;transition:border-color .15s,background .15s;}
-.opt-btn.selected{border-color:var(--b);background:#EEF6FF;}
-.btn{padding:11px 18px;border-radius:13px;border:none;font-family:var(--fh);font-size:14px;font-weight:800;cursor:pointer;transition:transform .15s;display:inline-flex;align-items:center;justify-content:center;gap:7px;}
-.btn:active{transform:scale(.97);}
-.btn-b{background:linear-gradient(135deg,var(--bd),var(--b));color:#fff;}
-.btn-y{background:var(--y);color:var(--bd);}
-.btn-light{background:#F1F5F9;color:var(--dark);}
-.btn:disabled{opacity:.4;cursor:not-allowed;}
-.quiz-nav{display:flex;gap:10px;margin-top:14px;}
-.quiz-nav button{flex:1;}
-.result-box{display:none;}
-.result-box.active{display:block;animation:fadeUp .3s ease;}
-.result-title{font-family:var(--fh);font-size:19px;font-weight:800;color:var(--bd);margin-bottom:10px;}
-.chip-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:13px;}
-.chip{background:#EEF6FF;color:var(--b);padding:4px 10px;border-radius:99px;font-size:12px;font-weight:700;}
-.tips-list{padding-left:18px;display:flex;flex-direction:column;gap:7px;margin-bottom:13px;}
-.tips-list li{font-size:13.5px;color:var(--text);line-height:1.5;}
-.info-box{background:#F8FBFF;border-radius:12px;padding:12px;font-size:13px;color:var(--text);line-height:1.55;}
-.info-box strong{color:var(--bd);display:block;margin-bottom:4px;}
-.warn-box{background:#FFF7ED;border-left:3px solid var(--warn);}
-.reminder-btn{display:block;width:100%;padding:12px 14px;margin-bottom:8px;background:#F8FBFF;border:2px solid #E2EBF8;border-radius:13px;font-family:var(--fb);font-size:13.5px;font-weight:700;color:var(--text);cursor:pointer;text-align:left;transition:all .15s;}
-.reminder-btn:active{transform:scale(.98);}
-.reminder-btn.active{background:#EEF6FF;border-color:var(--b);color:var(--b);}
-.reminder-result{background:linear-gradient(135deg,#F0FDF4,#EEF6FF);border-radius:13px;padding:13px;font-size:13.5px;font-weight:700;color:var(--ok);display:none;line-height:1.5;}
-.reminder-result.active{display:block;animation:fadeUp .25s ease;}
-
-/* ─── FLIP CARDS ─── */
-.flip-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:13px;}
-.flip-card{height:130px;cursor:pointer;perspective:800px;}
-.flip-inner{width:100%;height:100%;position:relative;transform-style:preserve-3d;transition:transform .45s ease;}
-.flip-card.flipped .flip-inner{transform:rotateY(180deg);}
-.flip-front,.flip-back{position:absolute;inset:0;border-radius:16px;backface-visibility:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:13px;text-align:center;}
-.flip-front{background:linear-gradient(135deg,#EEF6FF,#F0FDF4);border:1.5px solid rgba(13,71,161,.1);}
-.flip-back{background:linear-gradient(135deg,#0D47A1,#1565C0);transform:rotateY(180deg);}
-.flip-emoji{font-size:30px;margin-bottom:6px;}
-.flip-hint{font-size:12px;font-weight:700;color:var(--muted);}
-.flip-fact{font-size:12px;font-weight:700;color:#fff;line-height:1.5;}
-
-/* ─── FACTS GRID ─── */
-.facts-grid{display:grid;gap:10px;grid-template-columns:1fr 1fr;margin-bottom:13px;}
-.fact-card{border-radius:16px;padding:14px;background:linear-gradient(135deg,#F0F7FF,#FFFCE8);border:1px solid rgba(13,71,161,.08);position:relative;overflow:hidden;}
-.fact-card::before{content:attr(data-emoji);position:absolute;right:8px;bottom:4px;font-size:32px;opacity:.15;pointer-events:none;}
-.fact-card-label{font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.06em;color:var(--b);margin-bottom:4px;}
+/* ─── FUN FACTS GRID (Did you know) ─── */
+.facts-grid{display:grid;gap:10px;grid-template-columns:1fr 1fr;}
+.fact-card{
+  border-radius:16px;padding:14px;
+  background:linear-gradient(135deg,#F0F7FF,#FFFCE8);
+  border:1px solid rgba(13,71,161,.09);
+  position:relative;overflow:hidden;
+}
+.fact-card::before{
+  content:attr(data-emoji);position:absolute;right:8px;bottom:4px;
+  font-size:32px;opacity:.15;pointer-events:none;
+}
+.fact-card-label{font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.06em;color:var(--b);margin-bottom:5px;}
 .fact-card-text{font-size:12px;font-weight:700;color:var(--text);line-height:1.45;}
-.fact-card.hl{background:linear-gradient(135deg,#0D47A1,#1565C0);}
-.fact-card.hl .fact-card-label{color:rgba(255,214,0,.85);}
-.fact-card.hl .fact-card-text{color:#fff;}
+.fact-card.highlight{
+  background:linear-gradient(135deg,#0D47A1,#1976D2);
+  border-color:transparent;
+}
+.fact-card.highlight .fact-card-label{color:rgba(255,214,0,.85);}
+.fact-card.highlight .fact-card-text{color:#fff;}
 
-/* ─── TABS (routines/style) ─── */
-.tab-pills{display:flex;gap:7px;overflow-x:auto;margin-bottom:13px;padding-bottom:2px;}
-.tab-pills::-webkit-scrollbar{height:0;}
-.tab-pill{flex-shrink:0;padding:9px 15px;background:#F1F5F9;border:1.5px solid transparent;border-radius:99px;font-family:var(--fh);font-size:13px;font-weight:800;color:var(--muted);cursor:pointer;transition:all .15s;}
-.tab-pill.active{background:var(--bd);color:#fff;border-color:transparent;}
+/* ─── QUIZ ─── */
+.progress-bar-wrap{margin-bottom:16px;}
+.progress-top{display:flex;justify-content:space-between;margin-bottom:7px;font-size:12px;font-weight:800;color:var(--muted);}
+.progress-track{height:8px;background:#E8F0FE;border-radius:99px;overflow:hidden;}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--b),var(--y));border-radius:99px;transition:width .3s ease;}
+.q-text{font-family:'Baloo 2',cursive;font-size:19px;font-weight:800;color:var(--bd);margin-bottom:14px;line-height:1.25;}
+.opt-grid{display:grid;gap:9px;}
+.opt-btn{
+  width:100%;min-height:50px;text-align:left;
+  padding:14px 16px;border:2px solid #E2EBF8;
+  background:#fff;color:var(--dark);border-radius:14px;
+  font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;
+  cursor:pointer;transition:border-color .15s,background .15s,transform .15s;
+}
+.opt-btn:active{transform:scale(.98);}
+.opt-btn.selected{border-color:var(--b);background:#EEF6FF;box-shadow:0 0 0 1px rgba(13,71,161,.12);}
+.quiz-nav{display:flex;gap:10px;margin-top:16px;}
+.quiz-nav button{flex:1;}
+.btn{
+  padding:12px 18px;border-radius:14px;border:none;
+  font-family:'Baloo 2',cursive;font-size:15px;font-weight:800;
+  cursor:pointer;transition:transform .15s,box-shadow .15s;
+  text-align:center;display:inline-flex;align-items:center;justify-content:center;gap:7px;
+}
+.btn:active{transform:scale(.97);}
+.btn:disabled{opacity:.4;cursor:default;transform:none;}
+.btn-y{background:linear-gradient(135deg,var(--y),#FFB300);color:var(--bd);box-shadow:0 8px 20px rgba(255,214,0,.3);}
+.btn-b{background:var(--b);color:#fff;box-shadow:0 8px 20px rgba(13,71,161,.2);}
+.btn-light{background:#F1F5F9;color:var(--dark);}
+.btn-full{width:100%;display:flex;}
+
+/* ─── RESULT ─── */
+.result-box{
+  display:none;background:linear-gradient(135deg,#F0F7FF,#FFFCE8);
+  border-radius:var(--radius);padding:18px;
+  border:1px solid rgba(13,71,161,.1);margin-top:4px;
+}
+.result-box.active{display:block;animation:popIn .25s ease;}
+@keyframes popIn{from{opacity:0;transform:scale(.97);}to{opacity:1;transform:scale(1);}}
+.result-title{font-family:'Baloo 2',cursive;font-size:20px;font-weight:800;color:var(--bd);margin-bottom:10px;}
+.chip-row{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:12px;}
+.chip{
+  background:#fff;color:var(--b);border:1px solid rgba(13,71,161,.15);
+  border-radius:99px;padding:6px 11px;font-size:11px;font-weight:800;
+}
+.tips-list{list-style:none;padding:0;display:grid;gap:8px;margin-bottom:12px;}
+.tips-list li{
+  background:#fff;border-radius:14px;padding:11px 14px 11px 36px;
+  position:relative;color:var(--text);font-size:13px;line-height:1.45;
+}
+.tips-list li::before{content:'✓';position:absolute;left:13px;top:11px;color:var(--ok);font-weight:900;font-size:13px;}
+.info-box{
+  background:#fff;border-radius:14px;padding:14px;
+  margin-bottom:10px;border:1px solid rgba(13,71,161,.08);
+}
+.info-box strong{display:block;color:var(--b);font-size:13px;font-weight:800;margin-bottom:4px;}
+.info-box p{color:var(--text);font-size:13px;line-height:1.5;margin:0;}
+.warn-box{background:#FFF7ED;border-color:rgba(249,115,22,.2);}
+.warn-box strong{color:#C2410C;}
+
+/* ─── TABS (routines) ─── */
+.tab-row{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px;}
+.tab-pill{
+  padding:9px 13px;border-radius:99px;
+  border:1.5px solid rgba(13,71,161,.15);background:#fff;
+  color:var(--b);font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;
+  cursor:pointer;transition:background .15s,color .15s;
+}
+.tab-pill.active{background:var(--b);color:#fff;border-color:var(--b);}
 .tab-panel{display:none;}
-.tab-panel.active{display:block;animation:fadeUp .2s ease;}
+.tab-panel.active{display:block;animation:popIn .2s ease;}
 
-/* ─── INFO ROWS ─── */
-.info-rows{display:flex;flex-direction:column;gap:0;}
-.info-row{display:flex;align-items:flex-start;gap:11px;padding:11px 0;border-bottom:1px solid #F1F5F9;}
-.info-row:last-child{border-bottom:none;}
-.info-row-icon{font-size:20px;flex-shrink:0;margin-top:1px;}
-.info-row-title{font-size:13.5px;font-weight:800;color:var(--dark);margin-bottom:2px;}
-.info-row-sub{font-size:12px;color:var(--muted);line-height:1.5;}
-
-/* ─── MYTH ACCORDION ─── */
-.myth-item{border:1.5px solid #E2EBF8;border-radius:13px;margin-bottom:8px;overflow:hidden;transition:border-color .15s;}
-.myth-item.open{border-color:var(--b);}
-.myth-q{width:100%;background:#fff;border:none;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;font-family:var(--fb);font-size:13.5px;font-weight:700;color:var(--dark);text-align:left;line-height:1.4;}
-.myth-icon{font-size:20px;flex-shrink:0;font-style:normal;transition:transform .25s;}
-.myth-item.open .myth-icon{transform:rotate(45deg);}
-.myth-a{font-size:13px;color:var(--text);padding:0 16px;max-height:0;overflow:hidden;transition:max-height .3s ease,padding .3s;line-height:1.6;}
-.myth-item.open .myth-a{max-height:300px;padding:0 16px 14px;}
+/* ─── MYTH BUSTER ─── */
+.myth-item{
+  border:1.5px solid #E2EBF8;border-radius:16px;
+  background:#fff;overflow:hidden;margin-bottom:9px;
+}
+.myth-q{
+  width:100%;background:#fff;border:none;
+  padding:15px 16px;display:flex;justify-content:space-between;align-items:center;
+  gap:12px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;
+  color:var(--dark);cursor:pointer;text-align:left;
+}
+.myth-icon{
+  width:28px;height:28px;border-radius:99px;
+  background:#EEF6FF;color:var(--b);
+  display:grid;place-items:center;font-size:16px;font-weight:800;
+  flex-shrink:0;transition:transform .2s;
+}
+.myth-item.open .myth-icon{transform:rotate(45deg);background:var(--b);color:#fff;}
+.myth-a{
+  display:none;padding:0 16px 15px;color:var(--text);
+  font-size:13px;line-height:1.5;
+  border-top:1px solid #F1F5F9;padding-top:12px;
+}
+.myth-item.open .myth-a{display:block;}
 
 /* ─── STYLE FINDER ─── */
-.sel-group{margin-bottom:13px;}
-.sel-label{display:block;font-size:11.5px;font-weight:800;color:var(--bd);text-transform:uppercase;letter-spacing:.05em;margin-bottom:7px;}
+.finder-card{
+  background:linear-gradient(135deg,#F0F7FF,#FFFCE8);
+  border:1px solid rgba(13,71,161,.1);border-radius:var(--radius);
+  padding:16px;margin-bottom:14px;
+}
+.sel-group{
+  background:#fff;border-radius:14px;padding:13px;margin-bottom:10px;
+  border:1px solid rgba(13,71,161,.08);
+}
+.sel-label{
+  font-size:12px;font-weight:900;color:var(--b);
+  text-transform:uppercase;letter-spacing:.05em;margin-bottom:9px;display:block;
+}
 .sel-chips{display:flex;flex-wrap:wrap;gap:7px;}
-.sel-chip{padding:8px 14px;background:#F1F5F9;border:1.5px solid transparent;border-radius:99px;font-family:var(--fb);font-size:13px;font-weight:700;color:var(--muted);cursor:pointer;transition:all .15s;}
-.sel-chip.active{background:#EEF6FF;color:var(--b);border-color:var(--b);}
-.reco-card{background:linear-gradient(135deg,#F0F7FF,#FFFCE8);border-radius:14px;padding:15px;margin-bottom:10px;border:1px solid rgba(13,71,161,.1);}
-.reco-card h4{font-family:var(--fh);font-size:16px;font-weight:800;color:var(--bd);margin-bottom:8px;}
-.reco-pills{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:9px;}
-.reco-pill{background:#fff;color:var(--b);padding:3px 9px;border-radius:99px;font-size:11px;font-weight:700;border:1px solid rgba(13,71,161,.15);}
+.sel-chip{
+  min-height:38px;padding:8px 13px;border-radius:99px;
+  border:1.5px solid rgba(13,71,161,.15);background:#fff;
+  color:var(--b);font-weight:700;font-size:13px;cursor:pointer;
+  transition:background .15s,color .15s;
+}
+.sel-chip.active{background:var(--b);color:#fff;}
+.reco-card{
+  border:1px solid rgba(13,71,161,.1);border-radius:16px;
+  background:#fff;padding:14px;margin-bottom:10px;
+}
+.reco-card h4{font-family:'Baloo 2',cursive;font-size:16px;color:var(--bd);margin-bottom:6px;}
+.reco-card p{color:var(--text);font-size:13px;line-height:1.45;margin:0;}
+.reco-pills{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0;}
+.reco-pill{
+  background:#EEF6FF;color:var(--b);border-radius:99px;
+  padding:5px 9px;font-size:11px;font-weight:800;
+}
 
-/* ─── PARENT QUIZ ─── */
-.pq-card{background:#fff;border-radius:var(--r);padding:18px;margin-bottom:13px;box-shadow:var(--sh);border:2px solid rgba(13,71,161,.08);}
-.pq-header{background:linear-gradient(135deg,#FFF9E6,#EEF6FF);border-radius:13px;padding:14px;margin-bottom:14px;border:1.5px solid rgba(255,214,0,.3);}
-.pq-q{font-family:var(--fh);font-size:18px;font-weight:800;color:var(--bd);margin-bottom:13px;line-height:1.3;}
-.pq-opts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;}
-.pq-opt{padding:13px 10px;border:2px solid rgba(13,71,161,.13);background:#fff;border-radius:13px;font-size:13px;font-weight:700;cursor:pointer;text-align:center;transition:all .2s;color:var(--text);line-height:1.3;}
-.pq-opt:active{transform:scale(.97);}
-.pq-opt.correct{background:#DCFCE7;border-color:#16A34A;color:#16A34A;}
-.pq-opt.wrong{background:#FEE2E2;border-color:var(--err);color:var(--err);}
-.pq-opt.reveal{background:#F8FBFF;border-color:rgba(13,71,161,.15);color:var(--muted);}
-.pq-opt:disabled{cursor:default;}
-.pq-explain{background:#F8FBFF;border-left:3px solid var(--b);border-radius:0 10px 10px 0;padding:12px;font-size:13px;color:var(--text);line-height:1.55;display:none;margin-bottom:12px;}
-.pq-explain.show{display:block;animation:fadeUp .25s ease;}
-.score-board{background:linear-gradient(135deg,var(--bd),var(--b));border-radius:var(--r);padding:26px;text-align:center;margin-bottom:13px;box-shadow:var(--sh);}
-.score-big{font-family:var(--fh);font-size:64px;font-weight:900;color:var(--y);line-height:1;}
-.score-label{font-size:15px;font-weight:700;color:rgba(255,255,255,.82);margin-top:6px;}
-.score-expert{display:inline-block;background:var(--y);color:var(--bd);padding:7px 20px;border-radius:99px;font-family:var(--fh);font-size:15px;font-weight:900;margin-top:12px;}
-.score-pts{font-size:13px;color:rgba(255,255,255,.7);margin-top:8px;font-weight:700;}
-.pq-progress{height:6px;background:rgba(255,255,255,.15);border-radius:99px;overflow:hidden;margin-bottom:14px;}
-.pq-progress-fill{height:100%;background:linear-gradient(90deg,var(--y),#FFB300);border-radius:99px;transition:width .35s;}
+/* ─── REMINDER ─── */
+.reminder-btn{
+  width:100%;min-height:48px;border:2px solid #E2EBF8;
+  background:#fff;border-radius:14px;padding:13px 16px;
+  text-align:left;font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;
+  color:var(--dark);cursor:pointer;margin-bottom:8px;
+  transition:border-color .15s,background .15s;
+}
+.reminder-btn.active{border-color:var(--b);background:#EEF6FF;}
+.reminder-result{
+  display:none;padding:14px;background:#F0FDF4;
+  border:1px solid rgba(22,163,74,.2);color:#166534;
+  border-radius:14px;font-weight:700;font-size:13px;line-height:1.5;
+  margin-top:4px;
+}
+.reminder-result.active{display:block;}
 
-/* ─── LOYALTY ─── */
-.loy-card{background:linear-gradient(135deg,#0D47A1,#1565C0);border-radius:var(--r);padding:18px;margin-bottom:13px;position:relative;overflow:hidden;}
-.loy-card::after{content:'🎁';position:absolute;right:12px;bottom:-4px;font-size:52px;opacity:.12;}
-.loy-title{font-family:var(--fh);font-size:18px;font-weight:800;color:#fff;margin-bottom:10px;}
-.stamp-row{display:flex;gap:7px;margin:12px 0;flex-wrap:wrap;}
-.stamp{width:40px;height:40px;border-radius:50%;border:2.5px dashed rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;font-size:16px;background:rgba(255,255,255,.07);}
-.stamp.filled{background:var(--y);border:2.5px solid var(--y);}
-.stamp.free{background:linear-gradient(135deg,#FFD600,#FF8C00);border:2.5px solid var(--y);width:44px;height:44px;font-size:18px;box-shadow:0 4px 16px rgba(255,214,0,.5);}
-.games-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:13px;}
-.game-tile{background:#fff;border-radius:15px;padding:14px;text-align:center;border:1.5px solid rgba(13,71,161,.08);}
-.game-tile-icon{font-size:28px;margin-bottom:6px;}
-.game-tile-name{font-family:var(--fh);font-size:13px;font-weight:800;color:var(--bd);margin-bottom:3px;}
-.game-tile-desc{font-size:11px;color:var(--muted);font-weight:700;}
+/* ─── LOYALTY / GAMES TABLES ─── */
+.info-rows{display:grid;gap:9px;}
+.info-row{
+  display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:center;
+  background:#F8FBFF;border-radius:14px;padding:13px;
+  border:1px solid rgba(13,71,161,.07);
+}
+.info-row-icon{
+  width:40px;height:40px;border-radius:12px;
+  display:grid;place-items:center;font-size:20px;
+  background:linear-gradient(135deg,var(--y),#FFB300);
+  flex-shrink:0;
+}
+.info-row-title{font-size:13px;font-weight:800;color:var(--bd);}
+.info-row-sub{font-size:12px;color:var(--muted);margin-top:2px;}
 
-@media(max-width:380px){.pq-opts{grid-template-columns:1fr;}.games-grid{grid-template-columns:1fr;}}
+/* ─── ACTIVITY STRIP ─── */
+.activity-strip{
+  background:linear-gradient(135deg,var(--ok),#15803D);
+  border-radius:var(--radius);padding:16px;margin-bottom:14px;
+  position:relative;overflow:hidden;
+}
+.activity-strip::after{content:'🌟';position:absolute;right:14px;bottom:-4px;font-size:52px;opacity:.15;}
+.activity-strip .label{font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.07em;color:rgba(255,255,255,.75);margin-bottom:5px;}
+.activity-strip .title{font-family:'Baloo 2',cursive;font-size:16px;font-weight:800;color:#fff;line-height:1.3;}
+.activity-strip .sub{font-size:12px;color:rgba(255,255,255,.8);margin-top:4px;}
+
+/* ─── INTERACTIVE FLIPPABLE FUN FACTS ─── */
+.flip-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+.flip-card{
+  height:110px;perspective:600px;cursor:pointer;
+  border-radius:16px;
+}
+.flip-inner{
+  width:100%;height:100%;position:relative;
+  transform-style:preserve-3d;transition:transform .45s cubic-bezier(.4,0,.2,1);
+  border-radius:16px;
+}
+.flip-card.flipped .flip-inner{transform:rotateY(180deg);}
+.flip-front,.flip-back{
+  position:absolute;inset:0;border-radius:16px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:12px;text-align:center;backface-visibility:hidden;
+  -webkit-backface-visibility:hidden;
+}
+.flip-front{
+  background:linear-gradient(135deg,var(--bd),var(--b));
+  border:2px solid rgba(255,255,255,.15);
+}
+.flip-front .flip-emoji{font-size:28px;margin-bottom:5px;}
+.flip-front .flip-hint{font-size:11px;font-weight:700;color:rgba(255,255,255,.7);}
+.flip-back{
+  background:linear-gradient(135deg,var(--y),#FFB300);
+  transform:rotateY(180deg);
+}
+.flip-back .flip-fact{font-size:11px;font-weight:800;color:var(--bd);line-height:1.4;}
+
+/* ─── SCORE TICKER ─── */
+.score-strip{
+  display:flex;gap:0;background:#fff;border-radius:var(--radius);
+  overflow:hidden;box-shadow:var(--card-shadow);margin-bottom:14px;
+  border:1px solid rgba(13,71,161,.07);
+}
+.score-tile{
+  flex:1;padding:14px 10px;text-align:center;
+  border-right:1px solid rgba(13,71,161,.07);
+}
+.score-tile:last-child{border-right:none;}
+.score-num{font-family:'Baloo 2',cursive;font-size:22px;font-weight:900;color:var(--bd);}
+.score-lbl{font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-top:2px;}
+
+/* ─── DISCLAIMER ─── */
+.disclaimer{
+  background:#fff;border:1.5px dashed rgba(13,71,161,.2);
+  border-radius:var(--radius);padding:14px;
+  color:var(--muted);font-size:12px;line-height:1.55;
+  margin-top:14px;
+}
+.disclaimer strong{color:var(--b);}
+
+/* ─── FOOTER ─── */
+.footer-note{
+  text-align:center;color:var(--muted);font-size:11px;
+  margin-top:16px;padding-bottom:8px;
+}
+
+/* ─── MOBILE TWEAKS ─── */
+@media(max-width:380px){
+  .facts-grid,.flip-grid{grid-template-columns:1fr;}
+  .hero h1{font-size:22px;}
+}
+@media(min-width:540px){
+  .opt-grid{grid-template-columns:1fr 1fr;}
+  .facts-grid{grid-template-columns:repeat(2,1fr);}
+}
+
+/* ─── ANIMATIONS ─── */
+@keyframes slideUp{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);}}
+.section-panel.active .card,.section-panel.active .funfact-strip,
+.section-panel.active .activity-strip,.section-panel.active .flip-grid,
+.section-panel.active .score-strip{animation:slideUp .3s ease both;}
+.section-panel.active .card:nth-child(2){animation-delay:.04s;}
+.section-panel.active .card:nth-child(3){animation-delay:.08s;}
+.section-panel.active .card:nth-child(4){animation-delay:.12s;}
 </style>
 </head>
 <body>
 
-<!-- TOP XP BAR -->
-<div class="xp-bar-wrap"><div class="xp-bar-fill" id="xpBar"></div></div>
-
-<!-- HERO -->
+<!-- ═══ HERO ═══ -->
 <header class="hero">
-  <div class="hero-top">
-    <div class="logo-pill">🐼 MiniCuts DSO</div>
-    <div class="xp-pill" id="xpPill">⭐ 0 pts</div>
+  <div class="hero-brand">
+    <div class="logo-pill">🐼 MiniCuts Smart Guide</div>
+    <div class="hero-badge">For Parents</div>
   </div>
   <div class="hero-body">
-    <h1>Smart Parent<br>Hair Guide <em>✂️</em></h1>
-    <p class="hero-sub">Everything you need to know about your child's hair — tips, routines, styles & a fun quiz!</p>
-    <div class="hero-chips">
-      <span class="hero-chip">🪄 6 Sections</span>
-      <span class="hero-chip">🧠 Parent Quiz</span>
-      <span class="hero-chip">⭐ Earn Points</span>
-      <span class="hero-chip">✂️ Style Finder</span>
-    </div>
+    <h1>Your Child's <em>Hair Care</em> Guide</h1>
+    <p class="hero-sub">Personalised tips, fun facts and easy routines — designed for Dubai parents.</p>
+    <p style="color:rgba(255,255,255,.65);font-size:12px;font-weight:700;margin-top:0;">👇 Tap any section button below to explore</p>
   </div>
 </header>
 
-<!-- STICKY NAV -->
-<nav class="sticky-nav" id="mainNav">
-  <button class="snav active" onclick="showSec('s-guide',this)" data-sec="s-guide">
-    <span class="sn-icon">🪄</span><span class="sn-label">Guide</span><span class="sn-dot"></span>
-  </button>
-  <button class="snav" onclick="showSec('s-facts',this)" data-sec="s-facts">
-    <span class="sn-icon">💡</span><span class="sn-label">Facts</span><span class="sn-dot"></span>
-  </button>
-  <button class="snav" onclick="showSec('s-style',this)" data-sec="s-style">
-    <span class="sn-icon">✂️</span><span class="sn-label">Styles</span><span class="sn-dot"></span>
-  </button>
-  <button class="snav" onclick="showSec('s-routines',this)" data-sec="s-routines">
-    <span class="sn-icon">🧴</span><span class="sn-label">Routines</span><span class="sn-dot"></span>
-  </button>
-  <button class="snav" onclick="showSec('s-myths',this)" data-sec="s-myths">
-    <span class="sn-icon">🔎</span><span class="sn-label">Myths</span><span class="sn-dot"></span>
-  </button>
-  <button class="snav" onclick="showSec('s-quiz',this)" data-sec="s-quiz">
-    <span class="sn-icon">🧠</span><span class="sn-label">Quiz</span><span class="sn-dot"></span>
-  </button>
-  <button class="snav" onclick="showSec('s-loyalty',this)" data-sec="s-loyalty">
-    <span class="sn-icon">🎁</span><span class="sn-label">Loyalty</span><span class="sn-dot"></span>
-  </button>
+<!-- ═══ STICKY NAV ═══ -->
+<nav class="sticky-nav" id="stickyNav">
+  <button class="snav-btn active" onclick="showSection('s-guide',this)">🪄 Hair Guide</button>
+  <button class="snav-btn" onclick="showSection('s-facts',this)">💡 Fun Facts</button>
+  <button class="snav-btn" onclick="showSection('s-style',this)">✂️ Style Finder</button>
+  <button class="snav-btn" onclick="showSection('s-routines',this)">🧴 Routines</button>
+  <button class="snav-btn" onclick="showSection('s-myths',this)">🔎 Myth Buster</button>
+  <button class="snav-btn" onclick="showSection('s-loyalty',this)">🎁 Loyalty</button>
 </nav>
 
 <main class="shell">
 
-<!-- ══ SECTION 1: GUIDE ══ -->
+<!-- ══════════════════════════════════
+     SECTION 1: HAIR GUIDE QUIZ
+══════════════════════════════════ -->
 <div class="section-panel active" id="s-guide">
+
+  <!-- Daily tip strip -->
   <div class="funfact-strip">
-    <div class="funfact-label">✨ Tip of the Day</div>
+    <div class="funfact-label">✨ Quick Tip of the Day</div>
     <div class="funfact-text" id="dailyTip">Use lukewarm water for your child's hair wash — hot water strips natural oils and makes hair drier.</div>
     <button class="funfact-btn" id="newTipBtn" type="button">Next Tip →</button>
   </div>
+
+  <!-- Stats strip -->
   <div class="score-strip">
     <div class="score-tile"><div class="score-num">6–8</div><div class="score-lbl">Weeks between trims</div></div>
     <div class="score-tile"><div class="score-num">2–3×</div><div class="score-lbl">Ideal washes per week</div></div>
     <div class="score-tile"><div class="score-num">37°C</div><div class="score-lbl">Perfect water temp</div></div>
   </div>
+
+  <!-- Quiz -->
   <div class="card">
     <div class="card-header">
       <div class="icon-bub">🪄</div>
-      <div><div class="eyebrow">Interactive Quiz</div><div class="card-title">Find the Right Routine</div><div class="card-sub">Answer 6 quick questions — get a personalised guide for your child.</div></div>
+      <div>
+        <div class="eyebrow">Interactive Quiz</div>
+        <div class="card-title">Find the Right Routine</div>
+        <div class="card-sub">Answer 6 quick questions — get a personalised guide for your child.</div>
+      </div>
     </div>
     <div class="progress-bar-wrap">
       <div class="progress-top"><span id="stepLabel">Step 1 of 6</span><span id="progressPercent">17%</span></div>
@@ -333,316 +498,496 @@ body{font-family:var(--fb);background:var(--bg);color:var(--dark);min-height:100
     </div>
     <div class="result-box" id="resultCard">
       <div class="eyebrow">Your MiniCuts Guide</div>
-      <div class="result-title" id="resultTitle"></div>
+      <div class="result-title" id="resultTitle">Personalised Hair Routine</div>
       <div class="chip-row" id="resultChips"></div>
       <ul class="tips-list" id="resultTips"></ul>
       <div class="info-box"><strong>Why this helps</strong><p id="resultReason"></p></div>
-      <div class="info-box" style="margin-top:9px;"><strong>MiniCuts Suggestion</strong><p id="resultSuggestion"></p></div>
-      <div class="info-box warn-box" style="margin-top:9px;"><strong>⚠️ Safety Note</strong><p id="careAlertText"></p></div>
-      <div class="quiz-nav" style="margin-top:13px;">
+      <div class="info-box" style="margin-top:10px;"><strong>MiniCuts Suggestion</strong><p id="resultSuggestion"></p></div>
+      <div class="info-box warn-box" style="margin-top:10px;"><strong>⚠️ Parent Safety Note</strong><p id="careAlertText"></p></div>
+      <div class="quiz-nav" style="margin-top:14px;">
         <button class="btn btn-light" id="restartBtn" type="button">↺ Retake</button>
-        <button class="btn btn-y" onclick="showSec('s-style',document.querySelector('[data-sec=s-style]'))">✂️ Find a Style</button>
+        <button class="btn btn-y" onclick="showSection('s-style',document.querySelectorAll('.snav-btn')[2])">✂️ Find a Style</button>
       </div>
     </div>
   </div>
+
+  <!-- Reminder -->
   <div class="card">
     <div class="card-header">
       <div class="icon-bub">📅</div>
-      <div><div class="eyebrow">Haircut Reminder</div><div class="card-title">Is It Time for a Trim?</div><div class="card-sub">Tap when your child last had a haircut.</div></div>
+      <div>
+        <div class="eyebrow">Haircut Reminder</div>
+        <div class="card-title">Is It Time for a Trim?</div>
+        <div class="card-sub">Tap when your child last had a haircut.</div>
+      </div>
     </div>
     <div id="reminderOptions"></div>
     <div class="reminder-result" id="reminderResult"></div>
   </div>
-  <div class="nudge" onclick="showSec('s-facts',document.querySelector('[data-sec=s-facts]'))">
-    <div class="nudge-icon">💡</div>
-    <div class="nudge-text"><div class="nudge-title">Next: Fun Hair Facts!</div><div class="nudge-sub">8 flip cards · Tap to reveal hair science</div></div>
-    <div class="nudge-arrow">→</div>
-  </div>
-</div>
 
-<!-- ══ SECTION 2: FACTS ══ -->
+</div><!-- end s-guide -->
+
+
+<!-- ══════════════════════════════════
+     SECTION 2: FUN FACTS
+══════════════════════════════════ -->
 <div class="section-panel" id="s-facts">
-  <div class="sec-strip" style="--ec:'🧠'">
-    <div class="ss-label">🧠 Did You Know?</div>
-    <div class="ss-title">Fascinating Facts About Kids' Hair</div>
-    <div class="ss-sub">Tap any card to flip and reveal the fact!</div>
+
+  <div class="activity-strip">
+    <div class="label">🧠 Did You Know?</div>
+    <div class="title">Fascinating Facts About Kids' Hair</div>
+    <div class="sub">Tap any card to flip it and reveal the fact!</div>
   </div>
+
+  <!-- Flip cards grid -->
   <div class="flip-grid" id="flipGrid"></div>
+
+  <!-- Detailed fun fact cards -->
   <div class="card">
     <div class="card-header">
-      <div class="icon-bub">👶</div>
-      <div><div class="eyebrow">By Age Group</div><div class="card-title">Hair Changes as Kids Grow</div></div>
+      <div class="icon-bub">🔬</div>
+      <div>
+        <div class="eyebrow">Science Corner</div>
+        <div class="card-title">How Hair Actually Works</div>
+      </div>
+    </div>
+    <div class="facts-grid">
+      <div class="fact-card" data-emoji="💈">
+        <div class="fact-card-label">Growth Rate</div>
+        <div class="fact-card-text">Kids' hair grows about <strong>1.25 cm per month</strong> — faster than adults!</div>
+      </div>
+      <div class="fact-card" data-emoji="🧬">
+        <div class="fact-card-label">Hair Structure</div>
+        <div class="fact-card-text">Each strand is made of <strong>keratin protein</strong> — the same as fingernails.</div>
+      </div>
+      <div class="fact-card highlight" data-emoji="💧">
+        <div class="fact-card-label">Water Fact</div>
+        <div class="fact-card-text">Wet hair can <strong>stretch up to 30%</strong> before breaking — be gentle!</div>
+      </div>
+      <div class="fact-card" data-emoji="☀️">
+        <div class="fact-card-label">UAE Climate</div>
+        <div class="fact-card-text">Dubai heat + AC cold = hair needs <strong>extra moisture</strong> year-round.</div>
+      </div>
+      <div class="fact-card" data-emoji="🧪">
+        <div class="fact-card-label">Scalp pH</div>
+        <div class="fact-card-text">Kids' scalp is more <strong>sensitive than adults'</strong> — mild shampoo always.</div>
+      </div>
+      <div class="fact-card highlight" data-emoji="✂️">
+        <div class="fact-card-label">Trimming Truth</div>
+        <div class="fact-card-text">Cutting <strong>doesn't make hair grow faster</strong> — but it removes damage!</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- UAE-specific tips card -->
+  <div class="card">
+    <div class="card-header">
+      <div class="icon-bub">🇦🇪</div>
+      <div>
+        <div class="eyebrow">Dubai Parents</div>
+        <div class="card-title">Hair Care in the UAE Climate</div>
+      </div>
+    </div>
+    <div class="info-rows">
+      <div class="info-row">
+        <div class="info-row-icon">☀️</div>
+        <div><div class="info-row-title">Sun Exposure</div><div class="info-row-sub">Long outdoor play dries hair quickly. Use leave-in conditioner for curly or thick hair.</div></div>
+      </div>
+      <div class="info-row">
+        <div class="info-row-icon">❄️</div>
+        <div><div class="info-row-title">Air Conditioning</div><div class="info-row-sub">Indoor AC removes moisture. Kids with fine hair may feel more static and dryness.</div></div>
+      </div>
+      <div class="info-row">
+        <div class="info-row-icon">🏊</div>
+        <div><div class="info-row-title">Pool Season</div><div class="info-row-sub">Chlorine weakens hair. Rinse with clean water before and after pool swimming.</div></div>
+      </div>
+      <div class="info-row">
+        <div class="info-row-icon">🌬️</div>
+        <div><div class="info-row-title">Dust & Sand</div><div class="info-row-sub">Desert dust can clog scalp pores. Gentle weekly deep-rinse helps keep scalp clean.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hair age milestones -->
+  <div class="card">
+    <div class="card-header">
+      <div class="icon-bub">📈</div>
+      <div>
+        <div class="eyebrow">By Age</div>
+        <div class="card-title">Hair Changes as Kids Grow</div>
+      </div>
     </div>
     <div class="info-rows" id="ageRows"></div>
   </div>
+
+  <!-- Interactive stat reveal -->
+  <div class="funfact-strip">
+    <div class="funfact-label">🎯 Parent Challenge</div>
+    <div class="funfact-text" id="challengeTip">Do you know how many hairs your child has on their head? Tap to find out!</div>
+    <button class="funfact-btn" id="challengeBtn" type="button">Reveal!</button>
+  </div>
+
+</div><!-- end s-facts -->
+
+
+<!-- ══════════════════════════════════
+     SECTION 3: STYLE FINDER
+══════════════════════════════════ -->
+<div class="section-panel" id="s-style">
+
+  <div class="funfact-strip" style="background:linear-gradient(135deg,var(--purple),#5B21B6);">
+    <div class="funfact-label" style="color:rgba(255,214,0,.9);">✂️ Style Finder</div>
+    <div class="funfact-text">Tell us about your child — we'll suggest the <strong style="color:var(--y);">best haircut</strong> to match their hair type, comfort and style.</div>
+  </div>
+
+  <div class="finder-card">
+    <div class="card-title" style="margin-bottom:14px;">Interactive Style Selector</div>
+    <div id="styleSelectors"></div>
+    <div style="display:flex;gap:10px;margin-top:14px;">
+      <button class="btn btn-y btn-full" type="button" id="showStyleBtn">Show My Style Ideas</button>
+      <button class="btn btn-light" type="button" id="resetStyleBtn" style="white-space:nowrap;">Reset</button>
+    </div>
+    <div id="styleResultWrap" style="display:none;margin-top:16px;"></div>
+  </div>
+
+  <!-- Choose by type -->
   <div class="card">
     <div class="card-header">
-      <div class="icon-bub">🏋️</div>
-      <div><div class="eyebrow">Hair Science</div><div class="card-title">Did You Know This?</div></div>
+      <div class="icon-bub">🧒</div>
+      <div>
+        <div class="eyebrow">Quick Reference</div>
+        <div class="card-title">Choose by Hair Type</div>
+      </div>
     </div>
-    <div id="challengeTip" style="font-size:13.5px;color:var(--text);line-height:1.55;min-height:48px;margin-bottom:12px;">Tap below to reveal an amazing hair fact!</div>
-    <button class="btn btn-b" style="width:100%;" id="challengeBtn" type="button">🧠 Reveal Hair Fact</button>
+    <div class="info-rows">
+      <div class="info-row"><div class="info-row-icon">〰️</div><div><div class="info-row-title">Straight Hair</div><div class="info-row-sub">Short, medium or long — all work. Neat, soft or trendy look all possible.</div></div></div>
+      <div class="info-row"><div class="info-row-icon">🌀</div><div><div class="info-row-title">Curly / Wavy Hair</div><div class="info-row-sub">Boys: curly top taper or textured crop. Girls: layered curly cut or soft curls.</div></div></div>
+      <div class="info-row"><div class="info-row-icon">💪</div><div><div class="info-row-title">Thick Hair</div><div class="info-row-sub">Taper, layered cut, U-cut or feather cut all help manage volume.</div></div></div>
+      <div class="info-row"><div class="info-row-icon">🌸</div><div><div class="info-row-title">Fine Hair</div><div class="info-row-sub">Short layers, blunt bob, mushroom cut or soft fringe look best.</div></div></div>
+    </div>
   </div>
-  <div class="facts-grid">
-    <div class="fact-card hl" data-emoji="💪"><div class="fact-card-label">Strength</div><div class="fact-card-text">One strand holds up to 100g — same as a small apple!</div></div>
-    <div class="fact-card" data-emoji="🌙"><div class="fact-card-label">Growth</div><div class="fact-card-text">Hair grows fastest at night and during summer.</div></div>
-    <div class="fact-card" data-emoji="🧬"><div class="fact-card-label">Texture</div><div class="fact-card-text">Curly or straight depends on your hair follicle shape!</div></div>
-    <div class="fact-card hl" data-emoji="🌊"><div class="fact-card-label">Wet Hair</div><div class="fact-card-text">Wet hair stretches 30% — always detangle gently!</div></div>
-  </div>
-  <div class="nudge" onclick="showSec('s-style',document.querySelector('[data-sec=s-style]'))">
-    <div class="nudge-icon">✂️</div>
-    <div class="nudge-text"><div class="nudge-title">Next: Style Finder!</div><div class="nudge-sub">Find the perfect cut for your child</div></div>
-    <div class="nudge-arrow">→</div>
-  </div>
-</div>
 
-<!-- ══ SECTION 3: STYLE FINDER ══ -->
-<div class="section-panel" id="s-style">
-  <div class="sec-strip">
-    <div class="ss-label">✂️ Personalised</div>
-    <div class="ss-title">Style Finder</div>
-    <div class="ss-sub">Pick your preferences and we'll suggest the best styles.</div>
-  </div>
+  <!-- Choose by comfort -->
   <div class="card">
-    <div id="styleSelectors"></div>
-    <div style="display:flex;gap:9px;margin-top:4px;">
-      <button class="btn btn-light" style="flex:0;" id="resetStyleBtn" type="button">↺ Reset</button>
-      <button class="btn btn-b" style="flex:1;" id="showStyleBtn" type="button">✂️ Find My Style</button>
+    <div class="card-header">
+      <div class="icon-bub">💙</div>
+      <div>
+        <div class="eyebrow">Comfort First</div>
+        <div class="card-title">Choose by What Your Child Dislikes</div>
+      </div>
     </div>
-    <div id="styleResultWrap" style="display:none;margin-top:14px;"></div>
+    <div class="info-rows">
+      <div class="info-row"><div class="info-row-icon">🪮</div><div><div class="info-row-title">Dislikes Combing</div><div class="info-row-sub">Shorter or layered style reduces knots and brushing time.</div></div></div>
+      <div class="info-row"><div class="info-row-icon">🚿</div><div><div class="info-row-title">Dislikes Hair Wash</div><div class="info-row-sub">Simple cut or dry cut where suitable. Keep wash sessions calm and quick.</div></div></div>
+      <div class="info-row"><div class="info-row-icon">⏱️</div><div><div class="info-row-title">Cannot Sit Long</div><div class="info-row-sub">Quick, low-maintenance haircut that needs minimal styling time.</div></div></div>
+      <div class="info-row"><div class="info-row-icon">🌟</div><div><div class="info-row-title">Loves Styling</div><div class="info-row-sub">Braids, color spray, curls, K-pop or Korean-inspired styles work great!</div></div></div>
+    </div>
   </div>
-  <div class="nudge" onclick="showSec('s-routines',document.querySelector('[data-sec=s-routines]'))">
-    <div class="nudge-icon">🧴</div>
-    <div class="nudge-text"><div class="nudge-title">Next: Daily Routines!</div><div class="nudge-sub">Boys · Girls · Curly · Sensitive kids</div></div>
-    <div class="nudge-arrow">→</div>
-  </div>
-</div>
 
-<!-- ══ SECTION 4: ROUTINES ══ -->
+</div><!-- end s-style -->
+
+
+<!-- ══════════════════════════════════
+     SECTION 4: ROUTINES
+══════════════════════════════════ -->
 <div class="section-panel" id="s-routines">
-  <div class="sec-strip">
-    <div class="ss-label">🧴 Care Guide</div>
-    <div class="ss-title">Daily Hair Routines</div>
-    <div class="ss-sub">Pick your child's profile for personalised tips.</div>
+
+  <div class="activity-strip" style="background:linear-gradient(135deg,var(--b),#1E88E5);">
+    <div class="label">🧴 Daily Care Library</div>
+    <div class="title">Routines for Every Hair Type</div>
+    <div class="sub">Boys, girls, curly hair and sensitive kids — all covered.</div>
   </div>
+
   <div class="card">
     <div class="card-header">
       <div class="icon-bub">🧴</div>
-      <div><div class="eyebrow">By Hair Profile</div><div class="card-title">Routine Guides</div></div>
+      <div>
+        <div class="eyebrow">Parent Routines</div>
+        <div class="card-title">Pick What You Need Today</div>
+      </div>
     </div>
-    <div class="tab-pills" id="routineTabs"></div>
+    <div class="tab-row" id="routineTabs"></div>
     <div id="routinePanels"></div>
   </div>
+
   <div class="card">
     <div class="card-header">
-      <div class="icon-bub">🔧</div>
-      <div><div class="eyebrow">Common Problems</div><div class="card-title">Quick Fix Guide</div></div>
+      <div class="icon-bub">⭐</div>
+      <div>
+        <div class="eyebrow">Quick Fixes</div>
+        <div class="card-title">Common Parent Questions</div>
+      </div>
     </div>
-    <div class="tab-pills" id="styleTabs"></div>
+    <div class="tab-row" id="styleTabs"></div>
     <div id="stylePanels"></div>
   </div>
-  <div class="nudge" onclick="showSec('s-myths',document.querySelector('[data-sec=s-myths]'))">
-    <div class="nudge-icon">🔎</div>
-    <div class="nudge-text"><div class="nudge-title">Next: Myth Buster!</div><div class="nudge-sub">8 myths — fact or fiction?</div></div>
-    <div class="nudge-arrow">→</div>
-  </div>
-</div>
 
-<!-- ══ SECTION 5: MYTHS ══ -->
+</div><!-- end s-routines -->
+
+
+<!-- ══════════════════════════════════
+     SECTION 5: MYTH BUSTER
+══════════════════════════════════ -->
 <div class="section-panel" id="s-myths">
-  <div class="sec-strip">
-    <div class="ss-label">🔎 Fact Check</div>
-    <div class="ss-title">Myth Buster</div>
-    <div class="ss-sub">Tap each myth to reveal the truth!</div>
+
+  <div class="funfact-strip" style="background:linear-gradient(135deg,#F97316,#DC2626);">
+    <div class="funfact-label">🔎 Myth Buster</div>
+    <div class="funfact-text">Parents hear a lot of hair myths. Tap each one below to reveal the real answer!</div>
   </div>
+
   <div class="card">
+    <div class="card-header">
+      <div class="icon-bub">🔎</div>
+      <div>
+        <div class="eyebrow">True or False?</div>
+        <div class="card-title">Hair Facts vs Myths</div>
+        <div class="card-sub">5 myths parents hear all the time — busted with real explanations.</div>
+      </div>
+    </div>
     <div id="mythList"></div>
   </div>
+
+  <!-- Bonus science facts -->
   <div class="card">
     <div class="card-header">
       <div class="icon-bub">🧬</div>
-      <div><div class="eyebrow">The Science</div><div class="card-title">Why Hair Does What It Does</div></div>
+      <div>
+        <div class="eyebrow">Bonus Science</div>
+        <div class="card-title">The Science Behind Healthy Hair</div>
+      </div>
     </div>
     <div class="info-rows">
       <div class="info-row"><div class="info-row-icon">💧</div><div><div class="info-row-title">Moisture = Elasticity</div><div class="info-row-sub">Hydrated hair bends without breaking. Dry hair snaps more easily under combing.</div></div></div>
       <div class="info-row"><div class="info-row-icon">🧂</div><div><div class="info-row-title">Scalp Sebum is Good</div><div class="info-row-sub">Natural oils protect the scalp. Over-washing removes them and causes dryness.</div></div></div>
-      <div class="info-row"><div class="info-row-icon">🌡️</div><div><div class="info-row-title">Heat Weakens Bonds</div><div class="info-row-sub">Hot water and blow dryers weaken keratin bonds. A cool rinse seals the cuticle.</div></div></div>
-      <div class="info-row"><div class="info-row-icon">✂️</div><div><div class="info-row-title">Split Ends Travel Up</div><div class="info-row-sub">Untreated split ends split further up the shaft. Regular trims stop the damage.</div></div></div>
+      <div class="info-row"><div class="info-row-icon">🌡️</div><div><div class="info-row-title">Heat Weakens Bonds</div><div class="info-row-sub">Hot water and blow dryers weaken keratin bonds. Cool rinse at the end helps seal the cuticle.</div></div></div>
+      <div class="info-row"><div class="info-row-icon">✂️</div><div><div class="info-row-title">Split Ends Travel Up</div><div class="info-row-sub">Untreated split ends split further up the shaft. Regular trims stop the damage spreading.</div></div></div>
     </div>
   </div>
-  <div class="nudge" onclick="showSec('s-quiz',document.querySelector('[data-sec=s-quiz]'))">
-    <div class="nudge-icon">🧠</div>
-    <div class="nudge-text"><div class="nudge-title">Next: Parent Quiz!</div><div class="nudge-sub">Test your knowledge · Earn points · Win a score!</div></div>
-    <div class="nudge-arrow">→</div>
-  </div>
-</div>
 
-<!-- ══ SECTION 6: PARENT QUIZ ══ -->
-<div class="section-panel" id="s-quiz">
-  <div class="sec-strip">
-    <div class="ss-label">🧠 Fun Challenge</div>
-    <div class="ss-title">Parent Hair Knowledge Quiz</div>
-    <div class="ss-sub">10 questions · Instant feedback · See your expert level!</div>
-  </div>
-  <div id="pquiz-wrap"></div>
-  <!-- HAIR WORD SCRAMBLE -->
-  <div class="card">
-    <div class="card-header">
-      <div class="icon-bub">🔤</div>
-      <div><div class="eyebrow">Mini Game</div><div class="card-title">Hair Word Scramble!</div><div class="card-sub">Unscramble the hair word as fast as you can. Beat the leaderboard!</div></div>
-    </div>
-    <div id="scramble-game"></div>
-  </div>
-  <!-- LEADERBOARD -->
-  <div class="card">
-    <div class="card-header">
-      <div class="icon-bub">🏆</div>
-      <div><div class="eyebrow">Hall of Fame</div><div class="card-title">Scramble Leaderboard</div><div class="card-sub">Top 10 fastest solvers. Can you beat them?</div></div>
-    </div>
-    <div id="leaderboard-list"></div>
-  </div>
-  <div class="nudge" onclick="showSec('s-loyalty',document.querySelector('[data-sec=s-loyalty]'))">
-    <div class="nudge-icon">🎁</div>
-    <div class="nudge-text"><div class="nudge-title">Next: Loyalty & Rewards!</div><div class="nudge-sub">Stamps · Free wash · Games Club prizes</div></div>
-    <div class="nudge-arrow">→</div>
-  </div>
-</div>
+</div><!-- end s-myths -->
 
-<!-- ══ SECTION 7: LOYALTY ══ -->
+
+<!-- ══════════════════════════════════
+     SECTION 6: LOYALTY + GAMES
+══════════════════════════════════ -->
 <div class="section-panel" id="s-loyalty">
-  <div class="sec-strip">
-    <div class="ss-label">🎁 More Visits, More Value</div>
-    <div class="ss-title">Loyalty & Games Club</div>
-    <div class="ss-sub">Every visit earns rewards. Kids play, parents save.</div>
+
+  <div class="activity-strip">
+    <div class="label">🎁 More Visits, More Value</div>
+    <div class="title">MiniCuts Loyalty & Games Club</div>
+    <div class="sub">Every visit earns rewards. Kids play, parents save.</div>
   </div>
-  <div class="loy-card">
-    <div class="loy-title">🎁 Free Hair Wash Passport</div>
-    <p style="color:rgba(255,255,255,.78);font-size:13px;margin-bottom:4px;">Collect 5 stamps → 6th visit = FREE Hair Wash!</p>
-    <div class="stamp-row">
-      <div class="stamp filled">✂️</div>
-      <div class="stamp filled">✂️</div>
-      <div class="stamp filled">✂️</div>
-      <div class="stamp">✦</div>
-      <div class="stamp">✦</div>
-      <span style="color:rgba(255,255,255,.4);align-self:center;margin:0 3px;">→</span>
-      <div class="stamp free">🎁</div>
+
+  <!-- Loyalty -->
+  <div class="card">
+    <div class="card-header">
+      <div class="icon-bub">🎁</div>
+      <div>
+        <div class="eyebrow">Loyalty Programme</div>
+        <div class="card-title">Stamps = Free Hair Wash</div>
+        <div class="card-sub">Collect 5 stamps and earn a free hair wash on your next visit.</div>
+      </div>
     </div>
-    <div style="background:rgba(255,255,255,.12);border-radius:11px;padding:11px;font-size:12.5px;color:rgba(255,255,255,.8);font-weight:700;margin-top:4px;">
-      👦 Boys: valid 12 months &nbsp;·&nbsp; 👧 Girls: valid 18 months · No paper cards!
+    <div class="info-rows">
+      <div class="info-row"><div class="info-row-icon">✂️</div><div><div class="info-row-title">Collect 5 Stamps</div><div class="info-row-sub">One stamp per haircut visit. 6th visit earns Free Hair Wash.</div></div></div>
+      <div class="info-row"><div class="info-row-icon">👦</div><div><div class="info-row-title">Boys Validity</div><div class="info-row-sub">Valid within 1 year — great for regular monthly haircuts.</div></div></div>
+      <div class="info-row"><div class="info-row-icon">👧</div><div><div class="info-row-title">Girls Validity</div><div class="info-row-sub">Valid within 18 months — suits longer haircut cycles perfectly.</div></div></div>
+      <div class="info-row"><div class="info-row-icon">📱</div><div><div class="info-row-title">Simple Registration</div><div class="info-row-sub">Register once, track digitally — no paper cards to lose!</div></div></div>
     </div>
   </div>
+
+  <!-- Games -->
   <div class="card">
     <div class="card-header">
       <div class="icon-bub">🎮</div>
-      <div><div class="eyebrow">Games Club</div><div class="card-title">Play Games, Win Surprise Gifts</div><div class="card-sub">After each visit kids unlock 3 games and earn points toward mini gifts.</div></div>
+      <div>
+        <div class="eyebrow">Games Club</div>
+        <div class="card-title">Play Games, Win Surprise Gifts</div>
+        <div class="card-sub">After each visit, kids unlock 3 games and earn points toward surprise mini gifts.</div>
+      </div>
     </div>
-    <div class="games-grid">
-      <div class="game-tile"><div class="game-tile-icon">🎡</div><div class="game-tile-name">Spin the Wheel</div><div class="game-tile-desc">Win 8–15 bonus points!</div></div>
-      <div class="game-tile"><div class="game-tile-icon">🐼</div><div class="game-tile-name">Tap Panda</div><div class="game-tile-desc">1 tap = 1 point. 10 seconds!</div></div>
-      <div class="game-tile"><div class="game-tile-icon">🧠</div><div class="game-tile-name">Memory Match</div><div class="game-tile-desc">8 pts + 2 bonus for speed!</div></div>
-      <div class="game-tile"><div class="game-tile-icon">🏆</div><div class="game-tile-name">Level Rewards</div><div class="game-tile-desc">Every 50 pts = surprise gift!</div></div>
+    <div class="info-rows">
+      <div class="info-row"><div class="info-row-icon">🎡</div><div><div class="info-row-title">Spin the Wheel</div><div class="info-row-sub">One spin per visit. Win 8–15 bonus points instantly!</div></div></div>
+      <div class="info-row"><div class="info-row-icon">🐼</div><div><div class="info-row-title">Tap Panda</div><div class="info-row-sub">10-second reflex game. 1 tap = 1 point. Beat the global record for +2 bonus!</div></div></div>
+      <div class="info-row"><div class="info-row-icon">🧠</div><div><div class="info-row-title">Memory Match</div><div class="info-row-sub">Flip and match card pairs. 8 points + 2 bonus for fastest time!</div></div></div>
+      <div class="info-row"><div class="info-row-icon">🏆</div><div><div class="info-row-title">Level Rewards</div><div class="info-row-sub">Every 50 points = a new badge level + surprise mini gift from staff.</div></div></div>
     </div>
-    <div style="background:linear-gradient(135deg,#FFF9E6,#EEF6FF);border-radius:13px;padding:13px;border:1px solid rgba(13,71,161,.1);">
-      <strong style="color:var(--bd);font-size:13px;display:block;margin-bottom:4px;">🌟 Why Parents Love It</strong>
+    <div style="background:linear-gradient(135deg,#FFF9E6,#EEF6FF);border-radius:14px;padding:14px;margin-top:12px;border:1px solid rgba(13,71,161,.1);">
+      <strong style="color:var(--bd);font-size:13px;display:block;margin-bottom:5px;">🌟 Why Parents Love It</strong>
       <p style="color:var(--text);font-size:13px;line-height:1.5;margin:0;">Kids look forward to every haircut because of the games. Parents enjoy a happier, calmer salon experience — and better value through loyalty rewards.</p>
     </div>
   </div>
-  <div class="card" style="text-align:center;border:2px solid rgba(255,214,0,.4);background:linear-gradient(135deg,#FFFCE8,#EEF6FF);">
-    <div style="font-size:40px;margin-bottom:8px;">🐼</div>
-    <div style="font-family:var(--fh);font-size:18px;font-weight:800;color:var(--bd);margin-bottom:5px;">Book Your Next Visit</div>
-    <p style="font-size:13px;color:var(--muted);margin-bottom:14px;">Dubai Silicon Oasis · Highly rated kids salon · ⭐ 4.9 Google Rating</p>
-    <div style="display:flex;flex-direction:column;gap:8px;">
-      <a href="https://www.instagram.com/minicutsdso/" target="_blank" style="display:block;background:linear-gradient(135deg,var(--bd),var(--b));color:#fff;padding:12px;border-radius:13px;font-family:var(--fh);font-size:14px;font-weight:800;text-decoration:none;">📸 Follow @minicutsdso</a>
-      <a href="https://g.page/r/CY7wwbQTVi-nEAE/review" target="_blank" style="display:block;background:var(--y);color:var(--bd);padding:12px;border-radius:13px;font-family:var(--fh);font-size:14px;font-weight:800;text-decoration:none;">⭐ Leave a Google Review</a>
+
+  <!-- CTA -->
+  <div style="background:linear-gradient(135deg,var(--bd),var(--b));border-radius:var(--radius);padding:20px;margin-bottom:14px;text-align:center;position:relative;overflow:hidden;">
+    <div style="position:absolute;right:-10px;bottom:-10px;font-size:80px;opacity:.1;">🐼</div>
+    <div style="position:relative;z-index:1;">
+      <div style="font-family:'Baloo 2',cursive;font-size:19px;font-weight:900;color:#fff;margin-bottom:6px;">Need Help Choosing a Style?</div>
+      <p style="color:rgba(255,255,255,.8);font-size:13px;line-height:1.5;margin-bottom:16px;">Our stylists love helping parents find the perfect cut for every child.</p>
+      <a href="tel:043408082" style="display:inline-flex;align-items:center;gap:8px;background:var(--y);color:var(--bd);padding:12px 22px;border-radius:14px;font-family:'Baloo 2',cursive;font-size:15px;font-weight:900;text-decoration:none;">📞 Call MiniCuts Stylist</a>
     </div>
   </div>
+
+</div><!-- end s-loyalty -->
+
+
+<!-- ─── DISCLAIMER ─── -->
+<div class="disclaimer">
+  <strong>* Important:</strong> This guide is general information for parents only. It is not medical advice and does not diagnose or treat any hair or scalp condition. If your child has severe itching, redness, swelling, wounds, infection, unusual hair fall, heavy flakes, pain, or if any issue persists, please consult a paediatrician or dermatologist.
 </div>
+<p class="footer-note">MiniCuts Kids Salon · Dubai · Smart Guide for Parents · Not medical advice</p>
 
 </main>
 
 <script>
-// ═══ DATA ═══
-const dailyTips=["Use lukewarm water for your child's hair wash — hot water strips natural oils and makes hair drier.","Start detangling from the ends first, then work upward slowly to reduce painful pulling.","Massage shampoo gently into the scalp with fingertips — no need to scrub the hair length.","Rinse shampoo thoroughly. Leftover product on the scalp can cause flakes and irritation.","Pat hair dry with a soft towel instead of rubbing — rubbing creates frizz and breaks fragile strands.","A trim every 6–8 weeks keeps the style neat and removes dry, splitting ends before they spread.","For curly or wavy hair, combing when slightly damp (not dripping wet) causes far less breakage.","Too much styling product can make boys' spikes fall flat — a tiny amount works much better.","For school mornings, keep a small spray bottle handy to lightly dampen and resettle hair quickly.","In Dubai's AC climate, fine hair can feel more static and dry. A light conditioner on ends helps."];
-const quizQuestions=[{key:"childProfile",question:"Who are you choosing tips for?",options:["Boy","Girl","Both / General"]},{key:"hairType",question:"What is your child's hair type?",options:["Straight","Wavy","Curly","Thick","Fine"]},{key:"ageGroup",question:"What is your child's age group?",options:["1–3 years","4–7 years","8–12 years","Teen"]},{key:"concern",question:"What is the main hair concern?",options:["Dry hair","Frizzy hair","Tangled hair","Dandruff/flakes","Hair fall","Difficult to manage","Spikes not staying","Want soft & shiny hair"]},{key:"washFrequency",question:"How often do you wash your child's hair?",options:["Daily","2–3 times a week","Once a week","Only when needed"]},{key:"dislike",question:"What does your child dislike most during hair care?",options:["Hair wash","Combing","Haircut","Blow dry","Sitting still"]}];
-const recommendationMap={"Tangled hair":{title:"Tangle-Free Hair Routine",tips:["Use a wide-tooth comb or detangling brush.","Start from the ends first, then move upward slowly.","Use a mild conditioner mainly on the ends if the hair is long or dry.","Avoid tight ponytails or clips for long hours."],reason:"Most painful tangles become worse when brushing starts from the scalp. Starting at the ends reduces pulling.",suggestion:"Book a gentle trim every 6–8 weeks to reduce knots, dry ends and split ends."},"Dry hair":{title:"Soft & Hydrated Hair Routine",tips:["Use lukewarm water, not hot water.","Choose a mild kids shampoo and avoid over-washing.","Apply conditioner on the hair ends, not heavily on the scalp.","Pat dry with a towel instead of rubbing strongly."],reason:"Hot water and frequent washing remove natural oils. Gentle washing plus conditioner helps hair feel softer.",suggestion:"Ask our stylist for a soft trim and simple wash routine suitable for your child's hair type."},"Frizzy hair":{title:"Frizz-Control Hair Routine",tips:["Use a soft towel and gently squeeze hair dry.","Comb when hair is slightly damp, not fully dry.","Use a small amount of child-friendly leave-in conditioner if suitable.","Keep the haircut shaped so the ends do not look rough."],reason:"Frizz increases when hair is rubbed or dried harshly. A smoother drying routine and regular shaping helps.",suggestion:"A layered or shaped cut can help reduce puffiness and improve daily manageability."},"Dandruff/flakes":{title:"Gentle Scalp Care Routine",tips:["Massage shampoo gently into the scalp with fingertips.","Rinse well so shampoo does not remain on the scalp.","Avoid scratching flakes harshly.","Use anti-dandruff products only as per label guidance or doctor advice."],reason:"Flakes worsen when the scalp is irritated. Gentle washing helps remove buildup.",suggestion:"If flakes are heavy, itchy, red or persistent, consult a doctor."},"Hair fall":{title:"Gentle Handling Routine",tips:["Avoid tight ponytails or braids that pull the scalp.","Do not force knots out; detangle slowly from the ends.","Use a soft brush and avoid harsh towel rubbing.","Watch for sudden, patchy or unusual hair fall."],reason:"Gentle handling reduces unnecessary breakage. Sudden hair fall should be checked medically.",suggestion:"A simple, easy-maintenance haircut may reduce pulling and tangling."},"Difficult to manage":{title:"Easy Morning Routine",tips:["Choose a haircut that matches school mornings and your child's comfort.","Keep hair slightly damp before combing difficult areas.","Use simple school-friendly styles instead of complicated daily styling.","Trim regularly so hair keeps its shape."],reason:"Hair becomes difficult when the cut does not match the child's hair texture or daily routine.",suggestion:"Our stylist can recommend a low-maintenance haircut based on your child's hair type."},"Spikes not staying":{title:"Boys' Spikes & Shape Guide",tips:["Start with towel-dried hair, not dripping wet hair.","Use a tiny amount of child-friendly styling product.","Push hair upward from the roots, then shape the tips lightly.","Keep the top length suitable — very long top hair may fall flat."],reason:"Spikes need support at the root and the right top length. Too much product weighs hair down.",suggestion:"Ask for a textured top, short sides or a soft faux-hawk style."},"Want soft & shiny hair":{title:"Soft & Shiny Hair Guide",tips:["Rinse shampoo completely until hair feels clean.","Use conditioner only on mid-lengths and ends when needed.","Avoid very hot water and rough towel drying.","Trim dry ends so hair reflects light better."],reason:"Hair looks shinier when the outer surface is smoother. Gentle washing and regular trims help.",suggestion:"Ask MiniCuts for a soft trim and child-friendly finishing routine."}};
-const reminderData=[{label:"Less than 4 weeks ago",result:"Still fresh! Maintain with gentle brushing and simple styling. Keep an eye on fringe length for school."},{label:"4–6 weeks ago",result:"Good time to shape and maintain the look, especially for school cuts and boys' short styles."},{label:"6–8 weeks ago",result:"Ideal time for a fresh trim to reduce rough ends and keep the haircut neat and manageable."},{label:"More than 8 weeks ago",result:"Hair may be losing its shape. A haircut is recommended if it looks heavy, uneven or hard to manage."}];
-const routines=[{title:"Boys",icon:"🧢",items:["Short hair still needs gentle scalp washing — focus shampoo on the scalp.","For spikes, keep top length practical and avoid heavy product.","School cuts stay neat when shaped every 4–6 weeks.","If the crown stands up, a textured cut can help it sit better."],reason:"Boys' styling problems are often about shape, top length and morning speed rather than long detangling."},{title:"Girls",icon:"🎀",items:["Detangle from the ends before moving upward.","Use mild conditioner on the ends when hair is dry or tangled.","Avoid tight styles for long hours to reduce scalp pulling.","Trim dry ends regularly so long hair looks healthier."],reason:"Girls' long-hair concerns are often tangles, dry ends and tight styling. Gentle detangling and regular trims make daily care easier."},{title:"Curly",icon:"〰️",items:["Avoid rough towel drying — it increases frizz significantly.","Detangle gently when slightly damp.","Use a small amount of suitable leave-in conditioner if already used safely.","Choose layered shaping to reduce puffiness and bulk."],reason:"Curly and wavy hair can look dry or frizzy when brushed harshly or dried roughly."},{title:"Sensitive",icon:"🐼",items:["Choose a simple cut that can be completed faster.","Use cartoons, toys or comfort breaks during the visit.","Tell the stylist what the child dislikes — wash, combing, blow dry or sitting still.","Celebrate small wins after every haircut!"],reason:"A calm salon experience starts with knowing the child's comfort trigger."}];
-const styleFixes=[{title:"Spikes",items:["Start with towel-dried hair.","Lift hair from the roots before shaping the tips.","Use very little product — too much makes hair heavy.","Ask for a textured top if spikes fall flat quickly."],reason:"Spikes stay better when the haircut supports the style. Very long or heavy top hair usually falls down quickly."},{title:"Soft Hair",items:["Avoid hot water.","Use mild kids shampoo.","Condition the ends when needed.","Pat dry instead of rubbing."],reason:"Softness improves when hair keeps some natural moisture and the ends are not dried out."},{title:"Shiny Hair",items:["Rinse shampoo properly — every time.","Keep dry ends trimmed every 6–8 weeks.","Use gentle brushing, not forceful pulling.","Avoid product buildup on scalp."],reason:"Shine comes from a smoother hair surface. Clean rinsing and neat ends help hair reflect light better."},{title:"School AM",items:["Keep a spray bottle for light dampening.","Use simple clips or soft bands.","Choose a cut that doesn't need daily heat styling.","Book trims before the style becomes hard to manage."],reason:"The best kids' haircut is one that looks good even on the busiest school morning."}];
-const myths=[{myth:"✂️ Cutting hair makes it grow faster.",answer:"Not exactly. Hair grows from the roots inside the scalp — cutting the ends has no effect on growth speed. However, regular trims remove dry, splitting ends and keep hair looking fuller and healthier."},{myth:"🧴 Kids don't need conditioner.",answer:"Some do! Children with dry, curly, long or frequently-washed hair can benefit from a mild conditioner on the hair ends. The scalp rarely needs it — focus on mid-lengths and ends only."},{myth:"🚿 Daily shampoo is always better.",answer:"Not always. Over-washing can remove the scalp's natural protective oils. 2–3 times per week is ideal for most children."},{myth:"💈 More product means better spikes.",answer:"Usually no! Too much product weighs hair down and makes spikes flop faster. The right haircut length plus a tiny amount of product actually works much better."},{myth:"❄️ Cold water damages hair.",answer:"Actually the opposite — a cool rinse at the end of washing helps seal the hair cuticle flat, making hair look shinier. Hot water opens the cuticle and can cause frizz."},{myth:"🌙 Hair grows while you sleep.",answer:"Yes! Hair does grow slightly faster at night due to increased circulation and warmth. That's why good sleep and a healthy diet support better hair growth."},{myth:"🧃 Hair needs to 'breathe'.",answer:"Hair strands are not alive — they don't breathe! Only the scalp and follicles are living. The feeling of 'breathing' from taking hair down is just comfort, not a biological need."},{myth:"🎀 Tight ponytails are fine for all day.",answer:"No. Tight styles applied for many hours put tension on follicles and can cause scalp pain, breakage and even traction alopecia if done daily. Use soft, loose bands."}];
-const flipFacts=[{emoji:"🌿",front:"How many hairs?",fact:"Children have about 80,000–120,000 hairs on their head — and lose up to 100 per day naturally!"},{emoji:"⚡",front:"Fastest growing?",fact:"Hair is the 2nd fastest-growing tissue in the human body, just behind bone marrow!"},{emoji:"💤",front:"Night growth?",fact:"Hair grows fastest at night and during summer — warmth boosts circulation to hair follicles."},{emoji:"🧬",front:"Curly or straight?",fact:"Curly or straight hair is decided by the shape of the hair follicle — oval = curly, round = straight!"},{emoji:"🏋️",front:"How strong is it?",fact:"A single strand of hair can hold the weight of a small apple — up to 100g of force!"},{emoji:"🌊",front:"Wet hair secret?",fact:"Wet hair can stretch up to 30% of its length before snapping — always detangle gently!"}];
-const ageRows=[{icon:"👶",title:"Ages 1–3",sub:"Baby hair is very fine and fragile. Gentle washing only, no tight styling, no heat."},{icon:"🧒",title:"Ages 4–7",sub:"Hair thickens and develops its permanent texture. Great age for first proper salon haircuts."},{icon:"🧑",title:"Ages 8–12",sub:"Scalp produces more sebum — slightly more frequent washing may be needed. Style preferences emerge."},{icon:"🧑‍🎤",title:"Teen",sub:"Hormonal changes affect scalp oil production. Regular washing, scalp care and conditioning matter more."}];
-const challengeTips=["Children have about 80,000–120,000 hairs on their head! That's more than most adults.","Kids' hair grows approximately 1.25 cm per month — faster than adult hair!","Hair is 95% keratin protein — the same material as your fingernails!","Hair has a 'memory' — if you curl or wet it enough times the same way, the pattern starts to stick!","The average person spends over 2 years of their life washing their hair!"];
-const styleFinderOptions={child:["Boy","Girl"],hairType:["Straight","Wavy","Curly","Thick","Fine"],length:["Short","Medium","Long"],routine:["School Easy","Party Ready","Active Child","Sensitive Child"],comfort:["Easy to Manage","Dislikes Combing","Cannot Sit Long","Loves Styling"],look:["Classic","Cute","Trendy","Korean / K-pop"]};
-const styleFinderState={child:"Boy",hairType:"Straight",length:"Short",routine:"School Easy",comfort:"Easy to Manage",look:"Classic"};
-const styleFinderLabels={child:"1. Who is this for?",hairType:"2. Hair type",length:"3. Hair length",routine:"4. Daily routine",comfort:"5. Comfort / need",look:"6. Preferred look"};
-const styleFinderRecommendations=[{name:"School Cut",tags:{child:["Boy"],hairType:["Straight","Fine","Thick"],length:["Short"],routine:["School Easy","Active Child"],comfort:["Easy to Manage","Cannot Sit Long"],look:["Classic"]},why:"A neat everyday haircut that stays tidy for school and is easy for parents to maintain.",tip:"Great for regular trims every 4–6 weeks."},{name:"Textured French Crop",tags:{child:["Boy"],hairType:["Straight","Wavy","Thick"],length:["Short"],routine:["School Easy","Active Child"],comfort:["Easy to Manage","Cannot Sit Long"],look:["Trendy","Classic"]},why:"Adds shape on top while keeping the sides practical and easy to manage.",tip:"Smart when parents want style without too much morning work."},{name:"Side Part Comb Over",tags:{child:["Boy"],hairType:["Straight","Fine"],length:["Medium"],routine:["School Easy","Party Ready"],comfort:["Easy to Manage"],look:["Classic","Cute"]},why:"A polished look for school, events and family outings.",tip:"Works best on straighter hair and gives a neat finish."},{name:"Crew / Buzz Cut",tags:{child:["Boy"],hairType:["Straight","Wavy","Thick","Fine"],length:["Short"],routine:["Active Child","School Easy"],comfort:["Cannot Sit Long","Dislikes Combing","Easy to Manage"],look:["Classic"]},why:"Very low maintenance and ideal for active kids or children who dislike combing.",tip:"Excellent when speed and comfort matter most."},{name:"Spiky Faux Hawk",tags:{child:["Boy"],hairType:["Straight","Thick"],length:["Short","Medium"],routine:["Party Ready"],comfort:["Loves Styling"],look:["Trendy"]},why:"A fun, energetic haircut for children who love a stylish look.",tip:"Looks best with the right top length and light styling."},{name:"Korean Two-Block",tags:{child:["Boy"],hairType:["Straight","Fine","Wavy"],length:["Medium"],routine:["School Easy","Party Ready"],comfort:["Loves Styling","Easy to Manage"],look:["Korean / K-pop","Trendy"]},why:"A trendy Korean-inspired shape with soft, modern styling.",tip:"Great for families who like a fashionable K-style finish."},{name:"Curly Top Taper",tags:{child:["Boy"],hairType:["Curly","Wavy","Thick"],length:["Short","Medium"],routine:["School Easy","Active Child"],comfort:["Easy to Manage","Dislikes Combing"],look:["Classic","Trendy"]},why:"Keeps the sides neat while allowing natural curls or waves to sit nicely on top.",tip:"A practical boys' option for curly or wavy hair."},{name:"Blunt Bob",tags:{child:["Girl"],hairType:["Straight","Fine"],length:["Short","Medium"],routine:["School Easy"],comfort:["Easy to Manage","Cannot Sit Long","Dislikes Combing"],look:["Classic","Cute"]},why:"A clean, simple haircut that is easy to maintain and ideal for daily wear.",tip:"A lovely option for younger girls and busy parents."},{name:"Shoulder-Length Lob",tags:{child:["Girl"],hairType:["Straight","Wavy","Fine"],length:["Medium"],routine:["School Easy","Party Ready"],comfort:["Easy to Manage","Cannot Sit Long"],look:["Classic","Cute"]},why:"A balanced cut that is not too short and not too long — easy to manage.",tip:"Great when parents want something practical but still versatile."},{name:"Long Layers",tags:{child:["Girl"],hairType:["Straight","Wavy","Thick"],length:["Long"],routine:["School Easy","Party Ready"],comfort:["Easy to Manage","Loves Styling"],look:["Classic","Cute"]},why:"Adds shape and movement while keeping enough length for braids and styling.",tip:"Best when parents want long hair to feel lighter and more manageable."},{name:"Korean C-Curl Layers",tags:{child:["Girl"],hairType:["Straight","Wavy","Fine"],length:["Medium","Long"],routine:["Party Ready","School Easy"],comfort:["Loves Styling"],look:["Korean / K-pop","Trendy"]},why:"A modern Korean-inspired style with soft front shaping and graceful movement.",tip:"Perfect when parents want a trendy yet elegant style."},{name:"Layered Curly Cut",tags:{child:["Girl"],hairType:["Curly","Wavy","Thick"],length:["Medium","Long"],routine:["School Easy","Party Ready"],comfort:["Dislikes Combing","Easy to Manage"],look:["Cute","Trendy"]},why:"Helps curls or waves sit better without too much bulk or puffiness.",tip:"Smart choice when natural texture should do most of the styling."},{name:"Feather Cut",tags:{child:["Girl"],hairType:["Straight","Wavy","Fine"],length:["Medium","Long"],routine:["School Easy","Party Ready"],comfort:["Easy to Manage","Loves Styling"],look:["Trendy","Cute"]},why:"Gives softness and movement while keeping the hair light and airy.",tip:"Good when parents want something stylish but not too heavy."}];
-
-// Parent Quiz data
-const parentQuiz=[
-  {q:"When detangling tangled hair, where do you start?",opts:["From the roots down","From the ends upward","From the middle","Soak in water first"],correct:1,explain:"Always start from the ends and work upward. Starting from the roots pulls and breaks hair and causes pain for the child."},
-  {q:"How often should you wash most children's hair?",opts:["Every day","2-3 times a week","Once a week","Only when dirty"],correct:1,explain:"2-3 times a week is ideal for most children. Daily washing strips natural scalp oils, making hair drier. In hot climates like Dubai, 3 times is fine."},
-  {q:"What water temperature is best for a child's hair wash?",opts:["Ice cold water","Hot water","Lukewarm (37C)","Room temperature only"],correct:2,explain:"Lukewarm water around 37C is ideal. Hot water strips natural oils and dries out the scalp. Cold water is uncomfortable and doesn't clean as effectively."},
-  {q:"How often should kids get a haircut trim?",opts:["Once a month","Every 6-8 weeks","Every 6 months","Only when hair looks damaged"],correct:1,explain:"Every 6-8 weeks keeps the haircut shape neat and removes split ends before they travel up the shaft. Regular trims make hair look healthier."},
-  {q:"True or false: Cutting hair makes it grow faster",opts:["True - always works","Depends on hair type","False - growth is from the scalp","Only for girls"],correct:2,explain:"Hair grows from follicles in the scalp, not the ends. Cutting doesn't affect growth rate at all. Regular trims just remove damage, making hair LOOK and feel healthier."},
-  {q:"Which tool is best for detangling a child's wet hair?",opts:["Fine-tooth comb","Wide-tooth comb","Paddle brush","Your fingers only"],correct:1,explain:"A wide-tooth comb causes the least breakage on wet hair. Fine-tooth combs snag and pull. Starting with fingers to loosen big knots first is also a great tip!"},
-  {q:"Where should you apply conditioner on a child's hair?",opts:["All over including scalp","Only on the scalp","On mid-lengths and ends only","Never use conditioner on kids"],correct:2,explain:"Conditioner should go on mid-lengths and ends only. Applying it on the scalp makes the scalp oily and can clog follicles. The ends need the moisture most."},
-  {q:"What causes hair frizz after washing?",opts:["Too much conditioner","Rough towel drying","Cold water rinse","Using kids shampoo"],correct:1,explain:"Rough towel drying rubs and ruffles the hair cuticle, causing frizz. Instead, gently squeeze or pat dry with a soft towel. A cool rinse actually REDUCES frizz!"},
-  {q:"How long is a strand of child's hair before it falls out naturally?",opts:["6 months","1-2 years","3-7 years","10+ years"],correct:2,explain:"Hair has a natural growth cycle of 3-7 years before falling out. Children typically lose 50-100 hairs daily - this is perfectly normal and not a sign of a problem."},
-  {q:"Which haircut style needs the LEAST morning maintenance for boys?",opts:["Long flowing hair","Spiky faux hawk","Buzz cut or crew cut","Korean two-block"],correct:2,explain:"A buzz cut or crew cut requires almost zero morning styling. Just wake up and go! This makes it perfect for active kids or families with busy school mornings."},
+// ═══════════════════════════
+// DATA
+// ═══════════════════════════
+const dailyTips=[
+  "Use lukewarm water for your child's hair wash — hot water strips natural oils and makes hair drier.",
+  "Start detangling from the ends first, then work upward slowly to reduce painful pulling.",
+  "Massage shampoo gently into the scalp with fingertips — no need to scrub the hair length.",
+  "Rinse shampoo thoroughly. Leftover product on the scalp can cause flakes and irritation.",
+  "Pat hair dry with a soft towel instead of rubbing — rubbing creates frizz and breaks fragile strands.",
+  "A trim every 6–8 weeks keeps the style neat and removes dry, splitting ends before they spread.",
+  "For curly or wavy hair, combing when slightly damp (not dripping wet) causes far less breakage.",
+  "Too much styling product can make boys' spikes fall flat — a tiny amount works much better.",
+  "For school mornings, keep a small spray bottle handy to lightly dampen and resettle hair quickly.",
+  "In Dubai's AC climate, fine hair can feel more static and dry. A light conditioner on ends helps."
 ];
 
-// ═══ XP SYSTEM ═══
-const SECTIONS=['s-guide','s-facts','s-style','s-routines','s-myths','s-quiz','s-loyalty'];
-const visitedSections=new Set(['s-guide']);
-let totalXP=0;
+const quizQuestions=[
+  {key:"childProfile",question:"Who are you choosing tips for?",options:["Boy","Girl","Both / General"]},
+  {key:"hairType",question:"What is your child's hair type?",options:["Straight","Wavy","Curly","Thick","Fine"]},
+  {key:"ageGroup",question:"What is your child's age group?",options:["1–3 years","4–7 years","8–12 years","Teen"]},
+  {key:"concern",question:"What is the main hair concern?",options:["Dry hair","Frizzy hair","Tangled hair","Dandruff/flakes","Hair fall","Difficult to manage","Spikes not staying","Want soft & shiny hair"]},
+  {key:"washFrequency",question:"How often do you wash your child's hair?",options:["Daily","2–3 times a week","Once a week","Only when needed"]},
+  {key:"dislike",question:"What does your child dislike most during hair care?",options:["Hair wash","Combing","Haircut","Blow dry","Sitting still"]}
+];
 
-function addXP(pts,label){
-  totalXP+=pts;
-  var pill=document.getElementById('xpPill');
-  if(pill){pill.textContent='⭐ '+totalXP+' pts';pill.classList.remove('bump');void pill.offsetWidth;pill.classList.add('bump');}
-  var pct=Math.round((visitedSections.size/SECTIONS.length)*100);
-  var bar=document.getElementById('xpBar');
-  if(bar) bar.style.width=pct+'%';
-}
+const recommendationMap={
+  "Tangled hair":{title:"Tangle-Free Hair Routine",tips:["Use a wide-tooth comb or detangling brush.","Start from the ends first, then move upward slowly.","Use a mild conditioner mainly on the ends if the hair is long or dry.","Avoid tight ponytails or clips for long hours."],reason:"Most painful tangles become worse when brushing starts from the scalp. Starting at the ends reduces pulling, and conditioner on the hair length gives more slip, making combing calmer for the child.",suggestion:"Book a gentle trim every 6–8 weeks to reduce knots, dry ends and split ends."},
+  "Dry hair":{title:"Soft & Hydrated Hair Routine",tips:["Use lukewarm water, not hot water.","Choose a mild kids shampoo and avoid over-washing.","Apply conditioner on the hair ends, not heavily on the scalp.","Pat dry with a towel instead of rubbing strongly."],reason:"Hot water, rough towel drying and frequent washing can remove natural oils from the hair and scalp. Gentle washing plus conditioner on the ends helps hair feel softer without making the scalp oily.",suggestion:"Ask our stylist for a soft trim and simple wash routine suitable for your child's hair type."},
+  "Frizzy hair":{title:"Frizz-Control Hair Routine",tips:["Use a soft towel and gently squeeze hair dry.","Comb when hair is slightly damp, not fully dry.","For suitable hair types, use a small amount of child-friendly leave-in conditioner.","Keep the haircut shaped so the ends do not look rough."],reason:"Frizz often increases when hair is rubbed, dried harshly or left with uneven dry ends. A smoother drying routine and regular shaping can make hair look neater with less effort.",suggestion:"A layered or shaped cut can help reduce puffiness and improve daily manageability."},
+  "Dandruff/flakes":{title:"Gentle Scalp Care Routine",tips:["Massage shampoo gently into the scalp with fingertips.","Rinse well so shampoo does not remain on the scalp.","Avoid scratching flakes harshly.","Use anti-dandruff products only as per label guidance or doctor advice."],reason:"Flakes can worsen when the scalp is irritated, scratched or not rinsed well. Gentle scalp washing helps remove buildup, while avoiding harsh scratching protects the skin.",suggestion:"Ask our stylist if the flakes look like product buildup. If flakes are heavy, itchy, red or persistent, consult a doctor."},
+  "Hair fall":{title:"Gentle Handling Routine",tips:["Avoid tight ponytails, tight braids or styles that pull the scalp.","Do not force knots out; detangle slowly from the ends.","Use a soft brush and avoid harsh towel rubbing.","Watch for sudden, patchy or unusual hair fall."],reason:"Some breakage happens from pulling, tight hairstyles and rough brushing. Gentle handling reduces unnecessary breakage, but sudden or unusual hair fall should be checked medically.",suggestion:"A simple, easy-maintenance haircut may reduce pulling, tangling and daily stress on hair."},
+  "Difficult to manage":{title:"Easy Morning Routine",tips:["Choose a haircut that matches school mornings and your child's comfort.","Keep hair slightly damp before combing difficult areas.","Use simple school-friendly styles instead of complicated daily styling.","Trim regularly so hair keeps its shape."],reason:"Hair becomes difficult when the cut does not match the child's hair texture or the family's daily routine. A practical haircut can save time and reduce morning stress.",suggestion:"Our stylist can recommend a low-maintenance haircut based on your child's hair type and routine."},
+  "Spikes not staying":{title:"Boys' Spikes & Shape Guide",tips:["Start with towel-dried hair, not dripping wet hair.","Use a tiny amount of child-friendly styling product if parents are comfortable.","Push hair upward from the roots, then shape the tips lightly.","Keep the top length suitable — very long top hair may fall flat."],reason:"Spikes need support at the root and the right top length. Too much water or too much product can weigh the hair down, while the right cut makes styling easier even with minimal product.",suggestion:"Ask for a textured top, short sides or a soft faux-hawk style if your child likes spiky hair."},
+  "Want soft & shiny hair":{title:"Soft & Shiny Hair Guide",tips:["Rinse shampoo completely until hair feels clean, not slippery with product.","Use conditioner only on mid-lengths and ends when needed.","Avoid very hot water and rough towel drying.","Trim dry ends so hair reflects light better and looks healthier."],reason:"Hair looks shinier when the outer surface is smoother. Gentle washing, proper rinsing, conditioner on the ends and regular trims help reduce roughness.",suggestion:"Ask MiniCuts for a soft trim and child-friendly finishing routine for a neat, shiny look."}
+};
 
-// ═══ SECTION NAV ═══
-var _scrambleInited = false;
-function showSec(id,btn){
-  document.querySelectorAll('.section-panel').forEach(function(p){p.classList.remove('active');});
-  document.querySelectorAll('.snav').forEach(function(b){b.classList.remove('active');});
-  var panel = document.getElementById(id);
-  if(!panel) return;
-  panel.classList.add('active');
+const reminderData=[
+  {label:"Less than 4 weeks ago",result:"Still fresh! Maintain with gentle brushing and simple styling. Keep an eye on fringe length for school."},
+  {label:"4–6 weeks ago",result:"Good time to shape and maintain the look, especially for school cuts and boys' short styles."},
+  {label:"6–8 weeks ago",result:"Ideal time for a fresh trim to reduce rough ends and keep the haircut neat and manageable."},
+  {label:"More than 8 weeks ago",result:"Hair may be losing its shape. A haircut is recommended if it looks heavy, uneven or hard to manage."}
+];
+
+const routines=[
+  {title:"Boys' Daily Care",icon:"🧢",items:["Short hair still needs gentle scalp washing — focus shampoo on the scalp.","For spikes, keep top length practical and avoid heavy product.","School cuts usually stay neat when shaped every 4–6 weeks.","If the crown stands up, a textured cut can help it sit better."],reason:"Boys' styling problems are often about shape, top length and morning speed rather than long detangling."},
+  {title:"Girls' Long Hair",icon:"🎀",items:["Detangle from the ends before moving upward.","Use mild conditioner on the ends when hair is dry or tangled.","Avoid tight styles for long hours to reduce scalp pulling.","Trim dry ends regularly so long hair looks healthier."],reason:"Girls' long-hair concerns are often tangles, dry ends and tight styling. Gentle detangling and regular trims make daily care easier."},
+  {title:"Curly / Wavy",icon:"〰️",items:["Avoid rough towel drying — it increases frizz significantly.","Detangle gently when slightly damp.","Use a small amount of suitable leave-in conditioner if already used safely.","Choose layered shaping to reduce puffiness and bulk."],reason:"Curly and wavy hair can look dry or frizzy when brushed harshly or dried roughly. Gentle handling protects the curl pattern."},
+  {title:"Sensitive Kids",icon:"🐼",items:["Choose a simple cut that can be completed faster.","Use cartoons, toys or comfort breaks during the visit.","Tell the stylist what the child dislikes — wash, combing, blow dry or sitting still.","Celebrate small wins after every haircut!"],reason:"A calm salon experience starts with knowing the child's comfort trigger. The haircut can then be adjusted to reduce stress."}
+];
+
+const styleFixes=[
+  {title:"Boys' Spikes",items:["Start with towel-dried hair.","Lift hair from the roots before shaping the tips.","Use very little product — too much makes hair heavy.","Ask for a textured top if spikes fall flat quickly."],reason:"Spikes stay better when the haircut supports the style. Very long or heavy top hair usually falls down quickly."},
+  {title:"Soft Hair",items:["Avoid hot water.","Use mild kids shampoo.","Condition the ends when needed.","Pat dry instead of rubbing."],reason:"Softness improves when hair keeps some natural moisture and the ends are not dried out by heat or rough handling."},
+  {title:"Shiny Hair",items:["Rinse shampoo properly — every time.","Keep dry ends trimmed every 6–8 weeks.","Use gentle brushing, not forceful pulling.","Avoid product buildup on scalp."],reason:"Shine comes from a smoother hair surface. Clean rinsing and neat ends help hair reflect light better."},
+  {title:"School Mornings",items:["Keep a spray bottle for light dampening.","Use simple clips or soft bands.","Choose a cut that doesn't need daily heat styling.","Book trims before the style becomes hard to manage."],reason:"The best kids' haircut is one that looks good even on the busiest school morning."}
+];
+
+const myths=[
+  {myth:"✂️ Cutting hair makes it grow faster.",answer:"Not exactly. Hair grows from the roots inside the scalp — cutting the ends has no effect on growth speed. However, regular trims remove dry, splitting ends and keep hair looking fuller and healthier."},
+  {myth:"🧴 Kids don't need conditioner.",answer:"Some do! Children with dry, curly, long or frequently-washed hair can benefit from a mild conditioner on the hair ends. The scalp rarely needs it — focus on mid-lengths and ends only."},
+  {myth:"🚿 Daily shampoo is always better.",answer:"Not always. Over-washing can remove the scalp's natural protective oils, making dry or sensitive scalps feel worse. 2–3 times per week is ideal for most children."},
+  {myth:"💈 More product means better spikes.",answer:"Usually no! Too much product weighs hair down and makes spikes flop faster. The right haircut length plus a tiny amount of product actually works much better."},
+  {myth:"❄️ Cold water damages hair.",answer:"Actually the opposite — a cool rinse at the end of washing helps seal the hair cuticle flat, making hair look shinier and smoother. Hot water opens the cuticle and can cause frizz."}
+];
+
+const flipFacts=[
+  {emoji:"🌿",hint:"Tap to flip!",front:"How many hairs?",fact:"Children have about 80,000–120,000 hairs on their head — and lose up to 100 per day naturally!"},
+  {emoji:"⚡",hint:"Tap to flip!",front:"Fastest growing?",fact:"Hair is the 2nd fastest-growing tissue in the human body, just behind bone marrow!"},
+  {emoji:"💤",hint:"Tap to flip!",front:"Night growth?",fact:"Hair grows fastest at night and during summer — warmth boosts circulation to hair follicles."},
+  {emoji:"🧬",hint:"Tap to flip!",front:"Curly or straight?",fact:"Curly or straight hair is decided by the shape of the hair follicle — oval = curly, round = straight!"},
+  {emoji:"🏋️",hint:"Tap to flip!",front:"How strong is it?",fact:"A single strand of hair can hold the weight of a small apple — up to 100g of force!"},
+  {emoji:"🌊",hint:"Tap to flip!",front:"Wet hair secret?",fact:"Wet hair can stretch up to 30% of its length before snapping — always detangle gently!"}
+];
+
+const ageRows=[
+  {icon:"👶",title:"Ages 1–3",sub:"Baby hair is very fine and fragile. Gentle washing only, no tight styling, no heat."},
+  {icon:"🧒",title:"Ages 4–7",sub:"Hair thickens and develops its permanent texture. Great age for first proper salon haircuts."},
+  {icon:"🧑",title:"Ages 8–12",sub:"Scalp produces more sebum — slightly more frequent washing may be needed. Style preferences emerge."},
+  {icon:"🧑‍🎤",title:"Teen",sub:"Hormonal changes affect scalp oil production. Regular washing, scalp care and conditioning matter more."}
+];
+
+const challengeTips=[
+  "Children have about 80,000–120,000 hairs on their head! That's more than most adults.",
+  "Kids' hair grows approximately 1.25 cm per month — faster than adult hair!",
+  "Hair is 95% keratin protein — the same material as your fingernails!",
+  "The longest hair ever recorded on a child was 170 cm — belonging to a 7-year-old in China!",
+  "Hair has a 'memory' — if you curl or wet it enough times the same way, the pattern starts to stick!"
+];
+
+const styleFinderOptions={
+  child:["Boy","Girl","Unisex"],
+  hairType:["Straight","Wavy","Curly","Thick","Fine"],
+  length:["Short","Medium","Long"],
+  routine:["School Easy","Party Ready","Active Child","Sensitive Child"],
+  comfort:["Easy to Manage","Dislikes Combing","Dislikes Hair Wash","Cannot Sit Long","Loves Styling"],
+  look:["Classic","Cute","Trendy","Korean / K-pop"]
+};
+const styleFinderState={child:"Boy",hairType:"Straight",length:"Short",routine:"School Easy",comfort:"Easy to Manage",look:"Classic"};
+const styleFinderLabels={child:"1. Who is this for?",hairType:"2. Hair type",length:"3. Hair length",routine:"4. Daily routine",comfort:"5. Comfort / need",look:"6. Preferred look"};
+
+const styleFinderRecommendations=[
+  {name:"School Cut",tags:{child:["Boy"],hairType:["Straight","Fine","Thick"],length:["Short"],routine:["School Easy","Active Child"],comfort:["Easy to Manage","Cannot Sit Long"],look:["Classic"]},why:"A neat everyday haircut that stays tidy for school and is easy for parents to maintain.",tip:"Great for regular trims every 4–6 weeks."},
+  {name:"Textured French Crop",tags:{child:["Boy"],hairType:["Straight","Wavy","Thick"],length:["Short"],routine:["School Easy","Active Child"],comfort:["Easy to Manage","Cannot Sit Long"],look:["Trendy","Classic"]},why:"Adds shape on top while keeping the sides practical and easy to manage.",tip:"Smart when parents want style without too much morning work."},
+  {name:"Side Part Comb Over",tags:{child:["Boy"],hairType:["Straight","Fine"],length:["Medium"],routine:["School Easy","Party Ready"],comfort:["Easy to Manage"],look:["Classic","Cute"]},why:"A polished look for school, events and family outings.",tip:"Works best on straighter hair and gives a neat finish."},
+  {name:"Crew / Buzz Cut",tags:{child:["Boy"],hairType:["Straight","Wavy","Thick","Fine"],length:["Short"],routine:["Active Child","School Easy"],comfort:["Cannot Sit Long","Dislikes Combing","Easy to Manage"],look:["Classic"]},why:"Very low maintenance and ideal for active kids or children who dislike combing.",tip:"Excellent when speed and comfort matter most."},
+  {name:"Spiky Faux Hawk",tags:{child:["Boy"],hairType:["Straight","Thick"],length:["Short","Medium"],routine:["Party Ready"],comfort:["Loves Styling"],look:["Trendy"]},why:"A fun, energetic haircut for children who love a stylish look.",tip:"Looks best with the right top length and light styling."},
+  {name:"Korean Two-Block",tags:{child:["Boy"],hairType:["Straight","Fine","Wavy"],length:["Medium"],routine:["School Easy","Party Ready"],comfort:["Loves Styling","Easy to Manage"],look:["Korean / K-pop","Trendy"]},why:"A trendy Korean-inspired shape with soft, modern styling.",tip:"Great for families who like a fashionable K-style finish."},
+  {name:"Curly Top Taper",tags:{child:["Boy"],hairType:["Curly","Wavy","Thick"],length:["Short","Medium"],routine:["School Easy","Active Child"],comfort:["Easy to Manage","Dislikes Combing"],look:["Classic","Trendy"]},why:"Keeps the sides neat while allowing natural curls or waves to sit nicely on top.",tip:"A practical boys' option for curly or wavy hair."},
+  {name:"Textured Curly Crop",tags:{child:["Boy"],hairType:["Curly","Wavy","Thick"],length:["Short"],routine:["School Easy","Active Child"],comfort:["Cannot Sit Long","Easy to Manage"],look:["Trendy"]},why:"Shorter texture makes curls easier to manage and reduces morning styling effort.",tip:"Good for boys who need a stylish but quick-maintenance haircut."},
+  {name:"Blunt Bob",tags:{child:["Girl"],hairType:["Straight","Fine"],length:["Short","Medium"],routine:["School Easy"],comfort:["Easy to Manage","Cannot Sit Long","Dislikes Combing"],look:["Classic","Cute"]},why:"A clean, simple haircut that is easy to maintain and ideal for daily wear.",tip:"A lovely option for younger girls and busy parents."},
+  {name:"Shoulder-Length Lob",tags:{child:["Girl"],hairType:["Straight","Wavy","Fine"],length:["Medium"],routine:["School Easy","Party Ready"],comfort:["Easy to Manage","Cannot Sit Long"],look:["Classic","Cute"]},why:"A balanced cut that is not too short and not too long — easy to manage.",tip:"Great when parents want something practical but still versatile."},
+  {name:"Long Layers",tags:{child:["Girl"],hairType:["Straight","Wavy","Thick"],length:["Long"],routine:["School Easy","Party Ready"],comfort:["Easy to Manage","Loves Styling"],look:["Classic","Cute"]},why:"Adds shape and movement while keeping enough length for braids and styling.",tip:"Best when parents want long hair to feel lighter and more manageable."},
+  {name:"U-Cut Layers",tags:{child:["Girl"],hairType:["Straight","Thick","Wavy"],length:["Long"],routine:["School Easy","Party Ready"],comfort:["Dislikes Combing","Easy to Manage"],look:["Classic","Cute"]},why:"Gives a soft long-hair shape and helps thick hair sit more neatly.",tip:"A good balance between long hair and easier maintenance."},
+  {name:"Soft Fringe with Inward Curl",tags:{child:["Girl"],hairType:["Straight","Fine"],length:["Medium","Long"],routine:["Party Ready","School Easy"],comfort:["Loves Styling"],look:["Cute","Trendy"]},why:"A soft and sweet look that frames the face and feels stylish.",tip:"Nice for girls who enjoy a more polished look."},
+  {name:"Korean C-Curl Layers",tags:{child:["Girl"],hairType:["Straight","Wavy","Fine"],length:["Medium","Long"],routine:["Party Ready","School Easy"],comfort:["Loves Styling"],look:["Korean / K-pop","Trendy"]},why:"A modern Korean-inspired style with soft front shaping and graceful movement.",tip:"Perfect when parents want a trendy yet elegant style."},
+  {name:"Layered Curly Cut",tags:{child:["Girl"],hairType:["Curly","Wavy","Thick"],length:["Medium","Long"],routine:["School Easy","Party Ready"],comfort:["Dislikes Combing","Easy to Manage"],look:["Cute","Trendy"]},why:"Helps curls or waves sit better without too much bulk or puffiness.",tip:"Smart choice when natural texture should do most of the styling."},
+  {name:"Feather Cut",tags:{child:["Girl"],hairType:["Straight","Wavy","Fine"],length:["Medium","Long"],routine:["School Easy","Party Ready"],comfort:["Easy to Manage","Loves Styling"],look:["Trendy","Cute"]},why:"Gives softness and movement while keeping the hair light and airy.",tip:"Good when parents want something stylish but not too heavy."}
+];
+
+
+// ═══════════════════════════
+// SECTION NAVIGATION
+// ═══════════════════════════
+function showSection(id,btn){
+  document.querySelectorAll('.section-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.snav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
   if(btn) btn.classList.add('active');
   window.scrollTo({top:0,behavior:'smooth'});
-  if(!visitedSections.has(id)){
-    visitedSections.add(id);
-    addXP(10,'New section!');
-    var navBtn=document.querySelector('[data-sec="'+id+'"]');
-    if(navBtn) navBtn.classList.add('visited');
-  }
-  // Init scramble game on first visit to quiz section
-  if(id==='s-quiz' && !_scrambleInited){
-    _scrambleInited=true;
-    setTimeout(function(){ startNewRound(); renderLeaderboard(); }, 50);
-  }
-  // Re-render quiz gate each time quiz section is shown (so it unlocks after visiting pages)
-  if(id==='s-quiz'){
-    renderParentQuiz();
-  }
 }
 
-// ═══ DAILY TIP ═══
+
+// ═══════════════════════════
+// DAILY TIP
+// ═══════════════════════════
 var tipIdx=0;
-document.getElementById('dailyTip').style.transition='opacity .2s';
 document.getElementById('newTipBtn').addEventListener('click',function(){
   tipIdx=(tipIdx+1)%dailyTips.length;
   var el=document.getElementById('dailyTip');
   el.style.opacity='0';
   setTimeout(function(){el.textContent=dailyTips[tipIdx];el.style.opacity='1';},200);
 });
+document.getElementById('dailyTip').style.transition='opacity .2s';
 
-// ═══ REMINDER ═══
+
+// ═══════════════════════════
+// REMINDER
+// ═══════════════════════════
 reminderData.forEach(function(item){
   var btn=document.createElement('button');
   btn.className='reminder-btn';btn.type='button';btn.textContent=item.label;
@@ -655,595 +1000,231 @@ reminderData.forEach(function(item){
   document.getElementById('reminderOptions').appendChild(btn);
 });
 
-// ═══ ROUTINE QUIZ ═══
+
+// ═══════════════════════════
+// QUIZ
+// ═══════════════════════════
 var currentStep=0,answers={};
+var questionText=document.getElementById('questionText');
+var optionGrid=document.getElementById('optionGrid');
+var stepLabel=document.getElementById('stepLabel');
+var progressPercent=document.getElementById('progressPercent');
+var progressFill=document.getElementById('progressFill');
+var backBtn=document.getElementById('backBtn');
+var nextBtn=document.getElementById('nextBtn');
+var resultCard=document.getElementById('resultCard');
+var quizStage=document.getElementById('quizStage');
+
 function renderQuizStep(){
   var step=quizQuestions[currentStep];
   var pct=Math.round(((currentStep+1)/quizQuestions.length)*100);
-  document.getElementById('questionText').textContent=step.question;
-  document.getElementById('stepLabel').textContent='Step '+(currentStep+1)+' of '+quizQuestions.length;
-  document.getElementById('progressPercent').textContent=pct+'%';
-  document.getElementById('progressFill').style.width=pct+'%';
-  var grid=document.getElementById('optionGrid');grid.innerHTML='';
+  questionText.textContent=step.question;
+  stepLabel.textContent='Step '+(currentStep+1)+' of '+quizQuestions.length;
+  progressPercent.textContent=pct+'%';
+  progressFill.style.width=pct+'%';
+  optionGrid.innerHTML='';
   step.options.forEach(function(option){
     var btn=document.createElement('button');
     btn.type='button';btn.className='opt-btn';btn.textContent=option;
-    if(answers[step.key]===option)btn.classList.add('selected');
+    if(answers[step.key]===option) btn.classList.add('selected');
     btn.addEventListener('click',function(){answers[step.key]=option;renderQuizStep();});
-    grid.appendChild(btn);
+    optionGrid.appendChild(btn);
   });
-  document.getElementById('backBtn').disabled=currentStep===0;
-  document.getElementById('nextBtn').textContent=currentStep===quizQuestions.length-1?'Show My Guide →':'Next →';
-  document.getElementById('nextBtn').disabled=!answers[step.key];
+  backBtn.disabled=currentStep===0;
+  nextBtn.textContent=currentStep===quizQuestions.length-1?'Show My Guide →':'Next →';
+  nextBtn.disabled=!answers[step.key];
 }
+
 function showQuizResult(){
   var concern=answers.concern||'Difficult to manage';
   var result=recommendationMap[concern]||recommendationMap['Difficult to manage'];
   document.getElementById('resultTitle').textContent=result.title;
   var chips=document.getElementById('resultChips');chips.innerHTML='';
-  [answers.childProfile,answers.hairType,answers.ageGroup,answers.concern,answers.washFrequency,answers.dislike].forEach(function(v){if(!v)return;var c=document.createElement('span');c.className='chip';c.textContent=v;chips.appendChild(c);});
+  [answers.childProfile,answers.hairType,answers.ageGroup,answers.concern,answers.washFrequency,answers.dislike].forEach(function(v){
+    if(!v)return;var c=document.createElement('span');c.className='chip';c.textContent=v;chips.appendChild(c);
+  });
   var tl=document.getElementById('resultTips');tl.innerHTML='';
   result.tips.forEach(function(tip){var li=document.createElement('li');li.textContent=tip;tl.appendChild(li);});
   var profileLine='';
-  if(answers.childProfile==='Boy')profileLine=' For boys, the haircut shape and top length can make daily styling much easier.';
-  if(answers.childProfile==='Girl')profileLine=' For girls, focus on gentle detangling, soft bands and regular trimming of dry ends.';
+  if(answers.childProfile==='Boy') profileLine=' For boys, the haircut shape and top length can make daily styling much easier.';
+  if(answers.childProfile==='Girl') profileLine=' For girls, focus on gentle detangling, soft bands and regular trimming of dry ends.';
   var comfortLine='';
-  if(answers.dislike==='Haircut')comfortLine=' Since your child dislikes haircuts, try a simple style, shorter visits and comfort distractions.';
-  if(answers.dislike==='Combing')comfortLine=' Since combing is difficult, detangling from the ends can make the routine calmer.';
-  if(answers.dislike==='Sitting still')comfortLine=' Since sitting still is hard, choose low-maintenance cuts that can be completed faster.';
-  if(answers.dislike==='Blow dry')comfortLine=' Since blow dry is uncomfortable, towel-dry gently and keep styling simple.';
-  if(answers.dislike==='Hair wash')comfortLine=' Since hair wash is disliked, use a calm routine and avoid water that is too hot or cold.';
+  if(answers.dislike==='Haircut') comfortLine=' Since your child dislikes haircuts, try a simple style, shorter visits and comfort distractions like cartoons or toys.';
+  if(answers.dislike==='Combing') comfortLine=' Since combing is difficult, detangling from the ends can make the routine calmer.';
+  if(answers.dislike==='Sitting still') comfortLine=' Since sitting still is hard, choose low-maintenance cuts that can be completed faster.';
+  if(answers.dislike==='Blow dry') comfortLine=' Since blow dry is uncomfortable, towel-dry gently and keep styling simple.';
+  if(answers.dislike==='Hair wash') comfortLine=' Since hair wash is disliked, use a calm routine and avoid water that is too hot or too cold.';
   document.getElementById('resultReason').textContent=result.reason+profileLine;
   document.getElementById('resultSuggestion').textContent=result.suggestion+comfortLine;
   document.getElementById('careAlertText').textContent='If there is severe itching, redness, swelling, wounds, infection, sudden hair fall, heavy flakes or the issue continues, please check with a paediatrician or dermatologist.';
-  document.getElementById('quizStage').style.display='none';
-  document.getElementById('resultCard').classList.add('active');
-  addXP(15,'Quiz complete!');
+  quizStage.style.display='none';
+  resultCard.classList.add('active');
+  resultCard.scrollIntoView({behavior:'smooth',block:'nearest'});
 }
-document.getElementById('backBtn').addEventListener('click',function(){if(currentStep>0){currentStep--;renderQuizStep();}});
-document.getElementById('nextBtn').addEventListener('click',function(){if(!answers[quizQuestions[currentStep].key])return;if(currentStep===quizQuestions.length-1)showQuizResult();else{currentStep++;renderQuizStep();}});
-document.getElementById('restartBtn').addEventListener('click',function(){currentStep=0;Object.keys(answers).forEach(function(k){delete answers[k];});document.getElementById('resultCard').classList.remove('active');document.getElementById('quizStage').style.display='block';renderQuizStep();});
+
+backBtn.addEventListener('click',function(){if(currentStep>0){currentStep--;renderQuizStep();}});
+nextBtn.addEventListener('click',function(){
+  var step=quizQuestions[currentStep];
+  if(!answers[step.key]) return;
+  if(currentStep===quizQuestions.length-1) showQuizResult();
+  else{currentStep++;renderQuizStep();}
+});
+document.getElementById('restartBtn').addEventListener('click',function(){
+  currentStep=0;
+  Object.keys(answers).forEach(function(k){delete answers[k];});
+  resultCard.classList.remove('active');
+  quizStage.style.display='block';
+  renderQuizStep();
+});
 renderQuizStep();
 
-// ═══ FLIP CARDS ═══
+
+// ═══════════════════════════
+// FLIP CARDS (Fun Facts)
+// ═══════════════════════════
 var flipGrid=document.getElementById('flipGrid');
 flipFacts.forEach(function(f){
   var card=document.createElement('div');card.className='flip-card';
-  card.innerHTML='<div class="flip-inner"><div class="flip-front"><div class="flip-emoji">'+f.emoji+'</div><div style="font-size:12.5px;font-weight:800;color:var(--bd);margin-bottom:4px;">'+f.front+'</div><div style="font-size:10.5px;font-weight:700;color:var(--muted);">Tap to reveal! 👆</div></div><div class="flip-back"><div class="flip-fact">'+f.fact+'</div></div></div>';
-  card.addEventListener('click',function(){card.classList.toggle('flipped');if(card.classList.contains('flipped'))addXP(2,'Flip!');});
+  card.innerHTML='<div class="flip-inner"><div class="flip-front"><div class="flip-emoji">'+f.emoji+'</div><div class="flip-hint">'+f.front+'</div><div class="flip-hint" style="font-size:10px;margin-top:3px;">Tap to reveal!</div></div><div class="flip-back"><div class="flip-fact">'+f.fact+'</div></div></div>';
+  card.addEventListener('click',function(){card.classList.toggle('flipped');});
   flipGrid.appendChild(card);
 });
 
 // Age rows
 var ageRowsEl=document.getElementById('ageRows');
-ageRows.forEach(function(r){ageRowsEl.innerHTML+='<div class="info-row"><div class="info-row-icon">'+r.icon+'</div><div><div class="info-row-title">'+r.title+'</div><div class="info-row-sub">'+r.sub+'</div></div></div>';});
+ageRows.forEach(function(r){
+  ageRowsEl.innerHTML+='<div class="info-row"><div class="info-row-icon">'+r.icon+'</div><div><div class="info-row-title">'+r.title+'</div><div class="info-row-sub">'+r.sub+'</div></div></div>';
+});
 
 // Challenge tip
-var cIdx=0,revealed=false;
+var cIdx=0;var revealed=false;
 document.getElementById('challengeBtn').addEventListener('click',function(){
   var el=document.getElementById('challengeTip');
-  if(!revealed){el.textContent=challengeTips[cIdx];this.textContent='Next Fact →';revealed=true;addXP(3,'Fact revealed!');}
-  else{cIdx=(cIdx+1)%challengeTips.length;el.style.opacity='0';setTimeout(function(){el.textContent=challengeTips[cIdx];el.style.opacity='1';},200);addXP(2,'Next fact!');}
+  var btn=document.getElementById('challengeBtn');
+  if(!revealed){
+    el.textContent=challengeTips[cIdx];
+    btn.textContent='Next Fact →';revealed=true;
+  } else {
+    cIdx=(cIdx+1)%challengeTips.length;
+    el.style.opacity='0';
+    setTimeout(function(){el.textContent=challengeTips[cIdx];el.style.opacity='1';},200);
+  }
 });
 document.getElementById('challengeTip').style.transition='opacity .2s';
 
-// ═══ TABS ═══
-function buildTabs(data,tabsEl,panelsEl){
+
+// ═══════════════════════════
+// TABS (Routines + Style Fixes)
+// ═══════════════════════════
+function buildTabs(data,tabsEl,panelsEl,tabClass,panelClass){
   data.forEach(function(entry,idx){
-    var btn=document.createElement('button');btn.className='tab-pill'+(idx===0?' active':'');btn.type='button';
-    btn.textContent=(entry.icon?entry.icon+' ':'')+entry.title;
-    var panel=document.createElement('div');panel.className='tab-panel'+(idx===0?' active':'');
-    panel.innerHTML='<ul class="tips-list">'+entry.items.map(function(i){return'<li>'+i+'</li>';}).join('')+'</ul><div class="info-box"><strong>Why this helps</strong><p>'+entry.reason+'</p></div>';
+    var btn=document.createElement('button');
+    btn.className='tab-pill'+(idx===0?' active':'');
+    btn.type='button';btn.textContent=(entry.icon?entry.icon+' ':'')+entry.title;
+    var panel=document.createElement('div');
+    panel.className='tab-panel'+(idx===0?' active':'');
+    var listHtml='<ul class="tips-list">'+entry.items.map(function(item){return'<li>'+item+'</li>';}).join('')+'</ul>';
+    var reasonHtml='<div class="info-box"><strong>Why this helps</strong><p>'+entry.reason+'</p></div>';
+    panel.innerHTML=listHtml+reasonHtml;
     tabsEl.appendChild(btn);panelsEl.appendChild(panel);
     btn.addEventListener('click',function(){
       tabsEl.querySelectorAll('.tab-pill').forEach(function(b){b.classList.remove('active');});
-      panelsEl.querySelectorAll('.tab-panel').forEach(function(p){p.classList.remove('active');});
+      panelsEl.querySelectorAll('.'+panelClass).forEach(function(p){p.classList.remove('active');});
       btn.classList.add('active');panel.classList.add('active');
     });
   });
 }
-buildTabs(routines,document.getElementById('routineTabs'),document.getElementById('routinePanels'));
-buildTabs(styleFixes,document.getElementById('styleTabs'),document.getElementById('stylePanels'));
+buildTabs(routines,document.getElementById('routineTabs'),document.getElementById('routinePanels'),'tab-pill','tab-panel');
+buildTabs(styleFixes,document.getElementById('styleTabs'),document.getElementById('stylePanels'),'tab-pill','tab-panel');
 
-// ═══ MYTHS ═══
+
+// ═══════════════════════════
+// MYTHS
+// ═══════════════════════════
 var mythList=document.getElementById('mythList');
 myths.forEach(function(item){
   var div=document.createElement('div');div.className='myth-item';
   div.innerHTML='<button class="myth-q" type="button"><span>'+item.myth+'</span><span class="myth-icon">+</span></button><div class="myth-a">'+item.answer+'</div>';
-  div.querySelector('button').addEventListener('click',function(){
-    var wasOpen=div.classList.contains('open');
-    document.querySelectorAll('.myth-item').forEach(function(m){m.classList.remove('open');});
-    if(!wasOpen){div.classList.add('open');addXP(2,'Myth revealed!');}
-  });
+  div.querySelector('button').addEventListener('click',function(){div.classList.toggle('open');});
   mythList.appendChild(div);
 });
 
-// ═══ STYLE FINDER ═══
+
+// ═══════════════════════════
+// STYLE FINDER
+// ═══════════════════════════
 function buildStyleSelectors(){
-  var container=document.getElementById('styleSelectors');container.innerHTML='';
+  var container=document.getElementById('styleSelectors');
+  container.innerHTML='';
   Object.keys(styleFinderOptions).forEach(function(key){
     var grp=document.createElement('div');grp.className='sel-group';
     var lbl=document.createElement('span');lbl.className='sel-label';lbl.textContent=styleFinderLabels[key];
     var chips=document.createElement('div');chips.className='sel-chips';
     styleFinderOptions[key].forEach(function(opt){
       var btn=document.createElement('button');btn.type='button';
-      btn.className='sel-chip'+(styleFinderState[key]===opt?' active':'');btn.textContent=opt;
-      btn.addEventListener('click',function(){styleFinderState[key]=opt;buildStyleSelectors();});
+      btn.className='sel-chip'+(styleFinderState[key]===opt?' active':'');
+      btn.textContent=opt;
+      btn.addEventListener('click',function(){
+        styleFinderState[key]=opt;buildStyleSelectors();
+      });
       chips.appendChild(btn);
     });
     grp.appendChild(lbl);grp.appendChild(chips);container.appendChild(grp);
   });
 }
-buildStyleSelectors();
+
+function getStyleMatches(){
+  return styleFinderRecommendations.filter(function(style){
+    var allowed=style.tags.child||[];
+    if(styleFinderState.child==='Boy') return allowed.includes('Boy');
+    if(styleFinderState.child==='Girl') return allowed.includes('Girl');
+    return true;
+  }).map(function(style){
+    var score=0;
+    Object.entries(styleFinderState).forEach(function(entry){
+      var k=entry[0],v=entry[1];
+      if(k==='child') return;
+      if(style.tags[k]&&style.tags[k].includes(v)) score+=2;
+    });
+    if(style.tags.child&&style.tags.child.includes(styleFinderState.child)) score+=3;
+    return Object.assign({},style,{score:score});
+  }).sort(function(a,b){return b.score-a.score;}).slice(0,3);
+}
+
 document.getElementById('showStyleBtn').addEventListener('click',function(){
-  var matches=styleFinderRecommendations.filter(function(s){var a=s.tags.child||[];if(styleFinderState.child==='Boy')return a.includes('Boy');if(styleFinderState.child==='Girl')return a.includes('Girl');return true;}).map(function(s){var score=0;Object.entries(styleFinderState).forEach(function(e){var k=e[0],v=e[1];if(k==='child')return;if(s.tags[k]&&s.tags[k].includes(v))score+=2;});if(s.tags.child&&s.tags.child.includes(styleFinderState.child))score+=3;return Object.assign({},s,{score:score});}).sort(function(a,b){return b.score-a.score;}).slice(0,3);
+  var matches=getStyleMatches();
   var wrap=document.getElementById('styleResultWrap');
   wrap.innerHTML='<div class="eyebrow" style="margin-bottom:10px;">✂️ Top Style Suggestions</div>';
   matches.forEach(function(item){
     var card=document.createElement('div');card.className='reco-card';
-    card.innerHTML='<h4>'+item.name+'</h4><div class="reco-pills"><span class="reco-pill">'+styleFinderState.hairType+'</span><span class="reco-pill">'+styleFinderState.length+'</span><span class="reco-pill">'+styleFinderState.look+'</span></div><p><strong style="color:var(--bd);">Why it works: </strong>'+item.why+'</p><p style="margin-top:6px;"><strong style="color:var(--bd);">MiniCuts tip: </strong>'+item.tip+'</p>';
+    card.innerHTML='<h4>'+item.name+'</h4>'
+      +'<div class="reco-pills">'
+      +'<span class="reco-pill">'+styleFinderState.hairType+'</span>'
+      +'<span class="reco-pill">'+styleFinderState.length+'</span>'
+      +'<span class="reco-pill">'+styleFinderState.look+'</span>'
+      +'</div>'
+      +'<p><strong style="color:var(--bd);">Why it works: </strong>'+item.why+'</p>'
+      +'<p style="margin-top:6px;"><strong style="color:var(--bd);">MiniCuts tip: </strong>'+item.tip+'</p>';
     wrap.appendChild(card);
   });
-  wrap.innerHTML+='<div style="background:#FFF9E6;border-radius:12px;padding:12px;font-size:12px;font-weight:700;color:#92400E;margin-top:8px;">🐼 The best hairstyle is one that suits both the child\'s hair and your family\'s daily routine.</div>';
-  wrap.style.display='block';wrap.scrollIntoView({behavior:'smooth',block:'nearest'});
-  addXP(10,'Style found!');
+  var note=document.createElement('div');
+  note.style.cssText='background:#FFF9E6;border-radius:12px;padding:12px;font-size:12px;font-weight:700;color:#92400E;margin-top:8px;';
+  note.textContent='🐼 The best hairstyle is one that suits both the child\'s hair and your family\'s daily routine.';
+  wrap.appendChild(note);
+  wrap.style.display='block';
+  wrap.scrollIntoView({behavior:'smooth',block:'nearest'});
 });
-document.getElementById('resetStyleBtn').addEventListener('click',function(){styleFinderState.child='Boy';styleFinderState.hairType='Straight';styleFinderState.length='Short';styleFinderState.routine='School Easy';styleFinderState.comfort='Easy to Manage';styleFinderState.look='Classic';buildStyleSelectors();document.getElementById('styleResultWrap').style.display='none';document.getElementById('styleResultWrap').innerHTML='';});
 
-// ═══ PARENT QUIZ ═══
-var pqState={step:0,score:0,done:false,unlocked:false};
-var QUIZ_SECTIONS=['s-guide','s-facts','s-style','s-routines','s-myths'];
-var SECTION_NAMES={
-  's-guide':'&#x1FA84; Guide',
-  's-facts':'&#x1F4A1; Facts',
-  's-style':'&#x2702;&#xFE0F; Styles',
-  's-routines':'&#x1F9F4; Routines',
-  's-myths':'&#x1F50E; Myths'
-};
+document.getElementById('resetStyleBtn').addEventListener('click',function(){
+  styleFinderState.child='Boy';styleFinderState.hairType='Straight';
+  styleFinderState.length='Short';styleFinderState.routine='School Easy';
+  styleFinderState.comfort='Easy to Manage';styleFinderState.look='Classic';
+  buildStyleSelectors();
+  var wrap=document.getElementById('styleResultWrap');
+  wrap.style.display='none';wrap.innerHTML='';
+});
 
-function renderParentQuiz(){
-  var wrap=document.getElementById('pquiz-wrap');
-  if(!wrap) return;
-
-  // ── GATE: not all sections visited ──────────────────────────────────────
-  if(!pqState.unlocked){
-    var missing=QUIZ_SECTIONS.filter(function(s){return!visitedSections.has(s);});
-    if(missing.length>0){
-      var rows='';
-      missing.forEach(function(s){
-        rows+='<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid rgba(0,0,0,.06);font-size:13.5px;font-weight:700;color:var(--text);">'
-          +'<span style="color:var(--err);font-size:16px;">&#x2717;</span>'+SECTION_NAMES[s]+'</div>';
-      });
-      wrap.innerHTML=
-        '<div class="pq-card" style="text-align:center;">'
-          +'<div style="font-size:48px;margin-bottom:10px;">&#x1F43C;</div>'
-          +'<div style="font-family:var(--fh);font-size:19px;font-weight:900;color:var(--bd);margin-bottom:8px;">Did you go through all the pages?</div>'
-          +'<div style="font-size:13.5px;color:var(--text);line-height:1.6;margin-bottom:16px;">Quiz questions are based on what you read!<br>Visit every section first &#8212; then come back to play. &#x1F60A;</div>'
-          +'<div style="background:#FFF9E6;border-radius:13px;padding:13px;margin-bottom:16px;text-align:left;">'
-            +'<div style="font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.07em;color:var(--warn);margin-bottom:9px;">Still to visit:</div>'
-            +rows
-          +'</div>'
-          +'<button class="btn btn-b" style="width:100%;" id="quiz-unlock-btn">&#x2705; I have read everything &#8212; Start Quiz!</button>'
-        +'</div>';
-      var unlockBtn=document.getElementById('quiz-unlock-btn');
-      if(unlockBtn) unlockBtn.addEventListener('click',function(){pqState.unlocked=true;renderParentQuiz();});
-      return;
-    }
-    pqState.unlocked=true;
-  }
-
-  // ── SCORE SCREEN ────────────────────────────────────────────────────────
-  if(pqState.done){
-    var pct=Math.round((pqState.score/parentQuiz.length)*100);
-    var level=pct===100?'&#x1F3C6; Hair Guru!':pct>=80?'&#x2B50; Hair Expert':pct>=60?'&#x1F4DA; Hair Learner':'&#x1F423; Hair Beginner';
-    var msg=pct===100?'Perfect! You are a hair care champion!':pct>=80?'Excellent! You clearly care about your child hair.':pct>=60?'Good job! A few new things to try at home.':'No worries &#8212; now you know the essentials!';
-    wrap.innerHTML='<div class="score-board">'
-      +'<div class="score-big">'+pqState.score+'/'+parentQuiz.length+'</div>'
-      +'<div class="score-label">'+msg+'</div>'
-      +'<div class="score-expert">'+level+'</div>'
-      +'<div class="score-pts">+'+pqState.score*5+' bonus XP earned!</div>'
-      +'</div>'
-      +'<div class="card" style="text-align:center;">'
-        +'<div style="font-size:36px;margin-bottom:8px;">&#x1F43C;</div>'
-        +'<div style="font-family:var(--fh);font-size:17px;font-weight:800;color:var(--bd);margin-bottom:5px;">Share your score with our team!</div>'
-        +'<div style="font-size:13px;color:var(--muted);margin-bottom:14px;">Come visit MiniCuts and show us your expert badge.</div>'
-        +'<button class="btn btn-b" style="width:100%;" id="quiz-retry-btn">&#x21BA; Try Again</button>'
-      +'</div>';
-    var retryBtn=document.getElementById('quiz-retry-btn');
-    if(retryBtn) retryBtn.addEventListener('click',function(){pqState={step:0,score:0,done:false,unlocked:true};renderParentQuiz();});
-    return;
-  }
-
-  // ── QUESTION ────────────────────────────────────────────────────────────
-  var q=parentQuiz[pqState.step];
-  var progPct=Math.round((pqState.step/parentQuiz.length)*100);
-  wrap.innerHTML='<div class="pq-card">'
-    +'<div class="pq-header">'
-      +'<div style="display:flex;justify-content:space-between;font-size:12px;font-weight:800;color:var(--muted);margin-bottom:8px;">'
-        +'<span>&#x1F9E0; Question '+(pqState.step+1)+' of '+parentQuiz.length+'</span>'
-        +'<span style="color:var(--ok);">Score: '+pqState.score+'/'+pqState.step+'</span>'
-      +'</div>'
-      +'<div class="pq-progress"><div class="pq-progress-fill" style="width:'+progPct+'%;"></div></div>'
-    +'</div>'
-    +'<div class="pq-q">'+q.q+'</div>'
-    +'<div class="pq-opts" id="pq-opts-wrap"></div>'
-    +'<div class="pq-explain" id="pq-explain">'+q.explain+'</div>'
-    +'<button class="btn btn-b" id="pq-next" style="width:100%;display:none;">'
-      +(pqState.step===parentQuiz.length-1?'See My Score &#x1F3C6;':'Next Question &#8594;')
-    +'</button>'
-    +'</div>';
-
-  // Build option buttons with addEventListener (no inline onclick)
-  var optsWrap=document.getElementById('pq-opts-wrap');
-  q.opts.forEach(function(o,i){
-    var ob=document.createElement('button');
-    ob.className='pq-opt'; ob.type='button'; ob.textContent=o;
-    ob.addEventListener('click',function(){ answerPQ(i); });
-    optsWrap.appendChild(ob);
-  });
-  document.getElementById('pq-next').addEventListener('click', nextPQ);
-}
-
-function answerPQ(idx){
-  var q=parentQuiz[pqState.step];
-  var opts=document.querySelectorAll('.pq-opt');
-  opts.forEach(function(o,i){
-    if(i===q.correct) o.classList.add('correct');
-    else if(i===idx) o.classList.add('wrong');
-    else o.classList.add('reveal');
-    o.disabled=true;
-  });
-  if(idx===q.correct){pqState.score++;addXP(5,'Correct!');}
-  document.getElementById('pq-explain').classList.add('show');
-  document.getElementById('pq-next').style.display='block';
-}
-function nextPQ(){
-  pqState.step++;
-  if(pqState.step>=parentQuiz.length){pqState.done=true;addXP(pqState.score*5,'Quiz done!');}
-  renderParentQuiz();
-}
-renderParentQuiz();
-
-// Mark first section visited
-document.querySelector('[data-sec="s-guide"]').classList.add('visited');
-
-// ═══ HAIR WORD SCRAMBLE GAME ═══
-const scrambleWords = [
-  {word:"SHAMPOO",     hint:"You wash hair with this"},
-  {word:"CONDITIONER", hint:"Makes hair soft and smooth"},
-  {word:"DETANGLE",    hint:"Removing knots from hair"},
-  {word:"KERATIN",     hint:"The protein hair is made of"},
-  {word:"FOLLICLE",    hint:"Where hair grows from the scalp"},
-  {word:"SCISSORS",    hint:"The main tool of every stylist"},
-  {word:"SCALP",       hint:"The skin on top of your head"},
-  {word:"MOISTURE",    hint:"What dry hair needs more of"},
-  {word:"TRIM",        hint:"A small haircut to remove split ends"},
-  {word:"BRAID",       hint:"Three strands woven together"},
-];
-
-// ── state ────────────────────────────────────────────────────────────────────
-var sg = {
-  word:'', scrambled:'', input:'', timer:null,
-  seconds:0, solved:false, revealed:false,
-  wordIdx:-1, streak:0, flipped:false,
-  // round tracking
-  wordsInRound:0,          // how many words attempted this round
-  solvedInRound:0,         // how many solved correctly
-  totalSecsInRound:0,      // cumulative seconds for solved words
-  roundDone:false          // all 15 done
-};
-
-// ── helpers ──────────────────────────────────────────────────────────────────
-function scrambleWord(w) {
-  var a = w.split('');
-  for (var i = a.length-1; i > 0; i--) {
-    var j = Math.floor(Math.random()*(i+1));
-    var t = a[i]; a[i]=a[j]; a[j]=t;
-  }
-  return a.join('') === w ? scrambleWord(w) : a.join('');
-}
-
-var sg_queue = [];  // shuffled word queue
-function sg_shuffle_queue() {
-  sg_queue = scrambleWords.map(function(_,i){ return i; });
-  for (var i = sg_queue.length-1; i > 0; i--) {
-    var j = Math.floor(Math.random()*(i+1));
-    var t = sg_queue[i]; sg_queue[i]=sg_queue[j]; sg_queue[j]=t;
-  }
-}
-function startNewRound() {
-  sg_shuffle_queue();
-  sg.wordsInRound = 0; sg.solvedInRound = 0; sg.totalSecsInRound = 0;
-  sg.streak = 0; sg.roundDone = false; sg.wordNumber = 0;
-  nextScrambleWord();
-}
-
-function nextScrambleWord() {
-  if (sg_queue.length === 0) {
-    sg.roundDone = true;
-    if (sg.timer) clearInterval(sg.timer);
-    renderScramble();
-    return;
-  }
-  sg.wordNumber = scrambleWords.length - sg_queue.length; // 1-based current word
-  sg.wordIdx   = sg_queue.shift();
-  sg.word      = scrambleWords[sg.wordIdx].word;
-  sg.hint      = scrambleWords[sg.wordIdx].hint;
-  sg.scrambled = scrambleWord(sg.word);
-  sg.seconds   = 0; sg.solved = false; sg.revealed = false;
-  sg.input     = ''; sg.flipped = false;
-  if (sg.timer) clearInterval(sg.timer);
-  renderScramble();
-}
-
-function flipAndStart() {
-  if (sg.flipped) return;
-  sg.flipped = true;
-  if (sg.timer) clearInterval(sg.timer);
-  sg.timer = setInterval(function(){ sg.seconds++; updateTimer(); }, 1000);
-  renderScramble();
-}
-
-// ── timer-only update (no full re-render while typing) ───────────────────────
-function updateTimer() {
-  var timerEl = document.getElementById('sg-timer');
-  if (!timerEl) return;
-  var c = sg.seconds < 10 ? 'var(--ok)' : sg.seconds < 20 ? 'var(--warn)' : 'var(--err)';
-  timerEl.style.color = c;
-  timerEl.textContent = '⏱ ' + sg.seconds + 's';
-}
-
-// ── main render ──────────────────────────────────────────────────────────────
-function renderScramble() {
-  var el = document.getElementById('scramble-game');
-  if (!el) return;
-
-  // PRE-FLIP ─────────────────────────────────────────────────────────────────
-  if (!sg.flipped) {
-    el.innerHTML =
-      '<div id="flip-trigger" style="margin-bottom:14px;">' +
-        '<div style="background:linear-gradient(135deg,#0D47A1,#1565C0);border-radius:16px;padding:28px 20px;text-align:center;cursor:pointer;box-shadow:0 8px 28px rgba(13,71,161,.28);position:relative;overflow:hidden;">' +
-          '<div style="position:absolute;right:10px;bottom:-8px;font-size:64px;opacity:.08;pointer-events:none;">&#9986;</div>' +
-          '<div style="font-size:42px;margin-bottom:10px;">&#x1F0CF;</div>' +
-          '<div style="font-family:var(--fh);font-size:20px;font-weight:900;color:#fff;margin-bottom:6px;">Tap to reveal the word!</div>' +
-          '<div style="font-size:13px;color:rgba(255,255,255,.7);font-weight:700;margin-bottom:18px;">Timer starts the moment you flip &#x1F3C1;</div>' +
-          '<div style="background:var(--y);color:var(--bd);padding:11px 28px;border-radius:99px;font-family:var(--fh);font-size:15px;font-weight:900;display:inline-block;">Flip &amp; Start &#9654;</div>' +
-        '</div>' +
-      '</div>' +
-      '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding:0 2px;">' +
-        '<div style="font-size:12px;font-weight:800;color:var(--muted);">Streak: ' + sg.streak + ' &#x1F525;</div>' +
-        '<div style="font-family:var(--fh);font-size:13px;font-weight:900;color:var(--b);">Word ' + sg.wordNumber + ' of ' + scrambleWords.length + '</div>' +
-        '<div style="font-size:12px;font-weight:800;color:var(--muted);">' + sg_queue.length + ' left &#x1F4AA;</div>' +
-      '</div>';
-    document.getElementById('flip-trigger').addEventListener('click', flipAndStart);
-    return;
-  }
-
-  // ROUND COMPLETE — all 15 words done ────────────────────────────────────────
-  if (sg.roundDone) {
-    var avgSecs = sg.solvedInRound > 0 ? Math.round(sg.totalSecsInRound / sg.solvedInRound) : 0;
-    el.innerHTML =
-      '<div style="background:linear-gradient(135deg,#0D47A1,#1565C0);border-radius:16px;padding:22px;text-align:center;margin-bottom:14px;">' +
-        '<div style="font-size:40px;margin-bottom:8px;">&#x1F389;</div>' +
-        '<div style="font-family:var(--fh);font-size:20px;font-weight:900;color:#fff;margin-bottom:4px;">Round Complete!</div>' +
-        '<div style="font-size:13px;color:rgba(255,255,255,.8);font-weight:700;margin-bottom:14px;">All ' + scrambleWords.length + ' words done</div>' +
-        '<div style="display:flex;gap:8px;justify-content:center;margin-bottom:16px;">' +
-          '<div style="background:rgba(255,255,255,.15);border-radius:12px;padding:10px 16px;text-align:center;">' +
-            '<div style="font-family:var(--fh);font-size:22px;font-weight:900;color:var(--y);">' + sg.solvedInRound + '/' + scrambleWords.length + '</div>' +
-            '<div style="font-size:11px;color:rgba(255,255,255,.7);font-weight:700;">Solved</div>' +
-          '</div>' +
-          '<div style="background:rgba(255,255,255,.15);border-radius:12px;padding:10px 16px;text-align:center;">' +
-            '<div style="font-family:var(--fh);font-size:22px;font-weight:900;color:var(--y);">' + sg.streak + '&#x1F525;</div>' +
-            '<div style="font-size:11px;color:rgba(255,255,255,.7);font-weight:700;">Best Streak</div>' +
-          '</div>' +
-          '<div style="background:rgba(255,255,255,.15);border-radius:12px;padding:10px 16px;text-align:center;">' +
-            '<div style="font-family:var(--fh);font-size:22px;font-weight:900;color:var(--y);">' + avgSecs + 's</div>' +
-            '<div style="font-size:11px;color:rgba(255,255,255,.7);font-weight:700;">Avg / word</div>' +
-          '</div>' +
-        '</div>' +
-      '</div>' +
-      '<div style="background:linear-gradient(135deg,#FFF9E6,#EEF6FF);border-radius:13px;padding:16px;margin-bottom:14px;border:1.5px solid rgba(255,214,0,.35);">' +
-        '<div style="font-family:var(--fh);font-size:15px;font-weight:900;color:var(--bd);margin-bottom:4px;">&#x1F3C6; Share your score?</div>' +
-        '<div style="font-size:12.5px;color:var(--muted);font-weight:700;margin-bottom:12px;">Enter your name to get on the leaderboard</div>' +
-        '<div style="display:flex;gap:8px;margin-bottom:10px;">' +
-          '<input id="lb-first" type="text" maxlength="12" placeholder="First name" ' +
-            'style="flex:1;padding:10px 11px;border:2px solid var(--b);border-radius:10px;font-family:var(--fh);font-size:14px;font-weight:800;outline:none;background:#fff;color:var(--bd);" />' +
-          '<input id="lb-last" type="text" maxlength="12" placeholder="Last name" ' +
-            'style="flex:1;padding:10px 11px;border:2px solid var(--b);border-radius:10px;font-family:var(--fh);font-size:14px;font-weight:800;outline:none;background:#fff;color:var(--bd);" />' +
-        '</div>' +
-        '<div style="display:flex;gap:8px;">' +
-          '<button class="btn btn-light" style="flex:1;" id="sg-skip-btn">Skip</button>' +
-          '<button class="btn btn-b" style="flex:2;" id="sg-submit-btn">Add to Board &#x1F3C6;</button>' +
-        '</div>' +
-      '</div>' +
-      '<button class="btn btn-b" style="width:100%;" id="sg-newround-btn">&#x21BA; Play Again</button>';
-
-    document.getElementById('sg-skip-btn').addEventListener('click', function(){ startNewRound(); renderLeaderboard(); });
-    document.getElementById('sg-submit-btn').addEventListener('click', submitScrambleScore);
-    document.getElementById('sg-newround-btn').addEventListener('click', function(){ startNewRound(); renderLeaderboard(); });
-    document.getElementById('lb-first').focus();
-    return;
-  }
-
-  // WORD SOLVED (mid-round) — just show result, move on ─────────────────────
-  if (sg.solved) {
-    var remaining = sg_queue.length;
-    el.innerHTML =
-      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">' +
-        '<div style="font-size:12px;font-weight:800;color:var(--muted);">Streak: ' + sg.streak + ' &#x1F525;</div>' +
-        '<div style="font-size:12px;font-weight:800;color:var(--muted);">Word ' + sg.solvedInRound + ' of ' + scrambleWords.length + '</div>' +
-      '</div>' +
-      '<div style="background:#DCFCE7;border-radius:13px;padding:16px;text-align:center;margin-bottom:14px;">' +
-        '<div style="font-family:var(--fh);font-size:22px;font-weight:900;color:var(--ok);">&#x1F389; ' + sg.word + '!</div>' +
-        '<div style="font-size:13px;color:var(--ok);margin-top:4px;font-weight:700;">Solved in ' + sg.seconds + 's</div>' +
-      '</div>' +
-      (remaining > 0 ?
-        '<div style="text-align:center;font-size:13px;font-weight:700;color:var(--muted);margin-bottom:12px;">' + remaining + ' word' + (remaining===1?'':'s') + ' remaining in this round</div>' : '') +
-      '<button class="btn btn-b" style="width:100%;" id="sg-next-btn">' + (remaining > 0 ? 'Next Word &#8594;' : '&#x1F4CA; See Your Score!') + '</button>';
-
-    document.getElementById('sg-next-btn').addEventListener('click', nextScrambleWord);
-    return;
-  }
-
-  // REVEALED (gave up) ───────────────────────────────────────────────────────
-  if (sg.revealed) {
-    el.innerHTML =
-      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">' +
-        '<div style="font-size:12px;font-weight:800;color:var(--muted);">Streak: ' + sg.streak + ' &#x1F525;</div>' +
-        '<div style="font-family:var(--fh);font-size:20px;font-weight:900;color:var(--err);">&#x23F1; ' + sg.seconds + 's</div>' +
-      '</div>' +
-      '<div style="background:#FEF3C7;border-radius:13px;padding:14px;text-align:center;margin-bottom:14px;">' +
-        '<div style="font-family:var(--fh);font-size:18px;font-weight:900;color:var(--warn);">The word was: ' + sg.word + '</div>' +
-      '</div>' +
-      '<button class="btn btn-b" style="width:100%;" id="sg-try-btn">Try Another &#8594;</button>';
-    document.getElementById('sg-try-btn').addEventListener('click', nextScrambleWord);
-    return;
-  }
-
-  // IN PROGRESS ──────────────────────────────────────────────────────────────
-  var letters = sg.scrambled.split('').map(function(l){
-    return '<span style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:36px;background:linear-gradient(135deg,var(--bd),var(--b));color:#fff;border-radius:8px;font-family:var(--fh);font-size:18px;font-weight:900;margin:2px;">' + l + '</span>';
-  }).join('');
-
-  var boxes = '';
-  for (var i = 0; i < sg.word.length; i++) {
-    var ch = (sg.input||'')[i] || '';
-    var bg = ch ? '#EEF6FF' : '#F8FBFF';
-    var bdr = ch ? 'var(--b)' : '#E2EBF8';
-    boxes += '<span style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:34px;border:2px solid '+bdr+';background:'+bg+';border-radius:7px;font-family:var(--fh);font-size:16px;font-weight:900;color:var(--bd);margin:2px;">' + ch + '</span>';
-  }
-
-  var timerColor = sg.seconds < 10 ? 'var(--ok)' : sg.seconds < 20 ? 'var(--warn)' : 'var(--err)';
-
-  el.innerHTML =
-    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">' +
-      '<div style="font-size:12px;font-weight:800;color:var(--muted);">Streak: ' + sg.streak + ' &#x1F525;</div>' +
-      '<div id="sg-timer" style="font-family:var(--fh);font-size:20px;font-weight:900;color:'+timerColor+';">&#x23F1; ' + sg.seconds + 's</div>' +
-    '</div>' +
-    '<div style="background:#F0F6FF;border-radius:11px;padding:10px 13px;margin-bottom:12px;font-size:13px;font-weight:700;color:var(--b);">&#x1F4A1; Hint: ' + sg.hint + '</div>' +
-    '<div style="text-align:center;margin-bottom:14px;line-height:1;">' + letters + '</div>' +
-    '<div id="sg-boxes" style="text-align:center;margin-bottom:14px;line-height:1;min-height:42px;">' + boxes + '</div>' +
-    '<input id="scramble-input" type="text" maxlength="' + sg.word.length + '" ' +
-      'style="width:100%;padding:13px 14px;border:2px solid var(--b);border-radius:12px;font-family:var(--fh);font-size:18px;font-weight:800;text-align:center;letter-spacing:4px;text-transform:uppercase;outline:none;background:#F8FBFF;color:var(--bd);margin-bottom:10px;display:block;" ' +
-      'placeholder="Type your answer..." ' +
-      'autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false" />' +
-    '<div style="display:flex;gap:8px;">' +
-      '<button class="btn btn-light" style="flex:1;" id="sg-giveup-btn">Give Up</button>' +
-      '<button class="btn btn-b" style="flex:2;" id="sg-check-btn">Check &#x2713;</button>' +
-    '</div>';
-
-  // wire all events via addEventListener
-  var inp = document.getElementById('scramble-input');
-  inp.value = sg.input || '';
-  inp.addEventListener('input', onScrambleInput);
-  inp.addEventListener('keydown', function(e){ if(e.key==='Enter') checkScramble(); });
-
-  document.getElementById('sg-giveup-btn').addEventListener('click', function(){
-    sg.revealed = true; sg.streak = 0;
-    if (sg.timer) clearInterval(sg.timer);
-    renderScramble();
-  });
-  document.getElementById('sg-check-btn').addEventListener('click', checkScramble);
-}
-
-// ── input handler: update boxes WITHOUT full re-render ───────────────────────
-function onScrambleInput() {
-  var inp = document.getElementById('scramble-input');
-  if (!inp) return;
-  sg.input = inp.value.toUpperCase().replace(/[^A-Z]/g, '');
-  // Keep input in sync without rebuilding it
-  if (inp.value !== sg.input) { inp.value = sg.input; }
-
-  // Redraw only the answer boxes
-  var boxesEl = document.getElementById('sg-boxes');
-  if (boxesEl) {
-    var html = '';
-    for (var i = 0; i < sg.word.length; i++) {
-      var ch = sg.input[i] || '';
-      var bg = ch ? '#EEF6FF' : '#F8FBFF';
-      var bdr = ch ? 'var(--b)' : '#E2EBF8';
-      html += '<span style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:34px;border:2px solid '+bdr+';background:'+bg+';border-radius:7px;font-family:var(--fh);font-size:16px;font-weight:900;color:var(--bd);margin:2px;">' + ch + '</span>';
-    }
-    boxesEl.innerHTML = html;
-  }
-
-  // Auto-check when full length reached
-  if (sg.input.length === sg.word.length) checkScramble();
-}
-
-function checkScramble() {
-  if (sg.input === sg.word) {
-    if (sg.timer) clearInterval(sg.timer);
-    sg.solved = true;
-    sg.streak++;
-    sg.solvedInRound++;
-    sg.wordsInRound++;
-    sg.totalSecsInRound += sg.seconds;
-    addXP(5, 'Word solved!');
-    renderScramble();
-  } else {
-    var inp = document.getElementById('scramble-input');
-    if (inp) {
-      inp.style.borderColor = 'var(--err)';
-      setTimeout(function(){ inp.style.borderColor = 'var(--b)'; }, 600);
-    }
-  }
-}
-
-function submitScrambleScore() {
-  var fi = document.getElementById('lb-first');
-  var li = document.getElementById('lb-last');
-  var first = fi ? fi.value.trim() : '';
-  var last  = li ? li.value.trim() : '';
-  if (!first) { if (fi) { fi.style.borderColor='var(--err)'; fi.focus(); setTimeout(function(){fi.style.borderColor='var(--b)';},600); } return; }
-  var fullName = last ? first + ' ' + last.charAt(0).toUpperCase() + '.' : first;
-  var avgSecs = sg.solvedInRound > 0 ? Math.round(sg.totalSecsInRound / sg.solvedInRound) : 0;
-  var board = JSON.parse(localStorage.getItem('mc_scramble_lb') || '[]');
-  board.push({
-    name: fullName.substring(0,22),
-    solved: sg.solvedInRound,
-    total: scrambleWords.length,
-    avgSecs: avgSecs,
-    date: new Date().toLocaleDateString('en-GB',{day:'numeric',month:'short'})
-  });
-  // Sort by most solved, then fastest avg
-  board.sort(function(a,b){ return b.solved-a.solved || a.avgSecs-b.avgSecs; });
-  board = board.slice(0, 10);
-  localStorage.setItem('mc_scramble_lb', JSON.stringify(board));
-  renderLeaderboard();
-  startNewRound();
-}
-
-function renderLeaderboard() {
-  var el = document.getElementById('leaderboard-list');
-  if (!el) return;
-  var board = JSON.parse(localStorage.getItem('mc_scramble_lb') || '[]');
-  if (!board.length) {
-    el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px;">No scores yet &#8212; solve a word to get on the board! &#x1F3C6;</div>';
-    return;
-  }
-  var medals = ['&#x1F947;','&#x1F948;','&#x1F949;'];
-  var rows = board.map(function(entry, i) {
-    var medal = medals[i] || ('#' + (i+1));
-    var isTop = i < 3;
-    var solvedStr = (entry.solved !== undefined) ? entry.solved + '/' + (entry.total||15) : '?';
-    var avgStr    = (entry.avgSecs !== undefined) ? entry.avgSecs + 's avg' : (entry.secs ? entry.secs + 's' : '');
-    return '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:11px;margin-bottom:6px;background:' + (isTop ? 'linear-gradient(90deg,#FFF9E6,#fff)' : '#F8FBFF') + ';border:' + (isTop ? '1.5px solid rgba(255,214,0,.4)' : '1px solid #E5E7EB') + ';">' +
-      '<div style="font-size:20px;flex-shrink:0;">' + medal + '</div>' +
-      '<div style="flex:1;font-weight:800;font-size:13px;color:var(--bd);">' + entry.name + '</div>' +
-      '<div style="text-align:right;">' +
-        '<div style="font-family:var(--fh);font-size:15px;font-weight:900;color:var(--ok);">' + solvedStr + '</div>' +
-        '<div style="font-size:11px;color:var(--muted);font-weight:700;">' + avgStr + '</div>' +
-      '</div>' +
-      '<div style="font-size:11px;color:var(--muted);flex-shrink:0;">' + entry.date + '</div>' +
-    '</div>';
-  }).join('');
-  el.innerHTML = rows;
-}
-
-// ── helper functions ──────────────────────────────────────────────────────────
-function skipNameEntry(){ var ne=document.getElementById('name-entry'); if(ne) ne.remove(); }
-function clearScrambleBoard(){ localStorage.removeItem('mc_scramble_lb'); renderLeaderboard(); }
+buildStyleSelectors();
 </script>
 </body>
 </html>
