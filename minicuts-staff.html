@@ -45,7 +45,7 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
 .tbl-wrap{flex:1;overflow:auto;border-radius:var(--r);box-shadow:0 2px 12px rgba(13,71,161,.08);}
 .qt{width:100%;border-collapse:collapse;background:#fff;table-layout:fixed;}
 .qt thead{background:var(--bd);position:sticky;top:0;z-index:10;}
-.qt thead th{color:#fff;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:10px 10px;text-align:left;white-space:nowrap;overflow:hidden;}
+.qt thead th{color:#fff;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:11px 10px;text-align:left;white-space:nowrap;overflow:hidden;}
 /* Column widths */
 .qt th:nth-child(1),.qt td:nth-child(1){width:50px;}
 .qt th:nth-child(2),.qt td:nth-child(2){width:170px;}
@@ -57,7 +57,7 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
 .qt th:nth-child(8),.qt td:nth-child(8){width:110px;}
 .qt tbody tr{border-bottom:1px solid var(--border);transition:background .1s;}
 .qt tbody tr:hover{background:#F8FBFF;}
-.qt tbody tr.done{opacity:.5;background:#FAFAFA;}
+.qt tbody tr.done{background:#FAFAFA;}
 .qt tbody tr.called{background:#EEF6FF;}
 .qt td{padding:9px 10px;font-size:14px;vertical-align:middle;}
 .isel{font-size:13px;padding:6px 8px;border:1.5px solid var(--border);border-radius:6px;background:#fff;outline:none;cursor:pointer;width:100%;}
@@ -86,6 +86,7 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
 .tc{position:fixed;bottom:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:7px;}
 .toast{background:#fff;border-radius:var(--rs);padding:12px 18px;box-shadow:0 8px 28px rgba(0,0,0,.14);display:flex;align-items:center;gap:9px;font-size:14.5px;font-weight:700;min-width:220px;animation:ti .25s ease;}
 @keyframes ti{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes spin{to{transform:rotate(360deg)}}
 .toast.ok{border-left:4px solid var(--ok);}.toast.err{border-left:4px solid var(--err);}.toast.info{border-left:4px solid var(--b);}
 #clk{font-family:var(--fh);font-size:13px;font-weight:700;color:rgba(255,255,255,.7);}
 </style>
@@ -234,7 +235,7 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
   <div class="tbl-wrap">
     <table class="qt">
       <thead><tr><th>Token</th><th>Name</th><th>Phone</th><th>Service</th><th>Stylist(s)</th><th>Value</th><th>Tip</th><th>Payment</th><th>Remark</th><th>Status</th><th>Time</th><th>Edit</th></tr></thead>
-      <tbody id="hist-body"><tr><td colspan="12" style="text-align:center;padding:40px;color:var(--muted);">Select a date and click Load ↻</td></tr></tbody>
+      <tbody id="hist-body"><tr><td colspan="12" style="text-align:center;padding:40px;color:var(--muted);">Loading today's records...</td></tr></tbody>
     </table>
   </div>
 </div>
@@ -740,12 +741,12 @@ function histNav(dir){
 async function loadHist(){
   const date=histGetDate();
   const body=document.getElementById('hist-body');
-  if(body)body.innerHTML='<tr><td colspan="10" style="text-align:center;padding:30px;color:var(--muted);">Loading '+date+'...</td></tr>';
+  if(body)body.innerHTML='<tr><td colspan="12" style="text-align:center;padding:30px;color:var(--muted);"><div style="display:inline-block;width:20px;height:20px;border:3px solid var(--border);border-top-color:var(--b);border-radius:50%;animation:spin .7s linear infinite;margin-bottom:8px;"></div><br>Loading '+date+'...</td></tr>';
   const sumEl=document.getElementById('hist-summary');if(sumEl)sumEl.style.display='none';
   try{
     const rows=await sb('queue','GET',null,'select=*&checkin_date=eq.'+date+'&order=token_number.asc&limit=500');
     _histData=rows||[];renderHist();
-  }catch(e){if(body)body.innerHTML='<tr><td colspan="10" style="color:var(--err);padding:16px;">Error: '+e.message+'</td></tr>';}
+  }catch(e){if(body)body.innerHTML='<tr><td colspan="12" style="color:var(--err);padding:16px;">Error: '+e.message+'</td></tr>';}
 }
 function renderHist(){
   const body=document.getElementById('hist-body');if(!body)return;
