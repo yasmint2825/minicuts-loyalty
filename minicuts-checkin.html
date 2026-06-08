@@ -430,9 +430,19 @@ async function reserveTokenBlock(n, mob){
   return _reservedTokens;
 }
 
-function setKidsCount(n, btn){
+async function setKidsCount(n, btn){
   _kidsCount = n;
-  _reservedTokens = []; // clear previous reservation
+
+  // ── Cancel any previous orphaned reservations BEFORE making new ones ──
+  // Cancel (not delete) so token numbers stay retired and can't be reused
+  if(_reservedTokens && _reservedTokens.length){
+    const oldReserved = [..._reservedTokens];
+    _reservedTokens = [];
+    oldReserved.forEach(r =>
+      sb('queue','PATCH',{status:'cancelled',customer_name:'Cancelled',customer_id:null},'id=eq.'+r.id).catch(()=>{})
+    );
+  }
+
   document.querySelectorAll('.kids-count-btn').forEach(b=>{
     b.style.background = '#fff';
     b.style.borderColor = 'var(--border)';
@@ -490,6 +500,24 @@ async function proceedCheckin(){
     if(!reserved.length){
       reserved = await reserveTokenBlock(_kidsCount, mob);
     }
+
+    // ── KEY FIX: if fewer kids selected than reserved, CANCEL the extras ──
+    // Cancelled status: token number is retired for the day (no gaps, no reuse)
+    // but row is hidden from active queue (queue only shows waiting/called)
+    const actualCount = _sel.length;
+    if(reserved.length > actualCount){
+      const extras = reserved.slice(actualCount);
+      // PATCH to cancelled — keeps the token number permanently occupied
+      await Promise.all(extras.map(r =>
+        sb('queue','PATCH',{
+          status: 'cancelled',
+          customer_name: 'Cancelled',
+          customer_id: null
+        },'id=eq.'+r.id).catch(()=>{})
+      ));
+      reserved = reserved.slice(0, actualCount);
+    }
+
     // Update each reserved row with real customer info
     for(let i=0;i<reserved.length;i++){
       const c2 = _sel[i];
@@ -525,10 +553,13 @@ function onLookup(){
   const num=(document.getElementById('lu-num')?.value||'').replace(/\D/g,'');
   ['lu-st','lu-kids','lu-act','lu-nf','lu-reg-sibling','lu-count'].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display='none';});
   _sel=[];_kidsCount=0;
-  // Clean up any unredeemed placeholder reservations
+  // Cancel any unredeemed placeholder reservations (phone changed / new lookup)
   if(_reservedTokens&&_reservedTokens.length){
-    _reservedTokens.forEach(r=>sb('queue','DELETE',null,'id=eq.'+r.id+'&customer_name=eq.Reserving...').catch(()=>{}));
+    const oldReserved=[..._reservedTokens];
     _reservedTokens=[];
+    oldReserved.forEach(r=>
+      sb('queue','PATCH',{status:'cancelled',customer_name:'Cancelled',customer_id:null},'id=eq.'+r.id).catch(()=>{})
+    );
   }
   document.querySelectorAll('.kids-count-btn').forEach(b=>{b.style.background='#fff';b.style.borderColor='var(--border)';b.style.color='var(--bd)';});
   if(num.length===0)return;
@@ -700,6 +731,14 @@ async function doRegAll(){
     // Use pre-reserved tokens if available, otherwise reserve now
     if(!_reservedTokens.length){
       await reserveTokenBlock(results.length, mob);
+    }
+    // Cancel any extra reserved slots not matched by actual registered kids
+    if(_reservedTokens.length > results.length){
+      const extras = _reservedTokens.slice(results.length);
+      await Promise.all(extras.map(r =>
+        sb('queue','PATCH',{status:'cancelled',customer_name:'Cancelled',customer_id:null},'id=eq.'+r.id).catch(()=>{})
+      ));
+      _reservedTokens = _reservedTokens.slice(0, results.length);
     }
     for(let i=0;i<results.length;i++){
       const {customer,svc}=results[i];
@@ -1000,6 +1039,14 @@ async function refreshStats(){
 
 setInterval(()=>{if(document.getElementById('s-queue').classList.contains('active'))loadQ();else refreshStats();},30000);
 refreshStats();
+// ── Cancel orphaned reservations on page unload ──
+window.addEventListener('beforeunload', function(){
+  if(_reservedTokens && _reservedTokens.length){
+    _reservedTokens.forEach(r=>{
+      sb('queue','PATCH',{status:'cancelled',customer_name:'Cancelled',customer_id:null},'id=eq.'+r.id).catch(()=>{});
+    });
+  }
+});
 </script>
 </body>
 </html>
