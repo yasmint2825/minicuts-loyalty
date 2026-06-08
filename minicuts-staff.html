@@ -13,20 +13,20 @@ body{display:flex;flex-direction:column;}
 
 /* ─── TOPBAR ─── */
 .top{background:linear-gradient(135deg,var(--bd),var(--bm));padding:10px 24px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
-.top-brand{font-family:var(--fh);font-size:16px;font-weight:900;color:#fff;display:flex;align-items:center;gap:8px;}
+.top-brand{font-family:var(--fh);font-size:18px;font-weight:900;color:#fff;display:flex;align-items:center;gap:8px;}
 .top-right{display:flex;align-items:center;gap:10px;}
-.badge-staff{background:var(--y);color:var(--bd);padding:3px 10px;border-radius:99px;font-size:11px;font-weight:800;}
+.badge-staff{background:var(--y);color:var(--bd);padding:4px 12px;border-radius:99px;font-size:13px;font-weight:800;}
 
 /* ─── STATS STRIP ─── */
 .stats-strip{background:#fff;border-bottom:1px solid var(--border);padding:8px 24px;display:flex;gap:24px;align-items:center;flex-shrink:0;}
 .sstat{display:flex;align-items:center;gap:8px;}
-.sstat-n{font-family:var(--fh);font-size:22px;font-weight:900;color:var(--bd);line-height:1;}
-.sstat-l{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;line-height:1.2;}
+.sstat-n{font-family:var(--fh);font-size:26px;font-weight:900;color:var(--bd);line-height:1;}
+.sstat-l{font-size:13.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;line-height:1.2;}
 .sstat-div{width:1px;height:28px;background:var(--border);}
 
 /* ─── TABS ─── */
 .tabs{background:#fff;border-bottom:2px solid var(--border);display:flex;padding:0 24px;flex-shrink:0;}
-.tab{padding:10px 18px;font-family:var(--fb);font-size:13px;font-weight:700;color:var(--muted);border:none;background:transparent;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;white-space:nowrap;transition:all .15s;}
+.tab{padding:12px 20px;font-family:var(--fb);font-size:14.5px;font-weight:700;color:var(--muted);border:none;background:transparent;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;white-space:nowrap;transition:all .15s;}
 .tab.active{color:var(--b);border-bottom-color:var(--b);}
 
 /* ─── PAGES ─── */
@@ -35,8 +35,8 @@ body{display:flex;flex-direction:column;}
 
 /* ─── FILTERS ─── */
 .filters{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:12px;background:#fff;padding:12px 16px;border-radius:var(--r);box-shadow:0 2px 8px rgba(13,71,161,.06);flex-shrink:0;}
-.fg{margin-bottom:0;}.fl{display:block;font-size:11px;font-weight:800;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em;}
-.fi{width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--rs);font-family:var(--fb);font-size:13px;color:var(--text);background:#fff;outline:none;}
+.fg{margin-bottom:0;}.fl{display:block;font-size:13px;font-weight:800;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em;}
+.fi{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--rs);font-family:var(--fb);font-size:14px;color:var(--text);background:#fff;outline:none;}
 .fi:focus{border-color:var(--b);}
 select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236B7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 8px center;padding-right:24px;cursor:pointer;}
 .fr{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
@@ -45,49 +45,49 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
 .tbl-wrap{flex:1;overflow:auto;border-radius:var(--r);box-shadow:0 2px 12px rgba(13,71,161,.08);}
 .qt{width:100%;border-collapse:collapse;background:#fff;table-layout:fixed;}
 .qt thead{background:var(--bd);position:sticky;top:0;z-index:10;}
-.qt thead th{color:#fff;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:10px 10px;text-align:left;white-space:nowrap;overflow:hidden;}
+.qt thead th{color:#fff;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:10px 10px;text-align:left;white-space:nowrap;overflow:hidden;}
 /* Column widths */
 .qt th:nth-child(1),.qt td:nth-child(1){width:50px;}
-.qt th:nth-child(2),.qt td:nth-child(2){width:150px;}
+.qt th:nth-child(2),.qt td:nth-child(2){width:170px;}
 .qt th:nth-child(3),.qt td:nth-child(3){width:95px;}
 .qt th:nth-child(4),.qt td:nth-child(4){width:46px;}
-.qt th:nth-child(5),.qt td:nth-child(5){width:160px;}
-.qt th:nth-child(6),.qt td:nth-child(6){width:200px;}
+.qt th:nth-child(5),.qt td:nth-child(5){width:180px;}
+.qt th:nth-child(6),.qt td:nth-child(6){width:215px;}
 .qt th:nth-child(7),.qt td:nth-child(7){width:66px;}
 .qt th:nth-child(8),.qt td:nth-child(8){width:110px;}
 .qt tbody tr{border-bottom:1px solid var(--border);transition:background .1s;}
 .qt tbody tr:hover{background:#F8FBFF;}
 .qt tbody tr.done{opacity:.5;background:#FAFAFA;}
 .qt tbody tr.called{background:#EEF6FF;}
-.qt td{padding:6px 8px;font-size:12.5px;vertical-align:middle;}
-.isel{font-size:11.5px;padding:4px 6px;border:1.5px solid var(--border);border-radius:6px;background:#fff;outline:none;cursor:pointer;width:100%;}
+.qt td{padding:9px 10px;font-size:14px;vertical-align:middle;}
+.isel{font-size:13px;padding:6px 8px;border:1.5px solid var(--border);border-radius:6px;background:#fff;outline:none;cursor:pointer;width:100%;}
 .isel:focus{border-color:var(--b);}
-.tok-b{width:34px;height:34px;border-radius:8px;background:linear-gradient(135deg,var(--bd),var(--bm));color:var(--y);font-family:var(--fh);font-size:14px;font-weight:900;display:inline-flex;align-items:center;justify-content:center;}
+.tok-b{width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,var(--bd),var(--bm));color:var(--y);font-family:var(--fh);font-size:16px;font-weight:900;display:inline-flex;align-items:center;justify-content:center;}
 .tok-b.guest{background:linear-gradient(135deg,#6B7280,#9CA3AF);}
-.sp{display:inline-flex;align-items:center;padding:2px 6px;border-radius:99px;font-size:10px;font-weight:800;white-space:nowrap;}
+.sp{display:inline-flex;align-items:center;padding:4px 9px;border-radius:99px;font-size:12px;font-weight:800;white-space:nowrap;}
 .sp-w{background:#FEF3C7;color:#92400E;}.sp-d{background:#DCFCE7;color:var(--ok);}.sp-c{background:#EEF6FF;color:var(--b);}.sp-g{background:#F3F4F6;color:var(--muted);}
 
 /* ─── BUTTONS ─── */
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:7px 12px;border-radius:var(--rs);font-family:var(--fh);font-weight:800;font-size:13px;cursor:pointer;border:none;transition:transform .12s;line-height:1;white-space:nowrap;}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:9px 14px;border-radius:var(--rs);font-family:var(--fh);font-weight:800;font-size:14px;cursor:pointer;border:none;transition:transform .12s;line-height:1;white-space:nowrap;}
 .btn:active{transform:scale(.97);}.btn:disabled{opacity:.45;cursor:not-allowed;transform:none;}
 .btn-y{background:linear-gradient(135deg,var(--y),#FFB300);color:var(--bd);}
 .btn-b{background:var(--b);color:#fff;}.btn-g{background:var(--ok);color:#fff;}
 .btn-ghost{background:transparent;color:var(--b);border:1.5px solid rgba(21,101,192,.25);}
-.btn-sm{padding:5px 9px;font-size:11.5px;border-radius:6px;}
+.btn-sm{padding:7px 12px;font-size:13px;border-radius:7px;}
 .btn-full{width:100%;}
 
 /* ─── CARDS (settings) ─── */
 .card{background:#fff;border-radius:var(--r);padding:18px;margin-bottom:14px;box-shadow:0 2px 10px rgba(13,71,161,.07);border:1px solid rgba(13,71,161,.07);}
-.card-title{font-family:var(--fh);font-size:16px;font-weight:800;color:var(--bd);margin-bottom:4px;}
-.sm{padding:8px 12px;border-radius:var(--rs);font-size:12.5px;font-weight:700;margin-bottom:12px;display:none;}
+.card-title{font-family:var(--fh);font-size:18px;font-weight:800;color:var(--bd);margin-bottom:4px;}
+.sm{padding:10px 13px;border-radius:var(--rs);font-size:14px;font-weight:700;margin-bottom:12px;display:none;}
 .sm.ok{background:#DCFCE7;color:var(--ok);display:block;}.sm.err{background:#FEE2E2;color:var(--err);display:block;}.sm.info{background:#EEF6FF;color:var(--b);display:block;}
 
 /* ─── TOAST ─── */
 .tc{position:fixed;bottom:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:7px;}
-.toast{background:#fff;border-radius:var(--rs);padding:11px 16px;box-shadow:0 8px 28px rgba(0,0,0,.14);display:flex;align-items:center;gap:9px;font-size:13px;font-weight:700;min-width:220px;animation:ti .25s ease;}
+.toast{background:#fff;border-radius:var(--rs);padding:12px 18px;box-shadow:0 8px 28px rgba(0,0,0,.14);display:flex;align-items:center;gap:9px;font-size:14.5px;font-weight:700;min-width:220px;animation:ti .25s ease;}
 @keyframes ti{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
 .toast.ok{border-left:4px solid var(--ok);}.toast.err{border-left:4px solid var(--err);}.toast.info{border-left:4px solid var(--b);}
-#clk{font-family:var(--fh);font-size:11px;font-weight:700;color:rgba(255,255,255,.7);}
+#clk{font-family:var(--fh);font-size:13px;font-weight:700;color:rgba(255,255,255,.7);}
 </style>
 </head>
 <body>
@@ -164,8 +164,8 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
   <div class="top-right">
     <div id="clk"></div>
     <div class="badge-staff" id="staff-name-badge">✂️ Staff</div>
-    <a href="./index.html" target="_blank" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);color:#fff;padding:5px 11px;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;">📋 Loyalty</a>
-    <button onclick="doLogout()" style="background:rgba(220,38,38,.25);border:1px solid rgba(220,38,38,.4);color:#fff;padding:5px 11px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--fh);">🔒 Logout</button>
+    <a href="./index.html" target="_blank" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);color:#fff;padding:5px 11px;border-radius:8px;font-size:13.5px;font-weight:700;text-decoration:none;">📋 Loyalty</a>
+    <button onclick="doLogout()" style="background:rgba(220,38,38,.25);border:1px solid rgba(220,38,38,.4);color:#fff;padding:5px 11px;border-radius:8px;font-size:13.5px;font-weight:700;cursor:pointer;font-family:var(--fh);">🔒 Logout</button>
   </div>
 </div>
 
@@ -221,7 +221,7 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
     </div>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
       <div style="display:flex;gap:6px;align-items:center;background:#fff;border:1.5px solid var(--border);border-radius:9px;padding:6px 10px;">
-        <span style="font-size:12px;font-weight:700;color:var(--muted);">📅 Date:</span>
+        <span style="font-size:13.5px;font-weight:700;color:var(--muted);">📅 Date:</span>
         <input type="date" id="hist-date" style="border:none;outline:none;font-family:var(--fb);font-size:13px;color:var(--text);background:transparent;cursor:pointer;" onchange="loadHist()"/>
       </div>
       <button class="btn btn-ghost btn-sm" onclick="histNav(-1)">← Prev</button>
@@ -233,8 +233,8 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
   <div id="hist-summary" style="display:none;background:#F0FDF4;border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:13px;font-weight:700;color:var(--ok);"></div>
   <div class="tbl-wrap">
     <table class="qt">
-      <thead><tr><th>Token</th><th>Name</th><th>Service</th><th>Stylist(s)</th><th>Value</th><th>Tip</th><th>Remark</th><th>Status</th><th>Time</th><th>Edit</th></tr></thead>
-      <tbody id="hist-body"><tr><td colspan="10" style="text-align:center;padding:40px;color:var(--muted);">Select a date and click Load ↻</td></tr></tbody>
+      <thead><tr><th>Token</th><th>Name</th><th>Phone</th><th>Service</th><th>Stylist(s)</th><th>Value</th><th>Tip</th><th>Payment</th><th>Remark</th><th>Status</th><th>Time</th><th>Edit</th></tr></thead>
+      <tbody id="hist-body"><tr><td colspan="12" style="text-align:center;padding:40px;color:var(--muted);">Select a date and click Load ↻</td></tr></tbody>
     </table>
   </div>
 </div>
@@ -322,7 +322,7 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
         <p style="font-size:12.5px;color:var(--muted);margin:6px 0 14px;">These links are inserted into the WhatsApp message automatically.</p>
         <div class="fg"><label class="fl">🎫 Loyalty Passport Base URL</label>
           <input class="fi" type="text" id="cfg-passport" placeholder="https://yasmint2825.github.io/minicuts-loyalty/?customer=1&lookup="/>
-          <div style="font-size:11px;color:var(--muted);margin-top:3px;">Customer mobile is appended automatically</div>
+          <div style="font-size:13px;color:var(--muted);margin-top:3px;">Customer mobile is appended automatically</div>
         </div>
         <div class="fg"><label class="fl">⭐ Google Review Link</label>
           <input class="fi" type="text" id="cfg-google" placeholder="https://share.google/..."/>
@@ -637,8 +637,8 @@ function buildRow(r){
     +'<td><div class="tok-b '+(guest?'guest':'')+'">'+String(r.token_number).padStart(2,'0')+'</div></td>'
     // Name + pills on mobile line
     +'<td>'
-      +'<div style="font-weight:800;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+(r.customer_name||'')+'</div>'
-      +'<div style="font-size:10.5px;color:var(--muted);display:flex;align-items:center;flex-wrap:wrap;gap:2px;">'
+      +'<div style="font-weight:800;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+(r.customer_name||'')+'</div>'
+      +'<div style="font-size:12.5px;color:var(--muted);display:flex;align-items:center;flex-wrap:wrap;gap:2px;">'
         +(guest?'👤 Guest':'📱 '+displayMob(r.mobile||''))
         +loyaltyCell
       +'</div>'
@@ -646,26 +646,35 @@ function buildRow(r){
     // Service
     +'<td><select class="isel" onchange="updF(\''+r.id+'\',\'service\',this.value)"'+(locked?' disabled':'')+'>'+svcOpts+'</select></td>'
     // Time
-    +'<td style="font-size:11px;color:var(--muted);">'+fmtT(r.checkin_time)+'</td>'
+    +'<td style="font-size:13px;color:var(--muted);">'+fmtT(r.checkin_time)+'</td>'
     // Stylists side by side
     +'<td><div style="display:flex;gap:3px;">'
       +'<select class="isel" style="flex:1;min-width:0;" onchange="updF(\''+r.id+'\',\'stylist\',this.value)"'+(locked?' disabled':'')+'>'+sty1Opts+'</select>'
       +'<select class="isel" style="flex:1;min-width:0;" onchange="updF(\''+r.id+'\',\'stylist2\',this.value)"'+(locked?' disabled':'')+'>'+sty2Opts+'</select>'
     +'</div></td>'
-    // Val + Tip on top row with labels, Remark smaller below
+    // Val + Tip + Payment on top row with labels, Remark smaller below
     +'<td><div style="display:flex;gap:3px;align-items:center;margin-bottom:3px;">'
       +'<div style="display:flex;flex-direction:column;align-items:center;gap:1px;">'
-        +'<span style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;">AED</span>'
+        +'<span style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;">AED</span>'
         +'<input class="isel" type="number" min="0" max="9999" step="5" placeholder="—" value="'+(svcVal||'')+'" style="width:52px;text-align:center;" '+(locked?'disabled ':'')+
           'onblur="updF(\''+r.id+'\',\'service_value\',this.value?Number(this.value):null)" onkeydown="if(event.key===\'Enter\')this.blur()"/>'
       +'</div>'
       +'<div style="display:flex;flex-direction:column;align-items:center;gap:1px;">'
-        +'<span style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;">Tip</span>'
+        +'<span style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;">Tip</span>'
         +'<input class="isel" type="number" min="0" max="9999" step="5" placeholder="—" value="'+(tip||'')+'" style="width:44px;text-align:center;" '+(locked?'disabled ':'')+
           'onblur="updF(\''+r.id+'\',\'tip\',this.value?Number(this.value):null)" onkeydown="if(event.key===\'Enter\')this.blur()"/>'
       +'</div>'
+      +'<div style="display:flex;flex-direction:column;align-items:center;gap:1px;">'
+        +'<span style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;">Pay</span>'
+        +'<select class="isel" style="width:66px;font-size:12px;padding:5px 4px;" '+(locked?'disabled ':'')+
+          'onchange="updF(\''+r.id+'\',\'payment_method\',this.value||null)">'
+          +'<option value="" '+((!r.payment_method)?'selected':'')+'>—</option>'
+          +'<option value="cash" '+(r.payment_method==='cash'?'selected':'')+'>💵 Cash</option>'
+          +'<option value="card" '+(r.payment_method==='card'?'selected':'')+'>💳 Card</option>'
+        +'</select>'
+      +'</div>'
     +'</div>'
-    +'<input class="isel" type="text" placeholder="Remark..." maxlength="40" value="'+remark+'" style="width:100%;font-size:10.5px;padding:3px 5px;color:var(--muted);" '+(locked?'disabled ':'')+
+    +'<input class="isel" type="text" placeholder="Remark..." maxlength="40" value="'+remark+'" style="width:100%;font-size:12.5px;padding:4px 6px;color:var(--muted);" '+(locked?'disabled ':'')+
       'onblur="updF(\''+r.id+'\',\'remark\',this.value)" onkeydown="if(event.key===\'Enter\')this.blur()"/>'
     +'</td>'
     // Status
@@ -742,7 +751,7 @@ function renderHist(){
   const body=document.getElementById('hist-body');if(!body)return;
   const date=histGetDate();const isToday=date===today();
   const data=_histData;
-  if(!data.length){body.innerHTML='<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--muted);">No records for '+date+' 🐼</td></tr>';return;}
+  if(!data.length){body.innerHTML='<tr><td colspan="12" style="text-align:center;padding:40px;color:var(--muted);">No records for '+date+' 🐼</td></tr>';return;}
   const totalTips=data.filter(r=>r.tip>0).reduce((s,r)=>s+(Number(r.tip)||0),0);
   const totalRev=data.filter(r=>r.service_value>0).reduce((s,r)=>s+(Number(r.service_value)||0),0);
   const done=data.filter(r=>r.status==='done').length;
@@ -754,26 +763,30 @@ function renderHist(){
       +(totalRev||totalTips?' · Combined: <strong>AED '+(totalRev+totalTips)+'</strong>':'');}
   body.innerHTML=data.slice().reverse().map(r=>{
     const done=r.status==='done';const called=r.status==='called';const cancelled=r.status==='cancelled';const guest=r.is_guest;
-    const sp=done?'<span class="sp sp-d">✅ Done</span>':called?'<span class="sp sp-c">📢 Called</span>':cancelled?'<span class="sp" style="background:#F3F4F6;color:var(--muted);">✕ Cancelled</span>':guest?'<span class="sp sp-g">👤 Guest</span>':'<span class="sp sp-w">⏳ Waiting</span>';
+    const sp=done?'<span class="sp sp-d">✅ Done</span>':called?'<span class="sp sp-c">📢 Called</span>':cancelled?'<span class="sp" style="background:#F3F4F6;color:var(--muted);">✕ Cancelled</span>':'<span class="sp sp-w">⏳ Waiting</span>';
     const styStr=[r.stylist,r.stylist2].filter(Boolean).join(' & ');
+    const pm=r.payment_method==='card'?'💳 Card':r.payment_method==='cash'?'💵 Cash':'—';
+    const pmColor=r.payment_method==='card'?'color:var(--b)':r.payment_method==='cash'?'color:var(--ok)':'color:var(--muted)';
     return'<tr class="'+(done?'done':called?'called':cancelled?'done':'')+'">'
       +'<td><div class="tok-b '+(guest?'guest':'')+'">'+String(r.token_number).padStart(2,'0')+'</div></td>'
       +'<td style="font-weight:700;">'+(r.customer_name||'')+'</td>'
+      +'<td style="font-size:12px;color:var(--muted);">'+(r.mobile?displayMob(r.mobile):'—')+'</td>'
       +'<td>'+(r.service||'—')+'</td>'
       +'<td>'+(styStr||'<span style="color:var(--muted);">—</span>')+'</td>'
       +'<td style="font-weight:800;color:var(--b);">'+(r.service_value?'AED '+r.service_value:'—')+'</td>'
       +'<td style="font-weight:800;color:var(--ok);">'+(r.tip?'AED '+r.tip:'—')+'</td>'
-      +'<td style="font-size:12px;color:var(--muted);max-width:160px;">'+(r.remark||'—')+'</td>'
+      +'<td style="font-size:13.5px;font-weight:700;'+pmColor+';">'+pm+'</td>'
+      +'<td style="font-size:13px;color:var(--muted);max-width:140px;">'+(r.remark||'—')+'</td>'
       +'<td>'+sp+'</td>'
       +'<td style="font-size:12px;color:var(--muted);">'+fmtT(r.checkin_time)+'</td>'
       +'<td><button class="btn btn-ghost btn-sm" style="font-size:11px;" onclick="editHistRow(\''+r.id+'\')">✏️ Edit</button></td>'
       +'</tr>';
   }).join('')
   +'<tr style="background:#F0FDF4;font-weight:900;border-top:2px solid #86EFAC;">'
-    +'<td colspan="4" style="padding:12px 14px;color:var(--ok);font-size:13px;">💰 Totals</td>'
+    +'<td colspan="5" style="padding:12px 14px;color:var(--ok);font-size:13px;">💰 Totals</td>'
     +'<td style="padding:12px 14px;color:var(--b);font-size:15px;">AED '+totalRev+'</td>'
     +'<td style="padding:12px 14px;color:var(--ok);font-size:15px;">AED '+totalTips+'</td>'
-    +'<td colspan="4" style="padding:12px 14px;color:var(--muted);font-size:12px;">Combined: AED '+(totalRev+totalTips)+'</td>'
+    +'<td colspan="5" style="padding:12px 14px;color:var(--muted);font-size:12px;">Combined: AED '+(totalRev+totalTips)+'</td>'
   +'</tr>';
 }
 
@@ -805,6 +818,12 @@ function editHistRow(id){
         </div>
         <div><label style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px;">📝 Remark</label>
           <input id="eh-rem" class="fi" type="text" maxlength="120" value="${escQ(r.remark||'')}" placeholder="Optional note..." style="font-size:13px;"/></div>
+        <div><label style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px;">💳 Payment Method</label>
+          <select id="eh-pay" class="fi" style="font-size:13px;">
+            <option value="" ${!r.payment_method?'selected':''}>— Not recorded —</option>
+            <option value="cash" ${r.payment_method==='cash'?'selected':''}>💵 Cash</option>
+            <option value="card" ${r.payment_method==='card'?'selected':''}>💳 Card</option>
+          </select></div>
       </div>
       <div id="eh-msg" style="display:none;margin-top:10px;padding:8px 12px;border-radius:8px;font-size:12.5px;font-weight:700;"></div>
       <div style="display:flex;gap:9px;margin-top:18px;">
@@ -823,14 +842,15 @@ async function saveHistEdit(id,btn){
   const val=document.getElementById('eh-val')?.value;
   const tip=document.getElementById('eh-tip')?.value;
   const rem=document.getElementById('eh-rem')?.value.trim()||null;
+  const pay=document.getElementById('eh-pay')?.value||null;
   const msg=document.getElementById('eh-msg');
   const service_value=val?Number(val):null;
   const tipVal=tip?Number(tip):null;
   if(btn){btn.disabled=true;btn.textContent='Saving...';}
   try{
-    await sb('queue','PATCH',{service:svc,stylist:sty1,stylist2:sty2,service_value,tip:tipVal,remark:rem},'id=eq.'+id);
+    await sb('queue','PATCH',{service:svc,stylist:sty1,stylist2:sty2,service_value,tip:tipVal,remark:rem,payment_method:pay},'id=eq.'+id);
     const r=_histData.find(x=>x.id===id)||_qdata.find(x=>x.id===id);
-    if(r){r.service=svc;r.stylist=sty1;r.stylist2=sty2;r.service_value=service_value;r.tip=tipVal;r.remark=rem;}
+    if(r){r.service=svc;r.stylist=sty1;r.stylist2=sty2;r.service_value=service_value;r.tip=tipVal;r.remark=rem;r.payment_method=pay;}
     renderHist();
     toast('Record updated ✅');
     btn.closest('[style*=fixed]').remove();
@@ -1259,7 +1279,7 @@ function renderFreeWash(){
       </div>
       <div style="display:flex;gap:7px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;">
         ${!c.expired?`<a href="${wa}" target="_blank" class="btn btn-ghost btn-sm" style="font-size:12px;text-decoration:none;">💬 Remind</a>`:''}
-        ${!c.expired?`<button class="btn btn-y btn-sm" onclick="markFreeWashGiven('${c.id}','${escQ(c.name)}',this)">🚿 Mark Given</button>`:'<span style="color:var(--err);font-size:12px;font-weight:700;">Expired — cycle reset needed</span>'}
+        ${!c.expired?`<button class="btn btn-y btn-sm" onclick="markFreeWashGiven('${c.id}','${escQ(c.name)}',this)">🚿 Mark Given</button>`:'<span style="color:var(--err);font-size:13.5px;font-weight:700;">Expired — cycle reset needed</span>'}
       </div>
     </div>`;
   }).join('');
