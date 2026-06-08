@@ -92,13 +92,80 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
 </head>
 <body>
 
-<!-- TOPBAR -->
+<!-- ══ LOGIN SCREEN ══ -->
+<div id="login-screen" style="
+  position:fixed;inset:0;z-index:9999;
+  background:linear-gradient(135deg,#0D47A1 0%,#1565C0 60%,#1E88E5 100%);
+  display:flex;align-items:center;justify-content:center;padding:20px;
+  flex-direction:column;
+">
+  <div style="text-align:center;margin-bottom:28px;">
+    <div style="font-size:56px;margin-bottom:8px;">🐼</div>
+    <div style="font-family:var(--fh);font-size:26px;font-weight:900;color:#fff;">MiniCuts</div>
+    <div style="color:rgba(255,255,255,.65);font-size:13px;margin-top:3px;">Staff Portal · Secure Access</div>
+  </div>
+  <div style="background:#fff;border-radius:20px;padding:30px;width:100%;max-width:360px;box-shadow:0 24px 60px rgba(0,0,0,.3);">
+    <div style="font-family:var(--fh);font-size:18px;font-weight:800;color:var(--bd);margin-bottom:4px;">Staff Login</div>
+    <div style="font-size:12.5px;color:var(--muted);margin-bottom:20px;">Enter your username and PIN to continue</div>
+
+    <div id="login-error" style="display:none;background:#FEE2E2;color:var(--err);padding:10px 13px;border-radius:9px;font-size:13px;font-weight:700;margin-bottom:14px;"></div>
+
+    <div style="margin-bottom:13px;">
+      <label style="display:block;font-size:12px;font-weight:800;color:var(--bd);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Username</label>
+      <input id="login-user" type="text" placeholder="e.g. admin" autocomplete="username"
+        style="width:100%;padding:12px 14px;border:2px solid #E5E7EB;border-radius:11px;font-family:var(--fb);font-size:15px;outline:none;transition:border-color .15s;"
+        onfocus="this.style.borderColor='var(--b)'" onblur="this.style.borderColor='#E5E7EB'"
+        onkeydown="if(event.key==='Enter')document.getElementById('login-pin').focus()"/>
+    </div>
+
+    <div style="margin-bottom:20px;">
+      <label style="display:block;font-size:12px;font-weight:800;color:var(--bd);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">PIN / Password</label>
+      <div style="position:relative;">
+        <input id="login-pin" type="password" placeholder="Enter PIN or password" autocomplete="current-password"
+          style="width:100%;padding:12px 46px 12px 14px;border:2px solid #E5E7EB;border-radius:11px;font-family:var(--fb);font-size:15px;outline:none;transition:border-color .15s;"
+          onfocus="this.style.borderColor='var(--b)'" onblur="this.style.borderColor='#E5E7EB'"
+          onkeydown="if(event.key==='Enter')doStaffLogin()"/>
+        <button type="button" onclick="togglePinVis()" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:17px;color:var(--muted);" id="pin-eye">👁</button>
+      </div>
+    </div>
+
+    <button id="login-btn" onclick="doStaffLogin()" style="
+      width:100%;padding:14px;background:linear-gradient(135deg,var(--bd),var(--b));
+      color:#fff;border:none;border-radius:12px;
+      font-family:var(--fh);font-size:16px;font-weight:900;cursor:pointer;
+      transition:transform .15s,box-shadow .15s;
+    " onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform='none'">
+      Login →
+    </button>
+
+    <div style="text-align:center;margin-top:14px;">
+      <button onclick="showPinReset()" style="background:none;border:none;color:var(--muted);font-size:12.5px;cursor:pointer;font-family:var(--fb);">Forgot PIN?</button>
+    </div>
+
+    <!-- Reset box -->
+    <div id="reset-box" style="display:none;margin-top:14px;background:#F0F6FF;border-radius:11px;padding:14px;">
+      <div style="font-size:13px;font-weight:700;color:var(--bd);margin-bottom:6px;">🔑 Master Reset Code</div>
+      <input id="reset-code" type="text" placeholder="Enter reset code" autocomplete="off"
+        style="width:100%;padding:10px 12px;border:2px solid #E5E7EB;border-radius:9px;font-family:var(--fb);font-size:14px;outline:none;margin-bottom:8px;text-transform:uppercase;"
+        oninput="this.value=this.value.toUpperCase()"
+        onkeydown="if(event.key==='Enter')doReset()"/>
+      <button onclick="doReset()" style="width:100%;padding:10px;background:var(--bd);color:#fff;border:none;border-radius:9px;font-family:var(--fh);font-size:14px;font-weight:800;cursor:pointer;">Reset PIN</button>
+      <div id="reset-msg" style="margin-top:8px;font-size:12.5px;font-weight:700;display:none;"></div>
+    </div>
+  </div>
+  <div style="color:rgba(255,255,255,.4);font-size:11px;margin-top:20px;">MiniCuts DSO · Secure Staff Access</div>
+</div>
+
+<!-- MAIN APP (hidden until login) -->
+<div id="main-app" style="display:none;">
+
 <div class="top">
   <div class="top-brand">🐼 MiniCuts <span style="opacity:.6;font-size:13px;font-weight:700;">Staff Panel</span></div>
   <div class="top-right">
     <div id="clk"></div>
-    <div class="badge-staff">✂️ Staff</div>
+    <div class="badge-staff" id="staff-name-badge">✂️ Staff</div>
     <a href="./index.html" target="_blank" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);color:#fff;padding:5px 11px;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;">📋 Loyalty</a>
+    <button onclick="doLogout()" style="background:rgba(220,38,38,.25);border:1px solid rgba(220,38,38,.4);color:#fff;padding:5px 11px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--fh);">🔒 Logout</button>
   </div>
 </div>
 
@@ -1221,11 +1288,141 @@ async function markFreeWashGiven(id,name,btn){
   }
 }
 
-// AUTO REFRESH
-setInterval(()=>{if(document.getElementById('t-queue').classList.contains('active'))loadQ();},120000);
+// ══ AUTH ══
+const SESSION_KEY='mc_staff_session';
+const SESSION_HOURS=8;
+const EMERGENCY_CODE='PANDA@MINICUTS2025';
 
-// INIT — load config from DB first, then load queue
-loadAllConfig().then(()=>{loadQ();populateStyFilter();});
+function togglePinVis(){
+  var inp=document.getElementById('login-pin');
+  var eye=document.getElementById('pin-eye');
+  if(inp.type==='password'){inp.type='text';eye.textContent='🙈';}
+  else{inp.type='password';eye.textContent='👁';}
+}
+
+function showPinReset(){
+  var box=document.getElementById('reset-box');
+  box.style.display=box.style.display==='none'?'block':'none';
+  document.getElementById('reset-code').value='';
+  document.getElementById('reset-msg').style.display='none';
+}
+
+function showLoginError(msg){
+  var el=document.getElementById('login-error');
+  el.textContent=msg;el.style.display='block';
+  setTimeout(function(){el.style.display='none';},3500);
+}
+
+async function doStaffLogin(){
+  var user=document.getElementById('login-user').value.trim();
+  var pin=document.getElementById('login-pin').value.trim();
+  var btn=document.getElementById('login-btn');
+  if(!user||!pin){showLoginError('Please enter both username and PIN.');return;}
+  btn.textContent='Checking...';btn.disabled=true;
+  try{
+    // Check Supabase staff_config for credentials
+    var rows=await sb('staff_config','GET',null,'key=eq.credentials&select=value&limit=1');
+    var creds=rows&&rows[0]?JSON.parse(rows[0].value||'{}'):null;
+    var matched=false;
+    if(creds&&creds.user&&creds.pass){
+      matched=(user===creds.user&&pin===creds.pass);
+    }
+    // Fallback: check local defaults
+    if(!matched){matched=(user==='admin'&&pin==='minicuts123');}
+    if(matched){
+      // Save session
+      var session={user:user,ts:Date.now(),expires:Date.now()+(SESSION_HOURS*3600*1000)};
+      sessionStorage.setItem(SESSION_KEY,JSON.stringify(session));
+      showApp(user);
+    } else {
+      showLoginError('❌ Incorrect username or PIN. Please try again.');
+      document.getElementById('login-pin').value='';
+      document.getElementById('login-pin').focus();
+    }
+  }catch(e){
+    // Network error — try local fallback
+    if(user==='admin'&&pin==='minicuts123'){
+      sessionStorage.setItem(SESSION_KEY,JSON.stringify({user:user,ts:Date.now(),expires:Date.now()+(SESSION_HOURS*3600*1000)}));
+      showApp(user);
+    } else {
+      showLoginError('Connection error. Check your internet and try again.');
+    }
+  }finally{
+    btn.textContent='Login →';btn.disabled=false;
+  }
+}
+
+function showApp(user){
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('main-app').style.display='block';
+  var badge=document.getElementById('staff-name-badge');
+  if(badge) badge.textContent='✂️ '+user.charAt(0).toUpperCase()+user.slice(1);
+  // Load queue on entry
+  loadAllConfig().then(function(){loadQ();populateStyFilter();});
+  // Auto-lock check every minute
+  setInterval(checkSessionExpiry,60000);
+}
+
+function checkSessionExpiry(){
+  try{
+    var sess=JSON.parse(sessionStorage.getItem(SESSION_KEY)||'null');
+    if(!sess||Date.now()>sess.expires){doLogout(true);}
+  }catch(e){doLogout(true);}
+}
+
+function doLogout(expired){
+  sessionStorage.removeItem(SESSION_KEY);
+  document.getElementById('main-app').style.display='none';
+  document.getElementById('login-screen').style.display='flex';
+  document.getElementById('login-user').value='';
+  document.getElementById('login-pin').value='';
+  document.getElementById('reset-box').style.display='none';
+  if(expired) showLoginError('⏰ Session expired after '+SESSION_HOURS+' hours. Please log in again.');
+}
+
+async function doReset(){
+  var code=document.getElementById('reset-code').value.trim().toUpperCase();
+  var msg=document.getElementById('reset-msg');
+  if(!code){return;}
+  // Check against DB reset code or emergency code
+  var valid=false;
+  try{
+    var rows=await sb('staff_config','GET',null,'key=eq.credentials&select=value&limit=1');
+    var creds=rows&&rows[0]?JSON.parse(rows[0].value||'{}'):null;
+    if(creds&&creds.resetCode&&code===creds.resetCode.toUpperCase()) valid=true;
+  }catch(e){}
+  if(code===EMERGENCY_CODE) valid=true;
+  if(valid){
+    // Reset to defaults in DB
+    try{
+      await sb('staff_config','POST',{key:'credentials',value:JSON.stringify({user:'admin',pass:'minicuts123',resetCode:'MINICUTS2025'}),updated_at:new Date().toISOString()},'on_conflict=key');
+    }catch(e){}
+    msg.style.display='block';msg.style.color='var(--ok)';
+    msg.textContent='✅ Reset! Username: admin · PIN: minicuts123';
+    document.getElementById('login-user').value='admin';
+    document.getElementById('login-pin').value='minicuts123';
+  } else {
+    msg.style.display='block';msg.style.color='var(--err)';
+    msg.textContent='❌ Wrong code. Try your saved reset code or: PANDA@MINICUTS2025';
+  }
+}
+
+// Check existing session on load
+(function checkSession(){
+  try{
+    var sess=JSON.parse(sessionStorage.getItem(SESSION_KEY)||'null');
+    if(sess&&sess.user&&Date.now()<sess.expires){
+      showApp(sess.user);return;
+    }
+  }catch(e){}
+  // No valid session — show login
+  document.getElementById('login-screen').style.display='flex';
+})();
+
+// AUTO REFRESH — queue tab only
+setInterval(()=>{if(document.getElementById('t-queue')?.classList.contains('active'))loadQ();},120000);
 </script>
+</div><!-- end main-app -->
+
 </body>
 </html>
