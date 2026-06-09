@@ -261,6 +261,7 @@ body{font-family:var(--fb);background:var(--bg);color:var(--dark);min-height:100
 <header class="hero">
   <div class="hero-top">
     <div class="logo-pill">🐼 MiniCuts DSO</div>
+    <div id="viewCountPill" style="background:var(--y);color:var(--bd);padding:7px 16px;border-radius:99px;font-family:var(--fh);font-size:14px;font-weight:900;display:flex;align-items:center;gap:6px;box-shadow:0 3px 12px rgba(0,0,0,.2);">👁 <span id="viewCount">...</span> <span style="font-size:11px;font-weight:700;opacity:.75;">views</span></div>
     <div class="xp-pill" id="xpPill">⭐ 0 pts</div>
   </div>
   <div class="hero-body">
@@ -1244,6 +1245,33 @@ function renderLeaderboard() {
 // ── helper functions ──────────────────────────────────────────────────────────
 function skipNameEntry(){ var ne=document.getElementById('name-entry'); if(ne) ne.remove(); }
 function clearScrambleBoard(){ localStorage.removeItem('mc_scramble_lb'); renderLeaderboard(); }
+
+// ── VIEW COUNTER ──
+(async function trackViews(){
+  const SB_URL='https://wtapyfgtwkjyjrjdnhkb.supabase.co';
+  const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind0YXB5Zmd0d2tqeWpyamRuaGtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0NDc3ODEsImV4cCI6MjA5NTAyMzc4MX0.y_-iPfb8Pcg9zh42h6RGVBsUVZm80LcA9sPlz_Gl_fA';
+  const HDR={'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Prefer':'return=representation'};
+  const KEY='guide_views';
+  try{
+    // Fetch current count
+    const r=await fetch(SB_URL+'/rest/v1/staff_config?key=eq.'+KEY+'&select=value',{headers:HDR});
+    const rows=await r.json();
+    const cur=rows&&rows.length?Number(rows[0].value)||0:0;
+    const next=cur+1;
+    // Upsert new count
+    await fetch(SB_URL+'/rest/v1/staff_config',{
+      method:'POST',
+      headers:{...HDR,'Prefer':'resolution=merge-duplicates,return=minimal'},
+      body:JSON.stringify({key:KEY,value:String(next),updated_at:new Date().toISOString()})
+    });
+    // Show formatted count
+    const el=document.getElementById('viewCount');
+    if(el) el.textContent=next>=1000?(next/1000).toFixed(1)+'k':String(next);
+  }catch(e){
+    const el=document.getElementById('viewCount');
+    if(el) el.parentElement.style.display='none'; // hide if fails
+  }
+})();
 </script>
 </body>
 </html>
