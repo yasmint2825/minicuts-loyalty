@@ -540,7 +540,7 @@ async function archiveCycle(customerId,stamps,firstStampDate,expiryDate,endedBy)
             <script>
               (function(){
                 const now=new Date(),from=new Date(now);
-                from.setMonth(from.getMonth()-3);
+                from.setFullYear(from.getFullYear()-1);
                 document.getElementById('dash-from').value=from.toISOString().split('T')[0];
                 document.getElementById('dash-to').value=now.toISOString().split('T')[0];
               })();
@@ -2029,8 +2029,8 @@ async function confirmNudgeSent(id,name,btn){
 (function(){
   var f=document.getElementById('dash-from');
   var t=document.getElementById('dash-to');
-  if(f&&!f.value){var d=new Date();d.setFullYear(d.getFullYear()-1);f.value=d.toISOString().split('T')[0];}
-  if(t&&!t.value){t.value=new Date().toISOString().split('T')[0];}
+  if(f){var d=new Date();d.setFullYear(d.getFullYear()-1);f.value=d.toISOString().split('T')[0];}
+  if(t){t.value=new Date().toISOString().split('T')[0];}
 })();
 renderDash();
     },600);
