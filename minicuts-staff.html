@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>[DEV] MiniCuts · Staff Queue</title>
+<title>MiniCuts · Staff Queue</title>
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800;900&family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet"/>
 <style>
 :root{--y:#FFD600;--b:#1565C0;--bd:#0D47A1;--bm:#1976D2;--ok:#16A34A;--err:#DC2626;--warn:#D97706;--pink:#EC4899;--bg:#F0F4FF;--text:#1A1A2E;--muted:#6B7280;--border:#E5E7EB;--r:12px;--rs:8px;--fh:'Baloo 2',cursive;--fb:'Nunito',sans-serif;}
@@ -55,6 +55,18 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
 .qt th:nth-child(6),.qt td:nth-child(6){width:240px;}
 .qt th:nth-child(7),.qt td:nth-child(7){width:66px;}
 .qt th:nth-child(8),.qt td:nth-child(8){width:110px;}
+/* History 11 cols: Token|Name|Service|Stylist|Value|Tip|Pay|Remark|Status|Time|Actions */
+#t-history .qt th:nth-child(1),#t-history .qt td:nth-child(1){width:50px;}
+#t-history .qt th:nth-child(2),#t-history .qt td:nth-child(2){width:128px;}
+#t-history .qt th:nth-child(3),#t-history .qt td:nth-child(3){width:88px;}
+#t-history .qt th:nth-child(4),#t-history .qt td:nth-child(4){width:108px;}
+#t-history .qt th:nth-child(5),#t-history .qt td:nth-child(5){width:68px;}
+#t-history .qt th:nth-child(6),#t-history .qt td:nth-child(6){width:62px;}
+#t-history .qt th:nth-child(7),#t-history .qt td:nth-child(7){width:76px;}
+#t-history .qt th:nth-child(8),#t-history .qt td:nth-child(8){width:148px;}
+#t-history .qt th:nth-child(9),#t-history .qt td:nth-child(9){width:72px;}
+#t-history .qt th:nth-child(10),#t-history .qt td:nth-child(10){width:62px;}
+#t-history .qt th:nth-child(11),#t-history .qt td:nth-child(11){width:90px;}
 
 /* History table: override shared .qt column widths with history-specific sizing */
 #t-history .qt th:nth-child(1),#t-history .qt td:nth-child(1){width:54px;}
@@ -185,8 +197,8 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
   <div id="hist-summary" style="display:none;background:#F0FDF4;border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:13px;font-weight:700;color:var(--ok);"></div>
   <div class="tbl-wrap">
     <table class="qt">
-      <thead><tr><th>Token</th><th>Name</th><th>Service</th><th>Stylist(s)</th><th>Value</th><th>Tip</th><th>Remark</th><th>Status</th><th>Time</th><th>Actions</th></tr></thead>
-      <tbody id="hist-body"><tr><td colspan="10" style="text-align:center;padding:40px;color:var(--muted);">Select a date and click Load ↻</td></tr></tbody>
+      <thead><tr><th>Token</th><th>Name</th><th>Service</th><th>Stylist(s)</th><th>Value</th><th>Tip</th><th>Pay</th><th>Remark</th><th>Status</th><th>Time</th><th>Actions</th></tr></thead>
+      <tbody id="hist-body"><tr><td colspan="11" style="text-align:center;padding:40px;color:var(--muted);">Select a date and click Load ↻</td></tr></tbody>
     </table>
   </div>
 </div>
@@ -321,6 +333,7 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
           <a href="./minicuts-checkin.html" target="_blank" class="btn btn-b btn-full">👤 Customer Check-In Screen</a>
           <a href="./index.html" target="_blank" class="btn btn-ghost btn-full">📋 Loyalty Dashboard</a>
           <a href="./minicuts-game.html" target="_blank" class="btn btn-ghost btn-full">🎮 Games App</a>
+          <a href="./minicuts-backup.html" target="_blank" class="btn btn-ghost btn-full" style="border-color:#F59E0B;color:#B45309;">🗄️ Backup Panel</a>
         </div>
       </div>
     </div>
@@ -715,35 +728,49 @@ function histNav(dir){
 async function loadHist(){
   const date=histGetDate();
   const body=document.getElementById('hist-body');
-  if(body)body.innerHTML='<tr><td colspan="10" style="text-align:center;padding:30px;color:var(--muted);">Loading '+date+'...</td></tr>';
+  if(body)body.innerHTML='<tr><td colspan="11" style="text-align:center;padding:30px;color:var(--muted);">Loading '+date+'...</td></tr>';
   const sumEl=document.getElementById('hist-summary');if(sumEl)sumEl.style.display='none';
   try{
     const rows=await sb('queue','GET',null,'select=*&checkin_date=eq.'+date+'&order=token_number.asc&limit=500');
     _histData=rows||[];renderHist();
-  }catch(e){if(body)body.innerHTML='<tr><td colspan="10" style="color:var(--err);padding:16px;">Error: '+e.message+'</td></tr>';}
+  }catch(e){if(body)body.innerHTML='<tr><td colspan="11" style="color:var(--err);padding:16px;">Error: '+e.message+'</td></tr>';}
 }
 function renderHist(){
   const body=document.getElementById('hist-body');if(!body)return;
   const date=histGetDate();const isToday=date===today();
   const data=_histData;
-  if(!data.length){body.innerHTML='<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--muted);">No records for '+date+' 🐼</td></tr>';return;}
+  if(!data.length){body.innerHTML='<tr><td colspan="11" style="text-align:center;padding:40px;color:var(--muted);">No records for '+date+' 🐼</td></tr>';return;}
   const totalTips=data.filter(r=>r.tip>0).reduce((s,r)=>s+(Number(r.tip)||0),0);
   const totalRev=data.filter(r=>r.service_value>0).reduce((s,r)=>s+(Number(r.service_value)||0),0);
+  const cashRev=data.filter(r=>r.payment_type==='Cash').reduce((s,r)=>s+(Number(r.service_value)||0),0);
+  const creditRev=data.filter(r=>r.payment_type==='Credit').reduce((s,r)=>s+(Number(r.service_value)||0),0);
+  const cashTip=data.filter(r=>r.payment_type==='Cash').reduce((s,r)=>s+(Number(r.tip)||0),0);
+  const creditTip=data.filter(r=>r.payment_type==='Credit').reduce((s,r)=>s+(Number(r.tip)||0),0);
   const done=data.filter(r=>r.status==='done').length;
   const sumEl=document.getElementById('hist-summary');
   if(sumEl){sumEl.style.display='block';
-    sumEl.innerHTML='📊 <strong>'+date+(isToday?' (Today)':'')+'</strong> · '+data.length+' check-ins · '+done+' served'
-      +(totalRev?' · Revenue: <strong style="color:var(--b);">AED '+totalRev+'</strong>':'')
-      +(totalTips?' · Tips: <strong style="color:var(--ok);">AED '+totalTips+'</strong>':'')
-      +(totalRev||totalTips?' · Combined: <strong>AED '+(totalRev+totalTips)+'</strong>':'');}
+    sumEl.innerHTML=
+      '<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:6px;">'
+      +'<span style="font-size:13px;">📊 <strong>'+date+(isToday?' (Today)':'')+'</strong> · '+data.length+' check-ins · '+done+' served</span>'
+      +'</div>'
+      +'<div style="display:flex;flex-wrap:wrap;gap:8px;">'
+      +'<span style="background:#E0F2FE;color:#0369A1;padding:5px 13px;border-radius:8px;font-size:12.5px;font-weight:700;">💰 Total: AED '+(totalRev+totalTips)+'</span>'
+      +(cashRev+cashTip>0?'<span style="background:#EFF6FF;color:#1D4ED8;padding:5px 13px;border-radius:8px;font-size:12.5px;font-weight:700;">💵 Cash: AED '+(cashRev+cashTip)+'<span style="font-weight:400;font-size:11px;"> (rev '+cashRev+' · tip '+cashTip+')</span></span>':'')
+      +(creditRev+creditTip>0?'<span style="background:#F0FDF4;color:#15803D;padding:5px 13px;border-radius:8px;font-size:12.5px;font-weight:700;">💳 Credit: AED '+(creditRev+creditTip)+'<span style="font-weight:400;font-size:11px;"> (rev '+creditRev+' · tip '+creditTip+')</span></span>':'')
+      +'</div>';}
   body.innerHTML=data.slice().reverse().map(r=>{
     const done=r.status==='done';const called=r.status==='called';const cancelled=r.status==='cancelled';const guest=r.is_guest;
     const sp=done?'<span class="sp sp-d">✅ Done</span>':called?'<span class="sp sp-c">📢 Called</span>':cancelled?'<span class="sp" style="background:#F3F4F6;color:var(--muted);">✕ Cancelled</span>':guest?'<span class="sp sp-g">👤 Guest</span>':'<span class="sp sp-w">⏳ Waiting</span>';
     const styStr=[r.stylist,r.stylist2].filter(Boolean).join(' & ');
     const hasMob=r.mobile&&!String(r.mobile).startsWith('GUEST')&&String(r.mobile).replace(/\D/g,'').length>4;
     const waHistBtn=hasMob
-      ?'<button class="btn btn-sm" style="background:#25D366;color:#fff;font-size:11px;white-space:nowrap;" onclick="showHistWA(\''+r.id+'\')" >💬 WA</button>'
+      ?'<button class="btn btn-sm" style="background:#25D366;color:#fff;font-size:11px;white-space:nowrap;" onclick="showHistWA(\''+r.id+'\')">💬 WA</button>'
       :'';
+    const payBadge=r.payment_type==='Cash'
+      ?'<span style="background:#EFF6FF;color:#1D4ED8;font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;">💵 Cash</span>'
+      :r.payment_type==='Credit'
+      ?'<span style="background:#F0FDF4;color:#15803D;font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;">💳 Credit</span>'
+      :'<span style="color:var(--muted);font-size:12px;">—</span>';
     return'<tr class="'+(done?'done':called?'called':cancelled?'done':'')+'">'
       +'<td><div class="tok-b '+(guest?'guest':'')+'">'+String(r.token_number).padStart(2,'0')+'</div></td>'
       +'<td>'
@@ -754,20 +781,25 @@ function renderHist(){
       +'<td>'+(styStr||'<span style="color:var(--muted);">—</span>')+'</td>'
       +'<td style="font-weight:800;color:var(--b);">'+(r.service_value?'AED '+r.service_value:'—')+'</td>'
       +'<td style="font-weight:800;color:var(--ok);">'+(r.tip?'AED '+r.tip:'—')+'</td>'
-      +'<td style="font-size:12px;color:var(--muted);max-width:160px;">'+(r.remark||'—')+'</td>'
+      +'<td>'+payBadge+'</td>'
+      +'<td style="font-size:12px;color:var(--muted);max-width:150px;">'+(r.remark||'—')+'</td>'
       +'<td>'+sp+'</td>'
       +'<td style="font-size:12px;color:var(--muted);">'+fmtT(r.checkin_time)+'</td>'
       +'<td><div style="display:flex;flex-direction:column;gap:4px;">'
-        +'<button class="btn btn-ghost btn-sm" style="font-size:11px;" onclick="editHistRow(\''+r.id+'\')" >✏️ Edit</button>'
+        +'<button class="btn btn-ghost btn-sm" style="font-size:11px;" onclick="editHistRow(\''+r.id+'\')">✏️ Edit</button>'
         +waHistBtn
       +'</div></td>'
       +'</tr>';
   }).join('')
   +'<tr style="background:#F0FDF4;font-weight:900;border-top:2px solid #86EFAC;">'
-    +'<td colspan="4" style="padding:12px 14px;color:var(--ok);font-size:13px;">💰 Totals</td>'
-    +'<td style="padding:12px 14px;color:var(--b);font-size:15px;">AED '+totalRev+'</td>'
-    +'<td style="padding:12px 14px;color:var(--ok);font-size:15px;">AED '+totalTips+'</td>'
-    +'<td colspan="4" style="padding:12px 14px;color:var(--muted);font-size:12px;">Combined: AED '+(totalRev+totalTips)+'</td>'
+    +'<td colspan="4" style="padding:10px 14px;color:var(--ok);font-size:13px;">💰 Totals</td>'
+    +'<td style="padding:10px 14px;color:var(--b);font-size:14px;">AED '+totalRev+'</td>'
+    +'<td style="padding:10px 14px;color:var(--ok);font-size:14px;">AED '+totalTips+'</td>'
+    +'<td style="padding:8px 10px;font-size:12px;">'
+      +(cashRev+cashTip>0?'<div style="color:#1D4ED8;font-weight:700;">💵 AED '+(cashRev+cashTip)+'</div>':'')
+      +(creditRev+creditTip>0?'<div style="color:#15803D;font-weight:700;">💳 AED '+(creditRev+creditTip)+'</div>':'')
+    +'</td>'
+    +'<td colspan="3" style="padding:10px 14px;color:var(--muted);font-size:12px;">Combined: AED '+(totalRev+totalTips)+'</td>'
   +'</tr>';
 }
 
