@@ -118,12 +118,8 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
       </div>
     </div>
     <div id="lu-st" style="display:none;padding:9px 12px;border-radius:10px;font-size:12.5px;font-weight:700;margin-bottom:10px;"></div>
-    <div id="lu-kids" style="display:none;"></div>
-    <div id="lu-reg-sibling" style="display:none;margin-bottom:10px;">
-      <button class="btn btn-ghost btn-full" onclick="showReg(getM())" style="border-style:dashed;">➕ Register New Child for this Number</button>
-    </div>
 
-    <!-- HOW MANY KIDS — shown as soon as phone is found -->
+    <!-- STEP 1: Count selector — always shown first once phone is found -->
     <div id="lu-count" style="display:none;background:#F0F7FF;border:1.5px solid rgba(21,101,192,.2);border-radius:14px;padding:14px;margin-bottom:12px;">
       <div style="font-family:var(--fh);font-size:14px;font-weight:800;color:var(--bd);margin-bottom:10px;">✂️ How many kids for a haircut today?</div>
       <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;" id="kids-count-btns">
@@ -134,6 +130,13 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
         <button type="button" onclick="setKidsCount(5,this)" class="kids-count-btn" style="padding:14px 6px;border-radius:12px;border:2px solid var(--border);background:#fff;font-family:var(--fh);font-size:22px;font-weight:900;color:var(--bd);cursor:pointer;transition:all .15s;display:flex;flex-direction:column;align-items:center;gap:3px;"><span>5</span><span style="font-size:11px;font-weight:700;color:var(--muted);">kids</span></button>
       </div>
       <div id="kids-count-err" style="display:none;margin-top:8px;font-size:12px;font-weight:700;color:var(--err);">Please select how many kids ☝️</div>
+    </div>
+
+    <!-- STEP 2: Registered kids (pre-checked) + new-kid forms (shown after count chosen) -->
+    <div id="lu-kids" style="display:none;"></div>
+    <div id="lu-new-kids" style="display:none;"></div>
+    <div id="lu-reg-sibling" style="display:none;margin-bottom:10px;">
+      <button class="btn btn-ghost btn-full" onclick="showReg(getM())" style="border-style:dashed;">➕ Register New Child for this Number</button>
     </div>
 
     <div id="lu-act" style="display:none;">
@@ -156,7 +159,7 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
     </div>
     <div id="lu-nf" style="display:none;margin-top:6px;">
       <div class="sm warn" style="display:block;">Mobile not registered yet. Register to get started!</div>
-      <button class="btn btn-b btn-full" onclick="showReg(getM())" style="margin-bottom:8px;">📝 Register (New Customer)</button>
+      <button class="btn btn-b btn-full" onclick="showReg(getM(),_kidsCount)" style="margin-bottom:8px;">📝 Register (New Customer)</button>
       <button class="btn btn-ghost btn-full" onclick="showGuest()" style="opacity:.55;font-size:13px;">Continue without phone</button>
     </div>
     <div style="text-align:center;margin-top:16px;padding-top:14px;border-top:1px solid var(--border);">
@@ -285,11 +288,9 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
       </div>
       <div id="g-count-err" style="display:none;margin-top:8px;font-size:12px;font-weight:700;color:var(--err);">Please select how many kids ☝️</div>
     </div>
-    <div class="fr" style="margin-bottom:0;">
-      <div class="fg"><label class="fl">First Name *</label><input class="fi" type="text" id="g-fn" placeholder="e.g. Omar" maxlength="25"/></div>
-      <div class="fg"><label class="fl">Last Name *</label><input class="fi" type="text" id="g-ln" placeholder="e.g. Al Rashid" maxlength="30"/></div>
-    </div>
-    <div class="fg"><label class="fl">Service</label>
+    <!-- Name fields built dynamically per kid count -->
+    <div id="g-names" style="display:none;"></div>
+    <div class="fg" id="g-svc-wrap" style="display:none;"><label class="fl">Service</label>
       <select class="fi" id="g-svc"><option>Haircut</option><option>Haircut + Wash</option><option>Wash Only</option><option>Styling</option><option>Other</option></select>
     </div>
     <div id="g-msg" class="sm"></div>
@@ -346,11 +347,7 @@ function setHear(btn,val){
   btn.style.background='linear-gradient(135deg,var(--y),#FFB300)';
   btn.style.borderColor='var(--yd)';btn.style.color='var(--bd)';
   document.getElementById('lu-hear-err').style.display='none';
-  const ciBtn=document.getElementById('lu-btn');
-  const note=document.getElementById('lu-hear-note');
-  if(note)note.textContent='';
-  const n=_sel.length;
-  if(ciBtn){ciBtn.disabled=false;ciBtn.style.opacity='1';ciBtn.textContent=n===1?'✅ Check In '+_sel[0].name:'✅ Check In '+n+' Children';}
+  updBtn();
 }
 
 function setRegHear(btn,val){
@@ -391,190 +388,146 @@ function getRgM(){
 function splitM(m){let s=String(m||'').replace(/\D/g,'');if(s.startsWith('971'))s=s.slice(3);else if(s.startsWith('00971'))s=s.slice(5);if(s.length===9)return{pfx:'0'+s.slice(0,2),num:s.slice(2)};return{pfx:'055',num:s};}
 function setPhF(pId,nId,mob){const p=splitM(mob);const ps=document.getElementById(pId),ns=document.getElementById(nId);if(ps)ps.value=['050','051','052','054','055','056','058','059','060'].includes(p.pfx)?p.pfx:'055';if(ns)ns.value=p.num||'';}
 
-// KIDS COUNT
-let _kidsCount = 0;
+// ── STATE ──
+let _kidsCount = 0;          // how many kids count button selected
+let _foundKids = [];         // kids returned by doLookup (all registered under this mobile)
+let _alreadyQueued = new Set(); // customer_ids already in today's queue
+let _reservedTokens = [];    // not used for pre-reservation anymore — kept for reset cleanup
 
-// ── INSTANT TOKEN RESERVATION ──
-// Called as soon as customer taps a kids count button
-// Inserts placeholder rows immediately so no one can steal the spots
-let _reservedTokens = []; // [{id, token_number}]
-
-async function reserveTokenBlock(n, mob){
-  _reservedTokens = [];
+// ── TOKEN BLOCK: inserts real queue rows atomically at check-in time ──
+async function reserveTokenBlock(n, mob, kidRows){
+  // kidRows: [{customer_id, customer_name, mobile, service, is_guest, heard_via}]
   const t = today();
   const now = new Date().toISOString();
-  // Fetch last token
   const ex = await sb('queue','GET',null,'select=token_number&checkin_date=eq.'+t+'&order=token_number.desc&limit=1');
   const lastTok = (ex&&ex.length) ? Number(ex[0].token_number)||0 : 0;
-  // Build placeholder rows
-  const rows = [];
-  for(let i=0;i<n;i++){
-    rows.push({
-      customer_id: null,
-      customer_name: 'Reserving...',
-      mobile: mob||null,
-      service: 'Haircut',
-      token_number: lastTok+1+i,
-      checkin_date: t,
-      checkin_time: now,
-      status: 'waiting',
-      is_guest: true,
-      stylist: null,
-      heard_via: null
-    });
-  }
-  // Insert all at once
+  const rows = kidRows.map((k,i)=>({
+    customer_id:   k.customer_id||null,
+    customer_name: k.customer_name,
+    mobile:        mob||null,
+    service:       k.service||'Haircut',
+    token_number:  lastTok+1+i,
+    checkin_date:  t,
+    checkin_time:  now,
+    status:        'waiting',
+    is_guest:      k.is_guest||false,
+    stylist:       null,
+    heard_via:     k.heard_via||null
+  }));
   const inserted = await sb('queue','POST', rows.length===1?rows[0]:rows);
   const arr = Array.isArray(inserted)?inserted:[inserted];
-  _reservedTokens = arr.map((r,i)=>({id:r.id, token_number:lastTok+1+i}));
-  return _reservedTokens;
+  return arr.map((r,i)=>({id:r.id, token_number:lastTok+1+i, customer_name:kidRows[i].customer_name, customer_id:kidRows[i].customer_id||null}));
 }
 
-async function setKidsCount(n, btn){
+// ── REGISTERED-CUSTOMER FLOW ──
+
+// Called when customer taps a count button — just updates UI, NO DB writes
+function setKidsCount(n, btn){
   _kidsCount = n;
-
-  // ── Cancel any previous orphaned reservations BEFORE making new ones ──
-  // Cancel (not delete) so token numbers stay retired and can't be reused
-  if(_reservedTokens && _reservedTokens.length){
-    const oldReserved = [..._reservedTokens];
-    _reservedTokens = [];
-    oldReserved.forEach(r =>
-      sb('queue','PATCH',{status:'cancelled',customer_name:'Cancelled',customer_id:null},'id=eq.'+r.id).catch(()=>{})
-    );
-  }
-
   document.querySelectorAll('.kids-count-btn').forEach(b=>{
-    b.style.background = '#fff';
-    b.style.borderColor = 'var(--border)';
-    b.style.color = 'var(--bd)';
+    b.style.background='#fff'; b.style.borderColor='var(--border)'; b.style.color='var(--bd)';
   });
-  btn.style.background = 'var(--bd)';
-  btn.style.borderColor = 'var(--bd)';
-  btn.style.color = '#fff';
-  document.getElementById('kids-count-err').style.display = 'none';
-  // RESERVE TOKENS INSTANTLY on tap
-  const mob = getM();
-  reserveTokenBlock(n, mob).then(toks=>{
-    console.log('Reserved tokens:', toks.map(t=>t.token_number).join(', '));
-  }).catch(e=>console.warn('Token reservation failed:', e.message));
+  btn.style.background='var(--bd)'; btn.style.borderColor='var(--bd)'; btn.style.color='#fff';
+  document.getElementById('kids-count-err').style.display='none';
+  if(_foundKids.length > 0){
+    // Registered customer — show kids panel
+    renderKidsPanel();
+  }
+  // For new customers (_foundKids=[]), count is stored in _kidsCount;
+  // the Register button passes it along via showReg()
 }
 
-async function proceedCheckin(){
-  // Validate kids count
-  if(!_kidsCount){
-    document.getElementById('kids-count-err').style.display = 'block';
-    return;
-  }
-  // Validate hear about us for new customers
-  const needsHear = _sel.some(c=>!c.heard_via && (Number(c.stamps)||0)===0);
-  if(needsHear && !_hearAbout){
-    document.getElementById('lu-hear-err').style.display = 'block';
-    return;
-  }
-  showScr('s-ci');
-  document.getElementById('ci-single').style.display = 'none';
-  document.getElementById('ci-family').style.display = 'none';
-  document.getElementById('ci-load').style.display = 'block';
-  try{
-    const t = today();
-    const now = new Date().toISOString();
-    const mob = _sel[0]?.mobile || '';
-    const heardVia = (_sel[0]?.heard_via) || _hearAbout || null;
+// Build the registered-kids display + new-kid forms based on current count
+function renderKidsPanel(){
+  const n = _kidsCount;
+  const eligible = _foundKids.filter(k=>!_alreadyQueued.has(k.id));
+  const regSlots  = Math.min(eligible.length, n);   // registered kids to show pre-checked
+  const newSlots  = Math.max(0, n - eligible.length); // extra kids needing registration
 
-    // Duplicate check for matched kids
-    for(const c of _sel){
-      if(c.id){
-        const active = await sb('queue','GET',null,
-          'select=id,token_number,status&customer_id=eq.'+c.id+
-          '&checkin_date=eq.'+t+'&status=in.(waiting,called)&limit=1');
-        if(active && active.length){
-          throw new Error(c.name+' is already in the queue (Token #'+String(active[0].token_number).padStart(2,'0')+').');
-        }
-      }
-    }
-
-    // ── USE PRE-RESERVED TOKENS (reserved on kids count tap) ──
-    // If tokens already reserved, update them with real customer data
-    // If not reserved yet (edge case), fall back to fresh reservation
-    let reserved = _reservedTokens;
-    if(!reserved.length){
-      reserved = await reserveTokenBlock(_kidsCount, mob);
-    }
-
-    // ── KEY FIX: if fewer kids selected than reserved, CANCEL the extras ──
-    // Cancelled status: token number is retired for the day (no gaps, no reuse)
-    // but row is hidden from active queue (queue only shows waiting/called)
-    const actualCount = _sel.length;
-    if(reserved.length > actualCount){
-      const extras = reserved.slice(actualCount);
-      // PATCH to cancelled — keeps the token number permanently occupied
-      await Promise.all(extras.map(r =>
-        sb('queue','PATCH',{
-          status: 'cancelled',
-          customer_name: 'Cancelled',
-          customer_id: null
-        },'id=eq.'+r.id).catch(()=>{})
-      ));
-      reserved = reserved.slice(0, actualCount);
-    }
-
-    // Update each reserved row with real customer info
-    for(let i=0;i<reserved.length;i++){
-      const c2 = _sel[i];
-      await sb('queue','PATCH',{
-        customer_id: c2?.id||null,
-        customer_name: c2?.name||('Child '+(i+1)),
-        mobile: mob||null,
-        is_guest: !c2?.id,
-        heard_via: c2?.heard_via||heardVia||null
-      },'id=eq.'+reserved[i].id);
-    }
-    const rows = reserved.map((r,i)=>({
-      token_number: r.token_number,
-      customer_name: _sel[i]?.name||('Child '+(i+1)),
-      customer_id: _sel[i]?.id||null
-    }));
-
-    // Save heard_via for new customers
-    _sel.forEach(c=>{
-      if(c.id && heardVia) sb('customers','PATCH',{heard_via:heardVia},'id=eq.'+c.id+'&heard_via=is.null').catch(()=>{});
+  // ── Registered kids (pre-ticked, name only) ──
+  const kidsEl = document.getElementById('lu-kids');
+  if(eligible.length > 0 && n > 0){
+    let html = '<div style="font-size:11.5px;font-weight:700;color:var(--b);background:#EEF6FF;border-radius:8px;padding:7px 11px;margin-bottom:8px;">✅ Registered children — included in check-in</div>';
+    eligible.slice(0, n).forEach(k=>{
+      const g = k.gender==='girl';
+      html += '<div class="kid-row selected" style="cursor:default;">'
+        +'<div style="font-size:18px;flex-shrink:0;">✅</div>'
+        +'<div class="kav '+(g?'girl':'')+'">'+(k.name.charAt(0).toUpperCase())+'</div>'
+        +'<div style="flex:1;min-width:0;">'
+          +'<div style="font-weight:800;font-size:14px;">'+k.name+'</div>'
+          +'<div style="font-size:11.5px;color:var(--muted);">'+(g?'👧 Girl':'👦 Boy')+' · '+(k.stamps||0)+' stamps</div>'
+        +'</div></div>';
     });
-
-    const tokens = rows.map(r=>({token:r.token_number, name:r.customer_name, id:r.customer_id, mobile:mob}));
-    refreshStats();
-    if(tokens.length===1) showTok(tokens[0].token, tokens[0].name, tokens[0].id, 'Checked in! You\'re in the queue. ✅', mob);
-    else showFamTok(tokens, mob);
-  }catch(e){
-    document.getElementById('ci-load').innerHTML='<div style="color:var(--err);padding:20px;text-align:center;font-weight:700;">❌ '+e.message+'</div>';
+    kidsEl.innerHTML = html;
+    kidsEl.style.display = 'block';
+  } else {
+    kidsEl.innerHTML = '';
+    kidsEl.style.display = 'none';
   }
+
+  // ── New-kid forms for the extra slots ──
+  const newEl = document.getElementById('lu-new-kids');
+  if(newSlots > 0){
+    const cy = new Date().getFullYear();
+    const yr = Array.from({length:20},(_,i)=>'<option value="'+(cy-i)+'">'+(cy-i)+'</option>').join('');
+    const mo = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].map((m,i)=>'<option value="'+String(i+1).padStart(2,'0')+'">'+m+'</option>').join('');
+    const dy = Array.from({length:31},(_,i)=>'<option value="'+String(i+1).padStart(2,'0')+'">'+(i+1)+'</option>').join('');
+    let html = '<div style="font-size:11.5px;font-weight:700;color:var(--warn);background:#FEF3C7;border-radius:8px;padding:7px 11px;margin-bottom:8px;margin-top:8px;">➕ '
+      +newSlots+' new child'+(newSlots>1?'ren':'')+' to register — fill in details below</div>';
+    for(let i=0;i<newSlots;i++){
+      html += '<div class="kid-block" id="nk-'+i+'" style="margin-bottom:10px;">'
+        +'<div style="font-family:var(--fh);font-size:13px;font-weight:800;color:var(--b);margin-bottom:10px;">New Child '+(regSlots+i+1)+'</div>'
+        +'<div class="fg"><label class="fl">First Name *</label>'
+          +'<input class="fi" type="text" id="nk-name-'+i+'" placeholder="Child\'s first name" maxlength="25" autocomplete="off"/></div>'
+        +'<div class="fg"><label class="fl">Gender *</label><div class="gr">'
+          +'<button class="gb boy active" id="nk-boy-'+i+'" onclick="nkGender('+i+',\'boy\')">👦 Boy</button>'
+          +'<button class="gb girl" id="nk-girl-'+i+'" onclick="nkGender('+i+',\'girl\')">👧 Girl</button>'
+        +'</div></div>'
+        +'<div class="fg"><label class="fl">Date of Birth *</label><div class="fr3">'
+          +'<select class="fi" id="nk-dd-'+i+'"><option value="">Day</option>'+dy+'</select>'
+          +'<select class="fi" id="nk-mm-'+i+'"><option value="">Month</option>'+mo+'</select>'
+          +'<select class="fi" id="nk-yy-'+i+'"><option value="">Year</option>'+yr+'</select>'
+        +'</div></div>'
+        +'</div>';
+    }
+    newEl.innerHTML = html;
+    newEl.style.display = 'block';
+  } else {
+    newEl.innerHTML = '';
+    newEl.style.display = 'none';
+  }
+
+  updBtn();
 }
+
+function nkGender(i, g){
+  document.getElementById('nk-boy-'+i)?.classList.toggle('active', g==='boy');
+  document.getElementById('nk-girl-'+i)?.classList.toggle('active', g==='girl');
+}
+
 function onLookup(){
   clearTimeout(_luTimer);
   const num=(document.getElementById('lu-num')?.value||'').replace(/\D/g,'');
-  ['lu-st','lu-kids','lu-act','lu-nf','lu-reg-sibling','lu-count'].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display='none';});
-  _sel=[];_kidsCount=0;
-  // Cancel any unredeemed placeholder reservations (phone changed / new lookup)
-  if(_reservedTokens&&_reservedTokens.length){
-    const oldReserved=[..._reservedTokens];
-    _reservedTokens=[];
-    oldReserved.forEach(r=>
-      sb('queue','PATCH',{status:'cancelled',customer_name:'Cancelled',customer_id:null},'id=eq.'+r.id).catch(()=>{})
-    );
-  }
+  ['lu-st','lu-count','lu-kids','lu-new-kids','lu-act','lu-nf','lu-reg-sibling'].forEach(id=>{
+    const e=document.getElementById(id); if(e) e.style.display='none';
+  });
+  _sel=[]; _kidsCount=0; _foundKids=[]; _alreadyQueued=new Set();
   document.querySelectorAll('.kids-count-btn').forEach(b=>{b.style.background='#fff';b.style.borderColor='var(--border)';b.style.color='var(--bd)';});
-  if(num.length===0)return;
+  if(!num.length) return;
   if(num.length<7){
     const st=document.getElementById('lu-st');
     st.textContent='Please enter all 7 digits of your number 👆';
-    st.style.display='block';st.style.background='#FEF3C7';st.style.color='var(--warn)';
+    st.style.cssText='display:block;background:#FEF3C7;color:var(--warn);padding:9px 12px;border-radius:10px;font-size:12.5px;font-weight:700;margin-bottom:10px;';
     return;
   }
   const st=document.getElementById('lu-st');
-  st.textContent='Looking up... 🔍';st.style.display='block';st.style.background='#EEF6FF';st.style.color='var(--b)';
+  st.textContent='Looking up... 🔍';
+  st.style.cssText='display:block;background:#EEF6FF;color:var(--b);padding:9px 12px;border-radius:10px;font-size:12.5px;font-weight:700;margin-bottom:10px;';
   _luTimer=setTimeout(doLookup,500);
 }
+
 async function doLookup(){
-  const mob=getM();const mAlt='0'+mob.slice(3);const st=document.getElementById('lu-st');
+  const mob=getM(); const mAlt='0'+mob.slice(3); const st=document.getElementById('lu-st');
   try{
     const [rA,rB,queueRows]=await Promise.all([
       sb('customers','GET',null,'select=id,name,mobile,gender,stamps,game_points,heard_via&mobile=eq.'+encodeURIComponent(mob)+'&limit=20'),
@@ -583,98 +536,266 @@ async function doLookup(){
     ]);
     const seen=new Set();
     const kids=[...(rA||[]),...(rB||[])].filter(c=>{if(seen.has(c.id))return false;seen.add(c.id);return true;});
-    if(!kids.length){st.style.display='none';document.getElementById('lu-nf').style.display='block';document.getElementById('lu-count').style.display='block';return;}
 
-    // Build set of customer_ids already in today's active queue
-    const alreadyQueued=new Set((queueRows||[]).map(r=>r.customer_id).filter(Boolean));
+    // Not registered
+    if(!kids.length){
+      st.style.display='none';
+      document.getElementById('lu-nf').style.display='block';
+      document.getElementById('lu-count').style.display='block';
+      return;
+    }
 
-    st.textContent='✅ Found '+kids.length+' child'+(kids.length>1?'ren':'')+' — tick who is here today';
-    st.style.background='#DCFCE7';st.style.color='var(--ok)';
-    const ke=document.getElementById('lu-kids');
-    ke.innerHTML='<div style="font-size:11.5px;font-weight:700;color:var(--b);background:#EEF6FF;border-radius:8px;padding:7px 11px;margin-bottom:10px;">☑️ '+(kids.length>1?'Tick all children here for a haircut today':'Confirm to check in')+'</div>';
-    let autoSelectKid=null;
-    kids.forEach(k=>{
-      const inQueue=alreadyQueued.has(k.id);
-      const row=document.createElement('div');row.className='kid-row';row.id='kr-'+k.id;
-      if(inQueue) row.style.opacity='0.5';
-      const g=k.gender==='girl';
-      row.innerHTML='<input type="checkbox" id="cb-'+k.id+'"'+(inQueue?' disabled':'')+' style="width:18px;height:18px;accent-color:var(--b);cursor:'+(inQueue?'not-allowed':'pointer')+';flex-shrink:0;"/>'
-        +'<div class="kav '+(g?'girl':'')+'">'+(k.name.charAt(0).toUpperCase())+'</div>'
-        +'<div style="flex:1;"><div style="font-weight:800;font-size:14px;">'+k.name+'</div>'
-        +'<div style="font-size:11.5px;color:'+(inQueue?'var(--warn)':'var(--muted)')+';">'
-          +(inQueue?'⏳ Already in queue today':(g?'👧 Girl':'👦 Boy')+' · '+(k.stamps||0)+' stamps · '+(k.game_points||0)+' pts')
-        +'</div></div>';
-      if(!inQueue){
-        const tog=(chk)=>{
-          if(chk){row.classList.add('selected');if(!_sel.find(c=>c.id===k.id))_sel.push({id:k.id,name:k.name,mobile:k.mobile,heard_via:k.heard_via||null,stamps:k.stamps||0,game_points:k.game_points||0});}
-          else{row.classList.remove('selected');_sel=_sel.filter(c=>c.id!==k.id);}
-          updBtn();
-        };
-        row.addEventListener('click',e=>{if(e.target.tagName!=='INPUT'){const cb=document.getElementById('cb-'+k.id);if(cb){cb.checked=!cb.checked;tog(cb.checked);}}});
-        row.querySelector('input')?.addEventListener('change',function(){tog(this.checked);});
-        if(!autoSelectKid) autoSelectKid=k; // auto-select first non-queued kid
-      }
-      ke.appendChild(row);
-    });
-    ke.style.display='block';
-    // Show kids count selector immediately
+    _alreadyQueued = new Set((queueRows||[]).map(r=>r.customer_id).filter(Boolean));
+    _foundKids = kids;
+
+    const eligible = kids.filter(k=>!_alreadyQueued.has(k.id));
+
+    if(eligible.length===0){
+      st.textContent='⏳ All children already checked in today — no action needed';
+      st.style.cssText='display:block;background:#FEF3C7;color:var(--warn);padding:9px 12px;border-radius:10px;font-size:12.5px;font-weight:700;margin-bottom:10px;';
+      document.getElementById('lu-reg-sibling').style.display='block';
+      return;
+    }
+
+    // Show count box first
+    st.textContent='✅ Found '+kids.length+' child'+(kids.length>1?'ren':'')+' registered — select how many are here today';
+    st.style.cssText='display:block;background:#DCFCE7;color:var(--ok);padding:9px 12px;border-radius:10px;font-size:12.5px;font-weight:700;margin-bottom:10px;';
     document.getElementById('lu-count').style.display='block';
-    // Always show Register New Child once kids are found
-    const sibBtn=document.getElementById('lu-reg-sibling');
-    if(sibBtn) sibBtn.style.display='block';
-    // Auto-tick only if exactly one kid and not already queued
-    const eligibleKids=kids.filter(k=>!alreadyQueued.has(k.id));
-    if(eligibleKids.length===1){
-      const k=eligibleKids[0];
-      const cb=document.getElementById('cb-'+k.id);
-      if(cb){cb.checked=true;_sel=[{id:k.id,name:k.name,mobile:k.mobile,heard_via:k.heard_via||null,stamps:k.stamps||0,game_points:k.game_points||0}];updBtn();document.getElementById('kr-'+k.id)?.classList.add('selected');}
-    } else if(eligibleKids.length===0){
-      st.textContent='⏳ Already checked in and waiting — no action needed';
-      st.style.background='#FEF3C7';st.style.color='var(--warn)';
-      // Hide check-in button but keep register sibling visible
-      const act=document.getElementById('lu-act');
-      if(act){
-        act.style.display='none';
-      }
-    }
-  }catch(e){st.textContent='Error: '+e.message;st.style.background='#FEE2E2';st.style.color='var(--err)';}
-}
-function updBtn(){
-  const n=_sel.length;const sum=document.getElementById('lu-sum');const btn=document.getElementById('lu-btn');const act=document.getElementById('lu-act');
-  if(n===0){act.style.display='none';return;}
-  act.style.display='block';
-  if(btn) btn.style.display='block'; // ensure visible (may have been hidden by all-queued branch)
-  if(n===1){btn.textContent='✅ Check In '+_sel[0].name;sum.style.display='none';}
-  else{btn.textContent='✅ Check In '+n+' Children';sum.style.display='block';sum.textContent='🎫 Tokens in order: '+_sel.map(c=>c.name).join(' → ');}
+    document.getElementById('lu-reg-sibling').style.display='block';
 
-  // Show "how did you hear" only for brand-new customers (never stamped, never answered)
-  const needsHear=_sel.some(c=>!c.heard_via && (Number(c.stamps)||0)===0);
-  const hearEl=document.getElementById('lu-hear');
-  if(hearEl) hearEl.style.display=needsHear?'block':'none';
-
-  // Disable Check In until heard_via is selected (for new customers)
-  if(needsHear){
-    btn.disabled=!_hearAbout;
-    btn.style.opacity=_hearAbout?'1':'0.45';
-    btn.textContent=n===1?'✅ Check In '+_sel[0].name:'✅ Check In '+n+' Children';
-    // Show a soft note below the button
-    let note=document.getElementById('lu-hear-note');
-    if(!note){
-      note=document.createElement('div');
-      note.id='lu-hear-note';
-      note.style.cssText='font-size:11.5px;color:var(--muted);text-align:center;margin-top:6px;font-weight:600;';
-      btn.parentNode.insertBefore(note,btn.nextSibling);
+    // If exactly 1 eligible kid, auto-select count=1
+    if(eligible.length===1){
+      _kidsCount=1;
+      const firstBtn=document.querySelector('.kids-count-btn');
+      if(firstBtn){firstBtn.style.background='var(--bd)';firstBtn.style.borderColor='var(--bd)';firstBtn.style.color='#fff';}
+      renderKidsPanel();
     }
-    note.textContent=_hearAbout?'':'👆 Tap above to unlock check-in';
-  } else {
-    btn.disabled=false;btn.style.opacity='1';
-    btn.textContent=n===1?'✅ Check In '+_sel[0].name:'✅ Check In '+n+' Children';
-    const note=document.getElementById('lu-hear-note');if(note)note.remove();
+  }catch(e){
+    const st=document.getElementById('lu-st');
+    st.textContent='Error: '+e.message;
+    st.style.cssText='display:block;background:#FEE2E2;color:var(--err);padding:9px 12px;border-radius:10px;font-size:12.5px;font-weight:700;margin-bottom:10px;';
   }
 }
 
+function updBtn(){
+  const eligible = _foundKids.filter(k=>!_alreadyQueued.has(k.id));
+  const regCount = Math.min(eligible.length, _kidsCount);
+  const newCount = Math.max(0, _kidsCount - eligible.length);
+  const total = regCount + newCount;
+  const act = document.getElementById('lu-act');
+  const btn = document.getElementById('lu-btn');
+  const sum = document.getElementById('lu-sum');
+  if(!_kidsCount || total===0){ act.style.display='none'; return; }
+  act.style.display='block';
+
+  // Button label
+  const hasNew = newCount > 0;
+  if(total===1 && !hasNew){
+    btn.textContent='✅ Check In '+eligible[0].name;
+    sum.style.display='none';
+  } else if(hasNew){
+    btn.textContent='✅ Register & Check In '+(total>1?total+' Children':'');
+    sum.style.display='block';
+    sum.textContent='🎫 '+regCount+' registered + '+newCount+' new child'+(newCount>1?'ren':'')+' to register';
+  } else {
+    btn.textContent='✅ Check In '+total+' Children';
+    sum.style.display='block';
+    sum.textContent='🎫 '+eligible.slice(0,total).map(k=>k.name).join(' → ');
+  }
+
+  // "How did you hear" — show if any new kids OR any returning kid who never answered
+  const regKids = eligible.slice(0, regCount);
+  const needsHear = hasNew || regKids.some(c=>!c.heard_via && (Number(c.stamps)||0)===0);
+  const hearEl = document.getElementById('lu-hear');
+  if(hearEl) hearEl.style.display = needsHear ? 'block' : 'none';
+
+  if(needsHear){
+    btn.disabled = !_hearAbout; btn.style.opacity = _hearAbout?'1':'0.45';
+    let note=document.getElementById('lu-hear-note');
+    if(!note){note=document.createElement('div');note.id='lu-hear-note';note.style.cssText='font-size:11.5px;color:var(--muted);text-align:center;margin-top:6px;font-weight:600;';btn.parentNode.insertBefore(note,btn.nextSibling);}
+    note.textContent=_hearAbout?'':'👆 Tap above to unlock check-in';
+  } else {
+    btn.disabled=false; btn.style.opacity='1';
+    const note=document.getElementById('lu-hear-note'); if(note)note.remove();
+  }
+}
+
+// CHECKIN — handles both pure registered kids AND mixed (registered + new kids to register first)
+async function proceedCheckin(){
+  if(!_kidsCount){ document.getElementById('kids-count-err').style.display='block'; return; }
+  const eligible = _foundKids.filter(k=>!_alreadyQueued.has(k.id));
+  const regKids  = eligible.slice(0, _kidsCount);
+  const newCount = Math.max(0, _kidsCount - eligible.length);
+
+  // Validate hear-about
+  const needsHear = newCount>0 || regKids.some(c=>!c.heard_via && (Number(c.stamps)||0)===0);
+  if(needsHear && !_hearAbout){ document.getElementById('lu-hear-err').style.display='block'; return; }
+
+  // Validate + collect new-kid form data
+  const newKidData = [];
+  for(let i=0;i<newCount;i++){
+    const nameEl = document.getElementById('nk-name-'+i);
+    const name = (nameEl?.value||'').trim();
+    const dd = document.getElementById('nk-dd-'+i)?.value;
+    const mm = document.getElementById('nk-mm-'+i)?.value;
+    const yy = document.getElementById('nk-yy-'+i)?.value;
+    const boyActive = document.getElementById('nk-boy-'+i)?.classList.contains('active');
+    const gender = boyActive ? 'boy' : 'girl';
+    if(!name){
+      nameEl?.focus();
+      const block=document.getElementById('nk-'+i);
+      if(block){const e=block.querySelector('.nk-err');if(e)e.remove();const d=document.createElement('div');d.className='nk-err';d.style.cssText='color:var(--err);font-size:12px;font-weight:700;margin-top:4px;';d.textContent='Please enter a name ❌';block.appendChild(d);}
+      return;
+    }
+    if(!dd||!mm||!yy){
+      const block=document.getElementById('nk-'+i);
+      if(block){const e=block.querySelector('.nk-err');if(e)e.remove();const d=document.createElement('div');d.className='nk-err';d.style.cssText='color:var(--err);font-size:12px;font-weight:700;margin-top:4px;';d.textContent='Date of birth required 🎂';block.appendChild(d);}
+      return;
+    }
+    newKidData.push({name, gender, dob:yy+'-'+mm+'-'+dd});
+  }
+
+  // Show loading screen
+  showScr('s-ci');
+  document.getElementById('ci-single').style.display='none';
+  document.getElementById('ci-family').style.display='none';
+  document.getElementById('ci-load').style.display='block';
+  document.getElementById('ci-load').innerHTML='<div style="font-size:40px;margin-bottom:10px;">⏳</div><div style="font-weight:700;">Checking in...</div>';
+
+  try{
+    const mob = regKids[0]?.mobile || getM();
+    const heardVia = _hearAbout || null;
+    const t = today();
+
+    // Duplicate check for registered kids
+    for(const c of regKids){
+      const active=await sb('queue','GET',null,
+        'select=token_number,status&customer_id=eq.'+c.id+'&checkin_date=eq.'+t+'&status=in.(waiting,called)&limit=1');
+      if(active&&active.length) throw new Error(c.name+' is already in the queue (Token #'+String(active[0].token_number).padStart(2,'0')+').');
+    }
+
+    // Register new kids
+    const newlyRegistered = [];
+    if(newKidData.length){
+      // Check for name duplicates under this mobile
+      const existCheck=await sb('customers','GET',null,'select=name&mobile=eq.'+encodeURIComponent(mob)+'&limit=50');
+      const existNames=new Set((existCheck||[]).map(c=>c.name.trim().toLowerCase()));
+      for(const k of newKidData){
+        if(existNames.has(k.name.trim().toLowerCase())) throw new Error(k.name+' is already registered under this number ❌');
+        const res=await sb('customers','POST',{name:k.name,mobile:mob,parent:null,gender:k.gender,dob:k.dob,stamps:0,redemptions:0,game_points:0,game_spins:0,heard_via:heardVia});
+        const nc=Array.isArray(res)?res[0]:res;
+        if(!nc?.id) throw new Error('Registration failed for '+k.name);
+        newlyRegistered.push({id:nc.id,name:k.name,mobile:mob,stamps:0,game_points:0,heard_via:heardVia});
+      }
+    }
+
+    // All kids in order: registered first, then new
+    const allKids = [...regKids, ...newlyRegistered];
+
+    // Build queue rows and insert atomically
+    const kidRows = allKids.map(c=>({
+      customer_id: c.id||null,
+      customer_name: c.name,
+      mobile: mob,
+      service: 'Haircut',
+      is_guest: false,
+      heard_via: c.heard_via||heardVia||null
+    }));
+    const inserted = await reserveTokenBlock(allKids.length, mob, kidRows);
+
+    // Fire-and-forget: save heard_via for customers who didn't have it
+    allKids.forEach(c=>{
+      if(c.id && heardVia && !c.heard_via)
+        sb('customers','PATCH',{heard_via:heardVia},'id=eq.'+c.id+'&heard_via=is.null').catch(()=>{});
+    });
+
+    // Build _sel for passport strip
+    _sel = allKids.map(c=>({id:c.id,name:c.name,mobile:mob,stamps:c.stamps||0,game_points:c.game_points||0,heard_via:c.heard_via||heardVia}));
+
+    const tokens = inserted.map(r=>({token:r.token_number, name:r.customer_name, id:r.customer_id, mobile:mob}));
+    refreshStats();
+    if(tokens.length===1) showTok(tokens[0].token,tokens[0].name,tokens[0].id,'Checked in! You\'re in the queue. ✅',mob);
+    else showFamTok(tokens,mob);
+  }catch(e){
+    document.getElementById('ci-load').innerHTML='<div style="color:var(--err);padding:20px;text-align:center;font-weight:700;">❌ '+e.message+'</div>';
+  }
+}
+
+// ── GUEST FLOW ──
+let _guestCount = 0;
+
+function showGuest(){
+  _guestCount=0;
+  document.querySelectorAll('.g-count-btn').forEach(b=>{b.style.background='#fff';b.style.borderColor='var(--border)';b.style.color='var(--bd)';});
+  document.getElementById('g-names').innerHTML='';
+  document.getElementById('g-names').style.display='none';
+  document.getElementById('g-svc-wrap').style.display='none';
+  document.getElementById('g-count-err').style.display='none';
+  const msg=document.getElementById('g-msg'); if(msg)msg.style.display='none';
+  const gb=document.querySelector('#s-guest .btn-y'); if(gb)gb.style.display='none';
+  showScr('s-guest');
+}
+
+function setGuestCount(n, btn){
+  _guestCount=n;
+  document.querySelectorAll('.g-count-btn').forEach(b=>{b.style.background='#fff';b.style.borderColor='var(--border)';b.style.color='var(--bd)';});
+  btn.style.background='var(--bd)'; btn.style.borderColor='var(--bd)'; btn.style.color='#fff';
+  document.getElementById('g-count-err').style.display='none';
+
+  // Build one name input per kid (first name only)
+  let html = '';
+  for(let i=0;i<n;i++){
+    html += '<div class="fg" style="margin-bottom:10px;">'
+      +'<label class="fl">'+(n===1?'Child\'s Name *':'Child '+(i+1)+' Name *')+'</label>'
+      +'<input class="fi" type="text" id="g-name-'+i+'" placeholder="e.g. '+(i===0?'Omar':i===1?'Sara':'Ahmed')+'" maxlength="25" autocomplete="off"/>'
+      +'</div>';
+  }
+  const namesEl = document.getElementById('g-names');
+  namesEl.innerHTML = html;
+  namesEl.style.display='block';
+  document.getElementById('g-svc-wrap').style.display='block';
+  const gb=document.querySelector('#s-guest .btn-y'); if(gb)gb.style.display='block';
+}
+
+async function doGuest(){
+  const msg=document.getElementById('g-msg');
+  if(!_guestCount){ document.getElementById('g-count-err').style.display='block'; return; }
+
+  // Collect and validate names
+  const names=[];
+  for(let i=0;i<_guestCount;i++){
+    const v=(document.getElementById('g-name-'+i)?.value||'').trim();
+    if(!v){ showM(msg,'Name required for Child '+(i+1)+' ❌','err'); return; }
+    names.push(v);
+  }
+  const svc=document.getElementById('g-svc').value||'Haircut';
+  const btn=document.querySelector('#s-guest .btn-y');
+  if(btn){btn.disabled=true; btn.textContent='Issuing...';}
+
+  try{
+    // Reserve tokens only now (at button click)
+    const kidRows = names.map(n=>({customer_id:null, customer_name:n, mobile:null, service:svc, is_guest:true, heard_via:null}));
+    const inserted = await reserveTokenBlock(_guestCount, null, kidRows);
+    _sel=[];
+    refreshStats();
+    const tokens = inserted.map(r=>({token:r.token_number, name:r.customer_name, id:null, mobile:null}));
+    if(tokens.length===1) showTok(tokens[0].token, tokens[0].name+' (Guest)', null, '⚠️ Guest only — no loyalty or game rewards.', null);
+    else showFamTok(tokens, null);
+  }catch(e){ showM(msg,'Error: '+e.message,'err'); }
+  finally{ if(btn){btn.disabled=false; btn.textContent='Get Token 🎫';} }
+}
+
+
+
 // REGISTER
-function showReg(mob){_kcount=0;document.getElementById('rg-kids').innerHTML='';if(mob)setPhF('rg-pfx','rg-num',mob);addKid();showScr('s-reg');}
+function showReg(mob, kidCount){
+  _kcount=0;
+  document.getElementById('rg-kids').innerHTML='';
+  if(mob) setPhF('rg-pfx','rg-num',mob);
+  const n = Math.max(1, kidCount||_kidsCount||1);
+  for(let i=0;i<n;i++) addKid();
+  showScr('s-reg');
+}
 function addKid(){
   _kcount++;const id='k'+_kcount;_genders[id]='boy';
   const c=document.getElementById('rg-kids');const b=document.createElement('div');b.className='kid-block';b.id='kb-'+id;
@@ -727,39 +848,17 @@ async function doRegAll(){
       results.push({customer:nc,svc:k.svc});
     }
     showM(msg,'✅ Registered! Issuing tokens...','ok');
-    const tokens=[];
-    // Use pre-reserved tokens if available, otherwise reserve now
-    if(!_reservedTokens.length){
-      await reserveTokenBlock(results.length, mob);
-    }
-    // Cancel any extra reserved slots not matched by actual registered kids
-    if(_reservedTokens.length > results.length){
-      const extras = _reservedTokens.slice(results.length);
-      await Promise.all(extras.map(r =>
-        sb('queue','PATCH',{status:'cancelled',customer_name:'Cancelled',customer_id:null},'id=eq.'+r.id).catch(()=>{})
-      ));
-      _reservedTokens = _reservedTokens.slice(0, results.length);
-    }
-    for(let i=0;i<results.length;i++){
-      const {customer,svc}=results[i];
-      const reserved=_reservedTokens[i];
-      if(reserved){
-        // Update the placeholder row with real customer data
-        await sb('queue','PATCH',{
-          customer_id:customer.id,
-          customer_name:customer.name,
-          mobile:customer.mobile,
-          service:svc||'Haircut',
-          is_guest:false,
-          heard_via:_regHearAbout||null
-        },'id=eq.'+reserved.id);
-        tokens.push({name:customer.name,token:reserved.token_number,id:customer.id,mobile:customer.mobile,stamps:0,game_points:0});
-      } else {
-        // Fallback: old doCI path
-        const tok=await doCI(customer.id,customer.name,customer.mobile,svc,_regHearAbout);
-        tokens.push({name:customer.name,token:tok,id:customer.id,mobile:customer.mobile,stamps:0,game_points:0});
-      }
-    }
+    // Reserve tokens NOW at click-time (atomic insert, no pre-reservation)
+    const kidRows = results.map(({customer,svc})=>({
+      customer_id: customer.id,
+      customer_name: customer.name,
+      mobile: customer.mobile,
+      service: svc||'Haircut',
+      is_guest: false,
+      heard_via: _regHearAbout||null
+    }));
+    const inserted = await reserveTokenBlock(results.length, mob, kidRows);
+    const tokens = inserted.map(r=>({name:r.customer_name,token:r.token_number,id:r.customer_id,mobile:mob,stamps:0,game_points:0}));
     // Set _sel so buildPassportStrip works on the token screen
     _sel=tokens.map(t=>({id:t.id,name:t.name,mobile:t.mobile,stamps:0,game_points:0,heard_via:_regHearAbout}));
     if(tokens.length===1)showTok(tokens[0].token,tokens[0].name,tokens[0].id,'Registered & checked in! ✅',mob);
@@ -768,73 +867,6 @@ async function doRegAll(){
   finally{if(btn){btn.disabled=false;btn.textContent='Register & Check In ✅';}_regHearAbout=null;
     document.querySelectorAll('.reg-hear-btn').forEach(b=>{b.style.background='#fff';b.style.borderColor='var(--border)';b.style.color='var(--text)';});
   }
-}
-
-// CHECKIN
-async function proceedCheckin(){
-  if(!_sel.length)return;
-  const needsHear=_sel.some(c=>!c.heard_via && (Number(c.stamps)||0)===0);
-  if(needsHear&&!_hearAbout){
-    document.getElementById('lu-hear-err').style.display='block';
-    return;
-  }
-  showScr('s-ci');
-  document.getElementById('ci-single').style.display='none';
-  document.getElementById('ci-family').style.display='none';
-  document.getElementById('ci-load').style.display='block';
-  try{
-    const t=today();
-    const now=new Date().toISOString();
-
-    // Duplicate check for all kids first — before reserving tokens
-    for(const c of _sel){
-      if(c.id){
-        const active=await sb('queue','GET',null,
-          'select=id,token_number,status&customer_id=eq.'+c.id+
-          '&checkin_date=eq.'+t+'&status=in.(waiting,called)&limit=1');
-        if(active&&active.length){
-          const ex=active[0];
-          throw new Error(c.name+' is already in the queue (Token #'+String(ex.token_number).padStart(2,'0')+' · '+ex.status+').');
-        }
-      }
-    }
-
-    // ── ATOMIC BLOCK RESERVATION ──
-    // Fetch highest token ONCE, then assign consecutive numbers to all kids
-    // This prevents another customer slipping between family members
-    const ex=await sb('queue','GET',null,'select=token_number&checkin_date=eq.'+t+'&order=token_number.desc&limit=1');
-    const lastTok=(ex&&ex.length)?Number(ex[0].token_number)||0:0;
-
-    // Build all queue rows with pre-assigned consecutive tokens
-    const rows=_sel.map((c,i)=>({
-      customer_id:c.id||null,
-      customer_name:c.name,
-      mobile:c.mobile||null,
-      service:'Haircut',
-      token_number:lastTok+1+i,
-      checkin_date:t,
-      checkin_time:now,
-      status:'waiting',
-      is_guest:!c.id,
-      stylist:null,
-      heard_via:c.heard_via||_hearAbout||null
-    }));
-
-    // Insert all in one batch POST
-    await sb('queue','POST',rows.length===1?rows[0]:rows);
-
-    // Save heard_via for new customers (fire and forget)
-    _sel.forEach(c=>{
-      const heardVia=c.heard_via||_hearAbout||null;
-      if(c.id&&heardVia) sb('customers','PATCH',{heard_via:heardVia},'id=eq.'+c.id+'&heard_via=is.null').catch(()=>{});
-    });
-
-    const tokens=_sel.map((c,i)=>({token:lastTok+1+i,name:c.name,id:c.id,mobile:c.mobile}));
-    const mob=_sel[0].mobile;
-    refreshStats();
-    if(tokens.length===1)showTok(tokens[0].token,tokens[0].name,tokens[0].id,'Checked in! You\'re in the queue. ✅',mob);
-    else showFamTok(tokens,mob);
-  }catch(e){document.getElementById('ci-load').innerHTML='<div style="color:var(--err);padding:20px;text-align:center;font-weight:700;">❌ '+e.message+'</div>';}
 }
 
 async function doCI(custId,name,mob,svc,heardVia){
@@ -929,82 +961,16 @@ function goGames(){window.open('./minicuts-game.html'+(window._ciMob?'?mobile='+
 function goPassport(){window.open('./index.html?customer=1&lookup='+encodeURIComponent(window._ciMob||''),'_blank');}
 function resetCI(){
   clearInterval(window._ciTimer);
-  // Clean up any unredeemed placeholder reservations
-  if(_reservedTokens && _reservedTokens.length){
-    _reservedTokens.forEach(r=>sb('queue','DELETE',null,'id=eq.'+r.id+'&customer_name=eq.Reserving...').catch(()=>{}));
-    _reservedTokens=[];
-  }
   _reservedTokens=[];
   // Full field reset
   const numEl=document.getElementById('lu-num');if(numEl)numEl.value='';
-  ['lu-st','lu-kids','lu-act','lu-nf','lu-reg-sibling','lu-count'].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display='none';});
-  _sel=[];_kidsCount=0;_hearAbout=null;
+  ['lu-st','lu-count','lu-kids','lu-new-kids','lu-act','lu-nf','lu-reg-sibling'].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display='none';});
+  _sel=[];_kidsCount=0;_hearAbout=null;_foundKids=[];_alreadyQueued=new Set();
   document.querySelectorAll('.hear-btn').forEach(b=>{b.style.background='#fff';b.style.borderColor='var(--border)';b.style.color='var(--text)';});
   document.querySelectorAll('.kids-count-btn').forEach(b=>{b.style.background='#fff';b.style.borderColor='var(--border)';b.style.color='var(--bd)';});
   document.querySelectorAll('.kid-row').forEach(r=>r.classList.remove('selected'));
   document.querySelectorAll('.kid-row input[type=checkbox]').forEach(cb=>{cb.checked=false;});
   navTo('s-lookup','bn-ci');
-}
-
-// GUEST
-let _guestCount = 0;
-let _guestReserved = [];
-
-function showGuest(){
-  document.getElementById('g-fn').value='';
-  document.getElementById('g-ln').value='';
-  document.getElementById('g-svc').value='Haircut';
-  const m=document.getElementById('g-msg');if(m)m.style.display='none';
-  _guestCount=0;_guestReserved=[];
-  document.querySelectorAll('.g-count-btn').forEach(b=>{b.style.background='#fff';b.style.borderColor='var(--border)';b.style.color='var(--bd)';});
-  showScr('s-guest');
-}
-
-function setGuestCount(n, btn){
-  _guestCount=n;
-  _guestReserved=[];
-  document.querySelectorAll('.g-count-btn').forEach(b=>{b.style.background='#fff';b.style.borderColor='var(--border)';b.style.color='var(--bd)';});
-  btn.style.background='var(--bd)';btn.style.borderColor='var(--bd)';btn.style.color='#fff';
-  document.getElementById('g-count-err').style.display='none';
-  // Reserve tokens instantly on tap
-  reserveTokenBlock(n, null).then(toks=>{_guestReserved=toks;}).catch(e=>console.warn('Guest reserve failed:',e.message));
-}
-
-async function doGuest(){
-  const fn=document.getElementById('g-fn').value.trim();
-  const ln=document.getElementById('g-ln').value.trim();
-  const svc=document.getElementById('g-svc').value;
-  const msg=document.getElementById('g-msg');
-  if(!_guestCount){document.getElementById('g-count-err').style.display='block';return;}
-  if(!fn){showM(msg,'First name required ❌','err');return;}
-  if(!ln){showM(msg,'Last name required ❌','err');return;}
-  const btn=document.querySelector('#s-guest .btn-y');
-  if(btn){btn.disabled=true;btn.textContent='Issuing...';}
-  const guestName=fn+' '+ln;
-  try{
-    // If tokens not yet reserved (edge case), reserve now
-    if(!_guestReserved.length){
-      _guestReserved=await reserveTokenBlock(_guestCount, null);
-    }
-    // Update all reserved rows with guest name
-    for(let i=0;i<_guestReserved.length;i++){
-      await sb('queue','PATCH',{
-        customer_name: guestName,
-        service: svc||'Haircut',
-        is_guest: true
-      },'id=eq.'+_guestReserved[i].id);
-    }
-    const tokens=_guestReserved.map(r=>({token:r.token_number,name:guestName,id:null,mobile:null}));
-    _sel=[];
-    refreshStats();
-    if(tokens.length===1){
-      showTok(tokens[0].token,guestName+' (Guest)',null,'⚠️ Guest only — no loyalty or game rewards.',null);
-    } else {
-      showFamTok(tokens,null);
-    }
-    _guestReserved=[];
-  }catch(e){showM(msg,'Error: '+e.message,'err');}
-  finally{if(btn){btn.disabled=false;btn.textContent='Get Token 🎫';}}
 }
 
 // QUEUE - CUSTOMER VIEW
@@ -1039,14 +1005,7 @@ async function refreshStats(){
 
 setInterval(()=>{if(document.getElementById('s-queue').classList.contains('active'))loadQ();else refreshStats();},30000);
 refreshStats();
-// ── Cancel orphaned reservations on page unload ──
-window.addEventListener('beforeunload', function(){
-  if(_reservedTokens && _reservedTokens.length){
-    _reservedTokens.forEach(r=>{
-      sb('queue','PATCH',{status:'cancelled',customer_name:'Cancelled',customer_id:null},'id=eq.'+r.id).catch(()=>{});
-    });
-  }
-});
+
 </script>
 </body>
 </html>

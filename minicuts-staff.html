@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>MiniCuts · Staff Queue</title>
+<title>[DEV] MiniCuts · Staff Queue</title>
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800;900&family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet"/>
 <style>
 :root{--y:#FFD600;--b:#1565C0;--bd:#0D47A1;--bm:#1976D2;--ok:#16A34A;--err:#DC2626;--warn:#D97706;--pink:#EC4899;--bg:#F0F4FF;--text:#1A1A2E;--muted:#6B7280;--border:#E5E7EB;--r:12px;--rs:8px;--fh:'Baloo 2',cursive;--fb:'Nunito',sans-serif;}
@@ -13,20 +13,20 @@ body{display:flex;flex-direction:column;}
 
 /* ─── TOPBAR ─── */
 .top{background:linear-gradient(135deg,var(--bd),var(--bm));padding:10px 24px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
-.top-brand{font-family:var(--fh);font-size:18px;font-weight:900;color:#fff;display:flex;align-items:center;gap:8px;}
+.top-brand{font-family:var(--fh);font-size:16px;font-weight:900;color:#fff;display:flex;align-items:center;gap:8px;}
 .top-right{display:flex;align-items:center;gap:10px;}
-.badge-staff{background:var(--y);color:var(--bd);padding:4px 12px;border-radius:99px;font-size:13px;font-weight:800;}
+.badge-staff{background:var(--y);color:var(--bd);padding:3px 10px;border-radius:99px;font-size:11px;font-weight:800;}
 
 /* ─── STATS STRIP ─── */
 .stats-strip{background:#fff;border-bottom:1px solid var(--border);padding:8px 24px;display:flex;gap:24px;align-items:center;flex-shrink:0;}
 .sstat{display:flex;align-items:center;gap:8px;}
-.sstat-n{font-family:var(--fh);font-size:26px;font-weight:900;color:var(--bd);line-height:1;}
-.sstat-l{font-size:13.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;line-height:1.2;}
+.sstat-n{font-family:var(--fh);font-size:22px;font-weight:900;color:var(--bd);line-height:1;}
+.sstat-l{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;line-height:1.2;}
 .sstat-div{width:1px;height:28px;background:var(--border);}
 
 /* ─── TABS ─── */
 .tabs{background:#fff;border-bottom:2px solid var(--border);display:flex;padding:0 24px;flex-shrink:0;}
-.tab{padding:12px 20px;font-family:var(--fb);font-size:14.5px;font-weight:700;color:var(--muted);border:none;background:transparent;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;white-space:nowrap;transition:all .15s;}
+.tab{padding:10px 18px;font-family:var(--fb);font-size:13px;font-weight:700;color:var(--muted);border:none;background:transparent;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;white-space:nowrap;transition:all .15s;}
 .tab.active{color:var(--b);border-bottom-color:var(--b);}
 
 /* ─── PAGES ─── */
@@ -35,8 +35,8 @@ body{display:flex;flex-direction:column;}
 
 /* ─── FILTERS ─── */
 .filters{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:12px;background:#fff;padding:12px 16px;border-radius:var(--r);box-shadow:0 2px 8px rgba(13,71,161,.06);flex-shrink:0;}
-.fg{margin-bottom:0;}.fl{display:block;font-size:13px;font-weight:800;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em;}
-.fi{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--rs);font-family:var(--fb);font-size:14px;color:var(--text);background:#fff;outline:none;}
+.fg{margin-bottom:0;}.fl{display:block;font-size:11px;font-weight:800;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em;}
+.fi{width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--rs);font-family:var(--fb);font-size:13px;color:var(--text);background:#fff;outline:none;}
 .fi:focus{border-color:var(--b);}
 select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236B7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 8px center;padding-right:24px;cursor:pointer;}
 .fr{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
@@ -45,128 +45,72 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
 .tbl-wrap{flex:1;overflow:auto;border-radius:var(--r);box-shadow:0 2px 12px rgba(13,71,161,.08);}
 .qt{width:100%;border-collapse:collapse;background:#fff;table-layout:fixed;}
 .qt thead{background:var(--bd);position:sticky;top:0;z-index:10;}
-.qt thead th{color:#fff;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:11px 10px;text-align:left;white-space:nowrap;overflow:hidden;}
+.qt thead th{color:#fff;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:10px 10px;text-align:left;white-space:nowrap;overflow:hidden;}
 /* Column widths */
 .qt th:nth-child(1),.qt td:nth-child(1){width:50px;}
-.qt th:nth-child(2),.qt td:nth-child(2){width:170px;}
+.qt th:nth-child(2),.qt td:nth-child(2){width:150px;}
 .qt th:nth-child(3),.qt td:nth-child(3){width:95px;}
 .qt th:nth-child(4),.qt td:nth-child(4){width:46px;}
-.qt th:nth-child(5),.qt td:nth-child(5){width:180px;}
-.qt th:nth-child(6),.qt td:nth-child(6){width:215px;}
+.qt th:nth-child(5),.qt td:nth-child(5){width:160px;}
+.qt th:nth-child(6),.qt td:nth-child(6){width:240px;}
 .qt th:nth-child(7),.qt td:nth-child(7){width:66px;}
 .qt th:nth-child(8),.qt td:nth-child(8){width:110px;}
+
+/* History table: override shared .qt column widths with history-specific sizing */
+#t-history .qt th:nth-child(1),#t-history .qt td:nth-child(1){width:54px;}
+#t-history .qt th:nth-child(2),#t-history .qt td:nth-child(2){width:140px;}
+#t-history .qt th:nth-child(3),#t-history .qt td:nth-child(3){width:100px;}
+#t-history .qt th:nth-child(4),#t-history .qt td:nth-child(4){width:120px;}
+#t-history .qt th:nth-child(5),#t-history .qt td:nth-child(5){width:80px;padding-right:6px;}
+#t-history .qt th:nth-child(6),#t-history .qt td:nth-child(6){width:70px;padding-left:0;}
+#t-history .qt th:nth-child(7),#t-history .qt td:nth-child(7){width:160px;}
+#t-history .qt th:nth-child(8),#t-history .qt td:nth-child(8){width:80px;}
+#t-history .qt th:nth-child(9),#t-history .qt td:nth-child(9){width:70px;}
+#t-history .qt th:nth-child(10),#t-history .qt td:nth-child(10){width:100px;}
 .qt tbody tr{border-bottom:1px solid var(--border);transition:background .1s;}
 .qt tbody tr:hover{background:#F8FBFF;}
 .qt tbody tr.done{background:#FAFAFA;}
 .qt tbody tr.called{background:#EEF6FF;}
-.qt td{padding:9px 10px;font-size:14px;vertical-align:middle;}
-.isel{font-size:13px;padding:6px 8px;border:1.5px solid var(--border);border-radius:6px;background:#fff;outline:none;cursor:pointer;width:100%;}
+.qt td{padding:6px 8px;font-size:12.5px;vertical-align:middle;}
+.isel{font-size:11.5px;padding:4px 6px;border:1.5px solid var(--border);border-radius:6px;background:#fff;outline:none;cursor:pointer;width:100%;}
 .isel:focus{border-color:var(--b);}
-.tok-b{width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,var(--bd),var(--bm));color:var(--y);font-family:var(--fh);font-size:16px;font-weight:900;display:inline-flex;align-items:center;justify-content:center;}
+.tok-b{width:34px;height:34px;border-radius:8px;background:linear-gradient(135deg,var(--bd),var(--bm));color:var(--y);font-family:var(--fh);font-size:14px;font-weight:900;display:inline-flex;align-items:center;justify-content:center;}
 .tok-b.guest{background:linear-gradient(135deg,#6B7280,#9CA3AF);}
-.sp{display:inline-flex;align-items:center;padding:4px 9px;border-radius:99px;font-size:12px;font-weight:800;white-space:nowrap;}
+.sp{display:inline-flex;align-items:center;padding:2px 6px;border-radius:99px;font-size:10px;font-weight:800;white-space:nowrap;}
 .sp-w{background:#FEF3C7;color:#92400E;}.sp-d{background:#DCFCE7;color:var(--ok);}.sp-c{background:#EEF6FF;color:var(--b);}.sp-g{background:#F3F4F6;color:var(--muted);}
 
 /* ─── BUTTONS ─── */
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:9px 14px;border-radius:var(--rs);font-family:var(--fh);font-weight:800;font-size:14px;cursor:pointer;border:none;transition:transform .12s;line-height:1;white-space:nowrap;}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:7px 12px;border-radius:var(--rs);font-family:var(--fh);font-weight:800;font-size:13px;cursor:pointer;border:none;transition:transform .12s;line-height:1;white-space:nowrap;}
 .btn:active{transform:scale(.97);}.btn:disabled{opacity:.45;cursor:not-allowed;transform:none;}
 .btn-y{background:linear-gradient(135deg,var(--y),#FFB300);color:var(--bd);}
 .btn-b{background:var(--b);color:#fff;}.btn-g{background:var(--ok);color:#fff;}
 .btn-ghost{background:transparent;color:var(--b);border:1.5px solid rgba(21,101,192,.25);}
-.btn-sm{padding:7px 12px;font-size:13px;border-radius:7px;}
+.btn-sm{padding:5px 9px;font-size:11.5px;border-radius:6px;}
 .btn-full{width:100%;}
 
 /* ─── CARDS (settings) ─── */
 .card{background:#fff;border-radius:var(--r);padding:18px;margin-bottom:14px;box-shadow:0 2px 10px rgba(13,71,161,.07);border:1px solid rgba(13,71,161,.07);}
-.card-title{font-family:var(--fh);font-size:18px;font-weight:800;color:var(--bd);margin-bottom:4px;}
-.sm{padding:10px 13px;border-radius:var(--rs);font-size:14px;font-weight:700;margin-bottom:12px;display:none;}
+.card-title{font-family:var(--fh);font-size:16px;font-weight:800;color:var(--bd);margin-bottom:4px;}
+.sm{padding:8px 12px;border-radius:var(--rs);font-size:12.5px;font-weight:700;margin-bottom:12px;display:none;}
 .sm.ok{background:#DCFCE7;color:var(--ok);display:block;}.sm.err{background:#FEE2E2;color:var(--err);display:block;}.sm.info{background:#EEF6FF;color:var(--b);display:block;}
 
 /* ─── TOAST ─── */
 .tc{position:fixed;bottom:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:7px;}
-.toast{background:#fff;border-radius:var(--rs);padding:12px 18px;box-shadow:0 8px 28px rgba(0,0,0,.14);display:flex;align-items:center;gap:9px;font-size:14.5px;font-weight:700;min-width:220px;animation:ti .25s ease;}
+.toast{background:#fff;border-radius:var(--rs);padding:11px 16px;box-shadow:0 8px 28px rgba(0,0,0,.14);display:flex;align-items:center;gap:9px;font-size:13px;font-weight:700;min-width:220px;animation:ti .25s ease;}
 @keyframes ti{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
-@keyframes spin{to{transform:rotate(360deg)}}
 .toast.ok{border-left:4px solid var(--ok);}.toast.err{border-left:4px solid var(--err);}.toast.info{border-left:4px solid var(--b);}
-#clk{font-family:var(--fh);font-size:13px;font-weight:700;color:rgba(255,255,255,.7);}
+#clk{font-family:var(--fh);font-size:11px;font-weight:700;color:rgba(255,255,255,.7);}
 </style>
 </head>
 <body>
 
-<!-- ══ LOGIN SCREEN ══ -->
-<div id="login-screen" style="
-  position:fixed;inset:0;z-index:9999;
-  background:linear-gradient(135deg,#0D47A1 0%,#1565C0 60%,#1E88E5 100%);
-  display:flex;align-items:center;justify-content:center;padding:20px;
-  flex-direction:column;
-">
-  <div style="text-align:center;margin-bottom:28px;">
-    <div style="font-size:56px;margin-bottom:8px;">🐼</div>
-    <div style="font-family:var(--fh);font-size:26px;font-weight:900;color:#fff;">MiniCuts</div>
-    <div style="color:rgba(255,255,255,.65);font-size:13px;margin-top:3px;">Staff Portal · Secure Access</div>
-  </div>
-  <div style="background:#fff;border-radius:20px;padding:30px;width:100%;max-width:360px;box-shadow:0 24px 60px rgba(0,0,0,.3);">
-    <div style="font-family:var(--fh);font-size:18px;font-weight:800;color:var(--bd);margin-bottom:4px;">Staff Login</div>
-    <div style="font-size:12.5px;color:var(--muted);margin-bottom:20px;">Enter your username and PIN to continue</div>
-
-    <div id="login-error" style="display:none;background:#FEE2E2;color:var(--err);padding:10px 13px;border-radius:9px;font-size:13px;font-weight:700;margin-bottom:14px;"></div>
-
-    <div style="margin-bottom:13px;">
-      <label style="display:block;font-size:12px;font-weight:800;color:var(--bd);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Username</label>
-      <input id="login-user" type="text" placeholder="e.g. admin" autocomplete="username"
-        style="width:100%;padding:12px 14px;border:2px solid #E5E7EB;border-radius:11px;font-family:var(--fb);font-size:15px;outline:none;transition:border-color .15s;"
-        onfocus="this.style.borderColor='var(--b)'" onblur="this.style.borderColor='#E5E7EB'"
-        onkeydown="if(event.key==='Enter')document.getElementById('login-pin').focus()"/>
-    </div>
-
-    <div style="margin-bottom:20px;">
-      <label style="display:block;font-size:12px;font-weight:800;color:var(--bd);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">PIN / Password</label>
-      <div style="position:relative;">
-        <input id="login-pin" type="password" placeholder="Enter PIN or password" autocomplete="current-password"
-          style="width:100%;padding:12px 46px 12px 14px;border:2px solid #E5E7EB;border-radius:11px;font-family:var(--fb);font-size:15px;outline:none;transition:border-color .15s;"
-          onfocus="this.style.borderColor='var(--b)'" onblur="this.style.borderColor='#E5E7EB'"
-          onkeydown="if(event.key==='Enter')doStaffLogin()"/>
-        <button type="button" onclick="togglePinVis()" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:17px;color:var(--muted);" id="pin-eye">👁</button>
-      </div>
-    </div>
-
-    <button id="login-btn" onclick="doStaffLogin()" style="
-      width:100%;padding:14px;background:linear-gradient(135deg,var(--bd),var(--b));
-      color:#fff;border:none;border-radius:12px;
-      font-family:var(--fh);font-size:16px;font-weight:900;cursor:pointer;
-      transition:transform .15s,box-shadow .15s;
-    " onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform='none'">
-      Login →
-    </button>
-
-    <div style="text-align:center;margin-top:14px;">
-      <button onclick="showPinReset()" style="background:none;border:none;color:var(--muted);font-size:12.5px;cursor:pointer;font-family:var(--fb);">Forgot PIN?</button>
-    </div>
-
-    <!-- Reset box -->
-    <div id="reset-box" style="display:none;margin-top:14px;background:#F0F6FF;border-radius:11px;padding:14px;">
-      <div style="font-size:13px;font-weight:700;color:var(--bd);margin-bottom:6px;">🔑 Master Reset Code</div>
-      <input id="reset-code" type="text" placeholder="Enter reset code" autocomplete="off"
-        style="width:100%;padding:10px 12px;border:2px solid #E5E7EB;border-radius:9px;font-family:var(--fb);font-size:14px;outline:none;margin-bottom:8px;text-transform:uppercase;"
-        oninput="this.value=this.value.toUpperCase()"
-        onkeydown="if(event.key==='Enter')doReset()"/>
-      <button onclick="doReset()" style="width:100%;padding:10px;background:var(--bd);color:#fff;border:none;border-radius:9px;font-family:var(--fh);font-size:14px;font-weight:800;cursor:pointer;">Reset PIN</button>
-      <div id="reset-msg" style="margin-top:8px;font-size:12.5px;font-weight:700;display:none;"></div>
-    </div>
-  </div>
-  <div style="color:rgba(255,255,255,.4);font-size:11px;margin-top:20px;">MiniCuts DSO · Secure Staff Access</div>
-</div>
-
-<!-- MAIN APP (hidden until login) -->
-<div id="main-app" style="display:none;">
-
+<!-- TOPBAR -->
 <div class="top">
   <div class="top-brand">🐼 MiniCuts <span style="opacity:.6;font-size:13px;font-weight:700;">Staff Panel</span></div>
   <div class="top-right">
     <div id="clk"></div>
-    <div class="badge-staff" id="staff-name-badge">✂️ Staff</div>
-    <a href="./index.html" target="_blank" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);color:#fff;padding:5px 11px;border-radius:8px;font-size:13.5px;font-weight:700;text-decoration:none;">📋 Loyalty</a>
-    <button onclick="doLogout()" style="background:rgba(220,38,38,.25);border:1px solid rgba(220,38,38,.4);color:#fff;padding:5px 11px;border-radius:8px;font-size:13.5px;font-weight:700;cursor:pointer;font-family:var(--fh);">🔒 Logout</button>
+    <div class="badge-staff">✂️ Staff</div>
+    <a href="./index.html" target="_blank" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);color:#fff;padding:5px 11px;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;">📋 Loyalty</a>
   </div>
 </div>
 
@@ -180,7 +124,7 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
 </div>
 
 <!-- STATS STRIP -->
-<div class="stats-strip">
+<div class="stats-strip" style="flex-wrap:wrap;row-gap:6px;">
   <div class="sstat"><div class="sstat-n" id="st-w" style="color:var(--warn);">—</div><div class="sstat-l">Waiting</div></div>
   <div class="sstat-div"></div>
   <div class="sstat"><div class="sstat-n" id="st-c" style="color:var(--b);">—</div><div class="sstat-l">Called</div></div>
@@ -188,6 +132,13 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
   <div class="sstat"><div class="sstat-n" id="st-d" style="color:var(--ok);">—</div><div class="sstat-l">Done Today</div></div>
   <div class="sstat-div"></div>
   <div class="sstat"><div class="sstat-n" id="st-n" style="color:var(--y);">—</div><div class="sstat-l">Next Token</div></div>
+  <div class="sstat-div"></div>
+  <div class="sstat"><div class="sstat-n" id="st-rev" style="color:var(--bd);font-size:16px;">—</div><div class="sstat-l">Revenue</div></div>
+  <div class="sstat-div"></div>
+  <div class="sstat" style="flex-direction:column;align-items:flex-start;gap:0;">
+    <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px;">Tips by Staff</div>
+    <div id="st-tips" style="font-size:11.5px;font-weight:700;color:var(--ok);white-space:nowrap;">—</div>
+  </div>
 </div>
 
 <!-- ══ TAB: QUEUE ══ -->
@@ -206,7 +157,7 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
     <table class="qt" id="qt">
       <thead><tr>
         <th>Token</th><th>Name</th><th>Service</th><th>Time</th>
-        <th>Stylist(s)</th><th>Value · Tip · Remark</th><th>Status</th><th>Actions</th>
+        <th>Stylist(s)</th><th>Value · Tip · Pay · Remark</th><th>Status</th><th>Actions</th>
       </tr></thead>
       <tbody id="qt-body"><tr><td colspan="8" style="text-align:center;padding:40px;color:var(--muted);">Loading queue...</td></tr></tbody>
     </table>
@@ -222,7 +173,7 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
     </div>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
       <div style="display:flex;gap:6px;align-items:center;background:#fff;border:1.5px solid var(--border);border-radius:9px;padding:6px 10px;">
-        <span style="font-size:13.5px;font-weight:700;color:var(--muted);">📅 Date:</span>
+        <span style="font-size:12px;font-weight:700;color:var(--muted);">📅 Date:</span>
         <input type="date" id="hist-date" style="border:none;outline:none;font-family:var(--fb);font-size:13px;color:var(--text);background:transparent;cursor:pointer;" onchange="loadHist()"/>
       </div>
       <button class="btn btn-ghost btn-sm" onclick="histNav(-1)">← Prev</button>
@@ -234,8 +185,8 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
   <div id="hist-summary" style="display:none;background:#F0FDF4;border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:13px;font-weight:700;color:var(--ok);"></div>
   <div class="tbl-wrap">
     <table class="qt">
-      <thead><tr><th>Token</th><th>Name</th><th>Phone</th><th>Service</th><th>Stylist(s)</th><th>Value</th><th>Tip</th><th>Payment</th><th>Remark</th><th>Status</th><th>Time</th><th>Edit</th></tr></thead>
-      <tbody id="hist-body"><tr><td colspan="12" style="text-align:center;padding:40px;color:var(--muted);">Loading today's records...</td></tr></tbody>
+      <thead><tr><th>Token</th><th>Name</th><th>Service</th><th>Stylist(s)</th><th>Value</th><th>Tip</th><th>Remark</th><th>Status</th><th>Time</th><th>Actions</th></tr></thead>
+      <tbody id="hist-body"><tr><td colspan="10" style="text-align:center;padding:40px;color:var(--muted);">Select a date and click Load ↻</td></tr></tbody>
     </table>
   </div>
 </div>
@@ -323,7 +274,7 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
         <p style="font-size:12.5px;color:var(--muted);margin:6px 0 14px;">These links are inserted into the WhatsApp message automatically.</p>
         <div class="fg"><label class="fl">🎫 Loyalty Passport Base URL</label>
           <input class="fi" type="text" id="cfg-passport" placeholder="https://yasmint2825.github.io/minicuts-loyalty/?customer=1&lookup="/>
-          <div style="font-size:13px;color:var(--muted);margin-top:3px;">Customer mobile is appended automatically</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:3px;">Customer mobile is appended automatically</div>
         </div>
         <div class="fg"><label class="fl">⭐ Google Review Link</label>
           <input class="fi" type="text" id="cfg-google" placeholder="https://share.google/..."/>
@@ -337,16 +288,6 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
     </div>
 
     <div>
-      <div class="card">
-        <div class="card-title">🔗 Quick Links</div>
-        <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px;">
-          <a href="./minicuts-checkin.html" target="_blank" class="btn btn-b btn-full">👤 Customer Check-In Screen</a>
-          <a href="./index.html" target="_blank" class="btn btn-ghost btn-full">📋 Loyalty Dashboard</a>
-          <a href="./minicuts-game.html" target="_blank" class="btn btn-ghost btn-full">🎮 Games App</a>
-          <a href="./minicuts-backup.html" target="_blank" class="btn btn-full" style="background:linear-gradient(135deg,#16A34A,#15803D);color:#fff;">💾 Backup Database</a>
-        </div>
-      </div>
-
       <div class="card">
         <div class="card-title">💬 WhatsApp Message Template</div>
         <p style="font-size:12.5px;color:var(--muted);margin:6px 0 10px;">Customise the message sent after each stamp. Use these tokens:</p>
@@ -373,6 +314,14 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
       <div class="card">
         <div class="card-title">📊 Today's Summary</div>
         <div id="cfg-summary" style="color:var(--muted);font-size:13px;">Go to Queue tab to load data first.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">🔗 Quick Links</div>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px;">
+          <a href="./minicuts-checkin.html" target="_blank" class="btn btn-b btn-full">👤 Customer Check-In Screen</a>
+          <a href="./index.html" target="_blank" class="btn btn-ghost btn-full">📋 Loyalty Dashboard</a>
+          <a href="./minicuts-game.html" target="_blank" class="btn btn-ghost btn-full">🎮 Games App</a>
+        </div>
       </div>
     </div>
   </div>
@@ -564,6 +513,28 @@ function updateStats(){
   const e=id=>document.getElementById(id);
   if(e('st-w'))e('st-w').textContent=w;if(e('st-c'))e('st-c').textContent=c;
   if(e('st-d'))e('st-d').textContent=d;if(e('st-n'))e('st-n').textContent=nx?String(nx.token_number).padStart(2,'0'):'—';
+  // Revenue
+  const done=_qdata.filter(r=>r.status==='done');
+  const totalRev=done.reduce((s,r)=>s+(Number(r.service_value)||0),0);
+  if(e('st-rev'))e('st-rev').textContent=totalRev?'AED '+totalRev:'—';
+  // Tip split by staff
+  const tipMap={};
+  done.forEach(r=>{
+    const tip=Number(r.tip)||0; if(!tip)return;
+    const stylists=[r.stylist,r.stylist2].filter(Boolean);
+    if(!stylists.length){
+      tipMap['Unassigned']=(tipMap['Unassigned']||0)+tip;
+    } else {
+      const share=Math.round((tip/stylists.length)*10)/10;
+      stylists.forEach(s=>{tipMap[s]=(tipMap[s]||0)+share;});
+    }
+  });
+  const tipEl=e('st-tips');
+  if(tipEl){
+    const entries=Object.entries(tipMap);
+    if(!entries.length){tipEl.textContent='—';}
+    else{tipEl.innerHTML=entries.map(([s,v])=>'<span style="margin-right:10px;">✂️ <strong>'+s+'</strong> AED '+v+'</span>').join('');}
+  }
 }
 
 function renderQ(){
@@ -621,7 +592,7 @@ function buildLoyaltyInCell(r){
 function buildRow(r){
   const done=r.status==='done';const called=r.status==='called';const cancelled=r.status==='cancelled';
   const guest=r.is_guest||!r.customer_id;const locked=done||cancelled;
-  const sp=done?'<span class="sp sp-d">✅ Done</span>':called?'<span class="sp sp-c">📢 Called</span>':cancelled?'<span class="sp" style="background:#F3F4F6;color:var(--muted);">✕ Cancelled</span>':guest?'<span class="sp sp-g">👤 Guest</span>':'<span class="sp sp-w">⏳ Waiting</span>';
+  const sp=done?'<span class="sp sp-d">✅ Done</span>':called?'<span class="sp sp-c">📢 Called</span>':cancelled?'<span class="sp" style="background:#F3F4F6;color:var(--muted);">✕ Cancelled</span>':'<span class="sp sp-w">⏳ Waiting</span>';
   const sty1Opts='<option value="">— Stylist 1 —</option>'+STYLISTS.map(s=>'<option value="'+s+'"'+(r.stylist===s?' selected':'')+'>'+s+'</option>').join('');
   const sty2Opts='<option value="">— Stylist 2 —</option>'+STYLISTS.map(s=>'<option value="'+s+'"'+(r.stylist2===s?' selected':'')+'>'+s+'</option>').join('');
   const svcOpts=SVCS.map(s=>'<option'+(r.service===s?' selected':'')+'>'+s+'</option>').join('');
@@ -638,8 +609,8 @@ function buildRow(r){
     +'<td><div class="tok-b '+(guest?'guest':'')+'">'+String(r.token_number).padStart(2,'0')+'</div></td>'
     // Name + pills on mobile line
     +'<td>'
-      +'<div style="font-weight:800;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+(r.customer_name||'')+'</div>'
-      +'<div style="font-size:12.5px;color:var(--muted);display:flex;align-items:center;flex-wrap:wrap;gap:2px;">'
+      +'<div style="font-weight:800;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+(r.customer_name||'')+'</div>'
+      +'<div style="font-size:10.5px;color:var(--muted);display:flex;align-items:center;flex-wrap:wrap;gap:2px;">'
         +(guest?'👤 Guest':'📱 '+displayMob(r.mobile||''))
         +loyaltyCell
       +'</div>'
@@ -647,37 +618,38 @@ function buildRow(r){
     // Service
     +'<td><select class="isel" onchange="updF(\''+r.id+'\',\'service\',this.value)"'+(locked?' disabled':'')+'>'+svcOpts+'</select></td>'
     // Time
-    +'<td style="font-size:13px;color:var(--muted);">'+fmtT(r.checkin_time)+'</td>'
+    +'<td style="font-size:11px;color:var(--muted);">'+fmtT(r.checkin_time)+'</td>'
     // Stylists side by side
     +'<td><div style="display:flex;gap:3px;">'
       +'<select class="isel" style="flex:1;min-width:0;" onchange="updF(\''+r.id+'\',\'stylist\',this.value)"'+(locked?' disabled':'')+'>'+sty1Opts+'</select>'
       +'<select class="isel" style="flex:1;min-width:0;" onchange="updF(\''+r.id+'\',\'stylist2\',this.value)"'+(locked?' disabled':'')+'>'+sty2Opts+'</select>'
     +'</div></td>'
-    // Val + Tip + Payment on top row with labels, Remark smaller below
-    +'<td><div style="display:flex;gap:3px;align-items:center;margin-bottom:3px;">'
-      +'<div style="display:flex;flex-direction:column;align-items:center;gap:1px;">'
-        +'<span style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;">AED</span>'
-        +'<input class="isel" type="number" min="0" max="9999" step="5" placeholder="—" value="'+(svcVal||'')+'" style="width:52px;text-align:center;" '+(locked?'disabled ':'')+
-          'onblur="updF(\''+r.id+'\',\'service_value\',this.value?Number(this.value):null)" onkeydown="if(event.key===\'Enter\')this.blur()"/>'
-      +'</div>'
-      +'<div style="display:flex;flex-direction:column;align-items:center;gap:1px;">'
-        +'<span style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;">Tip</span>'
-        +'<input class="isel" type="number" min="0" max="9999" step="5" placeholder="—" value="'+(tip||'')+'" style="width:44px;text-align:center;" '+(locked?'disabled ':'')+
-          'onblur="updF(\''+r.id+'\',\'tip\',this.value?Number(this.value):null)" onkeydown="if(event.key===\'Enter\')this.blur()"/>'
-      +'</div>'
-      +'<div style="display:flex;flex-direction:column;align-items:center;gap:1px;">'
-        +'<span style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;">Pay</span>'
-        +'<select class="isel" style="width:66px;font-size:12px;padding:5px 4px;" '+(locked?'disabled ':'')+
-          'onchange="updF(\''+r.id+'\',\'payment_method\',this.value||null)">'
-          +'<option value="" '+((!r.payment_method)?'selected':'')+'>—</option>'
-          +'<option value="cash" '+(r.payment_method==='cash'?'selected':'')+'>💵 Cash</option>'
-          +'<option value="card" '+(r.payment_method==='card'?'selected':'')+'>💳 Card</option>'
-        +'</select>'
-      +'</div>'
-    +'</div>'
-    +'<input class="isel" type="text" placeholder="Remark..." maxlength="40" value="'+remark+'" style="width:100%;font-size:12.5px;padding:4px 6px;color:var(--muted);" '+(locked?'disabled ':'')+
-      'onblur="updF(\''+r.id+'\',\'remark\',this.value)" onkeydown="if(event.key===\'Enter\')this.blur()"/>'
-    +'</td>'
+    // Val + Tip + Payment row, Remark below
+    +(()=>{
+      const pmtVal=r.payment_type||'';
+      const pmtOpts=['','Cash','Credit'].map(p=>'<option value="'+p+'"'+(pmtVal===p?' selected':'')+'>'+( p||'— Pay —')+'</option>').join('');
+      return '<td>'
+        +'<div style="display:flex;gap:4px;align-items:flex-end;margin-bottom:3px;">'
+          +'<div style="display:flex;flex-direction:column;align-items:center;gap:1px;">'
+            +'<span style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;">AED</span>'
+            +'<input id="aed-'+r.id+'" class="isel" type="number" min="0" max="9999" step="5" placeholder="—" value="'+(svcVal||'')+'" style="width:62px;text-align:center;" '+(locked?'disabled ':'')+
+              'onblur="updF(\''+r.id+'\',\'service_value\',this.value?Number(this.value):null)" onkeydown="if(event.key===\'Enter\')this.blur()"/>'
+          +'</div>'
+          +'<div style="display:flex;flex-direction:column;align-items:center;gap:1px;">'
+            +'<span style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;">Tip</span>'
+            +'<input id="tip-'+r.id+'" class="isel" type="number" min="0" max="9999" step="5" placeholder="—" value="'+(tip||'')+'" style="width:56px;text-align:center;" '+(locked?'disabled ':'')+
+              'onblur="updF(\''+r.id+'\',\'tip\',this.value?Number(this.value):null)" onkeydown="if(event.key===\'Enter\')this.blur()"/>'
+          +'</div>'
+          +'<div style="display:flex;flex-direction:column;align-items:center;gap:1px;">'
+            +'<span style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;">Pay</span>'
+            +'<select id="pmt-'+r.id+'" class="isel" style="width:68px;font-size:11px;" '+(locked?'disabled ':'')+
+              'onchange="updF(\''+r.id+'\',\'payment_type\',this.value)">'+pmtOpts+'</select>'
+          +'</div>'
+        +'</div>'
+        +'<input class="isel" type="text" placeholder="Remark..." maxlength="40" value="'+remark+'" style="width:100%;font-size:10.5px;padding:3px 5px;color:var(--muted);" '+(locked?'disabled ':'')+
+          'onblur="updF(\''+r.id+'\',\'remark\',this.value)" onkeydown="if(event.key===\'Enter\')this.blur()"/>'
+        +'</td>';
+    })()
     // Status
     +'<td>'+sp+'</td>'
     // Actions
@@ -685,7 +657,9 @@ function buildRow(r){
     +(done?'<button class="btn btn-ghost btn-sm" onclick="updS(\''+r.id+'\',\'waiting\')">↩ Undo</button>'
     :cancelled?''
     :(!called?'<button class="btn btn-b btn-sm" style="white-space:nowrap;" onclick="updS(\''+r.id+'\',\'called\')">📢 Call</button>':'')+
-     '<button class="btn btn-g btn-sm" style="white-space:nowrap;" onclick="markDone(\''+r.id+'\',\''+r.customer_id+'\',\''+escQ(r.customer_name)+'\',\''+r.mobile+'\')">✅ Stamp</button>'+
+     '<button class="btn btn-g btn-sm" style="white-space:nowrap;" '
+       +(!called?'disabled title="Call the customer first" style="opacity:.4;cursor:not-allowed;" ':'')
+       +'onclick="markDone(\''+r.id+'\',\''+r.customer_id+'\',\''+escQ(r.customer_name)+'\',\''+r.mobile+'\')">✅ Stamp</button>'+
      '<button class="btn btn-sm" style="background:#F3F4F6;color:var(--muted);white-space:nowrap;" onclick="cancelToken(\''+r.id+'\',\''+escQ(r.customer_name)+'\')">✕</button>')
     +'</div></td>'
     +'</tr>';
@@ -741,18 +715,18 @@ function histNav(dir){
 async function loadHist(){
   const date=histGetDate();
   const body=document.getElementById('hist-body');
-  if(body)body.innerHTML='<tr><td colspan="12" style="text-align:center;padding:30px;color:var(--muted);"><div style="display:inline-block;width:20px;height:20px;border:3px solid var(--border);border-top-color:var(--b);border-radius:50%;animation:spin .7s linear infinite;margin-bottom:8px;"></div><br>Loading '+date+'...</td></tr>';
+  if(body)body.innerHTML='<tr><td colspan="10" style="text-align:center;padding:30px;color:var(--muted);">Loading '+date+'...</td></tr>';
   const sumEl=document.getElementById('hist-summary');if(sumEl)sumEl.style.display='none';
   try{
     const rows=await sb('queue','GET',null,'select=*&checkin_date=eq.'+date+'&order=token_number.asc&limit=500');
     _histData=rows||[];renderHist();
-  }catch(e){if(body)body.innerHTML='<tr><td colspan="12" style="color:var(--err);padding:16px;">Error: '+e.message+'</td></tr>';}
+  }catch(e){if(body)body.innerHTML='<tr><td colspan="10" style="color:var(--err);padding:16px;">Error: '+e.message+'</td></tr>';}
 }
 function renderHist(){
   const body=document.getElementById('hist-body');if(!body)return;
   const date=histGetDate();const isToday=date===today();
   const data=_histData;
-  if(!data.length){body.innerHTML='<tr><td colspan="12" style="text-align:center;padding:40px;color:var(--muted);">No records for '+date+' 🐼</td></tr>';return;}
+  if(!data.length){body.innerHTML='<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--muted);">No records for '+date+' 🐼</td></tr>';return;}
   const totalTips=data.filter(r=>r.tip>0).reduce((s,r)=>s+(Number(r.tip)||0),0);
   const totalRev=data.filter(r=>r.service_value>0).reduce((s,r)=>s+(Number(r.service_value)||0),0);
   const done=data.filter(r=>r.status==='done').length;
@@ -764,31 +738,85 @@ function renderHist(){
       +(totalRev||totalTips?' · Combined: <strong>AED '+(totalRev+totalTips)+'</strong>':'');}
   body.innerHTML=data.slice().reverse().map(r=>{
     const done=r.status==='done';const called=r.status==='called';const cancelled=r.status==='cancelled';const guest=r.is_guest;
-    const sp=done?'<span class="sp sp-d">✅ Done</span>':called?'<span class="sp sp-c">📢 Called</span>':cancelled?'<span class="sp" style="background:#F3F4F6;color:var(--muted);">✕ Cancelled</span>':'<span class="sp sp-w">⏳ Waiting</span>';
+    const sp=done?'<span class="sp sp-d">✅ Done</span>':called?'<span class="sp sp-c">📢 Called</span>':cancelled?'<span class="sp" style="background:#F3F4F6;color:var(--muted);">✕ Cancelled</span>':guest?'<span class="sp sp-g">👤 Guest</span>':'<span class="sp sp-w">⏳ Waiting</span>';
     const styStr=[r.stylist,r.stylist2].filter(Boolean).join(' & ');
-    const pm=r.payment_method==='card'?'💳 Card':r.payment_method==='cash'?'💵 Cash':'—';
-    const pmColor=r.payment_method==='card'?'color:var(--b)':r.payment_method==='cash'?'color:var(--ok)':'color:var(--muted)';
+    const hasMob=r.mobile&&!String(r.mobile).startsWith('GUEST')&&String(r.mobile).replace(/\D/g,'').length>4;
+    const waHistBtn=hasMob
+      ?'<button class="btn btn-sm" style="background:#25D366;color:#fff;font-size:11px;white-space:nowrap;" onclick="showHistWA(\''+r.id+'\')" >💬 WA</button>'
+      :'';
     return'<tr class="'+(done?'done':called?'called':cancelled?'done':'')+'">'
       +'<td><div class="tok-b '+(guest?'guest':'')+'">'+String(r.token_number).padStart(2,'0')+'</div></td>'
-      +'<td style="font-weight:700;">'+(r.customer_name||'')+'</td>'
-      +'<td style="font-size:12px;color:var(--muted);">'+(r.mobile?displayMob(r.mobile):'—')+'</td>'
+      +'<td>'
+        +'<div style="font-weight:700;">'+(r.customer_name||'')+'</div>'
+        +(hasMob?'<div style="font-size:11px;color:var(--muted);margin-top:1px;">📱 '+displayMob(r.mobile)+'</div>':guest?'<div style="font-size:11px;color:var(--muted);">👤 Guest</div>':'')
+      +'</td>'
       +'<td>'+(r.service||'—')+'</td>'
       +'<td>'+(styStr||'<span style="color:var(--muted);">—</span>')+'</td>'
       +'<td style="font-weight:800;color:var(--b);">'+(r.service_value?'AED '+r.service_value:'—')+'</td>'
       +'<td style="font-weight:800;color:var(--ok);">'+(r.tip?'AED '+r.tip:'—')+'</td>'
-      +'<td style="font-size:13.5px;font-weight:700;'+pmColor+';">'+pm+'</td>'
-      +'<td style="font-size:13px;color:var(--muted);max-width:140px;">'+(r.remark||'—')+'</td>'
+      +'<td style="font-size:12px;color:var(--muted);max-width:160px;">'+(r.remark||'—')+'</td>'
       +'<td>'+sp+'</td>'
       +'<td style="font-size:12px;color:var(--muted);">'+fmtT(r.checkin_time)+'</td>'
-      +'<td><button class="btn btn-ghost btn-sm" style="font-size:11px;" onclick="editHistRow(\''+r.id+'\')">✏️ Edit</button></td>'
+      +'<td><div style="display:flex;flex-direction:column;gap:4px;">'
+        +'<button class="btn btn-ghost btn-sm" style="font-size:11px;" onclick="editHistRow(\''+r.id+'\')" >✏️ Edit</button>'
+        +waHistBtn
+      +'</div></td>'
       +'</tr>';
   }).join('')
   +'<tr style="background:#F0FDF4;font-weight:900;border-top:2px solid #86EFAC;">'
-    +'<td colspan="5" style="padding:12px 14px;color:var(--ok);font-size:13px;">💰 Totals</td>'
+    +'<td colspan="4" style="padding:12px 14px;color:var(--ok);font-size:13px;">💰 Totals</td>'
     +'<td style="padding:12px 14px;color:var(--b);font-size:15px;">AED '+totalRev+'</td>'
     +'<td style="padding:12px 14px;color:var(--ok);font-size:15px;">AED '+totalTips+'</td>'
-    +'<td colspan="5" style="padding:12px 14px;color:var(--muted);font-size:12px;">Combined: AED '+(totalRev+totalTips)+'</td>'
+    +'<td colspan="4" style="padding:12px 14px;color:var(--muted);font-size:12px;">Combined: AED '+(totalRev+totalTips)+'</td>'
   +'</tr>';
+}
+
+
+function showHistWA(id){
+  const r=_histData.find(x=>x.id===id);if(!r)return;
+  const mob=r.mobile||'';
+  if(!mob||mob.startsWith('GUEST')||mob.replace(/\D/g,'').length<5){toast('No phone number for this customer','err');return;}
+  const name=r.customer_name||'Customer';
+  const stamps=1; // History WA: use generic stamp-count message; actual count not stored in queue row
+  const custData=_custMap[r.customer_id]||{};
+  const actualStamps=Number(custData.stamps||0)||0;
+  const paid=5;
+  const freeMsg=actualStamps>=paid
+    ?'🎉 Amazing news — '+name+' has earned a FREE Hair Wash! Come in anytime to claim it! 🚿'
+    :(actualStamps>0?'You now have '+actualStamps+' stamp'+(actualStamps!==1?'s':'')+' — just '+(paid-actualStamps)+' more haircut'+(paid-actualStamps!==1?'s':'')+' for a FREE hair wash! 🚿':'Thanks for visiting MiniCuts! 🐼');
+  const styStr=[r.stylist,r.stylist2].filter(Boolean).join(' & ');
+  const waMsg=(WA_TEMPLATE||DEFAULT_WA_TEMPLATE)
+    .replace(/\{name\}/g,name)
+    .replace(/\{parent\}/g,custData.parent||name)
+    .replace(/\{stamps\}/g,String(actualStamps))
+    .replace(/\{left\}/g,String(Math.max(0,paid-actualStamps)))
+    .replace(/\{stylist\}/g,styStr||'our stylist')
+    .replace(/\{free_msg\}/g,freeMsg)
+    .replace(/\{passport_link\}/g,WA_PASSPORT_BASE+encodeURIComponent(mob))
+    .replace(/\{google_link\}/g,WA_GOOGLE)
+    .replace(/\{insta_link\}/g,WA_INSTA);
+  const wa='https://wa.me/'+toWANum(mob)+'?text='+encodeURIComponent(waMsg);
+  const ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9000;display:flex;align-items:center;justify-content:center;padding:20px;';
+  ov.innerHTML='<div style="background:#fff;border-radius:18px;padding:24px;max-width:420px;width:100%;">'
+    +'<div style="text-align:center;margin-bottom:14px;">'
+      +'<div style="font-size:40px;margin-bottom:8px;">💬</div>'
+      +'<div style="font-family:var(--fh);font-size:19px;font-weight:800;color:var(--bd);">Send WhatsApp</div>'
+      +'<div style="font-size:13px;color:var(--muted);margin-top:4px;">'+name+' · 📱 '+displayMob(mob)+'</div>'
+    +'</div>'
+    +'<div style="margin-bottom:12px;">'
+      +'<div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em;">Message Preview — tap to edit</div>'
+      +'<textarea id="wa-hist-preview" style="width:100%;padding:10px;border:1.5px solid var(--border);border-radius:10px;font-size:12px;line-height:1.6;resize:vertical;font-family:inherit;min-height:140px;outline:none;">'+waMsg.replace(/</g,'&lt;')+'</textarea>'
+    +'</div>'
+    +'<a id="wa-hist-send" href="'+wa+'" target="_blank" style="display:block;width:100%;padding:12px;background:#25D366;color:#fff;border-radius:11px;font-family:var(--fh);font-size:15px;font-weight:800;text-decoration:none;margin-bottom:9px;text-align:center;box-sizing:border-box;">💬 Send WhatsApp</a>'
+    +'<button style="width:100%;padding:10px;border:1.5px solid var(--border);border-radius:9px;background:transparent;cursor:pointer;font-family:var(--fh);font-size:14px;font-weight:700;">Close</button>'
+    +'</div>';
+  const preview=ov.querySelector('#wa-hist-preview');
+  const sendBtn=ov.querySelector('#wa-hist-send');
+  if(preview&&sendBtn){preview.addEventListener('input',function(){sendBtn.href='https://wa.me/'+toWANum(mob)+'?text='+encodeURIComponent(this.value);});}
+  ov.querySelector('button').addEventListener('click',()=>ov.remove());
+  ov.addEventListener('click',e=>{if(e.target===ov)ov.remove();});
+  document.body.appendChild(ov);
 }
 
 function editHistRow(id){
@@ -811,20 +839,20 @@ function editHistRow(id){
           <div><label style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px;">Stylist 2</label>
             <select id="eh-sty2" class="fi" style="font-size:13px;"><option value="">— None —</option>${sty2Opts}</select></div>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
           <div><label style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px;">💵 Service Value (AED)</label>
             <input id="eh-val" class="fi" type="number" min="0" step="5" value="${r.service_value||''}" placeholder="0" style="font-size:13px;"/></div>
           <div><label style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px;">💰 Tip (AED)</label>
             <input id="eh-tip" class="fi" type="number" min="0" step="5" value="${r.tip||''}" placeholder="0" style="font-size:13px;"/></div>
+          <div><label style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px;">💳 Payment</label>
+            <select id="eh-pmt" class="fi" style="font-size:13px;">
+              <option value="">— Select —</option>
+              <option value="Cash"${r.payment_type==='Cash'?' selected':''}>💵 Cash</option>
+              <option value="Credit"${r.payment_type==='Credit'?' selected':''}>💳 Credit</option>
+            </select></div>
         </div>
         <div><label style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px;">📝 Remark</label>
           <input id="eh-rem" class="fi" type="text" maxlength="120" value="${escQ(r.remark||'')}" placeholder="Optional note..." style="font-size:13px;"/></div>
-        <div><label style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px;">💳 Payment Method</label>
-          <select id="eh-pay" class="fi" style="font-size:13px;">
-            <option value="" ${!r.payment_method?'selected':''}>— Not recorded —</option>
-            <option value="cash" ${r.payment_method==='cash'?'selected':''}>💵 Cash</option>
-            <option value="card" ${r.payment_method==='card'?'selected':''}>💳 Card</option>
-          </select></div>
       </div>
       <div id="eh-msg" style="display:none;margin-top:10px;padding:8px 12px;border-radius:8px;font-size:12.5px;font-weight:700;"></div>
       <div style="display:flex;gap:9px;margin-top:18px;">
@@ -843,15 +871,15 @@ async function saveHistEdit(id,btn){
   const val=document.getElementById('eh-val')?.value;
   const tip=document.getElementById('eh-tip')?.value;
   const rem=document.getElementById('eh-rem')?.value.trim()||null;
-  const pay=document.getElementById('eh-pay')?.value||null;
   const msg=document.getElementById('eh-msg');
   const service_value=val?Number(val):null;
   const tipVal=tip?Number(tip):null;
+  const payment_type=document.getElementById('eh-pmt')?.value||null;
   if(btn){btn.disabled=true;btn.textContent='Saving...';}
   try{
-    await sb('queue','PATCH',{service:svc,stylist:sty1,stylist2:sty2,service_value,tip:tipVal,remark:rem,payment_method:pay},'id=eq.'+id);
+    await sb('queue','PATCH',{service:svc,stylist:sty1,stylist2:sty2,service_value,tip:tipVal,remark:rem,payment_type},'id=eq.'+id);
     const r=_histData.find(x=>x.id===id)||_qdata.find(x=>x.id===id);
-    if(r){r.service=svc;r.stylist=sty1;r.stylist2=sty2;r.service_value=service_value;r.tip=tipVal;r.remark=rem;r.payment_method=pay;}
+    if(r){r.service=svc;r.stylist=sty1;r.stylist2=sty2;r.service_value=service_value;r.tip=tipVal;r.remark=rem;r.payment_type=payment_type;}
     renderHist();
     toast('Record updated ✅');
     btn.closest('[style*=fixed]').remove();
@@ -881,19 +909,29 @@ async function cancelToken(id,name){
 }
 async function markDone(qid,cid,name,mob){
   const row=document.getElementById('qr-'+qid);
-  const inputs=row?.querySelectorAll('input[type="text"],input[type="number"]');
-  const svcValInput=row?.querySelectorAll('input[type="number"]')[0];
-  const tipInput=row?.querySelectorAll('input[type="number"]')[1];
+  const svcValInput=document.getElementById('aed-'+qid)||row?.querySelectorAll('input[type="number"]')[0];
+  const tipInput=document.getElementById('tip-'+qid)||row?.querySelectorAll('input[type="number"]')[1];
+  const pmtSelect=document.getElementById('pmt-'+qid);
   const remarkInput=row?.querySelector('input[type="text"]');
   const remark=(remarkInput?.value||'').trim()||null;
   const tip=tipInput?.value?Number(tipInput.value):null;
   const service_value=svcValInput?.value?Number(svcValInput.value):null;
+  const payment_type=pmtSelect?.value||null;
+  // Validation: AED and payment type are required
+  if(!service_value){
+    if(svcValInput){svcValInput.style.borderColor='var(--err)';svcValInput.focus();}
+    toast('Enter AED value before stamping ❌','err');return;
+  }
+  if(!payment_type){
+    if(pmtSelect){pmtSelect.style.borderColor='var(--err)';pmtSelect.focus();}
+    toast('Select Cash or Credit before stamping ❌','err');return;
+  }
   const qRow=_qdata.find(x=>x.id===qid);
   const stylist=qRow?.stylist||null;
   const stylist2=qRow?.stylist2||null;
   const doneBtn=row?.querySelector('.btn-g');if(doneBtn){doneBtn.disabled=true;doneBtn.textContent='...';}
   try{
-    await sb('queue','PATCH',{status:'done',done_at:new Date().toISOString(),remark,tip,service_value},'id=eq.'+qid);
+    await sb('queue','PATCH',{status:'done',done_at:new Date().toISOString(),remark,tip,service_value,payment_type},'id=eq.'+qid);
     if(cid&&cid!=='null'&&cid){
       const rows=await sb('customers','GET',null,'select=*&id=eq.'+cid);
       if(rows?.length){
@@ -918,7 +956,7 @@ async function markDone(qid,cid,name,mob){
         showWAPrompt(name,ns,mob,c.parent,c.gender,stylist,stylist2,remark,tip,service_value);
       }
     } else { toast(name+' done (guest)'+(service_value?' · AED '+service_value:'')+(tip?' · Tip AED '+tip:''),'info'); }
-    if(qRow){qRow.status='done';qRow.remark=remark;qRow.tip=tip;qRow.service_value=service_value;}
+    if(qRow){qRow.status='done';qRow.remark=remark;qRow.tip=tip;qRow.service_value=service_value;qRow.payment_type=payment_type;}
     renderQ();renderHist();updateStats();
   }catch(e){toast('Error: '+e.message,'err');if(doneBtn){doneBtn.disabled=false;doneBtn.textContent='✅ Done+Stamp';}}
 }
@@ -1280,7 +1318,7 @@ function renderFreeWash(){
       </div>
       <div style="display:flex;gap:7px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;">
         ${!c.expired?`<a href="${wa}" target="_blank" class="btn btn-ghost btn-sm" style="font-size:12px;text-decoration:none;">💬 Remind</a>`:''}
-        ${!c.expired?`<button class="btn btn-y btn-sm" onclick="markFreeWashGiven('${c.id}','${escQ(c.name)}',this)">🚿 Mark Given</button>`:'<span style="color:var(--err);font-size:13.5px;font-weight:700;">Expired — cycle reset needed</span>'}
+        ${!c.expired?`<button class="btn btn-y btn-sm" onclick="markFreeWashGiven('${c.id}','${escQ(c.name)}',this)">🚿 Mark Given</button>`:'<span style="color:var(--err);font-size:12px;font-weight:700;">Expired — cycle reset needed</span>'}
       </div>
     </div>`;
   }).join('');
@@ -1309,141 +1347,11 @@ async function markFreeWashGiven(id,name,btn){
   }
 }
 
-// ══ AUTH ══
-const SESSION_KEY='mc_staff_session';
-const SESSION_HOURS=8;
-const EMERGENCY_CODE='PANDA@MINICUTS2025';
+// AUTO REFRESH
+setInterval(()=>{if(document.getElementById('t-queue').classList.contains('active'))loadQ();},120000);
 
-function togglePinVis(){
-  var inp=document.getElementById('login-pin');
-  var eye=document.getElementById('pin-eye');
-  if(inp.type==='password'){inp.type='text';eye.textContent='🙈';}
-  else{inp.type='password';eye.textContent='👁';}
-}
-
-function showPinReset(){
-  var box=document.getElementById('reset-box');
-  box.style.display=box.style.display==='none'?'block':'none';
-  document.getElementById('reset-code').value='';
-  document.getElementById('reset-msg').style.display='none';
-}
-
-function showLoginError(msg){
-  var el=document.getElementById('login-error');
-  el.textContent=msg;el.style.display='block';
-  setTimeout(function(){el.style.display='none';},3500);
-}
-
-async function doStaffLogin(){
-  var user=document.getElementById('login-user').value.trim();
-  var pin=document.getElementById('login-pin').value.trim();
-  var btn=document.getElementById('login-btn');
-  if(!user||!pin){showLoginError('Please enter both username and PIN.');return;}
-  btn.textContent='Checking...';btn.disabled=true;
-  try{
-    // Check Supabase staff_config for credentials
-    var rows=await sb('staff_config','GET',null,'key=eq.credentials&select=value&limit=1');
-    var creds=rows&&rows[0]?JSON.parse(rows[0].value||'{}'):null;
-    var matched=false;
-    if(creds&&creds.user&&creds.pass){
-      matched=(user===creds.user&&pin===creds.pass);
-    }
-    // Fallback: check local defaults
-    if(!matched){matched=(user==='admin'&&pin==='minicuts123');}
-    if(matched){
-      // Save session
-      var session={user:user,ts:Date.now(),expires:Date.now()+(SESSION_HOURS*3600*1000)};
-      sessionStorage.setItem(SESSION_KEY,JSON.stringify(session));
-      showApp(user);
-    } else {
-      showLoginError('❌ Incorrect username or PIN. Please try again.');
-      document.getElementById('login-pin').value='';
-      document.getElementById('login-pin').focus();
-    }
-  }catch(e){
-    // Network error — try local fallback
-    if(user==='admin'&&pin==='minicuts123'){
-      sessionStorage.setItem(SESSION_KEY,JSON.stringify({user:user,ts:Date.now(),expires:Date.now()+(SESSION_HOURS*3600*1000)}));
-      showApp(user);
-    } else {
-      showLoginError('Connection error. Check your internet and try again.');
-    }
-  }finally{
-    btn.textContent='Login →';btn.disabled=false;
-  }
-}
-
-function showApp(user){
-  document.getElementById('login-screen').style.display='none';
-  document.getElementById('main-app').style.display='block';
-  var badge=document.getElementById('staff-name-badge');
-  if(badge) badge.textContent='✂️ '+user.charAt(0).toUpperCase()+user.slice(1);
-  // Load queue on entry
-  loadAllConfig().then(function(){loadQ();populateStyFilter();});
-  // Auto-lock check every minute
-  setInterval(checkSessionExpiry,60000);
-}
-
-function checkSessionExpiry(){
-  try{
-    var sess=JSON.parse(sessionStorage.getItem(SESSION_KEY)||'null');
-    if(!sess||Date.now()>sess.expires){doLogout(true);}
-  }catch(e){doLogout(true);}
-}
-
-function doLogout(expired){
-  sessionStorage.removeItem(SESSION_KEY);
-  document.getElementById('main-app').style.display='none';
-  document.getElementById('login-screen').style.display='flex';
-  document.getElementById('login-user').value='';
-  document.getElementById('login-pin').value='';
-  document.getElementById('reset-box').style.display='none';
-  if(expired) showLoginError('⏰ Session expired after '+SESSION_HOURS+' hours. Please log in again.');
-}
-
-async function doReset(){
-  var code=document.getElementById('reset-code').value.trim().toUpperCase();
-  var msg=document.getElementById('reset-msg');
-  if(!code){return;}
-  // Check against DB reset code or emergency code
-  var valid=false;
-  try{
-    var rows=await sb('staff_config','GET',null,'key=eq.credentials&select=value&limit=1');
-    var creds=rows&&rows[0]?JSON.parse(rows[0].value||'{}'):null;
-    if(creds&&creds.resetCode&&code===creds.resetCode.toUpperCase()) valid=true;
-  }catch(e){}
-  if(code===EMERGENCY_CODE) valid=true;
-  if(valid){
-    // Reset to defaults in DB
-    try{
-      await sb('staff_config','POST',{key:'credentials',value:JSON.stringify({user:'admin',pass:'minicuts123',resetCode:'MINICUTS2025'}),updated_at:new Date().toISOString()},'on_conflict=key');
-    }catch(e){}
-    msg.style.display='block';msg.style.color='var(--ok)';
-    msg.textContent='✅ Reset! Username: admin · PIN: minicuts123';
-    document.getElementById('login-user').value='admin';
-    document.getElementById('login-pin').value='minicuts123';
-  } else {
-    msg.style.display='block';msg.style.color='var(--err)';
-    msg.textContent='❌ Wrong code. Try your saved reset code or: PANDA@MINICUTS2025';
-  }
-}
-
-// Check existing session on load
-(function checkSession(){
-  try{
-    var sess=JSON.parse(sessionStorage.getItem(SESSION_KEY)||'null');
-    if(sess&&sess.user&&Date.now()<sess.expires){
-      showApp(sess.user);return;
-    }
-  }catch(e){}
-  // No valid session — show login
-  document.getElementById('login-screen').style.display='flex';
-})();
-
-// AUTO REFRESH — queue tab only
-setInterval(()=>{if(document.getElementById('t-queue')?.classList.contains('active'))loadQ();},120000);
+// INIT — load config from DB first, then load queue
+loadAllConfig().then(()=>{loadQ();populateStyFilter();});
 </script>
-</div><!-- end main-app -->
-
 </body>
 </html>
