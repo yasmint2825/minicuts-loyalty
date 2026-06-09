@@ -354,7 +354,7 @@ function setMobileFields(pfxId,numId,mobile){
     <div id="allDoneCard" style="display:none;text-align:center;padding:8px 0;">
       <div style="font-size:32px;">🐼</div>
       <div style="font-family:'Baloo 2',cursive;font-size:15px;font-weight:800;color:var(--bd);margin:4px 0;">Amazing! All 3 games done!</div>
-      <div style="font-size:11px;color:#6B7280;">You're all done for today! 🎈</div>
+      <div style="font-size:11px;color:#6B7280;">All done for today! 🎈</div>
     </div>
   </div>
   <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;">
@@ -651,7 +651,7 @@ function renderRemainingGames(){
     el.innerHTML='<div style="background:rgba(22,163,74,.15);border:1px solid rgba(22,163,74,.3);border-radius:10px;padding:10px;text-align:center;">'+
       '<div style="font-size:22px;">🏆</div>'+
       '<div style="font-size:13px;font-weight:800;color:#4ADE80;margin-top:4px;">All 3 games done today!</div>'+
-      '<div style="font-size:11px;color:rgba(255,255,255,.5);margin-top:2px;">You're all done for today! 🌟</div>'+
+      '<div style="font-size:11px;color:rgba(255,255,255,.5);margin-top:2px;">All done for today! 🌟</div>'+
     '</div>';
     return;
   }
@@ -719,7 +719,7 @@ function refreshGameCards(){
     doneCard.style.display='block';
     doneCard.innerHTML='<div style="font-size:36px;">🎉</div>'+
       '<div style="font-size:15px;font-weight:800;color:var(--bd);margin:4px 0;">All 3 games done! Amazing!</div>'+
-      '<div style="font-size:11px;color:#6B7280;">You're all done for today! 🎈</div>';
+      '<div style="font-size:11px;color:#6B7280;">All done for today! 🎈</div>';
     if(prompt) prompt.textContent='';
     return;
   }
