@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>MiniCuts · Staff Management</title>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800;900&family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --y:#FFD600;--b:#1565C0;--bd:#0D47A1;--bm:#1976D2;
+  --ok:#16A34A;--okl:#DCFCE7;--err:#DC2626;--errl:#FEE2E2;
+  --warn:#D97706;--warnl:#FEF3C7;--pink:#EC4899;--pinkl:#FCE7F3;
+  --bg:#F0F4FF;--card:#fff;--text:#1A1A2E;--muted:#6B7280;--border:#E5E7EB;
+  --bl:#E3F0FF;--r:12px;--rs:8px;--fh:'Baloo 2',cursive;--fb:'Nunito',sans-serif;
+  --sh:0 2px 12px rgba(13,71,161,.08);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;font-family:var(--fb);background:var(--bg);color:var(--text);}
+body{display:flex;flex-direction:column;overflow:hidden;}
+
+/* TOPBAR */
+.top{background:linear-gradient(135deg,var(--bd),var(--bm));padding:10px 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.top-brand{font-family:var(--fh);font-size:15px;font-weight:900;color:#fff;display:flex;align-items:center;gap:8px;}
+.top-right{display:flex;align-items:center;gap:8px;}
+.top-link{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);color:#fff;padding:5px 11px;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;cursor:pointer;}
+.top-link:hover{background:rgba(255,255,255,.25);}
+
+/* TABS */
+.tab-bar{background:#fff;border-bottom:2px solid var(--border);display:flex;padding:0 20px;flex-shrink:0;overflow-x:auto;}
+.tab-btn{padding:10px 16px;font-family:var(--fb);font-size:13px;font-weight:700;color:var(--muted);border:none;background:transparent;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;white-space:nowrap;transition:all .15s;}
+.tab-btn:hover{color:var(--text);}
+.tab-btn.active{color:var(--b);border-bottom-color:var(--b);}
+
+/* CONTENT */
+.content{flex:1;overflow-y:auto;padding:18px 20px;}
+.tab-pane{display:none;}
+
+/* SHARED COMPONENTS */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:8px 14px;border-radius:var(--rs);font-family:var(--fb);font-weight:700;font-size:13px;cursor:pointer;border:none;transition:all .15s;line-height:1;white-space:nowrap;}
+.btn:disabled{opacity:.45;cursor:not-allowed;}
+.bp{background:var(--b);color:#fff;}.bp:hover{background:var(--bd);}
+.bg2{background:transparent;color:var(--b);border:1.5px solid var(--b);}.bg2:hover{background:var(--bl);}
+.bd2{background:var(--err);color:#fff;}.bd2:hover{background:#b91c1c;}
+.bsm{padding:5px 10px;font-size:12px;border-radius:6px;}
+.card{background:#fff;border-radius:var(--r);padding:18px;margin-bottom:14px;box-shadow:var(--sh);}
+.fg{margin-bottom:12px;}
+.fl{display:block;font-size:12px;font-weight:700;color:var(--text);margin-bottom:4px;}
+.fi{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:var(--rs);font-family:var(--fb);font-size:13.5px;color:var(--text);background:#fff;outline:none;transition:border-color .15s;}
+.fi:focus{border-color:var(--b);box-shadow:0 0 0 3px rgba(21,101,192,.1);}
+select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236B7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 10px center;padding-right:28px;cursor:pointer;}
+.fr{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.tw{overflow-x:auto;border-radius:var(--r);box-shadow:var(--sh);}
+table{width:100%;border-collapse:collapse;background:#fff;}
+thead{background:var(--bd);}
+thead th{color:#fff;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:11px 12px;text-align:left;white-space:nowrap;}
+tbody tr{border-bottom:1px solid var(--border);}
+tbody tr:last-child{border-bottom:none;}
+tbody tr:hover{background:var(--bl);}
+tbody td{padding:10px 12px;font-size:13px;vertical-align:middle;}
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:700;}
+.bg-ok{background:var(--okl);color:var(--ok);}
+.bg-warn{background:var(--warnl);color:var(--warn);}
+.bg-err{background:var(--errl);color:var(--err);}
+.bg-b{background:var(--bl);color:var(--b);}
+.bg-p{background:var(--pinkl);color:var(--pink);}
+.load{display:flex;align-items:center;justify-content:center;padding:40px;gap:10px;color:var(--muted);font-size:13px;}
+.spin{width:20px;height:20px;border:3px solid var(--border);border-top-color:var(--b);border-radius:50%;animation:sp .7s linear infinite;}
+@keyframes sp{to{transform:rotate(360deg)}}
+.uz{border:2px dashed var(--border);border-radius:var(--r);padding:24px;text-align:center;cursor:pointer;background:#fff;}
+.uz:hover{border-color:var(--b);background:var(--bl);}
+
+/* MODALS */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;display:flex;align-items:center;justify-content:center;padding:16px;opacity:0;pointer-events:none;transition:opacity .2s;}
+.modal-bg.open{opacity:1;pointer-events:all;}
+.modal{background:#fff;border-radius:var(--r);padding:24px;width:100%;max-width:480px;box-shadow:0 8px 40px rgba(0,0,0,.2);transform:scale(.95);transition:transform .2s;max-height:90vh;overflow-y:auto;}
+.modal-bg.open .modal{transform:scale(1);}
+.mt{font-family:var(--fh);font-size:18px;font-weight:800;margin-bottom:16px;display:flex;align-items:center;gap:7px;}
+.mf{display:flex;gap:8px;margin-top:16px;justify-content:flex-end;}
+
+/* TOAST */
+.tc{position:fixed;bottom:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:7px;}
+.toast{background:#fff;border-radius:var(--rs);padding:11px 16px;box-shadow:0 8px 28px rgba(0,0,0,.14);display:flex;align-items:center;gap:9px;font-size:13px;font-weight:700;min-width:220px;animation:ti .25s ease;}
+@keyframes ti{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+.toast.success{border-left:4px solid var(--ok);}
+.toast.error{border-left:4px solid var(--err);}
+.toast.info{border-left:4px solid var(--b);}
+
+@media(max-width:600px){.fr{grid-template-columns:1fr;}.content{padding:12px 14px;}}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="top">
+  <div class="top-brand">🐼 MiniCuts <span style="opacity:.6;font-size:13px;font-weight:700;">Staff Management</span></div>
+  <div class="top-right">
+    <a class="top-link" href="./minicuts-staff.html">← Back to Queue</a>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tab-bar" id="sm-tab-bar">
+  <button class="tab-btn active" onclick="smTab('roster',this)">📅 Roster</button>
+  <button class="tab-btn" onclick="smTab('attendance',this)">🕐 Attendance</button>
+  <button class="tab-btn" onclick="smTab('leaves',this)">🌴 Leaves</button>
+  <button class="tab-btn" onclick="smTab('overtime',this)">⏱ Overtime</button>
+  <button class="tab-btn" onclick="smTab('docs',this)">📋 Documents</button>
+  <button class="tab-btn" onclick="smTab('team',this)">👤 Team</button>
+  <button class="tab-btn" onclick="smTab('settings',this)">⚙️ Leave Types</button>
+</div>
+
+<!-- CONTENT -->
+<div class="content">
+
+  <!-- ROSTER -->
+  <div id="smtab-roster" class="tab-pane" style="display:block;">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <button class="btn bg2 bsm" onclick="smRosterPrevMonth()">‹ Prev</button>
+        <span id="sm-roster-title" style="font-family:var(--fh);font-size:16px;font-weight:800;min-width:160px;text-align:center;"></span>
+        <button class="btn bg2 bsm" onclick="smRosterNextMonth()">Next ›</button>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn bg2 bsm" onclick="smOpenRosterEvent()">+ Add Vacation/Adjustment</button>
+        <button class="btn bp bsm" onclick="smRenderRoster()">↻ Refresh</button>
+      </div>
+    </div>
+    <div id="sm-roster-grid" style="overflow-x:auto;"></div>
+    <div style="margin-top:14px;display:flex;gap:12px;flex-wrap:wrap;font-size:11.5px;font-weight:700;">
+      <span style="display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:14px;height:14px;border-radius:3px;background:#DCFCE7;border:1px solid #86EFAC;"></span>Working</span>
+      <span style="display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:14px;height:14px;border-radius:3px;background:#FEF9C3;border:1px solid #FDE047;"></span>Vacation/Leave</span>
+      <span style="display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:14px;height:14px;border-radius:3px;background:#DBEAFE;border:1px solid #93C5FD;"></span>Adjusted</span>
+      <span style="display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:14px;height:14px;border-radius:3px;background:#FFE4E6;border:1px solid #FDA4AF;"></span>Public Holiday</span>
+      <span style="display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:14px;height:14px;border-radius:3px;background:#F1F5F9;border:1px solid #CBD5E1;"></span>Off Day</span>
+      <span style="display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:14px;height:14px;border-radius:3px;background:#FFF7ED;border:1px solid #FDC78A;"></span>OT</span>
+    </div>
+  </div>
+
+  <!-- ATTENDANCE -->
+  <div id="smtab-attendance" class="tab-pane">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
+      <div style="font-size:13px;color:var(--muted);">Daily check-in / check-out · 62 hrs expected per period</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <input type="date" id="sm-att-date" class="fi" style="width:150px;padding:7px 10px;font-size:13px;">
+        <button class="btn bp bsm" onclick="smOpenCheckin()">+ Log Attendance</button>
+        <button class="btn bg2 bsm" onclick="smLoadAttendance()">↻ Refresh</button>
+      </div>
+    </div>
+    <div id="sm-att-summary" style="margin-bottom:14px;"></div>
+    <div id="sm-att-list"><div class="load"><div class="spin"></div>Loading…</div></div>
+  </div>
+
+  <!-- LEAVES -->
+  <div id="smtab-leaves" class="tab-pane">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
+      <div style="font-size:13px;color:var(--muted);">Leave records — configure types under the Leave Types tab</div>
+      <button class="btn bp bsm" onclick="smOpenLeave()">+ Add Leave</button>
+    </div>
+    <div id="sm-leaves-summary" style="margin-bottom:14px;"></div>
+    <div id="sm-leaves-list"><div class="load"><div class="spin"></div>Loading…</div></div>
+  </div>
+
+  <!-- OVERTIME -->
+  <div id="smtab-overtime" class="tab-pane">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
+      <div style="font-size:13px;color:var(--muted);">Overtime logs and adjustments</div>
+      <button class="btn bp bsm" onclick="smOpenOT()">+ Log Overtime</button>
+    </div>
+    <div id="sm-ot-summary" style="margin-bottom:14px;"></div>
+    <div id="sm-ot-list"><div class="load"><div class="spin"></div>Loading…</div></div>
+  </div>
+
+  <!-- DOCUMENTS -->
+  <div id="smtab-docs" class="tab-pane">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
+      <div style="font-size:13px;color:var(--muted);">Visa · EID · Health Certificate · Insurance · Renewal reminders 30 days before expiry</div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <select class="fi" id="sm-docs-filter" style="width:160px;" onchange="smLoadDocs()"><option value="">All Staff</option></select>
+        <button class="btn bg2 bsm" onclick="smLoadDocs()">↻ Refresh</button>
+      </div>
+    </div>
+    <div id="sm-docs-list"><div class="load"><div class="spin"></div>Loading…</div></div>
+  </div>
+
+  <!-- TEAM -->
+  <div id="smtab-team" class="tab-pane">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
+      <div style="font-size:13px;color:var(--muted);">Add and manage your salon team members</div>
+      <button class="btn bp bsm" onclick="smOpenAddStaff()">+ Add Staff Member</button>
+    </div>
+    <div id="sm-team-list"><div class="load"><div class="spin"></div>Loading…</div></div>
+  </div>
+
+  <!-- LEAVE TYPES SETTINGS -->
+  <div id="smtab-settings" class="tab-pane">
+    <div class="card" style="max-width:600px;">
+      <div style="font-family:var(--fh);font-size:16px;font-weight:800;margin-bottom:4px;">🌴 Leave Types</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:16px;">Configure leave types used when logging staff leaves. Changes apply immediately.</div>
+      <div id="leave-types-list" style="margin-bottom:14px;"></div>
+      <div style="display:flex;gap:8px;align-items:flex-end;padding:12px;background:var(--bg);border-radius:var(--rs);border:1.5px dashed var(--border);">
+        <div style="flex:1;">
+          <label class="fl">Key <span style="color:var(--muted);font-weight:600;">(no spaces)</span></label>
+          <input class="fi" type="text" id="lt-new-key" placeholder="e.g. maternity" oninput="this.value=this.value.replace(/\s/g,'').toLowerCase()">
+        </div>
+        <div style="flex:2;">
+          <label class="fl">Display Label</label>
+          <input class="fi" type="text" id="lt-new-label" placeholder="e.g. Maternity Leave">
+        </div>
+        <div style="flex:1;">
+          <label class="fl">Roster Code</label>
+          <input class="fi" type="text" id="lt-new-code" placeholder="ML" maxlength="3" oninput="this.value=this.value.toUpperCase()">
+        </div>
+        <div style="flex:1;">
+          <label class="fl">Colour</label>
+          <select class="fi" id="lt-new-color">
+            <option value="warn">🟡 Yellow</option>
+            <option value="err">🔴 Red</option>
+            <option value="b">🔵 Blue</option>
+            <option value="ok">🟢 Green</option>
+            <option value="pink">🩷 Pink</option>
+            <option value="purple">🟣 Purple</option>
+          </select>
+        </div>
+        <button class="btn bp" style="align-self:flex-end;white-space:nowrap;" onclick="ltAddType()">+ Add</button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- end .content -->
+
+<!-- TOAST -->
+<div class="tc" id="TC"></div>
+
+<!-- ══ MODALS ══ -->
+
+<!-- Add/Edit Staff -->
+<div class="modal-bg" id="sm-staff-modal">
+  <div class="modal" style="max-width:500px;">
+    <div class="mt">👤 <span id="sm-staff-modal-title">Add Staff Member</span></div>
+    <input type="hidden" id="sm-staff-id">
+    <div class="fr">
+      <div class="fg"><label class="fl">Full Name *</label><input class="fi" type="text" id="sm-s-name" placeholder="e.g. Lester Cruz"></div>
+      <div class="fg"><label class="fl">Role *</label>
+        <select class="fi" id="sm-s-role">
+          <option value="Stylist">Stylist</option>
+          <option value="Senior Stylist">Senior Stylist</option>
+          <option value="Junior Stylist">Junior Stylist</option>
+          <option value="Manager">Manager</option>
+          <option value="Receptionist">Receptionist</option>
+          <option value="Trainee">Trainee</option>
+        </select>
+      </div>
+    </div>
+    <div class="fr">
+      <div class="fg"><label class="fl">Mobile</label><input class="fi" type="tel" id="sm-s-mobile" placeholder="e.g. 0551234567"></div>
+      <div class="fg"><label class="fl">Join Date</label><input class="fi" type="date" id="sm-s-join"></div>
+    </div>
+    <div class="fg"><label class="fl">Weekly Off Day(s)</label>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:6px;">
+        <label style="display:flex;align-items:center;gap:4px;font-size:13px;font-weight:600;cursor:pointer;"><input type="checkbox" id="sm-off-sun"> Sun</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:13px;font-weight:600;cursor:pointer;"><input type="checkbox" id="sm-off-mon"> Mon</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:13px;font-weight:600;cursor:pointer;"><input type="checkbox" id="sm-off-tue"> Tue</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:13px;font-weight:600;cursor:pointer;"><input type="checkbox" id="sm-off-wed"> Wed</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:13px;font-weight:600;cursor:pointer;"><input type="checkbox" id="sm-off-thu"> Thu</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:13px;font-weight:600;cursor:pointer;"><input type="checkbox" id="sm-off-fri"> Fri</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:13px;font-weight:600;cursor:pointer;"><input type="checkbox" id="sm-off-sat"> Sat</label>
+      </div>
+    </div>
+    <div class="fg"><label class="fl">Notes</label><input class="fi" type="text" id="sm-s-notes" placeholder="Optional"></div>
+    <div class="mf">
+      <button class="btn bg2" onclick="closeM('sm-staff-modal')">Cancel</button>
+      <button class="btn bp" onclick="smSaveStaff()">Save Staff</button>
+    </div>
+  </div>
+</div>
+
+<!-- Attendance -->
+<div class="modal-bg" id="sm-checkin-modal">
+  <div class="modal" style="max-width:460px;">
+    <div class="mt">🕐 Log Attendance</div>
+    <input type="hidden" id="sm-att-id">
+    <div class="fr">
+      <div class="fg"><label class="fl">Staff Member *</label><select class="fi" id="sm-att-staff"></select></div>
+      <div class="fg"><label class="fl">Date *</label><input class="fi" type="date" id="sm-att-date2"></div>
+    </div>
+    <div class="fr">
+      <div class="fg"><label class="fl">Check-In</label><input class="fi" type="time" id="sm-att-in" value="10:00" oninput="smPreviewHours()"></div>
+      <div class="fg"><label class="fl">Check-Out</label><input class="fi" type="time" id="sm-att-out" value="19:00" oninput="smPreviewHours()"></div>
+    </div>
+    <div id="sm-att-hours-preview" style="background:var(--bl);border-radius:8px;padding:9px 12px;font-size:13px;font-weight:700;margin-bottom:12px;display:none;"></div>
+    <div class="fg"><label class="fl">Notes</label><input class="fi" type="text" id="sm-att-notes" placeholder="e.g. Came in late"></div>
+    <div class="mf">
+      <button class="btn bg2" onclick="closeM('sm-checkin-modal')">Cancel</button>
+      <button class="btn bp" onclick="smSaveAttendance()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Leave -->
+<div class="modal-bg" id="sm-leave-modal">
+  <div class="modal" style="max-width:460px;">
+    <div class="mt">🌴 Add Leave</div>
+    <input type="hidden" id="sm-leave-id">
+    <div class="fg"><label class="fl">Staff Member *</label><select class="fi" id="sm-leave-staff"></select></div>
+    <div class="fg"><label class="fl">Leave Type *</label><select class="fi" id="sm-leave-type"></select></div>
+    <div class="fr">
+      <div class="fg"><label class="fl">From Date *</label><input class="fi" type="date" id="sm-leave-from" oninput="smAutoLeaveDays()"></div>
+      <div class="fg"><label class="fl">To Date *</label><input class="fi" type="date" id="sm-leave-to" oninput="smAutoLeaveDays()"></div>
+    </div>
+    <div class="fg"><label class="fl">Days Count</label><input class="fi" type="number" id="sm-leave-days" min="0.5" step="0.5" placeholder="Auto-calculated"></div>
+    <div class="fg"><label class="fl">Status</label>
+      <select class="fi" id="sm-leave-status">
+        <option value="approved">Approved</option>
+        <option value="pending">Pending</option>
+        <option value="rejected">Rejected</option>
+      </select>
+    </div>
+    <div class="fg"><label class="fl">Notes</label><input class="fi" type="text" id="sm-leave-notes" placeholder="e.g. Medical certificate submitted"></div>
+    <div class="mf">
+      <button class="btn bg2" onclick="closeM('sm-leave-modal')">Cancel</button>
+      <button class="btn bp" onclick="smSaveLeave()">Save Leave</button>
+    </div>
+  </div>
+</div>
+
+<!-- Overtime -->
+<div class="modal-bg" id="sm-ot-modal">
+  <div class="modal" style="max-width:460px;">
+    <div class="mt">⏱ Log Overtime</div>
+    <input type="hidden" id="sm-ot-id">
+    <div class="fr">
+      <div class="fg"><label class="fl">Staff Member *</label><select class="fi" id="sm-ot-staff"></select></div>
+      <div class="fg"><label class="fl">Date *</label><input class="fi" type="date" id="sm-ot-date"></div>
+    </div>
+    <div class="fr">
+      <div class="fg"><label class="fl">OT Hours *</label><input class="fi" type="number" id="sm-ot-hours" min="0.5" step="0.5" placeholder="e.g. 2"></div>
+      <div class="fg"><label class="fl">OT Type</label>
+        <select class="fi" id="sm-ot-type">
+          <option value="cash">💰 Cash Payout</option>
+          <option value="compoff">🔄 Comp Off in Lieu</option>
+          <option value="pending">⏳ Pending Decision</option>
+        </select>
+      </div>
+    </div>
+    <div class="fg"><label class="fl">Status</label>
+      <select class="fi" id="sm-ot-status">
+        <option value="approved">Approved</option>
+        <option value="pending">Pending Approval</option>
+        <option value="adjusted">Adjusted / Settled</option>
+      </select>
+    </div>
+    <div class="fg"><label class="fl">Notes</label><input class="fi" type="text" id="sm-ot-notes" placeholder="e.g. Covered for Lester on weekend"></div>
+    <div class="mf">
+      <button class="btn bg2" onclick="closeM('sm-ot-modal')">Cancel</button>
+      <button class="btn bp" onclick="smSaveOT()">Save Overtime</button>
+    </div>
+  </div>
+</div>
+
+<!-- Roster Event -->
+<div class="modal-bg" id="sm-roster-modal">
+  <div class="modal" style="max-width:460px;">
+    <div class="mt">📅 Roster Event</div>
+    <input type="hidden" id="sm-re-id">
+    <div class="fg"><label class="fl">Staff Member</label>
+      <select class="fi" id="sm-re-staff"><option value="">All Staff (Salon-wide)</option></select>
+    </div>
+    <div class="fg"><label class="fl">Event Type *</label>
+      <select class="fi" id="sm-re-type">
+        <option value="vacation">Vacation / Annual Leave</option>
+        <option value="adjusted">Roster Adjustment</option>
+        <option value="public_holiday">Public Holiday</option>
+        <option value="compoff">Comp Off Day</option>
+      </select>
+    </div>
+    <div class="fr">
+      <div class="fg"><label class="fl">From Date *</label><input class="fi" type="date" id="sm-re-from"></div>
+      <div class="fg"><label class="fl">To Date *</label><input class="fi" type="date" id="sm-re-to"></div>
+    </div>
+    <div class="fg"><label class="fl">Notes</label><input class="fi" type="text" id="sm-re-notes" placeholder="e.g. Eid Al Fitr holidays"></div>
+    <div class="mf">
+      <button class="btn bg2" onclick="closeM('sm-roster-modal')">Cancel</button>
+      <button class="btn bp" onclick="smSaveRosterEvent()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Document Upload -->
+<div class="modal-bg" id="sm-doc-modal">
+  <div class="modal" style="max-width:500px;">
+    <div class="mt">📋 <span id="sm-doc-modal-title">Add Document</span></div>
+    <input type="hidden" id="sm-doc-id">
+    <div class="fr">
+      <div class="fg"><label class="fl">Staff Member *</label><select class="fi" id="sm-doc-staff"></select></div>
+      <div class="fg"><label class="fl">Document Type *</label>
+        <select class="fi" id="sm-doc-type">
+          <option value="visa">🛂 Visa</option>
+          <option value="eid">🪪 Emirates ID (EID)</option>
+          <option value="hsc">🏥 Health / HSC Certificate</option>
+          <option value="insurance">🛡 Insurance</option>
+          <option value="passport">📘 Passport</option>
+          <option value="contract">📄 Employment Contract</option>
+          <option value="other">📎 Other</option>
+        </select>
+      </div>
+    </div>
+    <div class="fr">
+      <div class="fg"><label class="fl">Issue Date</label><input class="fi" type="date" id="sm-doc-issue"></div>
+      <div class="fg"><label class="fl">Expiry Date *</label><input class="fi" type="date" id="sm-doc-expiry"></div>
+    </div>
+    <div class="fg"><label class="fl">Document Number / Reference</label><input class="fi" type="text" id="sm-doc-ref" placeholder="e.g. Visa no. / EID no."></div>
+    <div class="fg"><label class="fl">Upload Document (PDF / Image)</label>
+      <div class="uz" onclick="document.getElementById('sm-doc-file').click()">
+        <div style="font-size:26px;margin-bottom:6px;">📎</div>
+        <div style="font-size:13px;font-weight:700;color:var(--muted);" id="sm-doc-file-label">Click to upload — PDF, JPG, PNG (max 5MB)</div>
+      </div>
+      <input type="file" id="sm-doc-file" accept=".pdf,.jpg,.jpeg,.png" style="display:none;" onchange="smDocFileSelected(this)">
+    </div>
+    <div class="fg"><label class="fl">Notes</label><input class="fi" type="text" id="sm-doc-notes" placeholder="Optional"></div>
+    <div class="mf">
+      <button class="btn bg2" onclick="closeM('sm-doc-modal')">Cancel</button>
+      <button class="btn bp" onclick="smSaveDoc()">Save Document</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Helpers ──
+function openM(id){document.getElementById(id).classList.add('open');}
+function closeM(id){document.getElementById(id).classList.remove('open');}
+function toast(msg,type='success'){
+  const t=document.createElement('div');
+  t.className='toast '+type;
+  t.innerHTML=(type==='success'?'✅':type==='error'?'❌':'ℹ️')+' '+msg;
+  document.getElementById('TC').appendChild(t);
+  setTimeout(()=>t.remove(),3500);
+}
+
+// ── localStorage ──
+const SM_STAFF_KEY  ='mc_sm_staff';
+const SM_ATT_KEY    ='mc_sm_attendance';
+const SM_LEAVE_KEY  ='mc_sm_leaves';
+const SM_OT_KEY     ='mc_sm_overtime';
+const SM_ROSTER_KEY ='mc_sm_roster';
+const SM_DOC_KEY    ='mc_sm_docs';
+const SM_LEAVE_TYPES_KEY='mc_sm_leave_types';
+
+function smLS(key){try{return JSON.parse(localStorage.getItem(key)||'[]');}catch(e){return[];}}
+function smLSSet(key,data){localStorage.setItem(key,JSON.stringify(data));}
+function smUID(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
+function smFmtDate(iso){if(!iso)return'—';return new Date(iso).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});}
+function smDaysBetween(a,b){if(!a||!b)return 0;return Math.max(0,Math.round((new Date(b)-new Date(a))/(864e5))+1);}
+function smTimeToMins(t){if(!t)return 0;const[h,m]=t.split(':').map(Number);return h*60+(m||0);}
+function smMinsToHrs(m){const h=Math.floor(m/60);const mn=m%60;return mn?h+'h '+mn+'m':h+'h';}
+
+function smGetStaff(){return smLS(SM_STAFF_KEY);}
+function smFindStaff(id){return smGetStaff().find(s=>s.id===id);}
+
+function smPopulateDropdowns(selIds,selected){
+  const staff=smGetStaff();
+  const opts=staff.map(s=>`<option value="${s.id}"${s.id===selected?' selected':''}>${s.name} — ${s.role}</option>`).join('');
+  selIds.forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=opts||'<option value="">No staff — add in Team tab</option>';});
+}
+
+function smPopulateDocsFilter(){
+  const sel=document.getElementById('sm-docs-filter');if(!sel)return;
+  const staff=smGetStaff();
+  sel.innerHTML='<option value="">All Staff</option>'+staff.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
+}
+
+// ── Leave Types ──
+const SM_LEAVE_DEFAULTS=[
+  {key:'annual', label:'Annual Leave',code:'AL',color:'warn',bg:'#FEF9C3'},
+  {key:'sick',   label:'Sick Leave',  code:'SL',color:'err', bg:'#FEE2E2'},
+  {key:'compoff',label:'Comp Off',    code:'CO',color:'b',   bg:'#F3E8FF'},
+  {key:'unpaid', label:'Unpaid Leave',code:'UL',color:'b',   bg:'#F9FAFB'},
+];
+const SM_COLOR_MAP={warn:'#FEF9C3',err:'#FEE2E2',b:'#EFF6FF',ok:'#DCFCE7',pink:'#FCE7F3',purple:'#F5F3FF'};
+const SM_BADGE_MAP={warn:'bg-warn',err:'bg-err',b:'bg-b',ok:'bg-ok',pink:'bg-p',purple:'bg-b'};
+
+function smGetLeaveTypes(){const s=smLS(SM_LEAVE_TYPES_KEY);return s.length?s:SM_LEAVE_DEFAULTS;}
+function smGetLeaveType(key){return smGetLeaveTypes().find(t=>t.key===key)||{label:key,code:key.slice(0,2).toUpperCase(),color:'b',bg:'#F0F4FF'};}
+function smLeaveBadgeClass(key){return SM_BADGE_MAP[smGetLeaveType(key).color]||'bg-b';}
+function smLeaveLabel(key){return smGetLeaveType(key).label;}
+function smLeaveBg(key){const t=smGetLeaveType(key);return t.bg||SM_COLOR_MAP[t.color]||'#F0F4FF';}
+function smLeaveCode(key){return smGetLeaveType(key).code||key.slice(0,2).toUpperCase();}
+
+function smPopulateLeaveTypeDropdown(selId,selected){
+  const el=document.getElementById(selId);if(!el)return;
+  el.innerHTML=smGetLeaveTypes().map(t=>`<option value="${t.key}"${t.key===selected?' selected':''}>${t.label}</option>`).join('');
+}
+
+// ── Tab switching ──
+function smTab(name,btn){
+  document.querySelectorAll('[id^="smtab-"]').forEach(p=>p.style.display='none');
+  const el=document.getElementById('smtab-'+name);if(el)el.style.display='block';
+  document.querySelectorAll('#sm-tab-bar .tab-btn').forEach(b=>b.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  if(name==='roster')smRenderRoster();
+  else if(name==='team')smRenderTeam();
+  else if(name==='attendance'){
+    if(!document.getElementById('sm-att-date').value)document.getElementById('sm-att-date').value=new Date().toISOString().split('T')[0];
+    smLoadAttendance();
+  }
+  else if(name==='leaves')smLoadLeaves();
+  else if(name==='overtime')smLoadOT();
+  else if(name==='docs'){smPopulateDocsFilter();smLoadDocs();}
+  else if(name==='settings')ltRender();
+}
+
+// ══ TEAM ══
+function smRenderTeam(){
+  const el=document.getElementById('sm-team-list');
+  const staff=smGetStaff();
+  if(!staff.length){
+    el.innerHTML='<div style="text-align:center;padding:48px;"><div style="font-size:42px;margin-bottom:10px;">👤</div><div style="font-family:var(--fh);font-size:17px;font-weight:800;margin-bottom:6px;">No staff members yet</div><div style="color:var(--muted);font-size:13px;">Click + Add Staff Member to get started</div></div>';
+    return;
+  }
+  const DAY=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const rows=staff.map(s=>{
+    const offDays=(s.off_days||[]).map(d=>DAY[d]).join(', ')||'None';
+    const totalAtt=smLS(SM_ATT_KEY).filter(a=>a.staff_id===s.id).length;
+    const totalLeave=smLS(SM_LEAVE_KEY).filter(l=>l.staff_id===s.id).reduce((a,l)=>a+(parseFloat(l.days)||0),0);
+    const totalOT=smLS(SM_OT_KEY).filter(o=>o.staff_id===s.id).reduce((a,o)=>a+(parseFloat(o.hours)||0),0);
+    return`<tr>
+      <td><strong>${s.name}</strong></td>
+      <td><span class="badge bg-b">${s.role}</span></td>
+      <td>${s.mobile||'—'}</td>
+      <td>${smFmtDate(s.join_date)}</td>
+      <td style="color:var(--muted);">${offDays}</td>
+      <td>${totalAtt} days</td>
+      <td>${totalLeave} days</td>
+      <td style="color:${totalOT>0?'var(--warn)':'var(--muted)'};">${totalOT}h</td>
+      <td><div style="display:flex;gap:4px;">
+        <button class="btn bg2 bsm" onclick="smOpenEditStaff('${s.id}')">✏️ Edit</button>
+        <button class="btn bp bsm" onclick="smOpenAddDoc('${s.id}')">📋 Docs</button>
+        <button class="btn bd2 bsm" onclick="smDeleteStaff('${s.id}','${s.name}')">🗑</button>
+      </div></td>
+    </tr>`;
+  }).join('');
+  el.innerHTML=`<div class="tw"><table>
+    <thead><tr><th>Name</th><th>Role</th><th>Mobile</th><th>Joined</th><th>Off Days</th><th>Attendance</th><th>Leave Taken</th><th>OT Hours</th><th>Actions</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table></div>`;
+}
+
+function smOpenAddStaff(){
+  document.getElementById('sm-staff-modal-title').textContent='Add Staff Member';
+  document.getElementById('sm-staff-id').value='';
+  ['sm-s-name','sm-s-mobile','sm-s-notes'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('sm-s-role').value='Stylist';
+  document.getElementById('sm-s-join').value=new Date().toISOString().split('T')[0];
+  ['sm-off-sun','sm-off-mon','sm-off-tue','sm-off-wed','sm-off-thu','sm-off-fri','sm-off-sat'].forEach(id=>{const el=document.getElementById(id);if(el)el.checked=false;});
+  openM('sm-staff-modal');
+}
+
+function smOpenEditStaff(id){
+  const s=smFindStaff(id);if(!s)return;
+  document.getElementById('sm-staff-modal-title').textContent='Edit Staff Member';
+  document.getElementById('sm-staff-id').value=s.id;
+  document.getElementById('sm-s-name').value=s.name||'';
+  document.getElementById('sm-s-role').value=s.role||'Stylist';
+  document.getElementById('sm-s-mobile').value=s.mobile||'';
+  document.getElementById('sm-s-join').value=s.join_date||'';
+  document.getElementById('sm-s-notes').value=s.notes||'';
+  const dayIds=['sm-off-sun','sm-off-mon','sm-off-tue','sm-off-wed','sm-off-thu','sm-off-fri','sm-off-sat'];
+  dayIds.forEach((eid,idx)=>{const el=document.getElementById(eid);if(el)el.checked=(s.off_days||[]).includes(idx);});
+  openM('sm-staff-modal');
+}
+
+function smSaveStaff(){
+  const name=document.getElementById('sm-s-name').value.trim();
+  if(!name){toast('Name is required','error');return;}
+  const dayIds=['sm-off-sun','sm-off-mon','sm-off-tue','sm-off-wed','sm-off-thu','sm-off-fri','sm-off-sat'];
+  const off_days=dayIds.map((eid,idx)=>document.getElementById(eid)?.checked?idx:-1).filter(v=>v>=0);
+  const data={name,role:document.getElementById('sm-s-role').value,mobile:document.getElementById('sm-s-mobile').value.trim(),join_date:document.getElementById('sm-s-join').value,off_days,notes:document.getElementById('sm-s-notes').value.trim()};
+  const list=smGetStaff();const eid=document.getElementById('sm-staff-id').value;
+  if(eid){const idx=list.findIndex(s=>s.id===eid);if(idx>=0)list[idx]={...list[idx],...data};}
+  else list.push({id:smUID(),created_at:new Date().toISOString(),...data});
+  smLSSet(SM_STAFF_KEY,list);closeM('sm-staff-modal');toast(eid?'Staff updated':'Staff added ✅');smRenderTeam();
+}
+
+function smDeleteStaff(id,name){
+  if(!confirm('Delete '+name+' and all their records? This cannot be undone.'))return;
+  [SM_STAFF_KEY,SM_ATT_KEY,SM_LEAVE_KEY,SM_OT_KEY,SM_DOC_KEY].forEach(key=>{
+    if(key===SM_STAFF_KEY)smLSSet(key,smGetStaff().filter(s=>s.id!==id));
+    else smLSSet(key,smLS(key).filter(r=>r.staff_id!==id));
+  });
+  toast('Staff member deleted','info');smRenderTeam();
+}
+
+// ══ ROSTER ══
+let smRosterYear=new Date().getFullYear(),smRosterMonth=new Date().getMonth();
+function smRosterPrevMonth(){smRosterMonth--;if(smRosterMonth<0){smRosterMonth=11;smRosterYear--;}smRenderRoster();}
+function smRosterNextMonth(){smRosterMonth++;if(smRosterMonth>11){smRosterMonth=0;smRosterYear++;}smRenderRoster();}
+
+function smRenderRoster(){
+  const y=smRosterYear,m=smRosterMonth;
+  const monthNames=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const title=document.getElementById('sm-roster-title');if(title)title.textContent=monthNames[m]+' '+y;
+  const staff=smGetStaff();const events=smLS(SM_ROSTER_KEY);const leaves=smLS(SM_LEAVE_KEY);const ot=smLS(SM_OT_KEY);
+  const daysInMonth=new Date(y,m+1,0).getDate();const el=document.getElementById('sm-roster-grid');if(!el)return;
+  if(!staff.length){el.innerHTML='<div style="text-align:center;padding:40px;color:var(--muted);">No staff added. Go to Team tab first.</div>';return;}
+  function getCellInfo(staffObj,day){
+    const date=y+'-'+String(m+1).padStart(2,'0')+'-'+String(day).padStart(2,'0');
+    const dow=new Date(date).getDay();const isOff=(staffObj.off_days||[]).includes(dow);
+    const leave=leaves.find(l=>l.staff_id===staffObj.id&&l.status!=='rejected'&&date>=l.from_date&&date<=l.to_date);
+    if(leave)return{bg:smLeaveBg(leave.type),label:smLeaveCode(leave.type),title:smLeaveLabel(leave.type)};
+    const ev=events.find(e=>(e.staff_id===staffObj.id||!e.staff_id)&&date>=e.from_date&&date<=e.to_date);
+    if(ev){const c={vacation:'#FEF9C3',adjusted:'#DBEAFE',public_holiday:'#FFE4E6',compoff:'#F3E8FF'};const lb={vacation:'VAC',adjusted:'ADJ',public_holiday:'PH',compoff:'CO'};return{bg:c[ev.type]||'#FEF9C3',label:lb[ev.type]||'E',title:ev.notes||ev.type};}
+    const hasOT=ot.find(o=>o.staff_id===staffObj.id&&o.date===date);
+    if(hasOT)return{bg:'#FFF7ED',label:'OT',title:'Overtime: '+hasOT.hours+'h'};
+    if(isOff)return{bg:'#F1F5F9',label:'OFF',title:'Day Off'};
+    return{bg:'#DCFCE7',label:'✓',title:'Working'};
+  }
+  const dayNums=Array.from({length:daysInMonth},(_,i)=>i+1);
+  const DS=['Su','Mo','Tu','We','Th','Fr','Sa'];
+  let html='<table style="border-collapse:collapse;min-width:100%;font-size:12px;"><thead><tr><th style="background:var(--bd);color:#fff;padding:8px 12px;text-align:left;position:sticky;left:0;z-index:2;min-width:120px;white-space:nowrap;">Staff</th>';
+  dayNums.forEach(d=>{const dow=new Date(y,m,d).getDay();html+=`<th style="background:${dow===5||dow===6?'#1e3a5f':'var(--bd)'};color:#fff;padding:5px 2px;text-align:center;min-width:34px;font-size:10px;">${d}<br><span style="opacity:.7;">${DS[dow]}</span></th>`;});
+  html+='<th style="background:var(--bd);color:#fff;padding:8px;text-align:center;min-width:70px;">Summary</th></tr></thead><tbody>';
+  staff.forEach(s=>{
+    let wd=0,ld=0,otd=0;
+    html+=`<tr><td style="padding:7px 12px;font-weight:700;font-size:12.5px;background:#fff;position:sticky;left:0;z-index:1;border-bottom:1px solid var(--border);white-space:nowrap;">${s.name}</td>`;
+    dayNums.forEach(d=>{
+      const info=getCellInfo(s,d);
+      if(info.label==='✓')wd++;else if(info.label!=='OFF'&&info.label!=='OT'&&info.label!=='ADJ'&&info.label!=='PH')ld++;else if(info.label==='OT')otd++;
+      html+=`<td style="text-align:center;padding:2px;border-bottom:1px solid var(--border);border-right:1px solid #f0f0f0;" title="${info.title}"><span style="display:inline-block;width:30px;height:22px;line-height:22px;border-radius:4px;background:${info.bg};font-size:9.5px;font-weight:700;">${info.label}</span></td>`;
+    });
+    html+=`<td style="text-align:center;padding:5px;background:#F8FAFF;border-bottom:1px solid var(--border);font-size:10.5px;font-weight:700;"><div style="color:var(--ok);">✓${wd}</div><div style="color:var(--warn);">L${ld}</div>${otd?`<div style="color:#D97706;">OT${otd}</div>`:''}</td></tr>`;
+  });
+  html+='</tbody></table>';el.innerHTML=html;
+}
+
+function smOpenRosterEvent(){
+  smPopulateDropdowns(['sm-re-staff']);
+  const el=document.getElementById('sm-re-staff');if(el)el.insertAdjacentHTML('afterbegin','<option value="">All Staff (Salon-wide)</option>');
+  document.getElementById('sm-re-id').value='';document.getElementById('sm-re-type').value='vacation';
+  document.getElementById('sm-re-from').value='';document.getElementById('sm-re-to').value='';document.getElementById('sm-re-notes').value='';
+  openM('sm-roster-modal');
+}
+function smSaveRosterEvent(){
+  const from=document.getElementById('sm-re-from').value,to=document.getElementById('sm-re-to').value;
+  if(!from||!to){toast('Please select date range','error');return;}
+  const data={id:document.getElementById('sm-re-id').value||smUID(),staff_id:document.getElementById('sm-re-staff').value||null,type:document.getElementById('sm-re-type').value,from_date:from,to_date:to,notes:document.getElementById('sm-re-notes').value.trim(),created_at:new Date().toISOString()};
+  const list=smLS(SM_ROSTER_KEY);const idx=list.findIndex(r=>r.id===data.id);
+  if(idx>=0)list[idx]=data;else list.push(data);
+  smLSSet(SM_ROSTER_KEY,list);closeM('sm-roster-modal');toast('Roster event saved ✅');smRenderRoster();
+}
+
+// ══ ATTENDANCE ══
+function smLoadAttendance(){
+  const el=document.getElementById('sm-att-list');if(!el)return;
+  const dateFilter=document.getElementById('sm-att-date')?.value||'';
+  const staff=smGetStaff();
+  let records=smLS(SM_ATT_KEY);
+  if(dateFilter)records=records.filter(a=>a.date===dateFilter);
+  records.sort((a,b)=>b.date.localeCompare(a.date));
+  const summaryEl=document.getElementById('sm-att-summary');
+  if(summaryEl&&staff.length){
+    const now=new Date();const sow=new Date(now);sow.setDate(now.getDate()-now.getDay());
+    const weekStr=sow.toISOString().split('T')[0];
+    const weekRecs=smLS(SM_ATT_KEY).filter(a=>a.date>=weekStr);
+    const cards=staff.map(s=>{
+      const sRecs=weekRecs.filter(a=>a.staff_id===s.id);
+      const mins=sRecs.reduce((acc,a)=>acc+Math.max(0,smTimeToMins(a.check_out)-smTimeToMins(a.check_in)),0);
+      const hrs=mins/60;const pct=Math.min(100,Math.round((hrs/62)*100));
+      const color=hrs>=62?'var(--ok)':hrs>=40?'var(--warn)':'var(--err)';
+      return`<div style="background:#fff;border-radius:var(--r);padding:12px 14px;box-shadow:var(--sh);display:flex;flex-direction:column;gap:4px;">
+        <div style="font-size:12.5px;font-weight:800;">${s.name}</div>
+        <div style="width:100%;height:6px;background:var(--border);border-radius:99px;overflow:hidden;"><div style="width:${pct}%;height:100%;background:${color};border-radius:99px;"></div></div>
+        <div style="font-size:11px;color:${color};font-weight:700;">${smMinsToHrs(mins)} this week <span style="color:var(--muted);font-weight:600;">/ 62h target</span></div>
+      </div>`;
+    }).join('');
+    summaryEl.innerHTML=`<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Weekly Hours Progress (62h Target)</div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;">${cards}</div>`;
+  }
+  if(!records.length){el.innerHTML='<div style="text-align:center;padding:40px;color:var(--muted);">'+(dateFilter?'No records for this date.':'No attendance logged yet.')+'</div>';return;}
+  const rows=records.map(a=>{
+    const s=smFindStaff(a.staff_id);
+    const worked=Math.max(0,smTimeToMins(a.check_out)-smTimeToMins(a.check_in));
+    const color=worked>=480?'var(--ok)':worked>=360?'var(--warn)':'var(--err)';
+    return`<tr><td><strong>${s?s.name:'Unknown'}</strong></td><td>${smFmtDate(a.date)}</td>
+      <td><span style="background:var(--okl);color:var(--ok);padding:3px 8px;border-radius:6px;font-size:12px;font-weight:700;">${a.check_in||'—'}</span></td>
+      <td><span style="background:var(--errl);color:var(--err);padding:3px 8px;border-radius:6px;font-size:12px;font-weight:700;">${a.check_out||'—'}</span></td>
+      <td style="font-weight:800;color:${color};">${worked?smMinsToHrs(worked):'—'}</td>
+      <td style="color:var(--muted);font-size:12px;">${a.notes||'—'}</td>
+      <td><div style="display:flex;gap:4px;"><button class="btn bg2 bsm" onclick="smOpenEditAttendance('${a.id}')">✏️</button><button class="btn bd2 bsm" onclick="smDeleteRecord(SM_ATT_KEY,'${a.id}',smLoadAttendance)">🗑</button></div></td>
+    </tr>`;
+  }).join('');
+  el.innerHTML=`<div class="tw"><table><thead><tr><th>Staff</th><th>Date</th><th>Check-In</th><th>Check-Out</th><th>Hours</th><th>Notes</th><th>Actions</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+
+function smOpenCheckin(){
+  smPopulateDropdowns(['sm-att-staff']);
+  document.getElementById('sm-att-id').value='';
+  document.getElementById('sm-att-date2').value=new Date().toISOString().split('T')[0];
+  document.getElementById('sm-att-in').value='10:00';document.getElementById('sm-att-out').value='19:00';document.getElementById('sm-att-notes').value='';
+  smPreviewHours();openM('sm-checkin-modal');
+}
+function smOpenEditAttendance(id){
+  const rec=smLS(SM_ATT_KEY).find(a=>a.id===id);if(!rec)return;
+  smPopulateDropdowns(['sm-att-staff'],rec.staff_id);
+  document.getElementById('sm-att-id').value=id;document.getElementById('sm-att-date2').value=rec.date||'';
+  document.getElementById('sm-att-in').value=rec.check_in||'10:00';document.getElementById('sm-att-out').value=rec.check_out||'19:00';document.getElementById('sm-att-notes').value=rec.notes||'';
+  smPreviewHours();openM('sm-checkin-modal');
+}
+function smPreviewHours(){
+  const tin=document.getElementById('sm-att-in')?.value,tout=document.getElementById('sm-att-out')?.value;
+  const prev=document.getElementById('sm-att-hours-preview');if(!prev)return;
+  if(tin&&tout){const mins=smTimeToMins(tout)-smTimeToMins(tin);if(mins>0){const color=mins>=480?'var(--ok)':mins>=360?'var(--warn)':'var(--err)';prev.style.display='block';prev.style.color=color;prev.innerHTML=`⏱ ${smMinsToHrs(mins)} worked <span style="font-weight:600;color:var(--muted);">(${tin} → ${tout})</span>`;}else prev.style.display='none';}
+}
+function smSaveAttendance(){
+  const staff_id=document.getElementById('sm-att-staff').value,date=document.getElementById('sm-att-date2').value;
+  if(!staff_id||!date){toast('Select staff and date','error');return;}
+  const data={id:document.getElementById('sm-att-id').value||smUID(),staff_id,date,check_in:document.getElementById('sm-att-in').value,check_out:document.getElementById('sm-att-out').value,notes:document.getElementById('sm-att-notes').value.trim(),created_at:new Date().toISOString()};
+  const list=smLS(SM_ATT_KEY);const idx=list.findIndex(a=>a.id===data.id);
+  if(idx>=0)list[idx]=data;else list.push(data);
+  smLSSet(SM_ATT_KEY,list);closeM('sm-checkin-modal');toast('Attendance saved ✅');smLoadAttendance();
+}
+
+// ══ LEAVES ══
+function smLoadLeaves(){
+  const el=document.getElementById('sm-leaves-list');if(!el)return;
+  const staff=smGetStaff();const leaves=smLS(SM_LEAVE_KEY).sort((a,b)=>b.from_date.localeCompare(a.from_date));
+  const summaryEl=document.getElementById('sm-leaves-summary');
+  if(summaryEl&&staff.length){
+    const curYear=new Date().getFullYear();const leaveTypes=smGetLeaveTypes();
+    const cards=staff.map(s=>{
+      const yr=leaves.filter(l=>l.staff_id===s.id&&l.from_date.startsWith(curYear)&&l.status!=='rejected');
+      const pills=leaveTypes.map(t=>{const total=yr.filter(l=>l.type===t.key).reduce((a,l)=>a+(parseFloat(l.days)||0),0);return total?`<span style="background:${t.bg||'#F0F4FF'};padding:2px 7px;border-radius:99px;font-size:11px;font-weight:700;">${t.code}:${total}d</span>`:''}).filter(Boolean).join(' ');
+      return`<div style="background:#fff;border-radius:var(--r);padding:12px 14px;box-shadow:var(--sh);"><div style="font-size:12.5px;font-weight:800;margin-bottom:6px;">${s.name}</div><div style="display:flex;gap:6px;flex-wrap:wrap;">${pills||'<span style="color:var(--muted);font-size:12px;">No leaves</span>'}</div></div>`;
+    }).join('');
+    summaryEl.innerHTML=`<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">${curYear} Leave Balances</div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;">${cards}</div>`;
+  }
+  if(!leaves.length){el.innerHTML='<div style="text-align:center;padding:40px;color:var(--muted);">No leaves recorded yet.</div>';return;}
+  const rows=leaves.map(l=>{
+    const s=smFindStaff(l.staff_id);const sc={approved:'bg-ok',pending:'bg-warn',rejected:'bg-err'};
+    return`<tr><td><strong>${s?s.name:'Unknown'}</strong></td><td><span class="badge ${smLeaveBadgeClass(l.type)}">${smLeaveLabel(l.type)}</span></td><td>${smFmtDate(l.from_date)}</td><td>${smFmtDate(l.to_date)}</td><td style="font-weight:700;">${l.days||'—'} days</td><td><span class="badge ${sc[l.status]||'bg-b'}">${l.status||'—'}</span></td><td style="color:var(--muted);font-size:12px;">${l.notes||'—'}</td><td><div style="display:flex;gap:4px;"><button class="btn bg2 bsm" onclick="smOpenEditLeave('${l.id}')">✏️</button><button class="btn bd2 bsm" onclick="smDeleteRecord(SM_LEAVE_KEY,'${l.id}',smLoadLeaves)">🗑</button></div></td></tr>`;
+  }).join('');
+  el.innerHTML=`<div class="tw"><table><thead><tr><th>Staff</th><th>Type</th><th>From</th><th>To</th><th>Days</th><th>Status</th><th>Notes</th><th>Actions</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+
+function smAutoLeaveDays(){
+  const f=document.getElementById('sm-leave-from').value,t=document.getElementById('sm-leave-to').value;
+  if(f&&t)document.getElementById('sm-leave-days').value=smDaysBetween(f,t);
+}
+function smOpenLeave(){
+  smPopulateDropdowns(['sm-leave-staff']);smPopulateLeaveTypeDropdown('sm-leave-type');
+  ['sm-leave-id','sm-leave-days','sm-leave-notes'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('sm-leave-from').value='';document.getElementById('sm-leave-to').value='';document.getElementById('sm-leave-status').value='approved';
+  openM('sm-leave-modal');
+}
+function smOpenEditLeave(id){
+  const rec=smLS(SM_LEAVE_KEY).find(l=>l.id===id);if(!rec)return;
+  smPopulateDropdowns(['sm-leave-staff'],rec.staff_id);smPopulateLeaveTypeDropdown('sm-leave-type',rec.type);
+  document.getElementById('sm-leave-id').value=id;document.getElementById('sm-leave-from').value=rec.from_date||'';document.getElementById('sm-leave-to').value=rec.to_date||'';document.getElementById('sm-leave-days').value=rec.days||'';document.getElementById('sm-leave-status').value=rec.status||'approved';document.getElementById('sm-leave-notes').value=rec.notes||'';
+  openM('sm-leave-modal');
+}
+function smSaveLeave(){
+  const staff_id=document.getElementById('sm-leave-staff').value,from=document.getElementById('sm-leave-from').value,to=document.getElementById('sm-leave-to').value;
+  if(!staff_id||!from||!to){toast('Staff, from and to dates are required','error');return;}
+  const data={id:document.getElementById('sm-leave-id').value||smUID(),staff_id,type:document.getElementById('sm-leave-type').value,from_date:from,to_date:to,days:document.getElementById('sm-leave-days').value||smDaysBetween(from,to),status:document.getElementById('sm-leave-status').value,notes:document.getElementById('sm-leave-notes').value.trim(),created_at:new Date().toISOString()};
+  const list=smLS(SM_LEAVE_KEY);const idx=list.findIndex(l=>l.id===data.id);
+  if(idx>=0)list[idx]=data;else list.push(data);
+  smLSSet(SM_LEAVE_KEY,list);closeM('sm-leave-modal');toast('Leave saved ✅');smLoadLeaves();
+}
+
+// ══ OVERTIME ══
+function smLoadOT(){
+  const el=document.getElementById('sm-ot-list');if(!el)return;
+  const staff=smGetStaff();const records=smLS(SM_OT_KEY).sort((a,b)=>b.date.localeCompare(a.date));
+  const summaryEl=document.getElementById('sm-ot-summary');
+  if(summaryEl&&staff.length){
+    const curMonth=new Date().toISOString().slice(0,7);
+    const cards=staff.map(s=>{
+      const m=records.filter(o=>o.staff_id===s.id&&o.date.startsWith(curMonth));
+      const total=m.reduce((a,o)=>a+(parseFloat(o.hours)||0),0);
+      const pending=m.filter(o=>o.status==='pending').reduce((a,o)=>a+(parseFloat(o.hours)||0),0);
+      const settled=m.filter(o=>o.status==='adjusted').reduce((a,o)=>a+(parseFloat(o.hours)||0),0);
+      return`<div style="background:#fff;border-radius:var(--r);padding:12px 14px;box-shadow:var(--sh);"><div style="font-size:12.5px;font-weight:800;margin-bottom:4px;">${s.name}</div><div style="display:flex;gap:8px;font-size:11px;font-weight:700;"><span style="color:var(--warn);">OT:${total}h</span><span style="color:var(--err);">Pending:${pending}h</span><span style="color:var(--ok);">Settled:${settled}h</span></div></div>`;
+    }).join('');
+    summaryEl.innerHTML=`<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">This Month OT Summary</div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;">${cards}</div>`;
+  }
+  if(!records.length){el.innerHTML='<div style="text-align:center;padding:40px;color:var(--muted);">No overtime logged yet.</div>';return;}
+  const rows=records.map(o=>{
+    const s=smFindStaff(o.staff_id);const sc={approved:'bg-ok',pending:'bg-warn',adjusted:'bg-b'};const tl={cash:'💰 Cash',compoff:'🔄 Comp Off',pending:'⏳ Pending'};
+    return`<tr><td><strong>${s?s.name:'Unknown'}</strong></td><td>${smFmtDate(o.date)}</td><td style="font-weight:800;color:var(--warn);">${o.hours}h</td><td>${tl[o.type]||o.type}</td><td><span class="badge ${sc[o.status]||'bg-b'}">${o.status||'—'}</span></td><td style="color:var(--muted);font-size:12px;">${o.notes||'—'}</td><td><div style="display:flex;gap:4px;"><button class="btn bg2 bsm" onclick="smOpenEditOT('${o.id}')">✏️</button><button class="btn bd2 bsm" onclick="smDeleteRecord(SM_OT_KEY,'${o.id}',smLoadOT)">🗑</button></div></td></tr>`;
+  }).join('');
+  el.innerHTML=`<div class="tw"><table><thead><tr><th>Staff</th><th>Date</th><th>OT Hours</th><th>Type</th><th>Status</th><th>Notes</th><th>Actions</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+
+function smOpenOT(){
+  smPopulateDropdowns(['sm-ot-staff']);
+  document.getElementById('sm-ot-id').value='';document.getElementById('sm-ot-date').value=new Date().toISOString().split('T')[0];document.getElementById('sm-ot-hours').value='';document.getElementById('sm-ot-type').value='compoff';document.getElementById('sm-ot-status').value='pending';document.getElementById('sm-ot-notes').value='';
+  openM('sm-ot-modal');
+}
+function smOpenEditOT(id){
+  const rec=smLS(SM_OT_KEY).find(o=>o.id===id);if(!rec)return;
+  smPopulateDropdowns(['sm-ot-staff'],rec.staff_id);
+  document.getElementById('sm-ot-id').value=id;document.getElementById('sm-ot-date').value=rec.date||'';document.getElementById('sm-ot-hours').value=rec.hours||'';document.getElementById('sm-ot-type').value=rec.type||'compoff';document.getElementById('sm-ot-status').value=rec.status||'pending';document.getElementById('sm-ot-notes').value=rec.notes||'';
+  openM('sm-ot-modal');
+}
+function smSaveOT(){
+  const staff_id=document.getElementById('sm-ot-staff').value,date=document.getElementById('sm-ot-date').value,hours=document.getElementById('sm-ot-hours').value;
+  if(!staff_id||!date||!hours){toast('Staff, date and hours are required','error');return;}
+  const data={id:document.getElementById('sm-ot-id').value||smUID(),staff_id,date,hours:parseFloat(hours),type:document.getElementById('sm-ot-type').value,status:document.getElementById('sm-ot-status').value,notes:document.getElementById('sm-ot-notes').value.trim(),created_at:new Date().toISOString()};
+  const list=smLS(SM_OT_KEY);const idx=list.findIndex(o=>o.id===data.id);
+  if(idx>=0)list[idx]=data;else list.push(data);
+  smLSSet(SM_OT_KEY,list);closeM('sm-ot-modal');toast('Overtime saved ✅');smLoadOT();
+}
+
+// ══ DOCUMENTS ══
+const SM_DOC_TYPES={visa:'🛂 Visa',eid:'🪪 Emirates ID',hsc:'🏥 Health Cert',insurance:'🛡 Insurance',passport:'📘 Passport',contract:'📄 Contract',other:'📎 Other'};
+
+function smLoadDocs(){
+  const el=document.getElementById('sm-docs-list');if(!el)return;
+  const staff=smGetStaff();const filterStaffId=document.getElementById('sm-docs-filter')?.value||'';
+  let docs=smLS(SM_DOC_KEY);if(filterStaffId)docs=docs.filter(d=>d.staff_id===filterStaffId);
+  docs.sort((a,b)=>(a.expiry_date||'9999').localeCompare(b.expiry_date||'9999'));
+  const today=new Date();
+  const expiring=docs.filter(d=>{if(!d.expiry_date)return false;const diff=Math.ceil((new Date(d.expiry_date)-today)/864e5);return diff<=30&&diff>0;});
+  const expired=docs.filter(d=>d.expiry_date&&new Date(d.expiry_date)<today);
+  let alertHtml='';
+  if(expired.length||expiring.length){
+    const alerts=[
+      ...expired.map(d=>{const s=smFindStaff(d.staff_id);return`<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #FDC78A;"><span>❌</span><div><strong style="color:var(--err);">${s?s.name:'?'} — ${SM_DOC_TYPES[d.type]||d.type}</strong><span style="font-size:11.5px;color:var(--err);margin-left:6px;">EXPIRED ${smFmtDate(d.expiry_date)}</span></div></div>`;}),
+      ...expiring.map(d=>{const s=smFindStaff(d.staff_id);const diff=Math.ceil((new Date(d.expiry_date)-today)/864e5);return`<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #FDC78A;"><span>⚠️</span><div><strong>${s?s.name:'?'} — ${SM_DOC_TYPES[d.type]||d.type}</strong><span style="font-size:11.5px;color:var(--warn);margin-left:6px;">Expires in ${diff} days (${smFmtDate(d.expiry_date)})</span></div></div>`;})
+    ].join('');
+    alertHtml=`<div style="background:#FFF7ED;border:1.5px solid #FDC78A;border-radius:12px;padding:14px 16px;margin-bottom:16px;"><div style="font-family:var(--fh);font-size:14px;font-weight:800;color:var(--warn);margin-bottom:8px;">🔔 Renewal Alerts</div>${alerts}</div>`;
+  }
+  if(!staff.length){el.innerHTML=alertHtml+'<div style="text-align:center;padding:40px;color:var(--muted);">Add staff members first.</div>';return;}
+  let html=alertHtml;
+  const staffToShow=filterStaffId?staff.filter(s=>s.id===filterStaffId):staff;
+  staffToShow.forEach(s=>{
+    const sDocs=docs.filter(d=>d.staff_id===s.id);
+    const docRows=['visa','eid','hsc','insurance','passport','contract','other'].map(type=>{
+      const d=sDocs.find(doc=>doc.type===type);
+      let badge='<span class="badge" style="background:#F1F5F9;color:#64748B;">Missing</span>';
+      if(d&&d.expiry_date){const diff=Math.ceil((new Date(d.expiry_date)-today)/864e5);if(diff<0)badge='<span class="badge bg-err">Expired</span>';else if(diff<=30)badge=`<span class="badge bg-warn">Expires in ${diff}d</span>`;else badge='<span class="badge bg-ok">Valid</span>';}
+      return`<tr><td style="font-weight:700;">${SM_DOC_TYPES[type]||type}</td><td style="font-size:12px;">${d?d.doc_ref||'—':'—'}</td><td>${d?smFmtDate(d.issue_date):'—'}</td><td style="font-weight:700;">${d?smFmtDate(d.expiry_date):'—'}</td><td>${badge}</td><td style="color:var(--muted);font-size:12px;">${d?d.notes||'—':'—'}</td><td><div style="display:flex;gap:4px;flex-wrap:nowrap;">${d&&d.file_url?`<a href="${d.file_url}" target="_blank" class="btn bg2 bsm" style="text-decoration:none;font-size:11px;">👁 View</a>`:''} ${d?`<button class="btn bg2 bsm" onclick="smOpenEditDoc('${d.id}')" style="font-size:11px;">✏️</button> <button class="btn bd2 bsm" onclick="smDeleteRecord(SM_DOC_KEY,'${d.id}',smLoadDocs)" style="font-size:11px;">🗑</button>`:`<button class="btn bp bsm" onclick="smOpenAddDoc('${s.id}','${type}')" style="font-size:11px;">+ Upload</button>`}</div></td></tr>`;
+    }).join('');
+    html+=`<div class="card" style="margin-bottom:14px;"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;"><div style="font-family:var(--fh);font-size:15px;font-weight:800;">${s.name} <span class="badge bg-b" style="font-size:11px;">${s.role}</span></div><button class="btn bp bsm" onclick="smOpenAddDoc('${s.id}')">+ Add Document</button></div><div class="tw"><table><thead><tr><th>Type</th><th>Reference No.</th><th>Issue Date</th><th>Expiry Date</th><th>Status</th><th>Notes</th><th>Actions</th></tr></thead><tbody>${docRows}</tbody></table></div></div>`;
+  });
+  el.innerHTML=html||'<div style="text-align:center;padding:40px;color:var(--muted);">No documents found.</div>';
+}
+
+function smDocFileSelected(input){
+  const label=document.getElementById('sm-doc-file-label');
+  if(input.files&&input.files[0]){
+    const f=input.files[0];if(f.size>5*1024*1024){toast('File too large — max 5MB','error');input.value='';return;}
+    if(label)label.textContent='📎 '+f.name+' ('+Math.round(f.size/1024)+'KB)';
+    const reader=new FileReader();reader.onload=e=>{window._smDocFileData=e.target.result;};reader.readAsDataURL(f);
+  }
+}
+function smOpenAddDoc(staffId,type){
+  smPopulateDropdowns(['sm-doc-staff'],staffId||'');
+  document.getElementById('sm-doc-modal-title').textContent='Add Document';document.getElementById('sm-doc-id').value='';
+  if(type)document.getElementById('sm-doc-type').value=type;
+  ['sm-doc-issue','sm-doc-expiry','sm-doc-ref','sm-doc-notes'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('sm-doc-file-label').textContent='Click to upload — PDF, JPG, PNG (max 5MB)';document.getElementById('sm-doc-file').value='';window._smDocFileData=null;
+  openM('sm-doc-modal');
+}
+function smOpenEditDoc(id){
+  const d=smLS(SM_DOC_KEY).find(doc=>doc.id===id);if(!d)return;
+  smPopulateDropdowns(['sm-doc-staff'],d.staff_id);
+  document.getElementById('sm-doc-modal-title').textContent='Edit Document';document.getElementById('sm-doc-id').value=id;document.getElementById('sm-doc-type').value=d.type||'visa';document.getElementById('sm-doc-issue').value=d.issue_date||'';document.getElementById('sm-doc-expiry').value=d.expiry_date||'';document.getElementById('sm-doc-ref').value=d.doc_ref||'';document.getElementById('sm-doc-notes').value=d.notes||'';
+  document.getElementById('sm-doc-file-label').textContent=d.file_url?'📎 File attached (upload to replace)':'Click to upload — PDF, JPG, PNG (max 5MB)';document.getElementById('sm-doc-file').value='';window._smDocFileData=null;
+  openM('sm-doc-modal');
+}
+function smSaveDoc(){
+  const staff_id=document.getElementById('sm-doc-staff').value,expiry=document.getElementById('sm-doc-expiry').value;
+  if(!staff_id||!expiry){toast('Staff and expiry date are required','error');return;}
+  const existingId=document.getElementById('sm-doc-id').value;const existing=existingId?smLS(SM_DOC_KEY).find(d=>d.id===existingId):null;
+  const data={id:existingId||smUID(),staff_id,type:document.getElementById('sm-doc-type').value,issue_date:document.getElementById('sm-doc-issue').value||null,expiry_date:expiry,doc_ref:document.getElementById('sm-doc-ref').value.trim(),notes:document.getElementById('sm-doc-notes').value.trim(),file_url:window._smDocFileData||(existing?existing.file_url:null),created_at:existing?existing.created_at:new Date().toISOString(),updated_at:new Date().toISOString()};
+  const list=smLS(SM_DOC_KEY);const idx=list.findIndex(d=>d.id===data.id);
+  if(idx>=0)list[idx]=data;else list.push(data);
+  smLSSet(SM_DOC_KEY,list);closeM('sm-doc-modal');window._smDocFileData=null;toast('Document saved ✅');smLoadDocs();
+}
+
+function smDeleteRecord(key,id,reloadFn){
+  if(!confirm('Delete this record?'))return;
+  smLSSet(key,smLS(key).filter(r=>r.id!==id));toast('Deleted','info');if(reloadFn)reloadFn();
+}
+
+// ══ LEAVE TYPE SETTINGS ══
+function ltRender(){
+  const el=document.getElementById('leave-types-list');if(!el)return;
+  const types=smGetLeaveTypes();
+  if(!types.length){el.innerHTML='<div style="color:var(--muted);font-size:13px;padding:8px 0;">No leave types configured.</div>';return;}
+  el.innerHTML=types.map((t,i)=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:9px 12px;background:#fff;border:1.5px solid var(--border);border-radius:var(--rs);margin-bottom:6px;">
+      <span style="display:inline-block;width:34px;height:26px;line-height:26px;border-radius:5px;background:${t.bg||SM_COLOR_MAP[t.color]||'#F0F4FF'};text-align:center;font-size:11px;font-weight:800;flex-shrink:0;">${t.code}</span>
+      <div style="flex:1;"><div style="font-size:13.5px;font-weight:700;">${t.label}</div><div style="font-size:11px;color:var(--muted);">key: <code>${t.key}</code></div></div>
+      <div style="display:flex;gap:4px;flex-shrink:0;">
+        ${i>0?`<button class="btn bg2 bsm" onclick="ltMove(${i},-1)">↑</button>`:'<span style="width:30px;"></span>'}
+        ${i<types.length-1?`<button class="btn bg2 bsm" onclick="ltMove(${i},1)">↓</button>`:'<span style="width:30px;"></span>'}
+        <button class="btn bd2 bsm" onclick="ltDelete('${t.key}')">🗑</button>
+      </div>
+    </div>`).join('');
+}
+function ltAddType(){
+  const key=document.getElementById('lt-new-key').value.trim().toLowerCase().replace(/\s/g,'');
+  const label=document.getElementById('lt-new-label').value.trim();
+  const code=(document.getElementById('lt-new-code').value.trim().toUpperCase()||key.slice(0,2).toUpperCase());
+  const color=document.getElementById('lt-new-color').value;
+  if(!key||!label){toast('Key and label are required','error');return;}
+  const types=smGetLeaveTypes();
+  if(types.find(t=>t.key===key)){toast('Key already exists','error');return;}
+  types.push({key,label,code,color,bg:SM_COLOR_MAP[color]||'#F0F4FF'});
+  smLSSet(SM_LEAVE_TYPES_KEY,types);
+  ['lt-new-key','lt-new-label','lt-new-code'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('lt-new-color').value='warn';
+  toast(label+' added ✅');ltRender();
+}
+function ltDelete(key){
+  if(!confirm('Remove this leave type?'))return;
+  smLSSet(SM_LEAVE_TYPES_KEY,smGetLeaveTypes().filter(t=>t.key!==key));
+  toast('Removed','info');ltRender();
+}
+function ltMove(idx,dir){
+  const types=smGetLeaveTypes();const ni=idx+dir;
+  if(ni<0||ni>=types.length)return;
+  [types[idx],types[ni]]=[types[ni],types[idx]];
+  smLSSet(SM_LEAVE_TYPES_KEY,types);ltRender();
+}
+
+// ── Auto-seed staff ──
+(function(){
+  if(smGetStaff().length)return;
+  const seed=[
+    {id:smUID(),name:'Lester',role:'Stylist',mobile:'',join_date:'',off_days:[1],notes:'',created_at:new Date().toISOString()},
+    {id:smUID(),name:'Heyden',role:'Stylist',mobile:'',join_date:'',off_days:[2],notes:'',created_at:new Date().toISOString()},
+    {id:smUID(),name:'George',role:'Stylist',mobile:'',join_date:'',off_days:[3],notes:'',created_at:new Date().toISOString()},
+    {id:smUID(),name:'Chuuby',role:'Stylist',mobile:'',join_date:'',off_days:[4],notes:'',created_at:new Date().toISOString()},
+  ];
+  smLSSet(SM_STAFF_KEY,seed);
+})();
+
+// ── Init ──
+smRenderRoster();
+</script>
+</body>
+</html>
