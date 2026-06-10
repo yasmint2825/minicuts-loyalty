@@ -865,9 +865,41 @@ async function archiveCycle(customerId,stamps,firstStampDate,expiryDate,endedBy)
           <button class="btn bg2 bsm" style="margin-left:8px;" onclick="resetASMsg()">Reset to Default</button>
         </div>
         <div class="card" style="max-width:540px;">
-          <div style="font-family:var(--fh);font-size:16px;font-weight:800;margin-bottom:12px;">Data — Supabase Cloud ☁️</div>
+          <div style="font-family:var(--fh);font-size:16px;font-weight:800;margin-bottom:4px;">Data — Supabase Cloud ☁️</div>
           <div style="font-size:13px;color:var(--muted);margin-bottom:14px;">All customer data is stored securely in your Supabase database. Works across all devices.</div>
           <button class="btn bg2 bsm" onclick="exportCSV()">⬇ Export All Customers</button>
+        </div>
+        <!-- LEAVE TYPES CONFIG -->
+        <div class="card" style="max-width:600px;">
+          <div style="font-family:var(--fh);font-size:16px;font-weight:800;margin-bottom:4px;">🌴 Staff Leave Types</div>
+          <div style="font-size:13px;color:var(--muted);margin-bottom:16px;">Configure the leave types available when logging staff leaves. Drag to reorder. Changes apply immediately to the leave log form.</div>
+          <div id="leave-types-list" style="margin-bottom:14px;"></div>
+          <div style="display:flex;gap:8px;align-items:flex-end;padding:12px;background:var(--bg);border-radius:var(--rs);border:1.5px dashed var(--border);">
+            <div style="flex:1;">
+              <label class="fl" style="margin-bottom:4px;">Type Key <span style="color:var(--muted);font-weight:600;">(no spaces)</span></label>
+              <input class="fi" type="text" id="lt-new-key" placeholder="e.g. maternity" style="text-transform:lowercase;" oninput="this.value=this.value.replace(/\s/g,'').toLowerCase()">
+            </div>
+            <div style="flex:2;">
+              <label class="fl" style="margin-bottom:4px;">Display Label</label>
+              <input class="fi" type="text" id="lt-new-label" placeholder="e.g. Maternity Leave">
+            </div>
+            <div style="flex:1;">
+              <label class="fl" style="margin-bottom:4px;">Roster Code</label>
+              <input class="fi" type="text" id="lt-new-code" placeholder="e.g. ML" maxlength="3" style="text-transform:uppercase;" oninput="this.value=this.value.toUpperCase()">
+            </div>
+            <div style="flex:1;">
+              <label class="fl" style="margin-bottom:4px;">Colour</label>
+              <select class="fi" id="lt-new-color">
+                <option value="warn">🟡 Yellow</option>
+                <option value="err">🔴 Red</option>
+                <option value="b">🔵 Blue</option>
+                <option value="ok">🟢 Green</option>
+                <option value="pink">🩷 Pink</option>
+                <option value="purple">🟣 Purple</option>
+              </select>
+            </div>
+            <button class="btn bp" style="white-space:nowrap;align-self:flex-end;" onclick="ltAddType()">+ Add</button>
+          </div>
         </div>
       </div>
 
@@ -1107,13 +1139,7 @@ async function archiveCycle(customerId,stamps,firstStampDate,expiryDate,endedBy)
     <input type="hidden" id="sm-leave-id">
     <div class="fg"><label class="fl">Staff Member *</label><select class="fi" id="sm-leave-staff"></select></div>
     <div class="fg"><label class="fl">Leave Type *</label>
-      <select class="fi" id="sm-leave-type">
-        <option value="annual">Annual Leave</option>
-        <option value="sick">Sick Leave</option>
-        <option value="compoff">Comp Off</option>
-        <option value="unpaid">Unpaid Leave</option>
-        <option value="emergency">Emergency Leave</option>
-      </select>
+      <select class="fi" id="sm-leave-type"></select>
     </div>
     <div class="fr">
       <div class="fg"><label class="fl">From Date *</label><input class="fi" type="date" id="sm-leave-from" oninput="smAutoLeaveDays()"></div>
@@ -1489,7 +1515,7 @@ function showPage(id,btn){
   if(id==='dashboard'){renderDash();loadAfterService();}
   if(id==='customers') loadCustomers();
   if(id==='qrpage') renderSalonQR();
-  if(id==='config'){syncCfgInputs();}
+  if(id==='config'){syncCfgInputs();ltRender();}
   if(id==='missyou') renderMissYou();
   if(id==='analytics') loadAnalytics();
   if(id==='staffmgmt') smInit();
@@ -3622,7 +3648,7 @@ function smRenderRoster(){
     const date=y+'-'+String(m+1).padStart(2,'0')+'-'+String(day).padStart(2,'0');
     const dow=new Date(date).getDay();const isOff=(staffObj.off_days||[]).includes(dow);
     const leave=leaves.find(l=>l.staff_id===staffObj.id&&l.status!=='rejected'&&date>=l.from_date&&date<=l.to_date);
-    if(leave){const c={annual:'#FEF9C3',sick:'#FEE2E2',compoff:'#F3E8FF',unpaid:'#F9FAFB',emergency:'#FEE2E2'};const lb={annual:'AL',sick:'SL',compoff:'CO',unpaid:'UL',emergency:'EL'};return{bg:c[leave.type]||'#FEF9C3',label:lb[leave.type]||'L',title:leave.type};}
+    if(leave){return{bg:smLeaveBg(leave.type),label:smLeaveCode(leave.type),title:smLeaveLabel(leave.type)};}
     const ev=events.find(e=>(e.staff_id===staffObj.id||!e.staff_id)&&date>=e.from_date&&date<=e.to_date);
     if(ev){const c={vacation:'#FEF9C3',adjusted:'#DBEAFE',public_holiday:'#FFE4E6',compoff:'#F3E8FF'};const lb={vacation:'VAC',adjusted:'ADJ',public_holiday:'PH',compoff:'CO'};return{bg:c[ev.type]||'#FEF9C3',label:lb[ev.type]||'E',title:ev.notes||ev.type};}
     const hasOT=ot.find(o=>o.staff_id===staffObj.id&&o.date===date);
@@ -3640,7 +3666,7 @@ function smRenderRoster(){
     html+=`<tr><td style="padding:7px 12px;font-weight:700;font-size:12.5px;background:#fff;position:sticky;left:0;z-index:1;border-bottom:1px solid var(--border);white-space:nowrap;">${s.name}</td>`;
     dayNums.forEach(d=>{
       const info=getCellInfo(s,d);
-      if(info.label==='✓')workDays++;else if(['AL','SL','CO','UL','EL','L','VAC'].includes(info.label))leaveDays++;else if(info.label==='OT')otDays++;
+      if(info.label==='✓')workDays++;else if(info.label!=='OFF'&&info.label!=='OT'&&info.label!=='ADJ'&&info.label!=='PH')leaveDays++;else if(info.label==='OT')otDays++;
       html+=`<td style="text-align:center;padding:2px;border-bottom:1px solid var(--border);border-right:1px solid #f0f0f0;" title="${info.title}"><span style="display:inline-block;width:30px;height:22px;line-height:22px;border-radius:4px;background:${info.bg};font-size:9.5px;font-weight:700;">${info.label}</span></td>`;
     });
     html+=`<td style="text-align:center;padding:5px;background:#F8FAFF;border-bottom:1px solid var(--border);font-size:10.5px;font-weight:700;"><div style="color:var(--ok);">✓${workDays}</div><div style="color:var(--warn);">L${leaveDays}</div>${otDays?'<div style="color:#D97706;">OT'+otDays+'</div>':''}</td></tr>`;
@@ -3732,9 +3758,81 @@ function smSaveAttendance(){
   smLSSet(SM_ATT_KEY,list);closeM('sm-checkin-modal');toast('Attendance saved ✅');smLoadAttendance();
 }
 
-// ── LEAVES ──
-const SM_LEAVE_COLORS={annual:'bg-warn',sick:'bg-err',compoff:'bg-b',unpaid:'bg-b',emergency:'bg-err'};
-const SM_LEAVE_LABELS={annual:'Annual Leave',sick:'Sick Leave',compoff:'Comp Off',unpaid:'Unpaid',emergency:'Emergency'};
+// ── LEAVE TYPE CONFIG ──
+const SM_LEAVE_TYPES_KEY = 'mc_sm_leave_types';
+const SM_LEAVE_DEFAULTS = [
+  {key:'annual',  label:'Annual Leave', code:'AL', color:'warn',   bg:'#FEF9C3'},
+  {key:'sick',    label:'Sick Leave',   code:'SL', color:'err',    bg:'#FEE2E2'},
+  {key:'compoff', label:'Comp Off',     code:'CO', color:'b',      bg:'#F3E8FF'},
+  {key:'unpaid',  label:'Unpaid Leave', code:'UL', color:'b',      bg:'#F9FAFB'},
+];
+const SM_COLOR_MAP = {warn:'#FEF9C3',err:'#FEE2E2',b:'#EFF6FF',ok:'#DCFCE7',pink:'#FCE7F3',purple:'#F5F3FF'};
+const SM_BADGE_MAP = {warn:'bg-warn',err:'bg-err',b:'bg-b',ok:'bg-ok',pink:'bg-p',purple:'bg-b'};
+
+function smGetLeaveTypes(){
+  const saved=smLS(SM_LEAVE_TYPES_KEY);
+  return saved.length?saved:SM_LEAVE_DEFAULTS;
+}
+function smGetLeaveType(key){
+  return smGetLeaveTypes().find(t=>t.key===key)||{label:key,code:key.slice(0,2).toUpperCase(),color:'b',bg:'#F0F4FF'};
+}
+function smLeaveBadgeClass(key){return SM_BADGE_MAP[smGetLeaveType(key).color]||'bg-b';}
+function smLeaveLabel(key){return smGetLeaveType(key).label;}
+function smLeaveBg(key){const t=smGetLeaveType(key);return t.bg||SM_COLOR_MAP[t.color]||'#F0F4FF';}
+function smLeaveCode(key){return smGetLeaveType(key).code||key.slice(0,2).toUpperCase();}
+
+// Populate leave type dropdown
+function smPopulateLeaveTypeDropdown(selId,selected){
+  const el=document.getElementById(selId);if(!el)return;
+  el.innerHTML=smGetLeaveTypes().map(t=>`<option value="${t.key}"${t.key===selected?' selected':''}>${t.label}</option>`).join('');
+}
+
+// ── LEAVE TYPES SETTINGS UI ──
+function ltRender(){
+  const el=document.getElementById('leave-types-list');if(!el)return;
+  const types=smGetLeaveTypes();
+  if(!types.length){el.innerHTML='<div style="color:var(--muted);font-size:13px;padding:8px 0;">No leave types configured.</div>';return;}
+  el.innerHTML=types.map((t,i)=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:9px 12px;background:#fff;border:1.5px solid var(--border);border-radius:var(--rs);margin-bottom:6px;">
+      <span style="display:inline-block;width:34px;height:26px;line-height:26px;border-radius:5px;background:${t.bg||SM_COLOR_MAP[t.color]||'#F0F4FF'};text-align:center;font-size:11px;font-weight:800;flex-shrink:0;">${t.code}</span>
+      <div style="flex:1;">
+        <div style="font-size:13.5px;font-weight:700;">${t.label}</div>
+        <div style="font-size:11px;color:var(--muted);">key: <code>${t.key}</code></div>
+      </div>
+      <div style="display:flex;gap:4px;flex-shrink:0;">
+        ${i>0?`<button class="btn bg2 bsm" onclick="ltMove(${i},-1)" title="Move up">↑</button>`:'<span style="width:30px;"></span>'}
+        ${i<types.length-1?`<button class="btn bg2 bsm" onclick="ltMove(${i},1)" title="Move down">↓</button>`:'<span style="width:30px;"></span>'}
+        <button class="btn bd2 bsm" onclick="ltDelete('${t.key}')" title="Delete">🗑</button>
+      </div>
+    </div>`).join('');
+}
+
+function ltAddType(){
+  const key=document.getElementById('lt-new-key').value.trim().toLowerCase().replace(/\s/g,'');
+  const label=document.getElementById('lt-new-label').value.trim();
+  const code=document.getElementById('lt-new-code').value.trim().toUpperCase()||key.slice(0,2).toUpperCase();
+  const color=document.getElementById('lt-new-color').value;
+  if(!key||!label){toast('Key and label are required','error');return;}
+  const types=smGetLeaveTypes();
+  if(types.find(t=>t.key===key)){toast('A type with that key already exists','error');return;}
+  types.push({key,label,code,color,bg:SM_COLOR_MAP[color]||'#F0F4FF'});
+  smLSSet(SM_LEAVE_TYPES_KEY,types);
+  document.getElementById('lt-new-key').value='';document.getElementById('lt-new-label').value='';document.getElementById('lt-new-code').value='';document.getElementById('lt-new-color').value='warn';
+  toast(label+' added ✅');ltRender();
+}
+
+function ltDelete(key){
+  if(!confirm('Remove this leave type? Existing leave records using it will still display.'))return;
+  smLSSet(SM_LEAVE_TYPES_KEY,smGetLeaveTypes().filter(t=>t.key!==key));
+  toast('Leave type removed','info');ltRender();
+}
+
+function ltMove(idx,dir){
+  const types=smGetLeaveTypes();const newIdx=idx+dir;
+  if(newIdx<0||newIdx>=types.length)return;
+  [types[idx],types[newIdx]]=[types[newIdx],types[idx]];
+  smLSSet(SM_LEAVE_TYPES_KEY,types);ltRender();
+}
 
 function smLoadLeaves(){
   const el=document.getElementById('sm-leaves-list');if(!el)return;
@@ -3742,19 +3840,22 @@ function smLoadLeaves(){
   const summaryEl=document.getElementById('sm-leaves-summary');
   if(summaryEl&&staff.length){
     const curYear=new Date().getFullYear();
+    const leaveTypes=smGetLeaveTypes();
     const cards=staff.map(s=>{
       const yr=leaves.filter(l=>l.staff_id===s.id&&l.from_date.startsWith(curYear)&&l.status!=='rejected');
-      const annual=yr.filter(l=>l.type==='annual').reduce((a,l)=>a+(parseFloat(l.days)||0),0);
-      const sick=yr.filter(l=>l.type==='sick').reduce((a,l)=>a+(parseFloat(l.days)||0),0);
-      const comp=yr.filter(l=>l.type==='compoff').reduce((a,l)=>a+(parseFloat(l.days)||0),0);
-      return`<div class="sc" style="padding:12px 14px;gap:8px;flex-direction:column;align-items:flex-start;"><div style="font-size:12.5px;font-weight:800;">${s.name}</div><div style="display:flex;gap:8px;font-size:11px;font-weight:700;"><span style="color:var(--warn);">AL:${annual}d</span><span style="color:var(--err);">SL:${sick}d</span><span style="color:var(--b);">CO:${comp}d</span></div></div>`;
+      const pills=leaveTypes.map(t=>{
+        const total=yr.filter(l=>l.type===t.key).reduce((a,l)=>a+(parseFloat(l.days)||0),0);
+        if(!total)return'';
+        return`<span style="color:var(--${t.color==='warn'?'warn':t.color==='err'?'err':t.color==='ok'?'ok':'b'});">${t.code}:${total}d</span>`;
+      }).filter(Boolean).join(' ');
+      return`<div class="sc" style="padding:12px 14px;gap:8px;flex-direction:column;align-items:flex-start;"><div style="font-size:12.5px;font-weight:800;">${s.name}</div><div style="display:flex;gap:8px;flex-wrap:wrap;font-size:11px;font-weight:700;">${pills||'<span style="color:var(--muted);">No leaves</span>'}</div></div>`;
     }).join('');
     summaryEl.innerHTML=`<div style="margin-bottom:8px;font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;">${curYear} Leave Balances</div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;">${cards}</div>`;
   }
   if(!leaves.length){el.innerHTML='<div style="text-align:center;padding:40px;color:var(--muted);">No leaves recorded yet.</div>';return;}
   const rows=leaves.map(l=>{
     const s=smFindStaff(l.staff_id);const statusColors={approved:'bg-ok',pending:'bg-warn',rejected:'bg-err'};
-    return`<tr><td><strong>${s?s.name:'Unknown'}</strong></td><td><span class="badge ${SM_LEAVE_COLORS[l.type]||'bg-b'}">${SM_LEAVE_LABELS[l.type]||l.type}</span></td><td style="font-size:12.5px;">${smFmtDate(l.from_date)}</td><td style="font-size:12.5px;">${smFmtDate(l.to_date)}</td><td style="font-size:12.5px;font-weight:700;">${l.days||'—'} days</td><td><span class="badge ${statusColors[l.status]||'bg-b'}">${l.status||'—'}</span></td><td style="font-size:12px;color:var(--muted);">${l.notes||'—'}</td><td><div style="display:flex;gap:4px;"><button class="btn bg2 bsm" onclick="smOpenEditLeave('${l.id}')">✏️</button><button class="btn bd2 bsm" onclick="smDeleteRecord(SM_LEAVE_KEY,'${l.id}',smLoadLeaves)">🗑</button></div></td></tr>`;
+    return`<tr><td><strong>${s?s.name:'Unknown'}</strong></td><td><span class="badge ${smLeaveBadgeClass(l.type)}">${smLeaveLabel(l.type)}</span></td><td style="font-size:12.5px;">${smFmtDate(l.from_date)}</td><td style="font-size:12.5px;">${smFmtDate(l.to_date)}</td><td style="font-size:12.5px;font-weight:700;">${l.days||'—'} days</td><td><span class="badge ${statusColors[l.status]||'bg-b'}">${l.status||'—'}</span></td><td style="font-size:12px;color:var(--muted);">${l.notes||'—'}</td><td><div style="display:flex;gap:4px;"><button class="btn bg2 bsm" onclick="smOpenEditLeave('${l.id}')">✏️</button><button class="btn bd2 bsm" onclick="smDeleteRecord(SM_LEAVE_KEY,'${l.id}',smLoadLeaves)">🗑</button></div></td></tr>`;
   }).join('');
   el.innerHTML=`<div class="tw"><table><thead><tr><th>Staff</th><th>Type</th><th>From</th><th>To</th><th>Days</th><th>Status</th><th>Notes</th><th>Actions</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
@@ -3766,15 +3867,17 @@ function smAutoLeaveDays(){
 
 function smOpenLeave(){
   smPopulateDropdowns(['sm-leave-staff']);
+  smPopulateLeaveTypeDropdown('sm-leave-type');
   ['sm-leave-id','sm-leave-days','sm-leave-notes'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
-  document.getElementById('sm-leave-type').value='annual';document.getElementById('sm-leave-from').value='';document.getElementById('sm-leave-to').value='';document.getElementById('sm-leave-status').value='approved';
+  document.getElementById('sm-leave-from').value='';document.getElementById('sm-leave-to').value='';document.getElementById('sm-leave-status').value='approved';
   openM('sm-leave-modal');
 }
 
 function smOpenEditLeave(id){
   const rec=smLS(SM_LEAVE_KEY).find(l=>l.id===id);if(!rec)return;
   smPopulateDropdowns(['sm-leave-staff'],rec.staff_id);
-  document.getElementById('sm-leave-id').value=id;document.getElementById('sm-leave-type').value=rec.type||'annual';document.getElementById('sm-leave-from').value=rec.from_date||'';document.getElementById('sm-leave-to').value=rec.to_date||'';document.getElementById('sm-leave-days').value=rec.days||'';document.getElementById('sm-leave-status').value=rec.status||'approved';document.getElementById('sm-leave-notes').value=rec.notes||'';
+  smPopulateLeaveTypeDropdown('sm-leave-type',rec.type);
+  document.getElementById('sm-leave-id').value=id;document.getElementById('sm-leave-from').value=rec.from_date||'';document.getElementById('sm-leave-to').value=rec.to_date||'';document.getElementById('sm-leave-days').value=rec.days||'';document.getElementById('sm-leave-status').value=rec.status||'approved';document.getElementById('sm-leave-notes').value=rec.notes||'';
   openM('sm-leave-modal');
 }
 
