@@ -500,6 +500,7 @@ async function archiveCycle(customerId,stamps,firstStampDate,expiryDate,endedBy)
       <button class="ni" onclick="showPage('upload',this);closeSidebar()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>Import CSV/Excel</button>
       <button class="ni" onclick="showPage('qrpage',this);closeSidebar()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h7v7H14z"/></svg>Salon QR Code</button>
       <button class="ni" onclick="showPage('config',this);closeSidebar()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M12 2v2m0 16v2m7.07 2.07l-1.41-1.41M4.93 19.07l1.41-1.41M2 12h2m16 0h2"/></svg>Settings</button>
+      <button class="ni" onclick="showPage('analytics',this);closeSidebar()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Analytics</button>
       <div class="nav-s">Retention</div>
       <button class="ni" onclick="showPage('missyou',this);closeSidebar()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>Miss You 💌</button>
       <div class="nav-s">Customer</div>
@@ -869,6 +870,76 @@ async function archiveCycle(customerId,stamps,firstStampDate,expiryDate,endedBy)
       </div>
 
     </div>
+
+<!-- ANALYTICS PAGE -->
+<div class="page" id="page-analytics">
+  <div class="pw">
+    <!-- Date filter bar -->
+    <div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+      <span style="font-size:13px;font-weight:700;color:var(--muted);">📅 Registration period:</span>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <label style="font-size:12px;font-weight:700;color:var(--text);">From</label>
+        <input type="date" id="an-from" style="border:1.5px solid var(--border);border-radius:8px;padding:6px 10px;font-size:13px;font-weight:600;color:var(--text);background:#F8FAFF;">
+        <label style="font-size:12px;font-weight:700;color:var(--text);">To</label>
+        <input type="date" id="an-to" style="border:1.5px solid var(--border);border-radius:8px;padding:6px 10px;font-size:13px;font-weight:600;color:var(--text);background:#F8FAFF;">
+        <button onclick="loadAnalytics()" style="background:var(--b);color:#fff;border:none;border-radius:8px;padding:7px 16px;font-size:13px;font-weight:800;cursor:pointer;">Apply</button>
+        <button onclick="resetAnalyticsFilter()" style="background:var(--bg);color:var(--muted);border:1px solid var(--border);border-radius:8px;padding:7px 12px;font-size:12px;font-weight:700;cursor:pointer;">Reset</button>
+      </div>
+      <span id="an-range-label" style="font-size:11.5px;color:var(--b);font-weight:700;margin-left:auto;"></span>
+    </div>
+    <!-- Summary KPIs -->
+    <div id="an-kpis" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:20px;"></div>
+    <!-- Charts grid -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+      <div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px;">
+        <div style="font-size:13px;font-weight:800;color:var(--bd);margin-bottom:14px;">👧👦 Gender Split</div>
+        <div id="an-gender"></div>
+      </div>
+      <div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px;">
+        <div style="font-size:13px;font-weight:800;color:var(--bd);margin-bottom:14px;">📣 How They Heard About Us</div>
+        <div id="an-heard"></div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+      <div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px;">
+        <div style="font-size:13px;font-weight:800;color:var(--bd);margin-bottom:14px;">🎂 Age Distribution</div>
+        <div id="an-age"></div>
+      </div>
+      <div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px;">
+        <div style="font-size:13px;font-weight:800;color:var(--bd);margin-bottom:14px;">📍 Customers by Location</div>
+        <div id="an-location"></div>
+      </div>
+    </div>
+    <div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:16px;">
+      <div style="font-size:13px;font-weight:800;color:var(--bd);margin-bottom:14px;">🎮 Games Engagement</div>
+      <div id="an-games"></div>
+    </div>
+    <div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px;">
+      <div style="font-size:13px;font-weight:800;color:var(--bd);margin-bottom:14px;">📈 Registrations Over Time</div>
+      <div id="an-timeline"></div>
+    </div>
+
+    <!-- Return Rate — full width, own section -->
+    <div style="background:#fff;border:1.5px solid var(--b);border-radius:12px;padding:16px;margin-top:4px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
+        <div style="font-size:13px;font-weight:800;color:var(--bd);">🔄 Customer Return Rate</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;" id="rr-btns">
+          <button onclick="loadReturnRate(30)"  class="rr-btn" data-d="30"  style="padding:5px 12px;border-radius:99px;border:1.5px solid var(--border);background:#fff;font-size:12px;font-weight:700;cursor:pointer;color:var(--text);">30d</button>
+          <button onclick="loadReturnRate(60)"  class="rr-btn" data-d="60"  style="padding:5px 12px;border-radius:99px;border:1.5px solid var(--border);background:#fff;font-size:12px;font-weight:700;cursor:pointer;color:var(--text);">60d</button>
+          <button onclick="loadReturnRate(90)"  class="rr-btn" data-d="90"  style="padding:5px 12px;border-radius:99px;border:1.5px solid var(--border);background:#fff;font-size:12px;font-weight:700;cursor:pointer;color:var(--text);">90d</button>
+          <button onclick="loadReturnRate(120)" class="rr-btn" data-d="120" style="padding:5px 12px;border-radius:99px;border:1.5px solid var(--border);background:#fff;font-size:12px;font-weight:700;cursor:pointer;color:var(--text);">120d</button>
+          <button onclick="loadReturnRate(150)" class="rr-btn" data-d="150" style="padding:5px 12px;border-radius:99px;border:1.5px solid var(--border);background:#fff;font-size:12px;font-weight:700;cursor:pointer;color:var(--text);">150d</button>
+          <button onclick="loadReturnRate(180)" class="rr-btn" data-d="180" style="padding:5px 12px;border-radius:99px;border:1.5px solid var(--border);background:#fff;font-size:12px;font-weight:700;cursor:pointer;color:var(--text);">180d</button>
+          <button onclick="loadReturnRate(270)" class="rr-btn" data-d="270" style="padding:5px 12px;border-radius:99px;border:1.5px solid var(--border);background:#fff;font-size:12px;font-weight:700;cursor:pointer;color:var(--text);">270d</button>
+          <button onclick="loadReturnRate(360)" class="rr-btn" data-d="360" style="padding:5px 12px;border-radius:99px;border:1.5px solid var(--border);background:#fff;font-size:12px;font-weight:700;cursor:pointer;color:var(--text);">360d</button>
+        </div>
+      </div>
+      <div id="an-returnrate"><div style="text-align:center;padding:20px;color:var(--muted);font-size:13px;font-weight:600;">Select a time window above to see return rate</div></div>
+    </div>
+
+  </div>
+</div>
+
   </div>
 </div>
 
@@ -1125,13 +1196,14 @@ function showPage(id,btn){
   document.querySelectorAll('.ni').forEach(n=>n.classList.remove('active'));
   document.getElementById('page-'+id).classList.add('active');
   if(btn) btn.classList.add('active');
-  const titles={dashboard:'Dashboard',customers:'Customers',profile:'Customer Profile',newcustomer:'New Customer',upload:'Import Customers',qrpage:'Salon QR Code',config:'Settings',missyou:'Miss You 💌 — Nudge & Track'};
+  const titles={dashboard:'Dashboard',customers:'Customers',profile:'Customer Profile',newcustomer:'New Customer',upload:'Import Customers',qrpage:'Salon QR Code',config:'Settings',missyou:'Miss You 💌 — Nudge & Track',analytics:'Analytics'};
   document.getElementById('TT').textContent=titles[id]||'';
   if(id==='dashboard'){renderDash();loadAfterService();}
   if(id==='customers') loadCustomers();
   if(id==='qrpage') renderSalonQR();
   if(id==='config'){syncCfgInputs();}
   if(id==='missyou') renderMissYou();
+  if(id==='analytics') loadAnalytics();
 }
 
 // ══ AFTER-SERVICE ALERT ══
@@ -1455,8 +1527,13 @@ function renderProfile(c,visits,cycles,prizes){
     <div style="display:flex;align-items:center;gap:18px;margin-bottom:22px;flex-wrap:wrap;">
       <div style="width:68px;height:68px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:800;font-family:var(--fh);background:${c.gender==='girl'?'var(--pinkl)':'var(--bl)'};color:${c.gender==='girl'?'var(--pink)':'var(--b)'};">${c.name.charAt(0).toUpperCase()}</div>
       <div><h2 style="font-family:var(--fh);font-size:22px;font-weight:800;">${c.name}</h2>
-      <p style="color:var(--muted);font-size:13.5px;">${c.mobile} · ${c.gender==='girl'?'👧 Girl':'👦 Boy'}${c.parent?' · '+c.parent:''}${c.dob?' · 🎂 '+new Date(c.dob).toLocaleDateString('en-GB',{day:'numeric',month:'short'}):''}</p>
-      ${c.notes?`<p style="font-size:12.5px;color:var(--warn);margin-top:3px;">📝 ${c.notes}</p>`:''}
+      <p style="color:var(--muted);font-size:13.5px;">${c.mobile} · ${c.gender==='girl'?'👧 Girl':'👦 Boy'}${c.parent?' · '+c.parent:''}</p>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:7px;">
+        ${c.dob?`<span style="display:inline-flex;align-items:center;gap:4px;background:#EEF6FF;color:var(--b);padding:4px 10px;border-radius:99px;font-size:12px;font-weight:700;">🎂 ${new Date(c.dob).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</span>`:'<span style="display:inline-flex;align-items:center;gap:4px;background:#F3F4F6;color:var(--muted);padding:4px 10px;border-radius:99px;font-size:12px;font-weight:700;">🎂 DOB not recorded</span>'}
+        ${c.location?`<span style="display:inline-flex;align-items:center;gap:4px;background:#F0FDF4;color:#16A34A;padding:4px 10px;border-radius:99px;font-size:12px;font-weight:700;">📍 ${c.location}</span>`:'<span style="display:inline-flex;align-items:center;gap:4px;background:#F3F4F6;color:var(--muted);padding:4px 10px;border-radius:99px;font-size:12px;font-weight:700;">📍 Location not recorded</span>'}
+        ${c.heard_via?`<span style="display:inline-flex;align-items:center;gap:4px;background:#FEF3C7;color:#D97706;padding:4px 10px;border-radius:99px;font-size:12px;font-weight:700;">📣 ${c.heard_via}</span>`:'<span style="display:inline-flex;align-items:center;gap:4px;background:#F3F4F6;color:var(--muted);padding:4px 10px;border-radius:99px;font-size:12px;font-weight:700;">📣 Source not recorded</span>'}
+      </div>
+      ${c.notes?`<p style="font-size:12.5px;color:var(--warn);margin-top:6px;">📝 ${c.notes}</p>`:''}
       ${c.dnd?`<p style="font-size:12px;margin-top:3px;"><span class="badge bg-err">🔕 Do Not Disturb</span></p>`:''}</div>
       <div style="margin-left:auto;display:flex;gap:7px;flex-wrap:wrap;">
         <button class="btn bg2 bsm" onclick="openEditM('${c.id}')">✏️ Edit</button>
@@ -1477,6 +1554,9 @@ function renderProfile(c,visits,cycles,prizes){
           <div class="pinfo">
             <div class="pf"><div class="pfl">Mobile</div><div class="pfv">${c.mobile}</div></div>
             <div class="pf"><div class="pfl">Gender</div><div class="pfv">${c.gender==='girl'?'👧 Girl':'👦 Boy'}</div></div>
+            <div class="pf"><div class="pfl">Date of Birth</div><div class="pfv">${c.dob?new Date(c.dob).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'—'}</div></div>
+            <div class="pf"><div class="pfl">Location</div><div class="pfv">${c.location||'—'}</div></div>
+            <div class="pf"><div class="pfl">Lead Source</div><div class="pfv">${c.heard_via||'—'}</div></div>
             <div class="pf"><div class="pfl">Valid Until</div><div class="pfv">${c.expiry_date?fmtDate(c.expiry_date):'—'}</div></div>
             <div class="pf"><div class="pfl">Free Washes Given 🚿</div><div class="pfv">${c.redemptions||0}</div></div>
           </div>
@@ -2669,5 +2749,433 @@ function stopTodayAutoRefresh(){} // Today page removed — stub kept for safety
   // EDOB — edit modal (static in HTML)
   fill('EDOB_D',days); fill('EDOB_M',months); fill('EDOB_Y',years);
 })();
+
+// ══ ANALYTICS ══
+
+function resetAnalyticsFilter(){
+  document.getElementById('an-from').value='';
+  document.getElementById('an-to').value='';
+  loadAnalytics();
+}
+
+function anBar(label,count,total,color){
+  const pct=total>0?Math.round((count/total)*100):0;
+  return `<div style="margin-bottom:10px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
+      <span style="font-size:12.5px;font-weight:700;color:var(--text);">${label}</span>
+      <span style="font-size:12px;font-weight:800;color:${color};">${count} <span style="color:var(--muted);font-weight:600;">(${pct}%)</span></span>
+    </div>
+    <div style="height:10px;background:#F1F5F9;border-radius:99px;overflow:hidden;">
+      <div style="height:100%;width:${pct}%;background:${color};border-radius:99px;transition:width .6s;"></div>
+    </div>
+  </div>`;
+}
+
+function anKpi(icon,label,value,sub,color){
+  return `<div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px 12px;text-align:center;">
+    <div style="font-size:22px;">${icon}</div>
+    <div style="font-size:20px;font-weight:900;font-family:var(--fh);color:${color||'var(--bd)'};">${value}</div>
+    <div style="font-size:11px;font-weight:800;color:var(--text);margin-top:1px;">${label}</div>
+    ${sub?`<div style="font-size:10.5px;color:var(--muted);margin-top:2px;">${sub}</div>`:''}
+  </div>`;
+}
+
+function anEmpty(msg){
+  return `<div style="text-align:center;padding:24px;color:var(--muted);font-size:13px;font-weight:600;">${msg}</div>`;
+}
+
+async function loadAnalytics(){
+  const fromVal=document.getElementById('an-from').value;
+  const toVal=document.getElementById('an-to').value;
+  const rangeLabel=document.getElementById('an-range-label');
+  rangeLabel.textContent=(fromVal||toVal)?(fromVal||'start')+' → '+(toVal||'today'):'All time';
+
+  const IDS=['an-kpis','an-gender','an-heard','an-age','an-location','an-games','an-timeline'];
+  IDS.forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.innerHTML='<div class="load"><div class="spin"></div></div>';
+  });
+
+  try{
+    // Build date filter — only applied if user explicitly sets dates
+    let dateFilter='';
+    if(fromVal) dateFilter+='&created_at=gte.'+fromVal+'T00:00:00';
+    if(toVal)   dateFilter+='&created_at=lte.'+toVal+'T23:59:59';
+
+    // Fetch all customers with pagination (handle >1000 rows)
+    let customers=[];
+    let offset=0;
+    const PAGE=1000;
+    while(true){
+      const batch=await sb('customers','GET',null,
+        'select=id,name,gender,dob,created_at,notes,game_points,heard_via,location&order=created_at.asc&limit='+PAGE+'&offset='+offset+dateFilter);
+      customers=[...customers,...(batch||[])];
+      if(!batch||batch.length<PAGE) break;
+      offset+=PAGE;
+    }
+    const total=customers.length;
+
+    // Fetch game sessions (all time — not date filtered)
+    let gameSessions=[];
+    try{
+      let gOffset=0;
+      while(true){
+        const batch=await sb('game_sessions','GET',null,
+          'select=customer_id,game_type&limit='+PAGE+'&offset='+gOffset);
+        gameSessions=[...gameSessions,...(batch||[])];
+        if(!batch||batch.length<PAGE) break;
+        gOffset+=PAGE;
+      }
+    }catch(e){ /* game_sessions may not exist yet */ }
+
+    // ── KPIs ──
+    const boys=customers.filter(c=>c.gender==='boy').length;
+    const girls=customers.filter(c=>c.gender==='girl').length;
+    const gamePlayers=customers.filter(c=>(c.game_points||0)>0).length;
+    const withDob=customers.filter(c=>c.dob).length;
+    document.getElementById('an-kpis').innerHTML=
+      anKpi('👥','Total Customers',total,(fromVal||toVal)?'in selected period':'all time','var(--b)')+
+      anKpi('👦','Boys',boys,total>0?Math.round(boys/total*100)+'%':'-','#1565C0')+
+      anKpi('👧','Girls',girls,total>0?Math.round(girls/total*100)+'%':'-','#EC4899')+
+      anKpi('🎮','Played Games',gamePlayers,total>0?Math.round(gamePlayers/total*100)+'% engaged':'-','#7C3AED')+
+      anKpi('🎂','DOB on Record',withDob,withDob<total?(total-withDob)+' missing':'Complete ✅','#D97706');
+
+    // ── GENDER ──
+    const gEl=document.getElementById('an-gender');
+    gEl.innerHTML=total
+      ? anBar('👦 Boys',boys,total,'#1565C0')+anBar('👧 Girls',girls,total,'#EC4899')
+      : anEmpty('No customers in this period');
+
+    // ── HEARD FROM — uses dedicated heard_via column ──
+    const heardEl=document.getElementById('an-heard');
+    const heardMap={};
+    customers.forEach(c=>{
+      const val=(c.heard_via||'').trim();
+      if(val) heardMap[val]=(heardMap[val]||0)+1;
+    });
+    const heardEntries=Object.entries(heardMap).sort((a,b)=>b[1]-a[1]);
+    const HEARD_COLORS=['#1565C0','#7C3AED','#16A34A','#D97706','#DC2626','#0891B2','#9333EA','#EA580C'];
+    heardEl.innerHTML=heardEntries.length
+      ? heardEntries.map(([k,v],i)=>anBar(k,v,total,HEARD_COLORS[i%HEARD_COLORS.length])).join('')
+      : anEmpty('No source data yet — customers must select how they heard about MiniCuts during check-in');
+
+    // ── AGE ──
+    const ageEl=document.getElementById('an-age');
+    const today=new Date();
+    const AGE_BUCKETS=[['0-2 yrs',0,2],['3-5 yrs',3,5],['6-8 yrs',6,8],['9-11 yrs',9,11],['12-15 yrs',12,15],['16+ yrs',16,99]];
+    const AGE_COLORS={'0-2 yrs':'#0891B2','3-5 yrs':'#7C3AED','6-8 yrs':'#16A34A','9-11 yrs':'#D97706','12-15 yrs':'#1565C0','16+ yrs':'#DC2626','Unknown':'#9CA3AF'};
+    const ageCounts={};
+    AGE_BUCKETS.forEach(([l])=>ageCounts[l]=0);
+    ageCounts['Unknown']=0;
+    customers.forEach(c=>{
+      if(!c.dob){ageCounts['Unknown']++;return;}
+      const age=Math.floor((today-new Date(c.dob))/(365.25*24*3600*1000));
+      const bucket=AGE_BUCKETS.find(([,lo,hi])=>age>=lo&&age<=hi);
+      if(bucket) ageCounts[bucket[0]]++;
+      else ageCounts['Unknown']++;
+    });
+    const ageRows=Object.entries(ageCounts).filter(([,v])=>v>0)
+      .map(([k,v])=>anBar(k,v,total,AGE_COLORS[k]||'#6B7280')).join('');
+    ageEl.innerHTML=ageRows||anEmpty('No date of birth data recorded yet');
+
+    // ── LOCATION — uses location column, falls back to notes keyword scan ──
+    const locEl=document.getElementById('an-location');
+    const LOC_KEYS=[
+      ['DSO / Silicon Oasis','dso','silicon oasis'],
+      ['Discovery Gardens','discovery'],
+      ['The Springs','springs'],
+      ['The Meadows','meadows'],
+      ['Arabian Ranches','arabian ranches'],
+      ['Motor City','motor city'],
+      ['Jumeirah','jumeirah'],
+      ['Marina / JBR','marina','jbr'],
+      ['JVC','jvc'],
+      ['Downtown','downtown'],
+      ['Mirdif','mirdif'],
+      ['Al Barsha','al barsha'],
+      ['Bur Dubai','bur dubai'],
+      ['Deira','deira'],
+      ['Sharjah','sharjah'],
+      ['Abu Dhabi','abu dhabi'],
+    ];
+    const locMap={};
+    customers.forEach(c=>{
+      const loc=(c.location||'').trim();
+      if(loc){ locMap[loc]=(locMap[loc]||0)+1; return; }
+      const note=(c.notes||'').toLowerCase();
+      for(const [label,...keys] of LOC_KEYS){
+        if(keys.some(k=>note.includes(k))){
+          locMap[label]=(locMap[label]||0)+1;
+          break;
+        }
+      }
+    });
+    const locEntries=Object.entries(locMap).sort((a,b)=>b[1]-a[1]);
+    const LOC_COLORS=['#1565C0','#16A34A','#D97706','#7C3AED','#0891B2','#DC2626','#9333EA','#EA580C'];
+    locEl.innerHTML=locEntries.length
+      ? locEntries.map(([k,v],i)=>anBar(k,v,total,LOC_COLORS[i%LOC_COLORS.length])).join('')
+      : anEmpty('No location data recorded yet');
+
+    // ── GAMES ──
+    const gamesEl=document.getElementById('an-games');
+    const uniquePlayers=new Set(gameSessions.map(s=>s.customer_id)).size;
+    const spinCount=gameSessions.filter(s=>s.game_type==='spin').length;
+    const tapCount=gameSessions.filter(s=>s.game_type==='tap').length;
+    const memCount=gameSessions.filter(s=>s.game_type==='memory').length;
+    const totalSessions=gameSessions.length;
+    const custWithPts=customers.filter(c=>(c.game_points||0)>0).length;
+    gamesEl.innerHTML=
+      `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin-bottom:16px;">
+        ${anKpi('🎮','Unique Players',uniquePlayers,'all time','#7C3AED')}
+        ${anKpi('🎡','Spin Plays',spinCount,'all time','#D97706')}
+        ${anKpi('🐼','Tap Plays',tapCount,'all time','#1565C0')}
+        ${anKpi('🧠','Memory Plays',memCount,'all time','#16A34A')}
+      </div>`+
+      (totalSessions>0
+        ? anBar('🎡 Spin Wheel',spinCount,totalSessions,'#D97706')+
+          anBar('🐼 Tap Panda',tapCount,totalSessions,'#1565C0')+
+          anBar('🧠 Memory Match',memCount,totalSessions,'#16A34A')
+        : anEmpty('No game sessions recorded yet'))+
+      (total>0
+        ? `<div style="margin-top:12px;padding:10px;background:#F8FAFF;border-radius:8px;font-size:12px;color:var(--muted);font-weight:600;">
+            ${custWithPts} of ${total} customers (${Math.round(custWithPts/total*100)}%) have earned game points
+           </div>`
+        : '');
+
+    // ── TIMELINE ──
+    const tlEl=document.getElementById('an-timeline');
+    const monthMap={};
+    customers.forEach(c=>{
+      if(!c.created_at) return;
+      const d=new Date(c.created_at);
+      const key=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+      monthMap[key]=(monthMap[key]||0)+1;
+    });
+    const mKeys=Object.keys(monthMap).sort();
+    if(!mKeys.length){
+      tlEl.innerHTML=anEmpty('No registration data in this period');
+    } else {
+      const maxM=Math.max(...Object.values(monthMap));
+      const fmtM=k=>{const[y,m]=k.split('-');return new Date(y,parseInt(m)-1).toLocaleDateString('en-GB',{month:'short',year:'2-digit'});};
+      tlEl.innerHTML=
+        `<div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+          <div style="min-width:${Math.max(mKeys.length*68,300)}px;padding:4px 4px 0;">
+            <div style="display:flex;align-items:flex-end;gap:8px;height:130px;margin-bottom:8px;">
+              ${mKeys.map(k=>{
+                const v=monthMap[k];
+                const h=maxM>0?Math.max(Math.round((v/maxM)*110),6):6;
+                return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;">
+                  <span style="font-size:11px;font-weight:800;color:var(--b);">${v}</span>
+                  <div style="width:100%;background:linear-gradient(180deg,#1976D2,#0D47A1);border-radius:6px 6px 0 0;height:${h}px;"></div>
+                </div>`;
+              }).join('')}
+            </div>
+            <div style="display:flex;gap:8px;border-top:1px solid var(--border);padding-top:6px;">
+              ${mKeys.map(k=>`<div style="flex:1;font-size:9.5px;color:var(--muted);font-weight:700;text-align:center;">${fmtM(k)}</div>`).join('')}
+            </div>
+          </div>
+        </div>`;
+    }
+
+  }catch(e){
+    // Show error visibly in every section
+    const errHtml=`<div style="color:var(--err);font-size:12.5px;font-weight:700;padding:14px;background:#FEE2E2;border-radius:8px;">❌ ${e.message}</div>`;
+    ['an-kpis','an-gender','an-heard','an-age','an-location','an-games','an-timeline']
+      .forEach(id=>{ const el=document.getElementById(id); if(el) el.innerHTML=errHtml; });
+  }
+}
+
+// Analytics date fields start empty = all time (user can filter by setting dates)
+
+// ══ RETURN RATE ══
+async function loadReturnRate(days){
+  // Highlight active button
+  document.querySelectorAll('.rr-btn').forEach(b=>{
+    const active=parseInt(b.dataset.d)===days;
+    b.style.background=active?'var(--b)':'#fff';
+    b.style.color=active?'#fff':'var(--text)';
+    b.style.borderColor=active?'var(--b)':'var(--border)';
+  });
+
+  const el=document.getElementById('an-returnrate');
+  el.innerHTML='<div class="load"><div class="spin"></div></div>';
+
+  try{
+    const cutoff=new Date();
+    cutoff.setDate(cutoff.getDate()-days);
+    const cutoffISO=cutoff.toISOString();
+
+    // All customers who had ANY visit in the window
+    // We use last_visit_date on customers + visits table
+    // Step 1: fetch all customers with at least 1 stamp (visited at least once ever)
+    let allCusts=[];
+    let offset=0;
+    const PAGE=1000;
+    while(true){
+      const batch=await sb('customers','GET',null,
+        'select=id,name,gender,dob,stamps,created_at,last_visit_date,first_stamp_date&order=created_at.asc&limit='+PAGE+'&offset='+offset);
+      allCusts=[...allCusts,...(batch||[])];
+      if(!batch||batch.length<PAGE) break;
+      offset+=PAGE;
+    }
+
+    // Step 2: fetch all visits in the window to count per-customer
+    let windowVisits=[];
+    let vOffset=0;
+    while(true){
+      const batch=await sb('visits','GET',null,
+        'select=customer_id,type,created_at&created_at=gte.'+cutoffISO+'&order=created_at.asc&limit='+PAGE+'&offset='+vOffset);
+      windowVisits=[...windowVisits,...(batch||[])];
+      if(!batch||batch.length<PAGE) break;
+      vOffset+=PAGE;
+    }
+
+    // Step 3: fetch ALL visits ever to count total per customer
+    let allVisits=[];
+    let avOffset=0;
+    while(true){
+      const batch=await sb('visits','GET',null,
+        'select=customer_id,type,created_at&order=created_at.asc&limit='+PAGE+'&offset='+avOffset);
+      allVisits=[...allVisits,...(batch||[])];
+      if(!batch||batch.length<PAGE) break;
+      avOffset+=PAGE;
+    }
+
+    // Build visit count maps
+    const visitCountAll={};   // total visits ever per customer
+    const visitCountWin={};   // visits in window per customer
+    allVisits.forEach(v=>{
+      if(!v.customer_id) return;
+      visitCountAll[v.customer_id]=(visitCountAll[v.customer_id]||0)+1;
+    });
+    windowVisits.forEach(v=>{
+      if(!v.customer_id) return;
+      visitCountWin[v.customer_id]=(visitCountWin[v.customer_id]||0)+1;
+    });
+
+    // Customers who visited in the window
+    const visitedInWindow=allCusts.filter(c=>visitCountWin[c.id]>0);
+    const totalVisited=visitedInWindow.length;
+
+    // Returners = visited in window AND have >1 total visit ever (i.e. not a first-timer)
+    const returners=visitedInWindow.filter(c=>(visitCountAll[c.id]||0)>1);
+    const returnCount=returners.length;
+
+    // First-timers in window
+    const firstTimers=visitedInWindow.filter(c=>(visitCountAll[c.id]||0)===1);
+    const firstCount=firstTimers.length;
+
+    // Return rate
+    const returnRate=totalVisited>0?Math.round((returnCount/totalVisited)*100):0;
+    const firstRate=totalVisited>0?Math.round((firstCount/totalVisited)*100):0;
+
+    // Avg visits per returner
+    const avgVisits=returnCount>0
+      ? (returners.reduce((s,c)=>s+(visitCountAll[c.id]||0),0)/returnCount).toFixed(1)
+      : 0;
+
+    // Boys vs girls return rate
+    const boyVisited=visitedInWindow.filter(c=>c.gender==='boy').length;
+    const boyReturn=returners.filter(c=>c.gender==='boy').length;
+    const girlVisited=visitedInWindow.filter(c=>c.gender==='girl').length;
+    const girlReturn=returners.filter(c=>c.gender==='girl').length;
+    const boyRate=boyVisited>0?Math.round((boyReturn/boyVisited)*100):0;
+    const girlRate=girlVisited>0?Math.round((girlReturn/girlVisited)*100):0;
+
+    // Age group return rate
+    const today=new Date();
+    const AGE_BUCKETS=[
+      {label:'0–2 yrs',  lo:0,  hi:2,  color:'#0891B2'},
+      {label:'3–5 yrs',  lo:3,  hi:5,  color:'#7C3AED'},
+      {label:'6–8 yrs',  lo:6,  hi:8,  color:'#16A34A'},
+      {label:'9–11 yrs', lo:9,  hi:11, color:'#D97706'},
+      {label:'12–15 yrs',lo:12, hi:15, color:'#1565C0'},
+      {label:'16+ yrs',  lo:16, hi:99, color:'#DC2626'},
+    ];
+    function getAgeBucket(dob){
+      if(!dob) return null;
+      const age=Math.floor((today-new Date(dob))/(365.25*24*3600*1000));
+      return AGE_BUCKETS.find(b=>age>=b.lo&&age<=b.hi)||null;
+    }
+    const ageVisited={}, ageReturn={};
+    AGE_BUCKETS.forEach(b=>{ageVisited[b.label]=0; ageReturn[b.label]=0;});
+    visitedInWindow.forEach(c=>{
+      const b=getAgeBucket(c.dob); if(!b) return;
+      ageVisited[b.label]++;
+    });
+    returners.forEach(c=>{
+      const b=getAgeBucket(c.dob); if(!b) return;
+      ageReturn[b.label]++;
+    });
+    const ageRows=AGE_BUCKETS
+      .filter(b=>ageVisited[b.label]>0)
+      .map(b=>{
+        const v=ageVisited[b.label], r=ageReturn[b.label];
+        const rate=v>0?Math.round((r/v)*100):0;
+        return anBar(`${b.label} &nbsp;<span style="font-weight:600;font-size:11px;color:var(--muted);">(${r}/${v})</span>`,r,v||1,b.color);
+      }).join('');
+    const dobMissing=visitedInWindow.filter(c=>!c.dob).length;
+
+    // Registered in window (new customers)
+    const newInWindow=allCusts.filter(c=>new Date(c.created_at)>=cutoff).length;
+
+    // Build UI
+    const rateColor=returnRate>=50?'#16A34A':returnRate>=30?'#D97706':'#DC2626';
+
+    el.innerHTML=`
+      <!-- Big headline number -->
+      <div style="text-align:center;padding:16px 0 20px;border-bottom:1px solid var(--border);margin-bottom:20px;">
+        <div style="font-size:52px;font-weight:900;font-family:var(--fh);color:${rateColor};line-height:1;">${returnRate}%</div>
+        <div style="font-size:14px;font-weight:700;color:var(--text);margin-top:6px;">Return Rate · last ${days} days</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:3px;">${returnCount} returning customers out of ${totalVisited} total visitors</div>
+      </div>
+
+      <!-- KPI row -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:20px;">
+        ${anKpi('👥','Total Visitors',totalVisited,'in last '+days+' days','var(--b)')}
+        ${anKpi('🔄','Returners',returnCount,returnRate+'% of visitors',rateColor)}
+        ${anKpi('🆕','First Timers',firstCount,firstRate+'% of visitors','#7C3AED')}
+        ${anKpi('📅','Avg Visits',avgVisits,'per returning customer','#D97706')}
+        ${anKpi('✨','New Registered',newInWindow,'registered in period','#0891B2')}
+      </div>
+
+      <!-- Return rate bar -->
+      <div style="margin-bottom:20px;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+          <span style="font-size:12.5px;font-weight:700;color:var(--text);">Visitor breakdown</span>
+        </div>
+        <div style="height:28px;background:#F1F5F9;border-radius:99px;overflow:hidden;display:flex;">
+          <div style="height:100%;width:${returnRate}%;background:${rateColor};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;white-space:nowrap;padding:0 8px;transition:width .6s;">${returnRate>8?returnRate+'% returning':''}</div>
+          <div style="height:100%;flex:1;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#94A3B8;white-space:nowrap;padding:0 8px;">${firstRate>8?firstRate+'% first-time':''}</div>
+        </div>
+        <div style="display:flex;gap:16px;margin-top:8px;">
+          <span style="font-size:11.5px;font-weight:700;color:${rateColor};">● Returning</span>
+          <span style="font-size:11.5px;font-weight:700;color:#94A3B8;">● First-time</span>
+        </div>
+      </div>
+
+      <!-- Boys vs Girls -->
+      <div style="margin-bottom:20px;">
+        <div style="font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;">Return Rate by Gender</div>
+        ${anBar('👦 Boys ('+boyReturn+'/'+boyVisited+')',boyReturn,boyVisited||1,'#1565C0')}
+        ${anBar('👧 Girls ('+girlReturn+'/'+girlVisited+')',girlReturn,girlVisited||1,'#EC4899')}
+      </div>
+
+      <!-- Age groups -->
+      <div style="margin-bottom:20px;">
+        <div style="font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;">Return Rate by Age Group</div>
+        ${ageRows||'<div style="font-size:12.5px;color:var(--muted);padding:8px 0;">No age group data — date of birth not recorded for visitors in this period</div>'}
+        ${dobMissing>0?`<div style="font-size:11px;color:var(--muted);margin-top:6px;">⚠️ ${dobMissing} visitor${dobMissing>1?'s':''} excluded — no DOB on record</div>`:''}
+      </div>
+
+      <div style="padding:10px 12px;background:#F0F9FF;border-radius:8px;font-size:12px;color:#0369A1;font-weight:600;margin-top:4px;">
+        💡 Return rate = customers who visited in this window <strong>and</strong> have visited before (not first-timers). A healthy target for a kids salon is <strong>40–60%</strong>.
+      </div>`;
+
+  }catch(e){
+    document.getElementById('an-returnrate').innerHTML=
+      `<div style="color:var(--err);font-size:12.5px;font-weight:700;padding:14px;background:#FEE2E2;border-radius:8px;">❌ ${e.message}</div>`;
+  }
+}
 
 </script>
