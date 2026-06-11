@@ -92,6 +92,7 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
   <div style="font-size:12px;color:rgba(255,255,255,.65);margin-top:2px;">Register · Get token · Play games</div>
   <div class="q-strip">
     <div class="qstat"><div class="qstat-n" id="qs-w">—</div><div class="qstat-l">Waiting</div></div>
+    <div class="qstat"><div class="qstat-n" id="qs-c" style="color:#93C5FD;">—</div><div class="qstat-l">Being Served</div></div>
     <div class="qstat"><div class="qstat-n" id="qs-n">—</div><div class="qstat-l">Next Token</div></div>
   </div>
 </div>
@@ -305,7 +306,6 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
 <div class="screen" id="s-queue">
   <div style="font-family:var(--fh);font-size:19px;font-weight:800;color:var(--bd);margin-bottom:4px;">📋 Today's Queue</div>
   <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">Live queue status · <span style="color:var(--ok);font-weight:700;">Auto-updates</span></div>
-  <div id="cq-stats" style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;"></div>
   <div id="cq-list"><div style="text-align:center;padding:40px;color:var(--muted);">Loading...</div></div>
 </div>
 
@@ -980,11 +980,6 @@ async function loadQ(){
 }
 function renderCQ(){
   const visible=_qdata.filter(r=>r.status!=='done'&&r.status!=='cancelled');
-  const wait=_qdata.filter(r=>r.status==='waiting').length;
-  const call=_qdata.filter(r=>r.status==='called').length;
-  const done=_qdata.filter(r=>r.status==='done').length;
-  const se=document.getElementById('cq-stats');
-  if(se)se.innerHTML='<div style="display:flex;gap:8px;flex-wrap:wrap;width:100%;"><div class="qstat" style="background:#fff;border:1px solid var(--border);border-radius:12px;flex:1;"><div class="qstat-n" style="color:var(--warn);">'+wait+'</div><div class="qstat-l" style="color:var(--muted);">Waiting</div></div><div class="qstat" style="background:#fff;border:1px solid var(--border);border-radius:12px;flex:1;"><div class="qstat-n" style="color:var(--b);">'+call+'</div><div class="qstat-l" style="color:var(--muted);">Being Served</div></div><div class="qstat" style="background:#fff;border:1px solid var(--border);border-radius:12px;flex:1;"><div class="qstat-n" style="color:var(--ok);">'+done+'</div><div class="qstat-l" style="color:var(--muted);">Done Today</div></div></div>';
   const le=document.getElementById('cq-list');if(!le)return;
   if(!visible.length){le.innerHTML='<div style="text-align:center;padding:40px;color:var(--muted);font-size:14px;">Queue is empty — you\'re all set! 🐼</div>';return;}
   le.innerHTML=visible.map(r=>{
@@ -995,11 +990,13 @@ function renderCQ(){
 
 async function refreshStats(){
   try{const t=today();const r=await sb('queue','GET',null,'select=status,token_number&checkin_date=eq.'+t+'&order=token_number.asc&limit=200');
-  const w=(r||[]).filter(x=>x.status==='waiting'||x.status==='called').length;
-  const s=(r||[]).filter(x=>x.status==='done').length;
+  const w=(r||[]).filter(x=>x.status==='waiting').length;
+  const c=(r||[]).filter(x=>x.status==='called').length;
   const nx=(r||[]).find(x=>x.status==='waiting');
   const e=id=>document.getElementById(id);
-  if(e('qs-w'))e('qs-w').textContent=w;if(e('qs-n'))e('qs-n').textContent=nx?String(nx.token_number).padStart(2,'0'):'—';
+  if(e('qs-w'))e('qs-w').textContent=w;
+  if(e('qs-c'))e('qs-c').textContent=c;
+  if(e('qs-n'))e('qs-n').textContent=nx?String(nx.token_number).padStart(2,'0'):'—';
   }catch(e){}
 }
 
