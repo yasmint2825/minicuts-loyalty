@@ -138,11 +138,13 @@ tbody td{padding:10px 12px;font-size:13px;vertical-align:middle;}
 
   <!-- ATTENDANCE -->
   <div id="smtab-attendance" class="tab-pane">
-    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
-      <div style="font-size:13px;color:var(--muted);">Daily check-in / check-out · 62 hrs expected per period</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+    <!-- Quick action bar -->
+    <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
+      <button class="btn bsm" onclick="smOpenQuickCheckin()" style="background:var(--ok);color:#fff;font-size:14px;padding:10px 20px;border-radius:10px;font-weight:800;gap:7px;">🟢 Check In</button>
+      <button class="btn bsm" onclick="smOpenQuickCheckout()" style="background:var(--err);color:#fff;font-size:14px;padding:10px 20px;border-radius:10px;font-weight:800;gap:7px;">🔴 Check Out</button>
+      <div style="flex:1;min-width:120px;display:flex;align-items:center;gap:8px;justify-content:flex-end;flex-wrap:wrap;">
         <input type="date" id="sm-att-date" class="fi" style="width:150px;padding:7px 10px;font-size:13px;">
-        <button class="btn bp bsm" onclick="smOpenCheckin()">+ Log Attendance</button>
+        <button class="btn bg2 bsm" onclick="smOpenCheckin()" title="Add full attendance record">+ Full Record</button>
         <button class="btn bg2 bsm" onclick="smLoadAttendance()">↻ Refresh</button>
       </div>
     </div>
@@ -292,6 +294,100 @@ tbody td{padding:10px 12px;font-size:13px;vertical-align:middle;}
     <div class="mf">
       <button class="btn bg2" onclick="closeM('sm-checkin-modal')">Cancel</button>
       <button class="btn bp" onclick="smSaveAttendance()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Quick Check-In -->
+<div class="modal-bg" id="sm-qci-modal">
+  <div class="modal" style="max-width:400px;">
+    <div class="mt" style="color:var(--ok);">🟢 Check In</div>
+    <div class="fg">
+      <label class="fl">Staff Member *</label>
+      <select class="fi" id="sm-qci-staff"></select>
+    </div>
+    <div class="fr">
+      <div class="fg">
+        <label class="fl">Date</label>
+        <input class="fi" type="date" id="sm-qci-date">
+      </div>
+      <div class="fg">
+        <label class="fl">Check-In Time</label>
+        <input class="fi" type="time" id="sm-qci-time">
+      </div>
+    </div>
+    <div id="sm-qci-warning" style="display:none;background:var(--warnl);color:var(--warn);border-radius:8px;padding:9px 12px;font-size:12.5px;font-weight:700;margin-bottom:4px;"></div>
+    <div class="fg"><label class="fl">Notes <span style="color:var(--muted);font-weight:500;">(optional)</span></label><input class="fi" type="text" id="sm-qci-notes" placeholder="e.g. On time"></div>
+    <div class="mf">
+      <button class="btn bg2" onclick="closeM('sm-qci-modal')">Cancel</button>
+      <button class="btn" style="background:var(--ok);color:#fff;" onclick="smSaveQuickCheckin()">🟢 Confirm Check In</button>
+    </div>
+  </div>
+</div>
+
+<!-- Quick Check-Out -->
+<div class="modal-bg" id="sm-qco-modal">
+  <div class="modal" style="max-width:400px;">
+    <div class="mt" style="color:var(--err);">🔴 Check Out</div>
+    <div class="fg">
+      <label class="fl">Staff Member *</label>
+      <select class="fi" id="sm-qco-staff"></select>
+    </div>
+    <div class="fr">
+      <div class="fg">
+        <label class="fl">Date</label>
+        <input class="fi" type="date" id="sm-qco-date">
+      </div>
+      <div class="fg">
+        <label class="fl">Check-Out Time</label>
+        <input class="fi" type="time" id="sm-qco-time">
+      </div>
+    </div>
+    <div id="sm-qco-info" style="display:none;background:var(--bl);color:var(--b);border-radius:8px;padding:9px 12px;font-size:12.5px;font-weight:700;margin-bottom:4px;"></div>
+    <div class="fg"><label class="fl">Notes <span style="color:var(--muted);font-weight:500;">(optional)</span></label><input class="fi" type="text" id="sm-qco-notes" placeholder="e.g. Left early"></div>
+    <div class="mf">
+      <button class="btn bg2" onclick="closeM('sm-qco-modal')">Cancel</button>
+      <button class="btn" style="background:var(--err);color:#fff;" onclick="smSaveQuickCheckout()">🔴 Confirm Check Out</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Check-In Time only -->
+<div class="modal-bg" id="sm-edit-in-modal">
+  <div class="modal" style="max-width:360px;">
+    <div class="mt">✏️ Edit Check-In Time</div>
+    <input type="hidden" id="sm-edit-in-id">
+    <div class="fg">
+      <label class="fl">Staff</label>
+      <div id="sm-edit-in-name" style="font-weight:700;font-size:14px;padding:8px 0;"></div>
+    </div>
+    <div class="fg">
+      <label class="fl">Check-In Time *</label>
+      <input class="fi" type="time" id="sm-edit-in-time">
+    </div>
+    <div class="mf">
+      <button class="btn bg2" onclick="closeM('sm-edit-in-modal')">Cancel</button>
+      <button class="btn bp" onclick="smSaveEditIn()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Check-Out Time only -->
+<div class="modal-bg" id="sm-edit-out-modal">
+  <div class="modal" style="max-width:360px;">
+    <div class="mt">✏️ Edit Check-Out Time</div>
+    <input type="hidden" id="sm-edit-out-id">
+    <div class="fg">
+      <label class="fl">Staff</label>
+      <div id="sm-edit-out-name" style="font-weight:700;font-size:14px;padding:8px 0;"></div>
+    </div>
+    <div class="fg">
+      <label class="fl">Check-Out Time *</label>
+      <input class="fi" type="time" id="sm-edit-out-time">
+    </div>
+    <div class="mf">
+      <button class="btn bg2" onclick="closeM('sm-edit-out-modal')">Cancel</button>
+      <button class="btn bp" onclick="smSaveEditOut()">Save</button>
     </div>
   </div>
 </div>
@@ -678,12 +774,33 @@ function smLoadAttendance(){
     const s=smFindStaff(a.staff_id);
     const worked=Math.max(0,smTimeToMins(a.check_out)-smTimeToMins(a.check_in));
     const color=worked>=480?'var(--ok)':worked>=360?'var(--warn)':'var(--err)';
-    return`<tr><td><strong>${s?s.name:'Unknown'}</strong></td><td>${smFmtDate(a.date)}</td>
-      <td><span style="background:var(--okl);color:var(--ok);padding:3px 8px;border-radius:6px;font-size:12px;font-weight:700;">${a.check_in||'—'}</span></td>
-      <td><span style="background:var(--errl);color:var(--err);padding:3px 8px;border-radius:6px;font-size:12px;font-weight:700;">${a.check_out||'—'}</span></td>
+    const noCheckout=!a.check_out;
+    return`<tr>
+      <td><strong>${s?s.name:'Unknown'}</strong></td>
+      <td>${smFmtDate(a.date)}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:4px;">
+          <span style="background:var(--okl);color:var(--ok);padding:3px 8px;border-radius:6px;font-size:12px;font-weight:700;">${a.check_in||'—'}</span>
+          <button class="btn bg2 bsm" onclick="smOpenEditIn('${a.id}')" title="Edit check-in time" style="padding:3px 6px;font-size:11px;">✏️</button>
+        </div>
+      </td>
+      <td>
+        <div style="display:flex;align-items:center;gap:4px;">
+          ${noCheckout
+            ? `<span style="background:var(--warnl);color:var(--warn);padding:3px 8px;border-radius:6px;font-size:12px;font-weight:700;">Not out</span>`
+            : `<span style="background:var(--errl);color:var(--err);padding:3px 8px;border-radius:6px;font-size:12px;font-weight:700;">${a.check_out}</span>`
+          }
+          <button class="btn bg2 bsm" onclick="smOpenEditOut('${a.id}')" title="Edit check-out time" style="padding:3px 6px;font-size:11px;">✏️</button>
+        </div>
+      </td>
       <td style="font-weight:800;color:${color};">${worked?smMinsToHrs(worked):'—'}</td>
       <td style="color:var(--muted);font-size:12px;">${a.notes||'—'}</td>
-      <td><div style="display:flex;gap:4px;"><button class="btn bg2 bsm" onclick="smOpenEditAttendance('${a.id}')">✏️</button><button class="btn bd2 bsm" onclick="smDeleteRecord(SM_ATT_KEY,'${a.id}',smLoadAttendance)">🗑</button></div></td>
+      <td>
+        <div style="display:flex;gap:4px;">
+          <button class="btn bg2 bsm" onclick="smOpenEditAttendance('${a.id}')" title="Edit full record">✏️ Edit</button>
+          <button class="btn bd2 bsm" onclick="smDeleteRecord(SM_ATT_KEY,'${a.id}',smLoadAttendance)">🗑</button>
+        </div>
+      </td>
     </tr>`;
   }).join('');
   el.innerHTML=`<div class="tw"><table><thead><tr><th>Staff</th><th>Date</th><th>Check-In</th><th>Check-Out</th><th>Hours</th><th>Notes</th><th>Actions</th></tr></thead><tbody>${rows}</tbody></table></div>`;
@@ -715,6 +832,140 @@ function smSaveAttendance(){
   const list=smLS(SM_ATT_KEY);const idx=list.findIndex(a=>a.id===data.id);
   if(idx>=0)list[idx]=data;else list.push(data);
   smLSSet(SM_ATT_KEY,list);closeM('sm-checkin-modal');toast('Attendance saved ✅');smLoadAttendance();
+}
+
+// ── Quick Check-In ──
+function smOpenQuickCheckin(){
+  smPopulateDropdowns(['sm-qci-staff']);
+  const now=new Date();
+  document.getElementById('sm-qci-date').value=now.toISOString().split('T')[0];
+  document.getElementById('sm-qci-time').value=now.toTimeString().slice(0,5);
+  document.getElementById('sm-qci-notes').value='';
+  document.getElementById('sm-qci-warning').style.display='none';
+  // Update warning when staff changes
+  document.getElementById('sm-qci-staff').onchange=smQciCheckDuplicate;
+  document.getElementById('sm-qci-date').onchange=smQciCheckDuplicate;
+  openM('sm-qci-modal');
+}
+function smQciCheckDuplicate(){
+  const staff_id=document.getElementById('sm-qci-staff').value;
+  const date=document.getElementById('sm-qci-date').value;
+  const warn=document.getElementById('sm-qci-warning');
+  if(!staff_id||!date){warn.style.display='none';return;}
+  const existing=smLS(SM_ATT_KEY).find(a=>a.staff_id===staff_id&&a.date===date);
+  if(existing){
+    const s=smFindStaff(staff_id);
+    warn.style.display='block';
+    warn.textContent='⚠️ '+(s?s.name:'This staff')+(existing.check_in?' already checked in at '+existing.check_in+' on this date. Saving will update their record.':' already has a record for this date.');
+  } else {
+    warn.style.display='none';
+  }
+}
+function smSaveQuickCheckin(){
+  const staff_id=document.getElementById('sm-qci-staff').value;
+  const date=document.getElementById('sm-qci-date').value;
+  const time=document.getElementById('sm-qci-time').value;
+  if(!staff_id){toast('Select a staff member','error');return;}
+  if(!date){toast('Select a date','error');return;}
+  if(!time){toast('Enter check-in time','error');return;}
+  const list=smLS(SM_ATT_KEY);
+  const existing=list.find(a=>a.staff_id===staff_id&&a.date===date);
+  if(existing){
+    existing.check_in=time;
+    if(document.getElementById('sm-qci-notes').value.trim()) existing.notes=document.getElementById('sm-qci-notes').value.trim();
+  } else {
+    list.push({id:smUID(),staff_id,date,check_in:time,check_out:'',notes:document.getElementById('sm-qci-notes').value.trim(),created_at:new Date().toISOString()});
+  }
+  smLSSet(SM_ATT_KEY,list);
+  const s=smFindStaff(staff_id);
+  closeM('sm-qci-modal');
+  toast((s?s.name:'Staff')+' checked in at '+time+' ✅');
+  smLoadAttendance();
+}
+
+// ── Quick Check-Out ──
+function smOpenQuickCheckout(){
+  smPopulateDropdowns(['sm-qco-staff']);
+  const now=new Date();
+  document.getElementById('sm-qco-date').value=now.toISOString().split('T')[0];
+  document.getElementById('sm-qco-time').value=now.toTimeString().slice(0,5);
+  document.getElementById('sm-qco-notes').value='';
+  document.getElementById('sm-qco-info').style.display='none';
+  document.getElementById('sm-qco-staff').onchange=smQcoShowInfo;
+  document.getElementById('sm-qco-date').onchange=smQcoShowInfo;
+  openM('sm-qco-modal');
+}
+function smQcoShowInfo(){
+  const staff_id=document.getElementById('sm-qco-staff').value;
+  const date=document.getElementById('sm-qco-date').value;
+  const info=document.getElementById('sm-qco-info');
+  if(!staff_id||!date){info.style.display='none';return;}
+  const existing=smLS(SM_ATT_KEY).find(a=>a.staff_id===staff_id&&a.date===date);
+  if(existing&&existing.check_in){
+    info.style.display='block';
+    info.textContent='ℹ️ Checked in at '+existing.check_in+(existing.check_out?' · Previously checked out at '+existing.check_out:'');
+  } else {
+    info.style.display='block';
+    info.style.background='var(--warnl)';info.style.color='var(--warn)';
+    info.textContent='⚠️ No check-in record found for this date. A new record will be created with check-out only.';
+  }
+}
+function smSaveQuickCheckout(){
+  const staff_id=document.getElementById('sm-qco-staff').value;
+  const date=document.getElementById('sm-qco-date').value;
+  const time=document.getElementById('sm-qco-time').value;
+  if(!staff_id){toast('Select a staff member','error');return;}
+  if(!date){toast('Select a date','error');return;}
+  if(!time){toast('Enter check-out time','error');return;}
+  const list=smLS(SM_ATT_KEY);
+  const existing=list.find(a=>a.staff_id===staff_id&&a.date===date);
+  if(existing){
+    existing.check_out=time;
+    if(document.getElementById('sm-qco-notes').value.trim()) existing.notes=document.getElementById('sm-qco-notes').value.trim();
+  } else {
+    list.push({id:smUID(),staff_id,date,check_in:'',check_out:time,notes:document.getElementById('sm-qco-notes').value.trim(),created_at:new Date().toISOString()});
+  }
+  smLSSet(SM_ATT_KEY,list);
+  const s=smFindStaff(staff_id);
+  closeM('sm-qco-modal');
+  toast((s?s.name:'Staff')+' checked out at '+time+' ✅');
+  smLoadAttendance();
+}
+
+// ── Edit Check-In time only ──
+function smOpenEditIn(id){
+  const rec=smLS(SM_ATT_KEY).find(a=>a.id===id);if(!rec)return;
+  const s=smFindStaff(rec.staff_id);
+  document.getElementById('sm-edit-in-id').value=id;
+  document.getElementById('sm-edit-in-name').textContent=(s?s.name:'Unknown')+' · '+smFmtDate(rec.date);
+  document.getElementById('sm-edit-in-time').value=rec.check_in||'';
+  openM('sm-edit-in-modal');
+}
+function smSaveEditIn(){
+  const id=document.getElementById('sm-edit-in-id').value;
+  const time=document.getElementById('sm-edit-in-time').value;
+  if(!time){toast('Enter a check-in time','error');return;}
+  const list=smLS(SM_ATT_KEY);const idx=list.findIndex(a=>a.id===id);
+  if(idx>=0){list[idx].check_in=time;smLSSet(SM_ATT_KEY,list);}
+  closeM('sm-edit-in-modal');toast('Check-in time updated ✅');smLoadAttendance();
+}
+
+// ── Edit Check-Out time only ──
+function smOpenEditOut(id){
+  const rec=smLS(SM_ATT_KEY).find(a=>a.id===id);if(!rec)return;
+  const s=smFindStaff(rec.staff_id);
+  document.getElementById('sm-edit-out-id').value=id;
+  document.getElementById('sm-edit-out-name').textContent=(s?s.name:'Unknown')+' · '+smFmtDate(rec.date);
+  document.getElementById('sm-edit-out-time').value=rec.check_out||'';
+  openM('sm-edit-out-modal');
+}
+function smSaveEditOut(){
+  const id=document.getElementById('sm-edit-out-id').value;
+  const time=document.getElementById('sm-edit-out-time').value;
+  if(!time){toast('Enter a check-out time','error');return;}
+  const list=smLS(SM_ATT_KEY);const idx=list.findIndex(a=>a.id===id);
+  if(idx>=0){list[idx].check_out=time;smLSSet(SM_ATT_KEY,list);}
+  closeM('sm-edit-out-modal');toast('Check-out time updated ✅');smLoadAttendance();
 }
 
 // ══ LEAVES ══
