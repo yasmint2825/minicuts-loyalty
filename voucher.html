@@ -68,10 +68,24 @@ html,body{min-height:100%;font-family:'Nunito',sans-serif;background:#0D1B3E;}
 .divider-line{flex:1;height:1px;border-top:1px dashed rgba(255,255,255,.15);}
 .divider-icon{font-size:16px;opacity:.4;}
 
+/* Package box */
+.pkg-box{background:rgba(255,214,0,.08);border:1px solid rgba(255,214,0,.2);
+  border-radius:12px;padding:12px 16px;margin-bottom:20px;}
+.pkg-label{font-size:10px;font-weight:700;color:rgba(255,214,0,.6);
+  letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px;}
+.pkg-value{font-size:14px;font-weight:800;color:#fff;}
+.pkg-price{font-size:13px;font-weight:700;color:#FFD600;margin-left:6px;}
+
+/* About section */
+.about{background:rgba(255,255,255,.04);border-radius:12px;padding:14px 16px;margin-bottom:20px;}
+.about-title{font-size:11px;font-weight:700;color:rgba(255,255,255,.4);
+  letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px;}
+.about-text{font-size:12px;color:rgba(255,255,255,.55);line-height:1.7;}
+
 /* Footer */
 .footer{text-align:center;}
-.footer-loc{font-size:12px;color:rgba(255,255,255,.45);margin-bottom:6px;}
-.footer-note{font-size:11px;color:rgba(255,255,255,.3);line-height:1.5;}
+.footer-loc{font-size:11.5px;color:rgba(255,255,255,.45);margin-bottom:4px;line-height:1.5;}
+.footer-note{font-size:11px;color:rgba(255,255,255,.3);line-height:1.5;margin-top:6px;}
 
 /* Status badges */
 .badge{display:inline-flex;align-items:center;gap:6px;border-radius:99px;
@@ -136,36 +150,54 @@ function renderVoucher(v) {
   const today = new Date().toISOString().slice(0,10);
   const isExpired  = v.expires_at && v.expires_at < today;
   const isRedeemed = v.status === 'redeemed';
+  const isCancelled = v.status === 'cancelled';
   const icon = TYPE_ICONS[v.type] || '🎁';
 
   let badge = '';
-  if (isRedeemed)     badge = '<div class="badge badge-redeemed">✅ Redeemed</div>';
-  else if (isExpired) badge = '<div class="badge badge-expired">⏰ Expired</div>';
-  else                badge = '<div class="badge badge-active">✨ Valid &amp; Active</div>';
+  if (isRedeemed)      badge = '<div class="badge badge-redeemed">✅ Redeemed</div>';
+  else if (isCancelled)badge = '<div class="badge badge-expired">🚫 Cancelled</div>';
+  else if (isExpired)  badge = '<div class="badge badge-expired">⏰ Expired</div>';
+  else                 badge = '<div class="badge badge-active">✨ Valid &amp; Active</div>';
+
+  const pkgLine = v.package_name
+    ? '<div class="pkg-box">'
+      + '<div class="pkg-label">Package Included</div>'
+      + '<div class="pkg-value">' + v.package_name + (v.package_price ? ' <span class="pkg-price">AED ' + v.package_price + '</span>' : '') + '</div>'
+      + '</div>'
+    : '';
 
   document.getElementById('root').innerHTML =
     '<div class="bg">'
     + '<div class="card">'
     + '<div class="card-inner">'
 
+    // ── Brand header ──
     + '<div class="brand">'
     + '<div class="brand-icon">✂️</div>'
-    + '<div><div class="brand-name">MiNiCUTS</div>'
-    + '<div class="brand-sub">Dubai Silicon Oasis</div></div>'
+    + '<div>'
+    + '<div class="brand-name">MiNiCUTS Kids Salon</div>'
+    + '<div class="brand-sub">More Smiles. More Memories.</div>'
+    + '</div>'
     + '</div>'
 
     + '<div class="gift-label">🎁 Gift Voucher</div><br/>'
 
     + badge
 
+    // ── Voucher type ──
     + '<div class="vtype">' + icon + ' ' + (v.type||'Gift Experience') + '</div>'
-    + '<div class="vtype-sub">A special experience, gifted with love</div>'
+    + '<div class="vtype-sub">One Special Experience, gifted with love</div>'
 
+    // ── Package ──
+    + pkgLine
+
+    // ── Code box ──
     + '<div class="code-box">'
     + '<div class="code-label">Voucher Code</div>'
     + '<div class="code-value">' + v.code + '</div>'
     + '</div>'
 
+    // ── Details grid ──
     + '<div class="details">'
     + '<div class="detail-item"><div class="detail-label">For</div>'
     + '<div class="detail-value">' + (v.child_name||'—') + '</div></div>'
@@ -173,13 +205,26 @@ function renderVoucher(v) {
     + '<div class="detail-value">' + fmtDate(v.expires_at) + '</div></div>'
     + '</div>'
 
+    // ── Scissors divider ──
     + '<div class="divider"><div class="divider-line"></div>'
     + '<div class="divider-icon">✂️</div>'
     + '<div class="divider-line"></div></div>'
 
+    // ── About MiNiCUTS ──
+    + '<div class="about">'
+    + '<div class="about-title">About MiNiCUTS</div>'
+    + '<div class="about-text">MiNiCUTS is a kids &amp; teens salon created with love to make every haircut calm, fun and memorable. From gentle first haircuts to birthday grooming experiences, we welcome every child with patience, care and a smile.</div>'
+    + '</div>'
+
+    // ── Footer ──
+    + '<div class="divider" style="margin-top:16px;"><div class="divider-line"></div>'
+    + '<div class="divider-icon">📍</div>'
+    + '<div class="divider-line"></div></div>'
+
     + '<div class="footer">'
-    + '<div class="footer-loc">📍 MiNiCUTS · Dubai Silicon Oasis · DSO</div>'
-    + '<div class="footer-note">Present this code at the salon to redeem.<br/>No phone number required.</div>'
+    + '<div class="footer-loc">MiNiCUTS Kids Salon · DSO Loggia Plaza, Dubai Silicon Oasis</div>'
+    + '<div class="footer-loc" style="margin-bottom:8px;">Near Dunkin' · A kids &amp; teens salon where every child feels seen, safe and special.</div>'
+    + '<div class="footer-note">Present this code at the salon to redeem. No phone number required.</div>'
     + '</div>'
 
     + '</div></div></div>';
