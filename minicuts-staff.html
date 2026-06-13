@@ -340,6 +340,26 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
         </div>
       </div>
     </div>
+
+    <!-- GIFT VOUCHER SETUP — full width below -->
+    <div style="grid-column:1/-1;">
+      <div class="card">
+        <div class="card-title">🎁 Gift Voucher Setup</div>
+        <p style="font-size:12.5px;color:var(--muted);margin:6px 0 16px;">
+          Define voucher types, the packages available under each, the price, and the discount % applied on redemption.
+          Staff will see these packages in the Generate form. Changes apply immediately.
+        </p>
+
+        <div id="gv-setup-types"></div>
+
+        <div style="display:flex;gap:8px;margin-top:4px;">
+          <button class="btn btn-ghost" style="flex:1;" onclick="gvSetupAddType()">+ Add Voucher Type</button>
+          <button class="btn btn-y" style="flex:2;" onclick="saveGvSetup()">Save Gift Voucher Setup ✅</button>
+        </div>
+        <div id="gv-setup-msg" class="sm" style="margin-top:10px;"></div>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -353,11 +373,15 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
         <div class="card-title">🎁 Generate Gift Voucher</div>
         <p style="font-size:12.5px;color:var(--muted);margin:6px 0 14px;">Fill details and generate. Then send via WhatsApp.</p>
         <div class="fg" style="margin-bottom:10px;"><label class="fl">Voucher Type</label>
-          <select class="fi" id="gv-type">
-            <option value="Birthday Makeover">🎂 Birthday Makeover</option>
-            <option value="Princess Makeover">👑 Princess Makeover</option>
-            <option value="First Haircut">✂️ First Haircut</option>
+          <select class="fi" id="gv-type" onchange="updateGvPackages()">
+            <option>Loading…</option>
           </select>
+        </div>
+        <div class="fg" style="margin-bottom:10px;"><label class="fl">Package</label>
+          <select class="fi" id="gv-package">
+            <option>Loading…</option>
+          </select>
+          <div id="gv-discount-info" style="font-size:11px;margin-top:4px;"></div>
         </div>
         <div class="fg" style="margin-bottom:10px;"><label class="fl">Recipient Name (child)</label>
           <input class="fi" type="text" id="gv-child" placeholder="e.g. Sofia"/>
@@ -384,6 +408,7 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
             <div style="font-size:10px;opacity:.6;letter-spacing:1px;margin-bottom:4px;">VOUCHER CODE</div>
             <div style="font-family:'Baloo 2',cursive;font-size:24px;font-weight:900;letter-spacing:4px;color:#FFD600;" id="gv-preview-code"></div>
           </div>
+          <div style="font-size:12px;opacity:.8;margin-bottom:10px;font-weight:700;" id="gv-preview-pkg" style="display:none;"></div>
           <div style="display:flex;justify-content:space-between;font-size:12px;">
             <div><div style="opacity:.6;font-size:10px;letter-spacing:1px;">FOR</div><div style="font-weight:700;" id="gv-preview-child"></div></div>
             <div style="text-align:right;"><div style="opacity:.6;font-size:10px;letter-spacing:1px;">VALID UNTIL</div><div style="font-weight:700;" id="gv-preview-expiry"></div></div>
@@ -1214,7 +1239,7 @@ function showWAPrompt(name,stamps,mobile,parent,gender,stylist,stylist2,remark,t
 }
 
 // CONFIG
-function loadCfgScreen(){
+function loadCfgScreen(){loadGvSetup();
   const ta=document.getElementById('cfg-sty');
   if(ta)ta.value=STYLISTS.join('\n');
   const tmpl=document.getElementById('cfg-wa-tmpl');
@@ -1538,7 +1563,177 @@ async function markFreeWashGiven(id,name,btn){
 setInterval(()=>{if(document.getElementById('t-queue').classList.contains('active'))loadQ();},120000);
 
 // INIT — load config from DB first, then load queue
-loadAllConfig().then(()=>{loadQ();populateStyFilter();});
+loadAllConfig().then(()=>{loadQ();populateStyFilter();loadGvSetup();});
+
+// ═══════════════════════════════════════════════
+// GIFT VOUCHER SETUP CONFIG
+// ═══════════════════════════════════════════════
+
+const GV_DEFAULT_CONFIG = [
+  {
+    type: 'Birthday Makeover',
+    icon: '🎂',
+    discount: 0,
+    packages: [
+      { name: 'Birthday Hair Styling', price: 120 },
+      { name: 'Birthday Makeover + Tiara', price: 150 }
+    ]
+  },
+  {
+    type: 'Princess Makeover',
+    icon: '👑',
+    discount: 0,
+    packages: [
+      { name: 'Princess Hair Styling', price: 100 },
+      { name: 'Full Princess Makeover', price: 130 }
+    ]
+  },
+  {
+    type: 'First Haircut',
+    icon: '✂️',
+    discount: 0,
+    packages: [
+      { name: 'First Haircut + Certificate', price: 80 },
+      { name: 'First Haircut Deluxe', price: 100 }
+    ]
+  }
+];
+
+let GV_CONFIG = JSON.parse(JSON.stringify(GV_DEFAULT_CONFIG));
+
+async function loadGvSetup() {
+  try {
+    const rows = await sbRaw('staff_config', 'GET', null, 'key=eq.gv_config&select=value&limit=1');
+    if (rows && rows.length && rows[0].value) {
+      const parsed = typeof rows[0].value === 'string' ? JSON.parse(rows[0].value) : rows[0].value;
+      if (Array.isArray(parsed) && parsed.length) GV_CONFIG = parsed;
+    }
+  } catch(e) { /* use defaults */ }
+  renderGvSetup();
+  populateGvTypeDropdown();
+}
+
+function renderGvSetup() {
+  const el = document.getElementById('gv-setup-types');
+  if (!el) return;
+  el.innerHTML = GV_CONFIG.map((t, ti) => `
+    <div style="border:1.5px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px;background:var(--bg);">
+      <div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:12px;flex-wrap:wrap;">
+        <div style="flex:0 0 44px;">
+          <label class="fl">Icon</label>
+          <input class="fi" type="text" value="${t.icon}" oninput="GV_CONFIG[${ti}].icon=this.value"
+            style="text-align:center;font-size:18px;padding:6px 4px;"/>
+        </div>
+        <div style="flex:1;min-width:140px;">
+          <label class="fl">Voucher Type Name</label>
+          <input class="fi" type="text" value="${t.type}" oninput="GV_CONFIG[${ti}].type=this.value"/>
+        </div>
+        <div style="flex:0 0 100px;">
+          <label class="fl">Discount % on redeem</label>
+          <input class="fi" type="number" min="0" max="100" value="${t.discount||0}"
+            oninput="GV_CONFIG[${ti}].discount=Number(this.value)"
+            style="text-align:center;" placeholder="0"/>
+        </div>
+        <div style="flex:0 0 auto;padding-top:18px;">
+          <button class="btn btn-ghost btn-sm" style="border-color:var(--err);color:var(--err);"
+            onclick="gvSetupRemoveType(${ti})">✕ Remove</button>
+        </div>
+      </div>
+
+      <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">
+        Packages under this type
+      </div>
+      <div id="gv-pkgs-${ti}">
+        ${(t.packages||[]).map((p, pi) => `
+          <div style="display:flex;gap:8px;margin-bottom:6px;align-items:center;">
+            <input class="fi" type="text" value="${p.name}" placeholder="Package name"
+              style="flex:2;" oninput="GV_CONFIG[${ti}].packages[${pi}].name=this.value"/>
+            <div style="display:flex;align-items:center;gap:4px;flex:0 0 110px;">
+              <span style="font-size:12px;font-weight:700;color:var(--muted);">AED</span>
+              <input class="fi" type="number" min="0" value="${p.price}" placeholder="Price"
+                style="text-align:right;" oninput="GV_CONFIG[${ti}].packages[${pi}].price=Number(this.value)"/>
+            </div>
+            <button class="btn btn-ghost btn-sm" style="flex:0;padding:5px 8px;border-color:var(--err);color:var(--err);"
+              onclick="gvSetupRemovePkg(${ti},${pi})">✕</button>
+          </div>`).join('')}
+      </div>
+      <button class="btn btn-ghost btn-sm" style="margin-top:4px;width:100%;"
+        onclick="gvSetupAddPkg(${ti})">+ Add Package</button>
+    </div>`).join('');
+}
+
+function gvSetupAddType() {
+  GV_CONFIG.push({ type: 'New Voucher Type', icon: '🎁', discount: 0, packages: [] });
+  renderGvSetup();
+}
+
+function gvSetupRemoveType(ti) {
+  if (!confirm('Remove this voucher type?')) return;
+  GV_CONFIG.splice(ti, 1);
+  renderGvSetup();
+}
+
+function gvSetupAddPkg(ti) {
+  if (!GV_CONFIG[ti].packages) GV_CONFIG[ti].packages = [];
+  GV_CONFIG[ti].packages.push({ name: '', price: 0 });
+  renderGvSetup();
+}
+
+function gvSetupRemovePkg(ti, pi) {
+  GV_CONFIG[ti].packages.splice(pi, 1);
+  renderGvSetup();
+}
+
+async function saveGvSetup() {
+  const msg = document.getElementById('gv-setup-msg');
+  msg.textContent = 'Saving…'; msg.className = 'sm info';
+  try {
+    // upsert into staff_config
+    await sbRaw('staff_config', 'POST',
+      { key: 'gv_config', value: JSON.stringify(GV_CONFIG), updated_at: new Date().toISOString() },
+      'on_conflict=key'
+    ).catch(() =>
+      sbRaw('staff_config', 'PATCH',
+        { value: JSON.stringify(GV_CONFIG), updated_at: new Date().toISOString() },
+        'key=eq.gv_config'
+      )
+    );
+    msg.textContent = 'Gift Voucher setup saved ✅'; msg.className = 'sm ok';
+    populateGvTypeDropdown();
+    toast('Gift Voucher setup saved ✅');
+  } catch(e) {
+    msg.textContent = 'Error: ' + e.message; msg.className = 'sm err';
+  }
+}
+
+// Populate the type dropdown + package dropdown in the Generate form
+function populateGvTypeDropdown() {
+  const sel = document.getElementById('gv-type');
+  if (!sel) return;
+  sel.innerHTML = GV_CONFIG.map(t =>
+    `<option value="${t.type}">${t.icon} ${t.type}</option>`
+  ).join('');
+  updateGvPackages();
+}
+
+function updateGvPackages() {
+  const typeVal = document.getElementById('gv-type')?.value;
+  const cfg = GV_CONFIG.find(t => t.type === typeVal);
+  const pkgSel = document.getElementById('gv-package');
+  const discEl = document.getElementById('gv-discount-info');
+  if (!pkgSel || !cfg) return;
+
+  pkgSel.innerHTML = (cfg.packages||[]).map(p =>
+    `<option value="${p.price}">${p.name} — AED ${p.price}</option>`
+  ).join('') || '<option value="0">No packages configured</option>';
+
+  if (discEl) {
+    discEl.textContent = cfg.discount > 0
+      ? cfg.discount + '% discount applied on redemption'
+      : 'No discount on redemption';
+    discEl.style.color = cfg.discount > 0 ? 'var(--ok)' : 'var(--muted)';
+  }
+}
 
 // ═══════════════════════════════════════════════
 // GIFT VOUCHERS
@@ -1561,14 +1756,13 @@ function genCode() {
   return 'MNC-' + seg() + '-' + seg();
 }
 
-function fmtDate(iso) {
-  if (!iso) return '—';
-  const d = new Date(iso.slice(0,10) + 'T00:00:00');
-  return d.toLocaleDateString('en-GB', {day:'2-digit', month:'short', year:'numeric'});
-}
-
 async function generateVoucher() {
   const type    = document.getElementById('gv-type').value;
+  const pkgSel  = document.getElementById('gv-package');
+  const pkg     = pkgSel ? pkgSel.options[pkgSel.selectedIndex]?.text : '';
+  const pkgPrice= pkgSel ? Number(pkgSel.value) : 0;
+  const typeCfg = GV_CONFIG.find(t => t.type === type) || {};
+  const discount= typeCfg.discount || 0;
   const child   = document.getElementById('gv-child').value.trim();
   const phone   = document.getElementById('gv-phone').value.trim().replace(/[^0-9]/g,'');
   const expiry  = document.getElementById('gv-expiry').value;
@@ -1581,18 +1775,25 @@ async function generateVoucher() {
   const code = genCode();
   try {
     await sbRaw('gift_vouchers', 'POST', {
-      code, type, child_name: child, buyer_phone: phone,
+      code, type, package_name: pkg, package_price: pkgPrice,
+      discount_pct: discount, child_name: child, buyer_phone: phone,
       expires_at: expiry, status: 'issued'
     });
   } catch(e) {
     gvMsg('Error saving voucher: ' + e.message, 'err'); return;
   }
 
-  currentVoucher = { code, type, child, phone, expiry };
-  document.getElementById('gv-preview-type').textContent   = type;
+  currentVoucher = { code, type, pkg, pkgPrice, discount, child, phone, expiry };
+  document.getElementById('gv-preview-type').textContent   = (typeCfg.icon||'🎁') + ' ' + type;
   document.getElementById('gv-preview-code').textContent   = code;
   document.getElementById('gv-preview-child').textContent  = child;
   document.getElementById('gv-preview-expiry').textContent = fmtDate(expiry);
+  // Show package + discount on preview if set
+  const previewPkg = document.getElementById('gv-preview-pkg');
+  if (previewPkg) {
+    previewPkg.textContent = pkg ? pkg + (pkgPrice ? ' — AED ' + pkgPrice : '') : '';
+    previewPkg.style.display = pkg ? 'block' : 'none';
+  }
   document.getElementById('gv-preview').style.display = 'block';
   gvMsg('Voucher generated! Send via WhatsApp below.', 'ok');
   loadVouchers();
@@ -1639,6 +1840,9 @@ async function lookupVoucher() {
   const v = data[0];
   if (v.status === 'redeemed') {
     rvMsg('Already redeemed on ' + fmtDate(v.redeemed_at) + '. Cannot redeem again.', 'err'); return;
+  }
+  if (v.status === 'cancelled') {
+    rvMsg('This voucher has been cancelled and cannot be redeemed.', 'err'); return;
   }
   const today = new Date().toISOString().slice(0,10);
   if (v.expires_at && v.expires_at < today) {
@@ -1691,20 +1895,27 @@ async function loadVouchers() {
     const isActive = v.status !== 'redeemed' && (!v.expires_at || v.expires_at >= today);
     const badge = v.status === 'redeemed'
       ? '<span class="sp sp-d">Redeemed</span>'
-      : (v.expires_at && v.expires_at < today)
-        ? '<span class="sp sp-g">Expired</span>'
-        : '<span class="sp sp-w">Active</span>';
+      : v.status === 'cancelled'
+        ? '<span class="sp sp-g" style="background:#FEE2E2;color:var(--err);">Cancelled</span>'
+        : (v.expires_at && v.expires_at < today)
+          ? '<span class="sp sp-g">Expired</span>'
+          : '<span class="sp sp-w">Active</span>';
     const resendBtn = isActive && v.buyer_phone
-      ? '<button class="btn btn-ghost btn-sm" style="font-size:11px;padding:3px 8px;margin-top:4px;" '
-        + 'onclick="resendVoucherWA(\'' + v.id + '\')">📲 Resend WA</button>'
+      ? '<button class="btn btn-ghost btn-sm" style="font-size:11px;padding:3px 8px;" onclick="resendVoucherWA(\'' + v.id + '\')">📲 Resend</button>'
       : '';
-    return '<div style="border-bottom:1px solid var(--border);padding:8px 0;display:grid;grid-template-columns:1fr auto;gap:4px;">'
+    const editBtn = isActive
+      ? '<button class="btn btn-ghost btn-sm" style="font-size:11px;padding:3px 8px;" onclick="editVoucher(\'' + v.id + '\')">✏️ Edit</button>'
+      : '';
+    const cancelBtn = v.status !== 'redeemed'
+      ? '<button class="btn btn-ghost btn-sm" style="font-size:11px;padding:3px 8px;border-color:var(--err);color:var(--err);" onclick="cancelVoucher(\'' + v.id + '\')">✕ Cancel</button>'
+      : '';
+    return '<div style="border-bottom:1px solid var(--border);padding:8px 0;display:grid;grid-template-columns:1fr auto;gap:6px;align-items:start;">'
       + '<div>'
       + '<div style="font-weight:700;font-size:13px;">' + v.code + '</div>'
       + '<div style="color:var(--muted);font-size:11.5px;">' + (v.type||'') + ' · ' + (v.child_name||'—') + '</div>'
-      + '<div style="color:var(--muted);font-size:11px;">📱 ' + (v.buyer_phone||'—') + ' · Exp: ' + fmtDate(v.expires_at) + '</div>'
+      + '<div style="color:var(--muted);font-size:11px;">' + (v.package_name ? v.package_name + (v.discount_pct ? ' · <span style="color:var(--ok);font-weight:700;">'+v.discount_pct+'% off</span>' : '') + '<br/>' : '') + '📱 ' + (v.buyer_phone||'—') + ' · Exp: ' + fmtDate(v.expires_at) + '</div>'
       + '</div>'
-      + '<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;">' + badge + resendBtn + '</div>'
+      + '<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;">' + badge + resendBtn + editBtn + cancelBtn + '</div>'
       + '</div>';
   }).join('');
 }
@@ -1852,8 +2063,12 @@ function renderKodList(members) {
   if (!members || !members.length) {
     el.innerHTML = '<div style="color:var(--muted);padding:12px 0;">No KoD members yet.</div>'; return;
   }
+  // Store KoD map for edit/delete
+  window._kodMap = {};
+  members.forEach(m => { window._kodMap[m.id] = m; });
+
   el.innerHTML = members.map(m =>
-    '<div style="border-bottom:1px solid var(--border);padding:10px 0;display:grid;grid-template-columns:1fr auto;gap:4px;">'
+    '<div style="border-bottom:1px solid var(--border);padding:10px 0;display:grid;grid-template-columns:1fr auto;gap:6px;align-items:start;">'
     + '<div>'
     + '<div style="font-weight:700;font-size:13px;">💜 ' + (m.child_name||'—') + '</div>'
     + '<div style="color:var(--muted);font-size:11.5px;">📱 ' + m.phone + '</div>'
@@ -1862,12 +2077,81 @@ function renderKodList(members) {
     + '</div>'
     + '<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;">'
     + '<span class="sp" style="background:#F5F3FF;color:#7C3AED;">25% always</span>'
-    + (m.first_visit_used
-        ? '<span class="sp sp-d" style="font-size:10px;">50% used</span>'
-        : '<span class="sp sp-w" style="font-size:10px;">50% pending</span>')
+    + (m.first_visit_used ? '<span class="sp sp-d" style="font-size:10px;">50% used</span>' : '<span class="sp sp-w" style="font-size:10px;">50% pending</span>')
+    + '<button class="btn btn-ghost btn-sm" style="font-size:11px;padding:3px 8px;" onclick="editKod(\'' + m.id + '\')">✏️ Edit</button>'
+    + '<button class="btn btn-ghost btn-sm" style="font-size:11px;padding:3px 8px;border-color:var(--err);color:var(--err);" onclick="deleteKod(\'' + m.id + '\')">✕ Delete</button>'
     + '</div>'
     + '</div>'
   ).join('');
+}
+
+// ── Voucher: Edit (child name, phone, expiry) ──
+function editVoucher(id) {
+  const v = window._voucherMap && window._voucherMap[id];
+  if (!v) { toast('Refresh the list first', 'err'); return; }
+  const newChild  = prompt('Child name:', v.child_name || '');
+  if (newChild === null) return;
+  const newPhone  = prompt('Buyer phone:', v.buyer_phone || '');
+  if (newPhone === null) return;
+  const newExpiry = prompt('Expiry (YYYY-MM-DD):', v.expires_at || '');
+  if (newExpiry === null) return;
+  if (!newChild.trim()) { toast('Child name cannot be empty', 'err'); return; }
+  sbRaw('gift_vouchers', 'PATCH', {
+    child_name:  newChild.trim(),
+    buyer_phone: newPhone.trim().replace(/[^0-9]/g,''),
+    expires_at:  newExpiry.trim() || v.expires_at
+  }, 'id=eq.' + id)
+  .then(() => { toast('Voucher updated ✅'); loadVouchers(); })
+  .catch(e => toast('Error: ' + e.message, 'err'));
+}
+
+// ── Voucher: Cancel (mark cancelled, not deleted — keeps audit trail) ──
+async function cancelVoucher(id) {
+  const v = window._voucherMap && window._voucherMap[id];
+  if (!v) { toast('Refresh the list first', 'err'); return; }
+  if (!confirm('Cancel voucher ' + v.code + '? It will be marked cancelled and cannot be redeemed.')) return;
+  try {
+    await sbRaw('gift_vouchers', 'PATCH', { status: 'cancelled' }, 'id=eq.' + id);
+    toast('Voucher cancelled ✅');
+    loadVouchers();
+  } catch(e) { toast('Error: ' + e.message, 'err'); }
+}
+
+// ── KoD: Edit (child name, phone, notes, visit count, first visit flag) ──
+function editKod(id) {
+  const m = window._kodMap && window._kodMap[id];
+  if (!m) { toast('Refresh the list first', 'err'); return; }
+  const newChild  = prompt('Child name:', m.child_name || '');
+  if (newChild === null) return;
+  const newPhone  = prompt('Phone number:', m.phone || '');
+  if (newPhone === null) return;
+  const newVisits = prompt('Visit count:', m.visit_count || 0);
+  if (newVisits === null) return;
+  const newNotes  = prompt('Notes:', m.notes || '');
+  if (newNotes === null) return;
+  const firstUsed = confirm('Has the 50% first-visit discount been used? OK=Yes (used) / Cancel=No (not yet)');
+  if (!newChild.trim()) { toast('Child name cannot be empty', 'err'); return; }
+  sbRaw('kod_members', 'PATCH', {
+    child_name:       newChild.trim(),
+    phone:            newPhone.trim().replace(/[^0-9]/g,''),
+    visit_count:      Math.max(0, parseInt(newVisits) || 0),
+    notes:            newNotes.trim(),
+    first_visit_used: firstUsed
+  }, 'id=eq.' + id)
+  .then(() => { toast('KoD member updated ✅'); loadKod(); })
+  .catch(e => toast('Error: ' + e.message, 'err'));
+}
+
+// ── KoD: Delete single record ──
+async function deleteKod(id) {
+  const m = window._kodMap && window._kodMap[id];
+  if (!m) { toast('Refresh the list first', 'err'); return; }
+  if (!confirm('Delete KoD record for ' + (m.child_name||m.phone) + '? This cannot be undone.')) return;
+  try {
+    await sbRaw('kod_members', 'DELETE', null, 'id=eq.' + id);
+    toast('KoD record deleted');
+    loadKod();
+  } catch(e) { toast('Error: ' + e.message, 'err'); }
 }
 
 function setDefaultExpiry() {
