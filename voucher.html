@@ -162,7 +162,7 @@ function renderVoucher(v) {
   const pkgLine = v.package_name
     ? '<div class="pkg-box">'
       + '<div class="pkg-label">Package Included</div>'
-      + '<div class="pkg-value">' + (v.package_name||'').split(/\s*[-—]+\s*AED/i)[0].trim() + '</div>'
+      + '<div class="pkg-value">' + (v.package_name||'').replace(/[\s\-—]*AED[\s\d.,]*/gi,'').trim() + '</div>'
       + '</div>'
     : '';
 
