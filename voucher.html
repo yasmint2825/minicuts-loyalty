@@ -162,7 +162,7 @@ function renderVoucher(v) {
   const pkgLine = v.package_name
     ? '<div class="pkg-box">'
       + '<div class="pkg-label">Package Included</div>'
-      + '<div class="pkg-value">' + v.package_name + '</div>'
+      + '<div class="pkg-value">' + (v.package_name||'').replace(/\s*[—-]+\s*AED\s*[\d.]+/i,'').trim() + '</div>'
       + '</div>'
     : '';
 
@@ -223,7 +223,7 @@ function renderVoucher(v) {
 
     + '<div class="footer">'
     + '<div class="footer-loc">MiNiCUTS Kids Salon · DSO Loggia Plaza, Dubai Silicon Oasis</div>'
-    + '<div class="footer-loc" style="margin-bottom:8px;">Near Dunkin' · A kids &amp; teens salon where every child feels seen, safe and special.</div>'
+    + '<div class="footer-loc" style="margin-bottom:8px;">Near Dunkin’ · A kids &amp; teens salon where every child feels seen, safe and special.</div>'
     + '<div class="footer-note">Present this code at the salon to redeem. No phone number required.</div>'
     + '</div>'
 
