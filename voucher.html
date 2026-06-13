@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<meta property="og:title" content="MiNiCUTS Gift Voucher"/>
+<meta property="og:description" content="Your gift voucher for MiNiCUTS Dubai Silicon Oasis"/>
+<title>MiNiCUTS · Gift Voucher</title>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800;900&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{min-height:100%;font-family:'Nunito',sans-serif;background:#0D1B3E;}
+
+.bg{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;
+  background:radial-gradient(ellipse at 20% 20%,#1a2f6e 0%,#0D1B3E 60%);}
+
+/* Floating orbs */
+.orb{position:fixed;border-radius:50%;filter:blur(60px);pointer-events:none;z-index:0;}
+.orb1{width:300px;height:300px;background:rgba(255,214,0,.12);top:-80px;right:-60px;}
+.orb2{width:200px;height:200px;background:rgba(99,102,241,.15);bottom:40px;left:-60px;}
+
+.card{position:relative;z-index:1;width:100%;max-width:400px;
+  background:linear-gradient(145deg,#1a3280,#0f2060);
+  border-radius:28px;overflow:hidden;
+  box-shadow:0 32px 80px rgba(0,0,0,.5),0 0 0 1px rgba(255,255,255,.08);}
+
+/* Top shimmer line */
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent,#FFD600,#fff,#FFD600,transparent);}
+
+.card-inner{padding:32px 28px 28px;}
+
+/* Header */
+.brand{display:flex;align-items:center;gap:10px;margin-bottom:24px;}
+.brand-icon{width:40px;height:40px;background:#FFD600;border-radius:12px;
+  display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+.brand-name{font-family:'Baloo 2',cursive;font-size:18px;font-weight:900;color:#fff;line-height:1.1;}
+.brand-sub{font-size:11px;color:rgba(255,255,255,.5);letter-spacing:1.5px;text-transform:uppercase;}
+
+/* Gift tag label */
+.gift-label{display:inline-flex;align-items:center;gap:6px;
+  background:rgba(255,214,0,.15);border:1px solid rgba(255,214,0,.3);
+  color:#FFD600;border-radius:99px;padding:5px 14px;font-size:12px;font-weight:700;
+  letter-spacing:.5px;margin-bottom:18px;}
+
+/* Voucher type */
+.vtype{font-family:'Baloo 2',cursive;font-size:28px;font-weight:900;color:#fff;
+  line-height:1.1;margin-bottom:6px;}
+.vtype-sub{font-size:13px;color:rgba(255,255,255,.55);margin-bottom:28px;}
+
+/* Code box */
+.code-box{background:rgba(255,255,255,.07);border:1px dashed rgba(255,255,255,.2);
+  border-radius:16px;padding:18px 20px;margin-bottom:24px;text-align:center;}
+.code-label{font-size:10px;font-weight:700;color:rgba(255,255,255,.4);
+  letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;}
+.code-value{font-family:'Baloo 2',cursive;font-size:30px;font-weight:900;
+  color:#FFD600;letter-spacing:5px;}
+
+/* Details row */
+.details{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:28px;}
+.detail-item{background:rgba(255,255,255,.05);border-radius:12px;padding:12px 14px;}
+.detail-label{font-size:10px;font-weight:700;color:rgba(255,255,255,.4);
+  letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px;}
+.detail-value{font-size:14px;font-weight:800;color:#fff;}
+
+/* Divider with scissors */
+.divider{display:flex;align-items:center;gap:10px;margin-bottom:24px;}
+.divider-line{flex:1;height:1px;border-top:1px dashed rgba(255,255,255,.15);}
+.divider-icon{font-size:16px;opacity:.4;}
+
+/* Footer */
+.footer{text-align:center;}
+.footer-loc{font-size:12px;color:rgba(255,255,255,.45);margin-bottom:6px;}
+.footer-note{font-size:11px;color:rgba(255,255,255,.3);line-height:1.5;}
+
+/* Status badges */
+.badge{display:inline-flex;align-items:center;gap:6px;border-radius:99px;
+  padding:6px 16px;font-size:12px;font-weight:800;letter-spacing:.3px;margin-bottom:16px;}
+.badge-active{background:rgba(22,163,74,.2);border:1px solid rgba(22,163,74,.4);color:#4ade80;}
+.badge-redeemed{background:rgba(99,102,241,.2);border:1px solid rgba(99,102,241,.4);color:#a5b4fc;}
+.badge-expired{background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);color:#fca5a5;}
+
+/* Loading / error states */
+.state{min-height:100vh;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:16px;text-align:center;padding:24px;}
+.state-icon{font-size:48px;}
+.state-title{font-family:'Baloo 2',cursive;font-size:22px;font-weight:900;color:#fff;}
+.state-msg{font-size:14px;color:rgba(255,255,255,.5);max-width:280px;line-height:1.6;}
+.spinner{width:40px;height:40px;border:3px solid rgba(255,255,255,.1);
+  border-top-color:#FFD600;border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* Scissors animation on load */
+@keyframes fadeUp{from{opacity:0;transform:translateY(24px);}to{opacity:1;transform:translateY(0);}}
+.card{animation:fadeUp .5s ease forwards;}
+</style>
+</head>
+<body>
+
+<div class="orb orb1"></div>
+<div class="orb orb2"></div>
+
+<div id="root" class="bg">
+  <div class="state">
+    <div class="spinner"></div>
+    <div class="state-title">Loading your voucher…</div>
+  </div>
+</div>
+
+<script>
+const SB_URL = 'https://wtapyfgtwkjyjrjdnhkb.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind0YXB5Zmd0d2tqeWpyamRuaGtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0NDc3ODEsImV4cCI6MjA5NTAyMzc4MX0.y_-iPfb8Pcg9zh42h6RGVBsUVZm80LcA9sPlz_Gl_fA';
+
+const TYPE_ICONS = {
+  'Birthday Makeover': '🎂',
+  'Princess Makeover': '👑',
+  'First Haircut':     '✂️'
+};
+
+function fmtDate(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso.slice(0,10) + 'T00:00:00');
+  return d.toLocaleDateString('en-GB', {day:'2-digit', month:'long', year:'numeric'});
+}
+
+function showError(icon, title, msg) {
+  document.getElementById('root').innerHTML =
+    '<div class="state">'
+    + '<div class="state-icon">' + icon + '</div>'
+    + '<div class="state-title">' + title + '</div>'
+    + '<div class="state-msg">' + msg + '</div>'
+    + '</div>';
+}
+
+function renderVoucher(v) {
+  const today = new Date().toISOString().slice(0,10);
+  const isExpired  = v.expires_at && v.expires_at < today;
+  const isRedeemed = v.status === 'redeemed';
+  const icon = TYPE_ICONS[v.type] || '🎁';
+
+  let badge = '';
+  if (isRedeemed)     badge = '<div class="badge badge-redeemed">✅ Redeemed</div>';
+  else if (isExpired) badge = '<div class="badge badge-expired">⏰ Expired</div>';
+  else                badge = '<div class="badge badge-active">✨ Valid &amp; Active</div>';
+
+  document.getElementById('root').innerHTML =
+    '<div class="bg">'
+    + '<div class="card">'
+    + '<div class="card-inner">'
+
+    + '<div class="brand">'
+    + '<div class="brand-icon">✂️</div>'
+    + '<div><div class="brand-name">MiNiCUTS</div>'
+    + '<div class="brand-sub">Dubai Silicon Oasis</div></div>'
+    + '</div>'
+
+    + '<div class="gift-label">🎁 Gift Voucher</div><br/>'
+
+    + badge
+
+    + '<div class="vtype">' + icon + ' ' + (v.type||'Gift Experience') + '</div>'
+    + '<div class="vtype-sub">A special experience, gifted with love</div>'
+
+    + '<div class="code-box">'
+    + '<div class="code-label">Voucher Code</div>'
+    + '<div class="code-value">' + v.code + '</div>'
+    + '</div>'
+
+    + '<div class="details">'
+    + '<div class="detail-item"><div class="detail-label">For</div>'
+    + '<div class="detail-value">' + (v.child_name||'—') + '</div></div>'
+    + '<div class="detail-item"><div class="detail-label">Valid Until</div>'
+    + '<div class="detail-value">' + fmtDate(v.expires_at) + '</div></div>'
+    + '</div>'
+
+    + '<div class="divider"><div class="divider-line"></div>'
+    + '<div class="divider-icon">✂️</div>'
+    + '<div class="divider-line"></div></div>'
+
+    + '<div class="footer">'
+    + '<div class="footer-loc">📍 MiNiCUTS · Dubai Silicon Oasis · DSO</div>'
+    + '<div class="footer-note">Present this code at the salon to redeem.<br/>No phone number required.</div>'
+    + '</div>'
+
+    + '</div></div></div>';
+}
+
+async function init() {
+  const params = new URLSearchParams(window.location.search);
+  const code = (params.get('code') || '').toUpperCase().trim();
+
+  if (!code) {
+    showError('🎫', 'No voucher code', 'Please use the link provided by MiNiCUTS.');
+    return;
+  }
+
+  try {
+    const r = await fetch(SB_URL + '/rest/v1/gift_vouchers?code=eq.' + code + '&select=*', {
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
+    });
+    const data = await r.json();
+    if (!data || !data.length) {
+      showError('❓', 'Voucher not found', 'Code "' + code + '" was not found. Please check your link or contact MiNiCUTS.');
+      return;
+    }
+    renderVoucher(data[0]);
+  } catch(e) {
+    showError('⚠️', 'Could not load voucher', 'Please check your connection and try again.');
+  }
+}
+
+init();
+</script>
+</body>
+</html>
