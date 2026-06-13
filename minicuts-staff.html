@@ -132,6 +132,8 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
   <button class="tab" onclick="showTab('t-history',this);histSetDate(today());loadHist();">🕐 History</button>
   <button class="tab" onclick="showTab('t-prizes',this);loadPrizes();">🎁 Game Prizes</button>
   <button class="tab" onclick="showTab('t-freewash',this);loadFreeWash();">🚿 Free Wash</button>
+  <button class="tab" onclick="showTab('t-vouchers',this);loadVouchers();">🎁 Gift Vouchers</button>
+  <button class="tab" onclick="showTab('t-kod',this);loadKod();">💜 KoD</button>
   <button class="tab" onclick="window.open('./minicuts-staff-mgmt.html','_blank')">👥 Staff Mgmt ↗</button>
   <button class="tab" onclick="showTab('t-config',this);loadCfgScreen();">⚙️ Settings</button>
 </div>
@@ -338,6 +340,158 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
         </div>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- ══ TAB: GIFT VOUCHERS ══ -->
+<div class="page" id="t-vouchers">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;">
+
+    <!-- LEFT: Generate -->
+    <div>
+      <div class="card">
+        <div class="card-title">🎁 Generate Gift Voucher</div>
+        <p style="font-size:12.5px;color:var(--muted);margin:6px 0 14px;">Fill details and generate. Then send via WhatsApp.</p>
+        <div class="fg" style="margin-bottom:10px;"><label class="fl">Voucher Type</label>
+          <select class="fi" id="gv-type">
+            <option value="Birthday Makeover">🎂 Birthday Makeover</option>
+            <option value="Princess Makeover">👑 Princess Makeover</option>
+            <option value="First Haircut">✂️ First Haircut</option>
+          </select>
+        </div>
+        <div class="fg" style="margin-bottom:10px;"><label class="fl">Recipient Name (child)</label>
+          <input class="fi" type="text" id="gv-child" placeholder="e.g. Sofia"/>
+        </div>
+        <div class="fg" style="margin-bottom:10px;"><label class="fl">Buyer WhatsApp Number</label>
+          <input class="fi" type="tel" id="gv-phone" placeholder="e.g. 971501234567"/>
+        </div>
+        <div class="fg" style="margin-bottom:10px;"><label class="fl">Valid Until</label>
+          <input class="fi" type="date" id="gv-expiry"/>
+        </div>
+        <div id="gv-msg" class="sm"></div>
+        <button class="btn btn-y btn-full" onclick="generateVoucher()">⚡ Generate Voucher</button>
+      </div>
+
+      <!-- Voucher Preview -->
+      <div id="gv-preview" style="display:none;">
+        <div id="gv-card" style="background:linear-gradient(135deg,#1565C0,#0D47A1);border-radius:16px;padding:24px;color:#fff;margin-bottom:14px;position:relative;overflow:hidden;">
+          <div style="position:absolute;top:-20px;right:-20px;width:100px;height:100px;background:rgba(255,214,0,.1);border-radius:50%;"></div>
+          <div style="position:absolute;bottom:-30px;left:-10px;width:80px;height:80px;background:rgba(255,255,255,.05);border-radius:50%;"></div>
+          <div style="font-family:'Baloo 2',cursive;font-size:11px;font-weight:700;letter-spacing:2px;opacity:.7;margin-bottom:6px;">MINICUTS · DUBAI SILICON OASIS</div>
+          <div style="font-family:'Baloo 2',cursive;font-size:22px;font-weight:900;color:#FFD600;margin-bottom:2px;" id="gv-preview-type"></div>
+          <div style="font-size:13px;opacity:.8;margin-bottom:16px;">Gift Experience</div>
+          <div style="background:rgba(255,255,255,.12);border-radius:10px;padding:12px 16px;margin-bottom:14px;">
+            <div style="font-size:10px;opacity:.6;letter-spacing:1px;margin-bottom:4px;">VOUCHER CODE</div>
+            <div style="font-family:'Baloo 2',cursive;font-size:24px;font-weight:900;letter-spacing:4px;color:#FFD600;" id="gv-preview-code"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;">
+            <div><div style="opacity:.6;font-size:10px;letter-spacing:1px;">FOR</div><div style="font-weight:700;" id="gv-preview-child"></div></div>
+            <div style="text-align:right;"><div style="opacity:.6;font-size:10px;letter-spacing:1px;">VALID UNTIL</div><div style="font-weight:700;" id="gv-preview-expiry"></div></div>
+          </div>
+        </div>
+        <button class="btn btn-g btn-full" onclick="sendVoucherWA()" style="margin-bottom:8px;">📲 Send via WhatsApp</button>
+        <button class="btn btn-ghost btn-full" onclick="resetGV()">↺ New Voucher</button>
+      </div>
+    </div>
+
+    <!-- RIGHT: Redeem -->
+    <div>
+      <div class="card">
+        <div class="card-title">✅ Redeem Voucher</div>
+        <p style="font-size:12.5px;color:var(--muted);margin:6px 0 14px;">Enter the code from the customer's voucher. Code match only — no phone needed.</p>
+        <div class="fg" style="margin-bottom:10px;"><label class="fl">Voucher Code</label>
+          <input class="fi" type="text" id="rv-code" placeholder="e.g. MNC-2847-KQXJ" style="text-transform:uppercase;font-weight:700;letter-spacing:2px;" oninput="this.value=this.value.toUpperCase()"/>
+        </div>
+        <div id="rv-msg" class="sm"></div>
+        <button class="btn btn-b btn-full" onclick="lookupVoucher()">🔍 Look Up Code</button>
+
+        <div id="rv-result" style="display:none;margin-top:16px;">
+          <div style="background:#F0FDF4;border:1.5px solid #86EFAC;border-radius:10px;padding:14px;margin-bottom:12px;">
+            <div style="font-size:11px;font-weight:700;color:var(--ok);letter-spacing:1px;margin-bottom:8px;">✅ VALID VOUCHER</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:13px;">
+              <div><span style="color:var(--muted);font-size:11px;">TYPE</span><br/><strong id="rv-type"></strong></div>
+              <div><span style="color:var(--muted);font-size:11px;">FOR</span><br/><strong id="rv-child"></strong></div>
+              <div><span style="color:var(--muted);font-size:11px;">ISSUED</span><br/><strong id="rv-issued"></strong></div>
+              <div><span style="color:var(--muted);font-size:11px;">EXPIRES</span><br/><strong id="rv-expires"></strong></div>
+            </div>
+          </div>
+          <button class="btn btn-g btn-full" onclick="redeemVoucher()">🎉 Mark as Redeemed</button>
+        </div>
+      </div>
+
+      <!-- Voucher Log -->
+      <div class="card" style="margin-top:0;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+          <div class="card-title" style="margin-bottom:0;">📋 Voucher Log</div>
+          <button class="btn btn-ghost btn-sm" onclick="loadVouchers()">↻</button>
+        </div>
+        <div id="vlog" style="font-size:12.5px;color:var(--muted);">Loading...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ TAB: KIDS OF DETERMINATION ══ -->
+<div class="page" id="t-kod">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;">
+
+    <!-- LEFT: Register / Lookup -->
+    <div>
+      <div class="card">
+        <div class="card-title">💜 KoD First Visit — Register</div>
+        <p style="font-size:12.5px;color:var(--muted);margin:6px 0 14px;">Family shows CDC paper voucher. Enter their details to register and apply 50% discount.</p>
+        <div class="fg" style="margin-bottom:10px;"><label class="fl">CDC Voucher Code (from paper)</label>
+          <input class="fi" type="text" id="kod-code" placeholder="e.g. KOD2025" style="text-transform:uppercase;font-weight:700;" oninput="this.value=this.value.toUpperCase()"/>
+        </div>
+        <div class="fg" style="margin-bottom:10px;"><label class="fl">Parent WhatsApp Number</label>
+          <input class="fi" type="tel" id="kod-phone" placeholder="e.g. 971501234567"/>
+        </div>
+        <div class="fg" style="margin-bottom:10px;"><label class="fl">Child's Name</label>
+          <input class="fi" type="text" id="kod-child" placeholder="e.g. Adam"/>
+        </div>
+        <div class="fg" style="margin-bottom:10px;"><label class="fl">Notes (optional)</label>
+          <input class="fi" type="text" id="kod-notes" placeholder="e.g. sensory sensitivity"/>
+        </div>
+        <div id="kod-reg-msg" class="sm"></div>
+        <button class="btn btn-y btn-full" onclick="registerKod()">💜 Register &amp; Apply 50%</button>
+      </div>
+
+      <div class="card">
+        <div class="card-title">🔍 Returning Family — Look Up</div>
+        <p style="font-size:12.5px;color:var(--muted);margin:6px 0 14px;">Family returns — just enter their phone number. No voucher needed.</p>
+        <div class="fg" style="margin-bottom:10px;"><label class="fl">Parent WhatsApp Number</label>
+          <input class="fi" type="tel" id="kod-lookup-phone" placeholder="e.g. 971501234567"/>
+        </div>
+        <div id="kod-lookup-msg" class="sm"></div>
+        <button class="btn btn-b btn-full" onclick="lookupKod()">🔍 Look Up Family</button>
+        <div id="kod-result" style="display:none;margin-top:14px;">
+          <div style="background:#F5F3FF;border:1.5px solid #C4B5FD;border-radius:10px;padding:14px;margin-bottom:12px;">
+            <div style="font-size:11px;font-weight:700;color:#7C3AED;letter-spacing:1px;margin-bottom:8px;">💜 KOD MEMBER</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:13px;">
+              <div><span style="color:var(--muted);font-size:11px;">CHILD</span><br/><strong id="kod-r-child"></strong></div>
+              <div><span style="color:var(--muted);font-size:11px;">VISITS</span><br/><strong id="kod-r-visits"></strong></div>
+              <div><span style="color:var(--muted);font-size:11px;">FIRST VISIT 50%</span><br/><strong id="kod-r-first"></strong></div>
+              <div><span style="color:var(--muted);font-size:11px;">ONGOING</span><br/><strong style="color:#7C3AED;">25% always</strong></div>
+            </div>
+            <div id="kod-r-notes" style="margin-top:8px;font-size:12px;color:var(--muted);"></div>
+          </div>
+          <button class="btn btn-full" style="background:#7C3AED;color:#fff;" onclick="logKodVisit()">💜 Log Visit (25% applied)</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: KoD Member List -->
+    <div>
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+          <div class="card-title" style="margin-bottom:0;">💜 KoD Members</div>
+          <button class="btn btn-ghost btn-sm" onclick="loadKod()">↻</button>
+        </div>
+        <input class="fi" type="text" id="kod-search" placeholder="Search name or phone..." oninput="filterKodList()" style="margin-bottom:12px;"/>
+        <div id="kod-list" style="font-size:12.5px;color:var(--muted);">Loading...</div>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -1385,6 +1539,346 @@ setInterval(()=>{if(document.getElementById('t-queue').classList.contains('activ
 
 // INIT — load config from DB first, then load queue
 loadAllConfig().then(()=>{loadQ();populateStyFilter();});
+
+// ═══════════════════════════════════════════════
+// GIFT VOUCHERS
+// ═══════════════════════════════════════════════
+
+let currentVoucher = null;
+
+function gvMsg(msg, type='') {
+  const el = document.getElementById('gv-msg');
+  el.textContent = msg; el.className = 'sm ' + type;
+}
+function rvMsg(msg, type='') {
+  const el = document.getElementById('rv-msg');
+  el.textContent = msg; el.className = 'sm ' + type;
+}
+
+function genCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const seg = () => Array.from({length:4}, () => chars[Math.floor(Math.random()*chars.length)]).join('');
+  return 'MNC-' + seg() + '-' + seg();
+}
+
+function fmtDate(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso.slice(0,10) + 'T00:00:00');
+  return d.toLocaleDateString('en-GB', {day:'2-digit', month:'short', year:'numeric'});
+}
+
+async function generateVoucher() {
+  const type    = document.getElementById('gv-type').value;
+  const child   = document.getElementById('gv-child').value.trim();
+  const phone   = document.getElementById('gv-phone').value.trim().replace(/[^0-9]/g,'');
+  const expiry  = document.getElementById('gv-expiry').value;
+
+  if (!child)                    { gvMsg('Please enter the child name.', 'err'); return; }
+  if (!phone || phone.length < 9){ gvMsg('Please enter a valid WhatsApp number.', 'err'); return; }
+  if (!expiry)                   { gvMsg('Please select an expiry date.', 'err'); return; }
+
+  gvMsg('Saving voucher…', 'info');
+  const code = genCode();
+  try {
+    await sbRaw('gift_vouchers', 'POST', {
+      code, type, child_name: child, buyer_phone: phone,
+      expires_at: expiry, status: 'issued'
+    });
+  } catch(e) {
+    gvMsg('Error saving voucher: ' + e.message, 'err'); return;
+  }
+
+  currentVoucher = { code, type, child, phone, expiry };
+  document.getElementById('gv-preview-type').textContent   = type;
+  document.getElementById('gv-preview-code').textContent   = code;
+  document.getElementById('gv-preview-child').textContent  = child;
+  document.getElementById('gv-preview-expiry').textContent = fmtDate(expiry);
+  document.getElementById('gv-preview').style.display = 'block';
+  gvMsg('Voucher generated! Send via WhatsApp below.', 'ok');
+  loadVouchers();
+}
+
+function sendVoucherWA() {
+  if (!currentVoucher) return;
+  const { code, type, child, phone, expiry } = currentVoucher;
+  const p = '%0A';
+  const link = 'https://yasmint2825.github.io/minicuts-loyalty/voucher.html?code=' + code;
+  const msg = encodeURIComponent('🎁 *MiNiCUTS Gift Voucher*') + p+p
+    + encodeURIComponent('✨ *' + type + '*') + p+p
+    + encodeURIComponent('👶 For: *' + child + '*') + p
+    + encodeURIComponent('🎫 Code: *' + code + '*') + p
+    + encodeURIComponent('📅 Valid until: *' + fmtDate(expiry) + '*') + p+p
+    + encodeURIComponent('🔗 View your voucher:') + p
+    + link + p+p
+    + encodeURIComponent('📍 MiNiCUTS · Dubai Silicon Oasis') + p
+    + encodeURIComponent('_Tap the link above to see your gift voucher._');
+  window.open('https://wa.me/' + toWANum(phone) + '?text=' + msg, '_blank');
+}
+
+function resetGV() {
+  currentVoucher = null;
+  ['gv-child','gv-phone'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('gv-preview').style.display = 'none';
+  gvMsg('', '');
+  setDefaultExpiry();
+}
+
+async function lookupVoucher() {
+  const code = document.getElementById('rv-code').value.trim().toUpperCase();
+  if (!code) { rvMsg('Enter a voucher code.', 'err'); return; }
+  rvMsg('Looking up…', 'info');
+  document.getElementById('rv-result').style.display = 'none';
+  window._rvId = null;
+
+  let data;
+  try { data = await sbRaw('gift_vouchers', 'GET', null, 'code=eq.' + code + '&select=*'); }
+  catch(e) { rvMsg('Lookup error: ' + e.message, 'err'); return; }
+
+  if (!data || !data.length) { rvMsg('Code not found. Check and try again.', 'err'); return; }
+
+  const v = data[0];
+  if (v.status === 'redeemed') {
+    rvMsg('Already redeemed on ' + fmtDate(v.redeemed_at) + '. Cannot redeem again.', 'err'); return;
+  }
+  const today = new Date().toISOString().slice(0,10);
+  if (v.expires_at && v.expires_at < today) {
+    rvMsg('Voucher expired on ' + fmtDate(v.expires_at) + '.', 'err'); return;
+  }
+
+  window._rvId = v.id;
+  document.getElementById('rv-type').textContent    = v.type || '—';
+  document.getElementById('rv-child').textContent   = v.child_name || '—';
+  document.getElementById('rv-issued').textContent  = fmtDate(v.created_at);
+  document.getElementById('rv-expires').textContent = fmtDate(v.expires_at);
+  document.getElementById('rv-result').style.display = 'block';
+  rvMsg('Valid voucher found!', 'ok');
+}
+
+async function redeemVoucher() {
+  if (!window._rvId) return;
+  rvMsg('Redeeming…', 'info');
+  try {
+    await sbRaw('gift_vouchers', 'PATCH',
+      { status: 'redeemed', redeemed_at: new Date().toISOString() },
+      'id=eq.' + window._rvId
+    );
+    rvMsg('Redeemed successfully! Service can now proceed.', 'ok');
+    document.getElementById('rv-result').style.display = 'none';
+    document.getElementById('rv-code').value = '';
+    window._rvId = null;
+    loadVouchers();
+    toast('Voucher redeemed ✅', 'ok');
+  } catch(e) {
+    rvMsg('Error redeeming: ' + e.message, 'err');
+  }
+}
+
+async function loadVouchers() {
+  const el = document.getElementById('vlog');
+  if (!el) return;
+  el.textContent = 'Loading…';
+  let data;
+  try { data = await sbRaw('gift_vouchers', 'GET', null, 'select=*&order=created_at.desc&limit=20'); }
+  catch(e) { el.textContent = 'Error: ' + e.message; return; }
+
+  if (!data || !data.length) { el.innerHTML = '<div style="color:var(--muted);padding:12px 0;">No vouchers yet.</div>'; return; }
+  const today = new Date().toISOString().slice(0,10);
+  // Store voucher map for resend lookups — avoids JSON in onclick attributes
+  window._voucherMap = {};
+  data.forEach(v => { window._voucherMap[v.id] = v; });
+
+  el.innerHTML = data.map(v => {
+    const isActive = v.status !== 'redeemed' && (!v.expires_at || v.expires_at >= today);
+    const badge = v.status === 'redeemed'
+      ? '<span class="sp sp-d">Redeemed</span>'
+      : (v.expires_at && v.expires_at < today)
+        ? '<span class="sp sp-g">Expired</span>'
+        : '<span class="sp sp-w">Active</span>';
+    const resendBtn = isActive && v.buyer_phone
+      ? '<button class="btn btn-ghost btn-sm" style="font-size:11px;padding:3px 8px;margin-top:4px;" '
+        + 'onclick="resendVoucherWA(\'' + v.id + '\')">📲 Resend WA</button>'
+      : '';
+    return '<div style="border-bottom:1px solid var(--border);padding:8px 0;display:grid;grid-template-columns:1fr auto;gap:4px;">'
+      + '<div>'
+      + '<div style="font-weight:700;font-size:13px;">' + v.code + '</div>'
+      + '<div style="color:var(--muted);font-size:11.5px;">' + (v.type||'') + ' · ' + (v.child_name||'—') + '</div>'
+      + '<div style="color:var(--muted);font-size:11px;">📱 ' + (v.buyer_phone||'—') + ' · Exp: ' + fmtDate(v.expires_at) + '</div>'
+      + '</div>'
+      + '<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;">' + badge + resendBtn + '</div>'
+      + '</div>';
+  }).join('');
+}
+
+function resendVoucherWA(id) {
+  const v = window._voucherMap && window._voucherMap[id];
+  if (!v) { alert('Voucher not found. Please refresh the list.'); return; }
+  const p = '%0A';
+  const link = 'https://yasmint2825.github.io/minicuts-loyalty/voucher.html?code=' + v.code;
+  const msg = encodeURIComponent('🎁 *MiNiCUTS Gift Voucher*') + p+p
+    + encodeURIComponent('✨ *' + v.type + '*') + p+p
+    + encodeURIComponent('👶 For: *' + (v.child_name||'') + '*') + p
+    + encodeURIComponent('🎫 Code: *' + v.code + '*') + p
+    + encodeURIComponent('📅 Valid until: *' + fmtDate(v.expires_at) + '*') + p+p
+    + encodeURIComponent('🔗 View your voucher:') + p
+    + link + p+p
+    + encodeURIComponent('📍 MiNiCUTS · Dubai Silicon Oasis') + p
+    + encodeURIComponent('_Tap the link above to see your gift voucher._');
+  window.open('https://wa.me/' + toWANum(v.buyer_phone) + '?text=' + msg, '_blank');
+}
+
+// ═══════════════════════════════════════════════
+// KIDS OF DETERMINATION
+// ═══════════════════════════════════════════════
+
+let _allKodMembers = [];
+let _kodCurrentId  = null;
+let _kodCurrentVisits = 0;
+let _kodCurrentChild  = '';
+
+function kodRegMsg(msg, type='') {
+  const el = document.getElementById('kod-reg-msg');
+  el.textContent = msg; el.className = 'sm ' + type;
+}
+function kodLookMsg(msg, type='') {
+  const el = document.getElementById('kod-lookup-msg');
+  el.textContent = msg; el.className = 'sm ' + type;
+}
+
+const KOD_VALID_CODES = ['KOD2025','KOD2026'];
+
+async function registerKod() {
+  const code  = document.getElementById('kod-code').value.trim().toUpperCase();
+  const phone = document.getElementById('kod-phone').value.trim().replace(/[^0-9]/g,'');
+  const child = document.getElementById('kod-child').value.trim();
+  const notes = document.getElementById('kod-notes').value.trim();
+
+  if (!KOD_VALID_CODES.includes(code)) { kodRegMsg('Invalid CDC code. Must be KOD2025 or KOD2026.', 'err'); return; }
+  if (!phone || phone.length < 9)      { kodRegMsg('Enter a valid WhatsApp number.', 'err'); return; }
+  if (!child)                          { kodRegMsg('Enter the child\'s name.', 'err'); return; }
+
+  kodRegMsg('Checking existing record…', 'info');
+  let existing;
+  try { existing = await sbRaw('kod_members', 'GET', null, 'phone=eq.' + phone + '&select=id'); }
+  catch(e) { kodRegMsg('Lookup error: ' + e.message, 'err'); return; }
+
+  if (existing && existing.length) {
+    kodRegMsg('This phone is already a KoD member. Use Look Up below.', 'err'); return;
+  }
+
+  kodRegMsg('Registering…', 'info');
+  try {
+    await sbRaw('kod_members', 'POST', {
+      phone, child_name: child, cdc_code: code,
+      first_visit_used: true, visit_count: 1, notes,
+      last_visit_at: new Date().toISOString()
+    });
+    kodRegMsg('Registered! 50% discount applied for ' + child + '. Future visits: 25%.', 'ok');
+    ['kod-code','kod-phone','kod-child','kod-notes'].forEach(id => document.getElementById(id).value = '');
+    loadKod();
+    toast('KoD registered: ' + child + ' ✅', 'ok');
+  } catch(e) {
+    kodRegMsg('Save error: ' + e.message, 'err');
+  }
+}
+
+async function lookupKod() {
+  const phone = document.getElementById('kod-lookup-phone').value.trim().replace(/[^0-9]/g,'');
+  if (!phone || phone.length < 9) { kodLookMsg('Enter a valid phone number.', 'err'); return; }
+  kodLookMsg('Looking up…', 'info');
+  document.getElementById('kod-result').style.display = 'none';
+  _kodCurrentId = null;
+
+  let data;
+  try { data = await sbRaw('kod_members', 'GET', null, 'phone=eq.' + phone + '&select=*'); }
+  catch(e) { kodLookMsg('Error: ' + e.message, 'err'); return; }
+
+  if (!data || !data.length) { kodLookMsg('Not found. If first visit, register above.', 'err'); return; }
+
+  const m = data[0];
+  _kodCurrentId     = m.id;
+  _kodCurrentVisits = m.visit_count || 0;
+  _kodCurrentChild  = m.child_name || 'member';
+
+  document.getElementById('kod-r-child').textContent  = m.child_name || '—';
+  document.getElementById('kod-r-visits').textContent = (m.visit_count || 0) + ' visits';
+  document.getElementById('kod-r-first').textContent  = m.first_visit_used ? '✅ Used' : '⚡ Not yet';
+  const notesEl = document.getElementById('kod-r-notes');
+  notesEl.textContent = m.notes ? '📝 ' + m.notes : '';
+  document.getElementById('kod-result').style.display = 'block';
+  kodLookMsg('KoD member found! 25% discount applies.', 'ok');
+}
+
+async function logKodVisit() {
+  if (!_kodCurrentId) return;
+  const newCount = _kodCurrentVisits + 1;
+  try {
+    await sbRaw('kod_members', 'PATCH',
+      { visit_count: newCount, last_visit_at: new Date().toISOString() },
+      'id=eq.' + _kodCurrentId
+    );
+    kodLookMsg('Visit logged. Total: ' + newCount + '. 25% discount applied.', 'ok');
+    document.getElementById('kod-result').style.display = 'none';
+    document.getElementById('kod-lookup-phone').value = '';
+    _kodCurrentId = null;
+    loadKod();
+    toast('KoD visit logged: ' + _kodCurrentChild + ' ✅', 'ok');
+  } catch(e) {
+    kodLookMsg('Error: ' + e.message, 'err');
+  }
+}
+
+async function loadKod() {
+  const el = document.getElementById('kod-list');
+  if (!el) return;
+  el.textContent = 'Loading…';
+  try {
+    _allKodMembers = await sbRaw('kod_members', 'GET', null, 'select=*&order=created_at.desc');
+    renderKodList(_allKodMembers);
+  } catch(e) {
+    el.textContent = 'Error: ' + e.message;
+  }
+}
+
+function filterKodList() {
+  const q = (document.getElementById('kod-search')?.value || '').toLowerCase().trim();
+  renderKodList(q ? _allKodMembers.filter(m =>
+    (m.child_name||'').toLowerCase().includes(q) || (m.phone||'').includes(q)
+  ) : _allKodMembers);
+}
+
+function renderKodList(members) {
+  const el = document.getElementById('kod-list');
+  if (!el) return;
+  if (!members || !members.length) {
+    el.innerHTML = '<div style="color:var(--muted);padding:12px 0;">No KoD members yet.</div>'; return;
+  }
+  el.innerHTML = members.map(m =>
+    '<div style="border-bottom:1px solid var(--border);padding:10px 0;display:grid;grid-template-columns:1fr auto;gap:4px;">'
+    + '<div>'
+    + '<div style="font-weight:700;font-size:13px;">💜 ' + (m.child_name||'—') + '</div>'
+    + '<div style="color:var(--muted);font-size:11.5px;">📱 ' + m.phone + '</div>'
+    + '<div style="color:var(--muted);font-size:11px;">Visits: ' + (m.visit_count||0) + ' · ' + fmtDate(m.created_at) + '</div>'
+    + (m.notes ? '<div style="color:var(--muted);font-size:11px;font-style:italic;">📝 ' + m.notes + '</div>' : '')
+    + '</div>'
+    + '<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;">'
+    + '<span class="sp" style="background:#F5F3FF;color:#7C3AED;">25% always</span>'
+    + (m.first_visit_used
+        ? '<span class="sp sp-d" style="font-size:10px;">50% used</span>'
+        : '<span class="sp sp-w" style="font-size:10px;">50% pending</span>')
+    + '</div>'
+    + '</div>'
+  ).join('');
+}
+
+function setDefaultExpiry() {
+  const el = document.getElementById('gv-expiry');
+  if (el) {
+    const d = new Date(); d.setMonth(d.getMonth() + 6);
+    el.value = d.toISOString().slice(0,10);
+  }
+}
+setDefaultExpiry();
+
 </script>
 </body>
 </html>
