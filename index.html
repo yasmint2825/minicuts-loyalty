@@ -12,17 +12,17 @@
 *{box-sizing:border-box;margin:0;padding:0}html{font-size:16px}body{font-family:var(--fb);background:var(--bg);color:var(--text);min-height:100vh}
 .app{display:flex;min-height:100vh}
 .sb{width:240px;background:var(--bd);flex-shrink:0;display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:100;transition:transform .3s}
-.sb-logo{padding:22px 18px 14px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(255,255,255,.1)}
+.sb-logo{padding:14px 16px 10px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(255,255,255,.1)}
 .sb-icon{width:42px;height:42px;background:var(--y);border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:21px;flex-shrink:0}
 .sb-txt{color:#fff;font-family:var(--fh);font-weight:800;font-size:15px;line-height:1.2}
 .sb-sub{color:rgba(255,255,255,.5);font-size:10px;font-weight:700;letter-spacing:.5px}
-.nav{padding:14px 10px;flex:1;display:flex;flex-direction:column;gap:3px;overflow-y:auto}
-.nav-s{font-size:10px;letter-spacing:1px;color:rgba(255,255,255,.3);font-weight:700;padding:10px 12px 3px;text-transform:uppercase}
-.ni{display:flex;align-items:center;gap:9px;padding:10px 13px;border-radius:9px;cursor:pointer;color:rgba(255,255,255,.7);font-size:13.5px;font-weight:700;transition:all .2s;border:none;background:transparent;width:100%;text-align:left}
+.nav{padding:8px 8px;flex:1;display:flex;flex-direction:column;gap:1px;overflow-y:hidden}
+.nav-s{font-size:10px;letter-spacing:1px;color:rgba(255,255,255,.3);font-weight:700;padding:7px 10px 2px;text-transform:uppercase}
+.ni{display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:9px;cursor:pointer;color:rgba(255,255,255,.7);font-size:13px;font-weight:700;transition:all .2s;border:none;background:transparent;width:100%;text-align:left}
 .ni:hover{background:rgba(255,255,255,.1);color:#fff}
 .ni.active{background:var(--y);color:var(--bd)}
 .ni svg{width:17px;height:17px;flex-shrink:0}
-.sb-foot{padding:14px;border-top:1px solid rgba(255,255,255,.1)}
+.sb-foot{padding:10px 12px;border-top:1px solid rgba(255,255,255,.1)}
 .sav{width:30px;height:30px;border-radius:50%;background:var(--y);color:var(--bd);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px}
 .sb-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99}
 .sb-overlay.open{display:block}
@@ -499,6 +499,7 @@ async function archiveCycle(customerId,stamps,firstStampDate,expiryDate,endedBy)
       <div class="nav-s">Tools</div>
       <button class="ni" onclick="showPage('upload',this);closeSidebar()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>Import CSV/Excel</button>
       <button class="ni" onclick="showPage('qrpage',this);closeSidebar()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h7v7H14z"/></svg>Salon QR Code</button>
+      <button class="ni" onclick="showPage('salonsetup',this);closeSidebar()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>Salon Setup</button>
       <button class="ni" onclick="showPage('config',this);closeSidebar()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M12 2v2m0 16v2m7.07 2.07l-1.41-1.41M4.93 19.07l1.41-1.41M2 12h2m16 0h2"/></svg>Settings</button>
       <button class="ni" onclick="showPage('analytics',this);closeSidebar()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Analytics</button>
       <div class="nav-s">Retention</div>
@@ -1071,6 +1072,275 @@ async function archiveCycle(customerId,stamps,firstStampDate,expiryDate,endedBy)
 </div>
 </div>
 <!-- END STAFF MANAGEMENT PAGE -->
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- SALON SETUP PAGE -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div class="page" id="page-salonsetup">
+
+  <!-- Tab bar -->
+  <div class="tab-bar" id="ss-tab-bar" style="background:#fff;border-bottom:2px solid var(--border);display:flex;padding:0;margin:-18px -18px 18px -18px;overflow-x:auto;flex-shrink:0;">
+    <button class="tab-btn active" onclick="ssTab('services',this)" style="padding:11px 18px;font-size:13px;font-weight:700;color:var(--muted);border:none;background:transparent;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;white-space:nowrap;">✂️ Services</button>
+    <button class="tab-btn" onclick="ssTab('vat',this)" style="padding:11px 18px;font-size:13px;font-weight:700;color:var(--muted);border:none;background:transparent;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;white-space:nowrap;">🧾 VAT</button>
+    <button class="tab-btn" onclick="ssTab('coupons',this)" style="padding:11px 18px;font-size:13px;font-weight:700;color:var(--muted);border:none;background:transparent;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;white-space:nowrap;">🎟 Coupons</button>
+  </div>
+
+  <style>
+    #ss-tab-bar .tab-btn.active{color:var(--b);border-bottom-color:var(--b);}
+    #ss-tab-bar .tab-btn:hover{color:var(--text);}
+    .ss-pane{display:none;}
+    .ss-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;margin-top:14px;}
+    .ss-svc-card{background:#fff;border-radius:12px;padding:16px;box-shadow:0 2px 12px rgba(13,71,161,.07);border:1.5px solid var(--border);display:flex;flex-direction:column;gap:8px;}
+    .ss-svc-card:hover{border-color:var(--b);}
+    .ss-badge{display:inline-flex;align-items:center;padding:2px 9px;border-radius:99px;font-size:11px;font-weight:700;}
+    .ss-boy{background:#DBEAFE;color:#1D4ED8;}
+    .ss-girl{background:#FCE7F3;color:#BE185D;}
+    .ss-both{background:#F3E8FF;color:#7C3AED;}
+    .ss-inactive{background:#F1F5F9;color:#64748B;}
+    .coupon-card{background:#fff;border-radius:12px;padding:16px;box-shadow:0 2px 12px rgba(13,71,161,.07);border:1.5px solid var(--border);}
+    .coupon-card.expired{opacity:.6;border-style:dashed;}
+  </style>
+
+  <!-- ── SERVICES TAB ── -->
+  <div id="sspane-services" class="ss-pane" style="display:block;">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:6px;">
+      <div style="font-size:13px;color:var(--muted);">All salon services with pricing, duration and gender applicability</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <div style="position:relative;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" style="position:absolute;left:9px;top:50%;transform:translateY(-50%);width:15px;height:15px;pointer-events:none;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="ss-svc-search" class="fi" placeholder="Search services…" style="padding:7px 10px 7px 30px;font-size:13px;width:190px;" oninput="ssRenderServices()">
+        </div>
+        <select id="ss-svc-filter" class="fi" style="width:120px;padding:7px 10px;font-size:13px;" onchange="ssRenderServices()">
+          <option value="">All Genders</option>
+          <option value="boys">Boys</option>
+          <option value="girls">Girls</option>
+          <option value="both">Both</option>
+        </select>
+        <select id="ss-svc-cat-filter" class="fi" style="width:130px;padding:7px 10px;font-size:13px;" onchange="ssRenderServices()">
+          <option value="">All Categories</option>
+          <option value="haircut">Haircut</option>
+          <option value="wash">Hair Wash</option>
+          <option value="styling">Styling</option>
+          <option value="color">Color</option>
+          <option value="treatment">Treatment</option>
+          <option value="package">Package</option>
+          <option value="other">Other</option>
+        </select>
+        <button class="btn bp bsm" onclick="ssOpenService()">+ Add Service</button>
+      </div>
+    </div>
+    <div id="ss-svc-count" style="font-size:12px;color:var(--muted);margin-bottom:10px;"></div>
+    <div id="ss-svc-grid" class="ss-grid"></div>
+  </div>
+
+  <!-- ── VAT TAB ── -->
+  <div id="sspane-vat" class="ss-pane">
+    <div style="max-width:520px;">
+      <div class="card" style="margin-bottom:14px;">
+        <div style="font-family:var(--fh);font-size:16px;font-weight:800;margin-bottom:4px;">🧾 VAT Configuration</div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:18px;">Set the VAT rate applied to all services. UAE standard VAT is 5%.</div>
+        <div class="fr" style="align-items:flex-end;">
+          <div class="fg" style="margin-bottom:0;">
+            <label class="fl">VAT Rate (%)</label>
+            <input class="fi" type="number" id="ss-vat-rate" min="0" max="100" step="0.1" placeholder="e.g. 5">
+          </div>
+          <div class="fg" style="margin-bottom:0;">
+            <label class="fl">Applied To</label>
+            <select class="fi" id="ss-vat-applies">
+              <option value="all">All Services</option>
+              <option value="selected">Selected Services Only</option>
+              <option value="none">Not Applied (VAT Exempt)</option>
+            </select>
+          </div>
+        </div>
+        <div style="margin-top:14px;">
+          <label class="fl">VAT Registration Number</label>
+          <input class="fi" type="text" id="ss-vat-reg" placeholder="e.g. 100XXXXXXXXX" style="margin-bottom:12px;">
+          <label class="fl">Business Name on Receipt</label>
+          <input class="fi" type="text" id="ss-vat-biz" placeholder="e.g. MiNiCUTS FZCO">
+        </div>
+        <div id="ss-vat-preview" style="background:var(--bl);border-radius:8px;padding:12px 14px;margin-top:14px;font-size:13px;display:none;"></div>
+        <div style="display:flex;gap:8px;margin-top:14px;">
+          <button class="btn bp" onclick="ssSaveVAT()">💾 Save VAT Settings</button>
+          <button class="btn bg2 bsm" onclick="ssPreviewVAT()">Preview</button>
+        </div>
+      </div>
+      <div class="card">
+        <div style="font-family:var(--fh);font-size:14px;font-weight:800;margin-bottom:10px;">📊 Price Breakdown Example</div>
+        <div id="ss-vat-example" style="font-size:13px;color:var(--muted);">Save VAT settings to see a breakdown example.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── COUPONS TAB ── -->
+  <div id="sspane-coupons" class="ss-pane">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
+      <div style="font-size:13px;color:var(--muted);">Discount codes with expiry dates and usage limits</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <select id="ss-cpn-filter" class="fi" style="width:130px;padding:7px 10px;font-size:13px;" onchange="ssRenderCoupons()">
+          <option value="">All</option>
+          <option value="active">Active</option>
+          <option value="expired">Expired</option>
+        </select>
+        <button class="btn bp bsm" onclick="ssOpenCoupon()">+ Add Coupon</button>
+      </div>
+    </div>
+    <div id="ss-cpn-list"></div>
+  </div>
+
+</div>
+<!-- END SALON SETUP PAGE -->
+
+<!-- ══ SALON SETUP MODALS ══ -->
+
+<!-- Service Modal -->
+<div class="modal-bg" id="ss-svc-modal">
+  <div class="modal" style="max-width:520px;">
+    <div class="mt">✂️ <span id="ss-svc-modal-title">Add Service</span></div>
+    <input type="hidden" id="ss-svc-id">
+    <div class="fr">
+      <div class="fg" style="grid-column:1/-1;">
+        <label class="fl">Service Name *</label>
+        <input class="fi" type="text" id="ss-svc-name" placeholder="e.g. Classic Haircut, Hair Wash, Styling">
+      </div>
+    </div>
+    <div class="fr">
+      <div class="fg">
+        <label class="fl">Service Code <span style="color:var(--muted);font-weight:500;">(e.g. B1, G3)</span></label>
+        <input class="fi" type="text" id="ss-svc-code" placeholder="e.g. B1" style="text-transform:uppercase;" oninput="this.value=this.value.toUpperCase()">
+      </div>
+      <div class="fg">
+        <label class="fl">Category</label>
+        <select class="fi" id="ss-svc-cat">
+          <option value="haircut">Haircut</option>
+          <option value="wash">Hair Wash</option>
+          <option value="styling">Styling</option>
+          <option value="color">Color / Highlights</option>
+          <option value="treatment">Treatment</option>
+          <option value="package">Package</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label class="fl">For *</label>
+        <select class="fi" id="ss-svc-gender">
+          <option value="boys">👦 Boys</option>
+          <option value="girls">👧 Girls</option>
+          <option value="both">👦👧 Both</option>
+        </select>
+      </div>
+    </div>
+    <div class="fr">
+      <div class="fg">
+        <label class="fl">Price (AED) *</label>
+        <input class="fi" type="number" id="ss-svc-price" min="0" step="0.5" placeholder="e.g. 40">
+      </div>
+      <div class="fg">
+        <label class="fl">Duration (mins) *</label>
+        <input class="fi" type="number" id="ss-svc-duration" min="5" step="5" placeholder="e.g. 30">
+      </div>
+    </div>
+    <div class="fr">
+      <div class="fg">
+        <label class="fl">VAT Applicable</label>
+        <select class="fi" id="ss-svc-vat">
+          <option value="yes">Yes — include VAT</option>
+          <option value="no">No — VAT exempt</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label class="fl">Status</label>
+        <select class="fi" id="ss-svc-status">
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+        </select>
+      </div>
+    </div>
+    <div class="fg">
+      <label class="fl">Description / Notes</label>
+      <input class="fi" type="text" id="ss-svc-desc" placeholder="e.g. Includes wash and style finish">
+    </div>
+    <div id="ss-svc-price-preview" style="background:var(--bl);border-radius:8px;padding:10px 14px;font-size:13px;font-weight:700;color:var(--b);display:none;margin-bottom:4px;"></div>
+    <div class="mf">
+      <button class="btn bg2" onclick="closeM('ss-svc-modal')">Cancel</button>
+      <button class="btn bp" onclick="ssSaveService()">Save Service</button>
+    </div>
+  </div>
+</div>
+
+<!-- Coupon Modal -->
+<div class="modal-bg" id="ss-cpn-modal">
+  <div class="modal" style="max-width:500px;">
+    <div class="mt">🎟 <span id="ss-cpn-modal-title">Add Coupon</span></div>
+    <input type="hidden" id="ss-cpn-id">
+    <div class="fr">
+      <div class="fg">
+        <label class="fl">Coupon Code * <span style="color:var(--muted);font-weight:500;">(e.g. WELCOME20)</span></label>
+        <input class="fi" type="text" id="ss-cpn-code" placeholder="WELCOME20" style="text-transform:uppercase;font-weight:800;letter-spacing:.05em;" oninput="this.value=this.value.toUpperCase().replace(/\s/g,'')">
+      </div>
+      <div class="fg">
+        <label class="fl">Discount Type *</label>
+        <select class="fi" id="ss-cpn-type" onchange="ssCpnTypeChange()">
+          <option value="pct">Percentage (%)</option>
+          <option value="flat">Flat Amount (AED)</option>
+          <option value="free">Free Service</option>
+        </select>
+      </div>
+    </div>
+    <div class="fr">
+      <div class="fg" id="ss-cpn-val-wrap">
+        <label class="fl" id="ss-cpn-val-label">Discount Value *</label>
+        <input class="fi" type="number" id="ss-cpn-value" min="0" step="0.5" placeholder="e.g. 20">
+      </div>
+      <div class="fg">
+        <label class="fl">Min. Purchase (AED)</label>
+        <input class="fi" type="number" id="ss-cpn-min" min="0" step="0.5" placeholder="0 = no minimum">
+      </div>
+    </div>
+    <div class="fr">
+      <div class="fg">
+        <label class="fl">Valid From</label>
+        <input class="fi" type="date" id="ss-cpn-from">
+      </div>
+      <div class="fg">
+        <label class="fl">Expiry Date *</label>
+        <input class="fi" type="date" id="ss-cpn-expiry">
+      </div>
+    </div>
+    <div class="fr">
+      <div class="fg">
+        <label class="fl">Max Uses <span style="color:var(--muted);font-weight:500;">(blank = unlimited)</span></label>
+        <input class="fi" type="number" id="ss-cpn-maxuse" min="1" step="1" placeholder="e.g. 100">
+      </div>
+      <div class="fg">
+        <label class="fl">Applicable To</label>
+        <select class="fi" id="ss-cpn-applies">
+          <option value="all">All Services</option>
+          <option value="boys">Boys Services Only</option>
+          <option value="girls">Girls Services Only</option>
+          <option value="haircut">Haircuts Only</option>
+          <option value="package">Packages Only</option>
+        </select>
+      </div>
+    </div>
+    <div class="fg">
+      <label class="fl">Description / Campaign</label>
+      <input class="fi" type="text" id="ss-cpn-desc" placeholder="e.g. Back-to-school promo, EID discount">
+    </div>
+    <div class="fg">
+      <label class="fl">Status</label>
+      <select class="fi" id="ss-cpn-status">
+        <option value="active">Active</option>
+        <option value="paused">Paused</option>
+        <option value="expired">Expired</option>
+      </select>
+    </div>
+    <div class="mf">
+      <button class="btn bg2" onclick="closeM('ss-cpn-modal')">Cancel</button>
+      <button class="btn bp" onclick="ssSaveCoupon()">Save Coupon</button>
+    </div>
+  </div>
+</div>
 <!-- STAFF: Add/Edit Staff Modal -->
 <div class="modal-bg" id="sm-staff-modal">
   <div class="modal" style="max-width:500px;">
@@ -1510,7 +1780,7 @@ function showPage(id,btn){
   document.querySelectorAll('.ni').forEach(n=>n.classList.remove('active'));
   document.getElementById('page-'+id).classList.add('active');
   if(btn) btn.classList.add('active');
-  const titles={dashboard:'Dashboard',customers:'Customers',profile:'Customer Profile',newcustomer:'New Customer',upload:'Import Customers',qrpage:'Salon QR Code',config:'Settings',missyou:'Miss You 💌 — Nudge & Track',analytics:'Analytics',staffmgmt:'Staff Management'};
+  const titles={dashboard:'Dashboard',customers:'Customers',profile:'Customer Profile',newcustomer:'New Customer',upload:'Import Customers',qrpage:'Salon QR Code',config:'Settings',missyou:'Miss You 💌 — Nudge & Track',analytics:'Analytics',staffmgmt:'Staff Management',salonsetup:'Salon Setup'};
   document.getElementById('TT').textContent=titles[id]||'';
   if(id==='dashboard'){renderDash();loadAfterService();}
   if(id==='customers') loadCustomers();
@@ -1519,6 +1789,7 @@ function showPage(id,btn){
   if(id==='missyou') renderMissYou();
   if(id==='analytics') loadAnalytics();
   if(id==='staffmgmt') smInit();
+  if(id==='salonsetup') ssInit();
 }
 
 // ══ AFTER-SERVICE ALERT ══
@@ -4028,5 +4299,650 @@ function smDeleteRecord(key,id,reloadFn){
   ];
   smLSSet(SM_STAFF_KEY,seed);
 })();
+
+// ══════════════════════════════════════════════════════════════
+// SALON SETUP MODULE  –  Supabase-backed (services, VAT, coupons)
+// Tables: salon_services · salon_vat · salon_coupons
+//
+// SQL to run once in Supabase SQL editor:
+// ─────────────────────────────────────────────────────────────
+// create table if not exists salon_services (
+//   id text primary key,
+//   name text not null,
+//   code text default '',
+//   cat text default 'haircut',
+//   gender text default 'boys',
+//   price numeric default 0,
+//   duration integer default 30,
+//   vat text default 'yes',
+//   status text default 'active',
+//   description text default '',
+//   created_at timestamptz default now(),
+//   updated_at timestamptz default now()
+// );
+// alter table salon_services enable row level security;
+// create policy "anon full access" on salon_services for all using (true) with check (true);
+//
+// create table if not exists salon_vat (
+//   id integer primary key default 1,
+//   rate numeric default 5,
+//   applies text default 'all',
+//   reg text default '',
+//   biz text default 'MiNiCUTS FZCO',
+//   saved_at timestamptz default now()
+// );
+// alter table salon_vat enable row level security;
+// create policy "anon full access" on salon_vat for all using (true) with check (true);
+// insert into salon_vat(id,rate,applies,reg,biz) values(1,5,'all','','MiNiCUTS FZCO') on conflict(id) do nothing;
+//
+// create table if not exists salon_coupons (
+//   id text primary key,
+//   code text not null unique,
+//   type text default 'pct',
+//   value numeric,
+//   min numeric default 0,
+//   from_date text,
+//   expiry text,
+//   maxuse integer,
+//   uses integer default 0,
+//   applies text default 'all',
+//   description text default '',
+//   status text default 'active',
+//   created_at timestamptz default now(),
+//   updated_at timestamptz default now()
+// );
+// alter table salon_coupons enable row level security;
+// create policy "anon full access" on salon_coupons for all using (true) with check (true);
+// ─────────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════
+
+// Keep localStorage helpers for VAT cache only (small object, avoids extra round-trip on render)
+const SS_VAT_CACHE_KEY = 'mc_ss_vat_cache';
+function ssLSObj(k){try{return JSON.parse(localStorage.getItem(k)||'{}');}catch(e){return{};}}
+function ssLSSet(k,v){localStorage.setItem(k,JSON.stringify(v));}
+function ssUID(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
+function ssFmtAED(n){return'AED '+(parseFloat(n)||0).toFixed(2);}
+function ssFmtDate(iso){if(!iso)return'—';return new Date(iso).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});}
+function ssIsExpired(iso){if(!iso)return false;return new Date(iso)<new Date();}
+
+// ── Init ──
+function ssInit(){
+  ssTab('services', document.querySelector('#ss-tab-bar .tab-btn'));
+}
+
+// ── Tab switch ──
+function ssTab(name, btn){
+  document.querySelectorAll('.ss-pane').forEach(p=>p.style.display='none');
+  const el=document.getElementById('sspane-'+name);if(el)el.style.display='block';
+  document.querySelectorAll('#ss-tab-bar .tab-btn').forEach(b=>{b.style.color='var(--muted)';b.style.borderBottomColor='transparent';});
+  if(btn){btn.style.color='var(--b)';btn.style.borderBottomColor='var(--b)';}
+  if(name==='services') ssRenderServices();
+  else if(name==='vat') ssLoadVAT();
+  else if(name==='coupons') ssRenderCoupons();
+}
+
+// ══ SERVICES  (Supabase: salon_services) ══
+const SS_GENDER_LABEL={boys:'👦 Boys',girls:'👧 Girls',both:'👦👧 Both'};
+const SS_GENDER_CLASS={boys:'ss-boy',girls:'ss-girl',both:'ss-both'};
+const SS_CAT_LABEL={haircut:'Haircut',wash:'Hair Wash',styling:'Styling',color:'Color',treatment:'Treatment',package:'Package',other:'Other'};
+
+// In-memory cache so render is instant after first load
+let _svcCache = null;
+let _svcLoading = false;
+
+async function ssGetServices(){
+  if(_svcCache!==null) return _svcCache;
+  try{
+    const rows = await sbFresh('salon_services','select=*&order=gender.asc,cat.asc,name.asc');
+    _svcCache = rows||[];
+  }catch(e){
+    console.warn('salon_services fetch failed:',e.message);
+    _svcCache = [];
+  }
+  return _svcCache;
+}
+
+async function ssRenderServices(){
+  const el=document.getElementById('ss-svc-grid');if(!el)return;
+  if(_svcLoading)return;
+  _svcLoading=true;
+  el.innerHTML='<div style="grid-column:1/-1;padding:40px;text-align:center;color:var(--muted);display:flex;align-items:center;justify-content:center;gap:10px;"><div class="spin"></div> Loading services…</div>';
+  const all = await ssGetServices();
+  _svcLoading=false;
+  const q=(document.getElementById('ss-svc-search')?.value||'').trim().toLowerCase();
+  const gFilter=document.getElementById('ss-svc-filter')?.value||'';
+  const cFilter=document.getElementById('ss-svc-cat-filter')?.value||'';
+  let svcs=[...all];
+  if(gFilter) svcs=svcs.filter(s=>s.gender===gFilter);
+  if(cFilter) svcs=svcs.filter(s=>s.cat===cFilter);
+  if(q) svcs=svcs.filter(s=>
+    (s.name||'').toLowerCase().includes(q)||
+    (s.code||'').toLowerCase().includes(q)||
+    (s.description||'').toLowerCase().includes(q)||
+    (s.cat||'').toLowerCase().includes(q)
+  );
+  const countEl=document.getElementById('ss-svc-count');
+  if(countEl) countEl.textContent=svcs.length===all.length?all.length+' services':svcs.length+' of '+all.length+' services'+(q?' matching "'+q+'"':'');
+  if(!svcs.length){
+    el.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:60px 20px;">
+      <div style="font-size:40px;margin-bottom:10px;">${q?'🔍':'✂️'}</div>
+      <div style="font-family:var(--fh);font-size:17px;font-weight:800;margin-bottom:6px;">${q?'No services match "'+q+'"':'No services yet'}</div>
+      <div style="color:var(--muted);font-size:13px;margin-bottom:16px;">${q?'Try a different search term or clear the filters':'Add your salon services to get started'}</div>
+      ${q?`<button class="btn bg2 bsm" onclick="document.getElementById('ss-svc-search').value='';ssRenderServices()">Clear Search</button>`:`<button class="btn bp bsm" onclick="ssOpenService()">+ Add First Service</button>`}
+    </div>`;
+    return;
+  }
+  const vat=ssLSObj(SS_VAT_CACHE_KEY);
+  const vatRate=parseFloat(vat.rate)||0;
+  el.innerHTML=svcs.map(s=>{
+    const price=parseFloat(s.price)||0;
+    const vatAmt=s.vat==='yes'?price*(vatRate/100):0;
+    const total=price+vatAmt;
+    const inactive=s.status==='inactive';
+    return`<div class="ss-svc-card${inactive?' ss-inactive':''}">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
+        <div>
+          <div style="font-family:var(--fh);font-size:15px;font-weight:800;${inactive?'color:var(--muted);':''}">${s.name}</div>
+          <div style="font-size:11.5px;color:var(--muted);margin-top:2px;">${s.code?'<span style="background:var(--bg);border-radius:4px;padding:1px 5px;font-weight:800;font-size:10.5px;margin-right:4px;">'+s.code+'</span>':''}${SS_CAT_LABEL[s.cat]||s.cat||'Service'}${s.description?' · '+s.description:''}</div>
+        </div>
+        <span class="ss-badge ${inactive?'ss-inactive':SS_GENDER_CLASS[s.gender]||'ss-both'}">${inactive?'Inactive':SS_GENDER_LABEL[s.gender]||s.gender}</span>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px;">
+        <div>
+          <div style="font-family:var(--fh);font-size:20px;font-weight:900;color:var(--b);">${ssFmtAED(price)}</div>
+          ${vatAmt>0?`<div style="font-size:11px;color:var(--muted);">+VAT ${ssFmtAED(vatAmt)} = <strong>${ssFmtAED(total)}</strong></div>`:'<div style="font-size:11px;color:var(--muted);">VAT exempt</div>'}
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:13px;font-weight:700;color:var(--muted);">⏱ ${s.duration||'—'} min</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;margin-top:8px;border-top:1px solid var(--border);padding-top:10px;">
+        <button class="btn bg2 bsm" onclick="ssOpenEditService('${s.id}')" style="flex:1;">✏️ Edit</button>
+        <button class="btn bsm" onclick="ssToggleServiceStatus('${s.id}')" style="flex:1;background:${inactive?'var(--okl)':'var(--warnl)'};color:${inactive?'var(--ok)':'var(--warn)'};border:none;">${inactive?'▶ Activate':'⏸ Deactivate'}</button>
+        <button class="btn bd2 bsm" onclick="ssDeleteService('${s.id}')">🗑</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function ssOpenService(){
+  document.getElementById('ss-svc-modal-title').textContent='Add Service';
+  document.getElementById('ss-svc-id').value='';
+  document.getElementById('ss-svc-name').value='';
+  document.getElementById('ss-svc-code').value='';
+  document.getElementById('ss-svc-cat').value='haircut';
+  document.getElementById('ss-svc-gender').value='boys';
+  document.getElementById('ss-svc-price').value='';
+  document.getElementById('ss-svc-duration').value='';
+  document.getElementById('ss-svc-vat').value='yes';
+  document.getElementById('ss-svc-status').value='active';
+  document.getElementById('ss-svc-desc').value='';
+  document.getElementById('ss-svc-price-preview').style.display='none';
+  document.getElementById('ss-svc-price').oninput=ssPreviewServicePrice;
+  document.getElementById('ss-svc-vat').onchange=ssPreviewServicePrice;
+  openM('ss-svc-modal');
+}
+
+async function ssOpenEditService(id){
+  const all=await ssGetServices();
+  const s=all.find(x=>x.id===id);if(!s)return;
+  document.getElementById('ss-svc-modal-title').textContent='Edit Service';
+  document.getElementById('ss-svc-id').value=id;
+  document.getElementById('ss-svc-name').value=s.name||'';
+  document.getElementById('ss-svc-code').value=s.code||'';
+  document.getElementById('ss-svc-cat').value=s.cat||'haircut';
+  document.getElementById('ss-svc-gender').value=s.gender||'boys';
+  document.getElementById('ss-svc-price').value=s.price||'';
+  document.getElementById('ss-svc-duration').value=s.duration||'';
+  document.getElementById('ss-svc-vat').value=s.vat||'yes';
+  document.getElementById('ss-svc-status').value=s.status||'active';
+  document.getElementById('ss-svc-desc').value=s.description||'';
+  document.getElementById('ss-svc-price').oninput=ssPreviewServicePrice;
+  document.getElementById('ss-svc-vat').onchange=ssPreviewServicePrice;
+  ssPreviewServicePrice();
+  openM('ss-svc-modal');
+}
+
+function ssPreviewServicePrice(){
+  const price=parseFloat(document.getElementById('ss-svc-price').value)||0;
+  const vatApply=document.getElementById('ss-svc-vat').value==='yes';
+  const vat=ssLSObj(SS_VAT_CACHE_KEY);
+  const vatRate=parseFloat(vat.rate)||0;
+  const prev=document.getElementById('ss-svc-price-preview');
+  if(!price){prev.style.display='none';return;}
+  if(vatApply&&vatRate>0){
+    const vatAmt=price*(vatRate/100);
+    prev.style.display='block';
+    prev.innerHTML=`Base: ${ssFmtAED(price)} + VAT ${vatRate}% (${ssFmtAED(vatAmt)}) = <strong>Total: ${ssFmtAED(price+vatAmt)}</strong>`;
+  } else {
+    prev.style.display='block';
+    prev.innerHTML=`Price: <strong>${ssFmtAED(price)}</strong> (VAT exempt)`;
+  }
+}
+
+async function ssSaveService(){
+  const name=document.getElementById('ss-svc-name').value.trim();
+  const price=document.getElementById('ss-svc-price').value;
+  const duration=document.getElementById('ss-svc-duration').value;
+  if(!name){toast('Service name is required','error');return;}
+  if(!price){toast('Price is required','error');return;}
+  if(!duration){toast('Duration is required','error');return;}
+  const existingId=document.getElementById('ss-svc-id').value;
+  const now=new Date().toISOString();
+  const data={
+    id:existingId||ssUID(),
+    name,
+    code:document.getElementById('ss-svc-code').value.trim(),
+    cat:document.getElementById('ss-svc-cat').value,
+    gender:document.getElementById('ss-svc-gender').value,
+    price:parseFloat(price),
+    duration:parseInt(duration),
+    vat:document.getElementById('ss-svc-vat').value,
+    status:document.getElementById('ss-svc-status').value,
+    description:document.getElementById('ss-svc-desc').value.trim(),
+    updated_at:now
+  };
+  if(!existingId) data.created_at=now;
+  try{
+    if(existingId){
+      await sb('salon_services','PATCH',data,'id=eq.'+existingId);
+    } else {
+      await sb('salon_services','POST',data);
+    }
+    _svcCache=null; // invalidate cache
+    closeM('ss-svc-modal');
+    toast(existingId?'Service updated ✅':'Service added ✅');
+    ssRenderServices();
+  }catch(e){toast('Save failed: '+e.message,'error');}
+}
+
+async function ssToggleServiceStatus(id){
+  const all=await ssGetServices();
+  const s=all.find(x=>x.id===id);if(!s)return;
+  const newStatus=s.status==='active'?'inactive':'active';
+  try{
+    await sb('salon_services','PATCH',{status:newStatus,updated_at:new Date().toISOString()},'id=eq.'+id);
+    _svcCache=null;
+    ssRenderServices();
+  }catch(e){toast('Error: '+e.message,'error');}
+}
+
+async function ssDeleteService(id){
+  const all=await ssGetServices();
+  const s=all.find(x=>x.id===id);
+  if(!confirm('Delete "'+(s?s.name:'this service')+'"? This cannot be undone.'))return;
+  try{
+    await sb('salon_services','DELETE',null,'id=eq.'+id);
+    _svcCache=null;
+    toast('Service deleted','info');
+    ssRenderServices();
+  }catch(e){toast('Delete failed: '+e.message,'error');}
+}
+
+// ══ VAT  (Supabase: salon_vat, single row id=1) ══
+async function ssLoadVAT(){
+  try{
+    const rows=await sbFresh('salon_vat','select=*&id=eq.1&limit=1');
+    const vat=rows&&rows.length?rows[0]:{};
+    ssLSSet(SS_VAT_CACHE_KEY,vat); // keep local cache for price previews
+    document.getElementById('ss-vat-rate').value=vat.rate||'5';
+    document.getElementById('ss-vat-applies').value=vat.applies||'all';
+    document.getElementById('ss-vat-reg').value=vat.reg||'';
+    document.getElementById('ss-vat-biz').value=vat.biz||'';
+    document.getElementById('ss-vat-preview').style.display='none';
+    ssUpdateVATExample(vat);
+  }catch(e){
+    toast('Could not load VAT settings: '+e.message,'error');
+  }
+}
+
+function ssPreviewVAT(){
+  const rate=parseFloat(document.getElementById('ss-vat-rate').value)||0;
+  const prev=document.getElementById('ss-vat-preview');
+  prev.style.display='block';
+  prev.innerHTML=`<strong>Preview:</strong> A service priced AED 40 → VAT ${rate}% = AED ${(40*rate/100).toFixed(2)} → <strong>Customer pays AED ${(40+40*rate/100).toFixed(2)}</strong>`;
+}
+
+async function ssSaveVAT(){
+  const rate=parseFloat(document.getElementById('ss-vat-rate').value);
+  if(isNaN(rate)||rate<0||rate>100){toast('Enter a valid VAT rate (0–100)','error');return;}
+  const vat={
+    id:1,
+    rate,
+    applies:document.getElementById('ss-vat-applies').value,
+    reg:document.getElementById('ss-vat-reg').value.trim(),
+    biz:document.getElementById('ss-vat-biz').value.trim(),
+    saved_at:new Date().toISOString()
+  };
+  try{
+    // Upsert: POST with on_conflict=id resolution
+    const res=await fetch(SB_URL+'/rest/v1/salon_vat?on_conflict=id',{
+      method:'POST',
+      headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates,return=representation'}
+      ,body:JSON.stringify(vat)
+    });
+    if(!res.ok)throw new Error(await res.text());
+    ssLSSet(SS_VAT_CACHE_KEY,vat);
+    toast('VAT settings saved ✅');
+    ssUpdateVATExample(vat);
+  }catch(e){toast('Save failed: '+e.message,'error');}
+}
+
+async function ssUpdateVATExample(vatObj){
+  const el=document.getElementById('ss-vat-example');if(!el)return;
+  const rate=parseFloat(vatObj.rate)||0;
+  if(!rate){el.innerHTML='<span style="color:var(--muted);">VAT rate is 0% — no VAT applied.</span>';return;}
+  const svcs=(await ssGetServices()).slice(0,3);
+  if(!svcs.length){el.innerHTML='<span style="color:var(--muted);">Add services to see a breakdown.</span>';return;}
+  el.innerHTML=`<table style="width:100%;border-collapse:collapse;font-size:12.5px;">
+    <thead><tr style="background:var(--bg);">
+      <th style="padding:6px 8px;text-align:left;font-weight:700;">Service</th>
+      <th style="padding:6px 8px;text-align:right;font-weight:700;">Base</th>
+      <th style="padding:6px 8px;text-align:right;font-weight:700;">VAT ${rate}%</th>
+      <th style="padding:6px 8px;text-align:right;font-weight:700;">Total</th>
+    </tr></thead>
+    <tbody>${svcs.map(s=>{
+      const vatAmt=s.vat==='yes'?parseFloat(s.price)*(rate/100):0;
+      return`<tr style="border-top:1px solid var(--border);">
+        <td style="padding:6px 8px;">${s.name}</td>
+        <td style="padding:6px 8px;text-align:right;">${ssFmtAED(s.price)}</td>
+        <td style="padding:6px 8px;text-align:right;color:var(--muted);">${vatAmt>0?ssFmtAED(vatAmt):'Exempt'}</td>
+        <td style="padding:6px 8px;text-align:right;font-weight:800;">${ssFmtAED(parseFloat(s.price)+vatAmt)}</td>
+      </tr>`;
+    }).join('')}</tbody>
+  </table>`;
+}
+
+// ══ COUPONS  (Supabase: salon_coupons) ══
+const SS_DISC_LABEL={pct:'% Off',flat:'AED Off',free:'Free Service'};
+
+let _cpnCache=null;
+let _cpnLoading=false;
+
+async function ssGetCoupons(){
+  if(_cpnCache!==null)return _cpnCache;
+  try{
+    const rows=await sbFresh('salon_coupons','select=*&order=created_at.desc');
+    _cpnCache=rows||[];
+  }catch(e){
+    console.warn('salon_coupons fetch failed:',e.message);
+    _cpnCache=[];
+  }
+  return _cpnCache;
+}
+
+async function ssRenderCoupons(){
+  const el=document.getElementById('ss-cpn-list');if(!el)return;
+  if(_cpnLoading)return;
+  _cpnLoading=true;
+  el.innerHTML='<div style="padding:40px;text-align:center;color:var(--muted);display:flex;align-items:center;justify-content:center;gap:10px;"><div class="spin"></div> Loading coupons…</div>';
+  let coupons=[...(await ssGetCoupons())];
+  _cpnLoading=false;
+  const filter=document.getElementById('ss-cpn-filter')?.value||'';
+  if(filter==='active') coupons=coupons.filter(c=>c.status==='active'&&!ssIsExpired(c.expiry));
+  else if(filter==='expired') coupons=coupons.filter(c=>c.status==='expired'||ssIsExpired(c.expiry));
+  coupons.sort((a,b)=>{
+    const aExp=ssIsExpired(a.expiry)||a.status!=='active';
+    const bExp=ssIsExpired(b.expiry)||b.status!=='active';
+    if(aExp!==bExp)return aExp?1:-1;
+    return(a.expiry||'').localeCompare(b.expiry||'');
+  });
+  if(!coupons.length){
+    el.innerHTML=`<div style="text-align:center;padding:60px 20px;">
+      <div style="font-size:40px;margin-bottom:10px;">🎟</div>
+      <div style="font-family:var(--fh);font-size:17px;font-weight:800;margin-bottom:6px;">No coupons yet</div>
+      <div style="color:var(--muted);font-size:13px;margin-bottom:16px;">Create discount codes for promotions, EID offers, and retention campaigns</div>
+      <button class="btn bp bsm" onclick="ssOpenCoupon()">+ Create First Coupon</button>
+    </div>`;
+    return;
+  }
+  el.innerHTML=coupons.map(c=>{
+    const expired=ssIsExpired(c.expiry)||c.status==='expired';
+    const paused=c.status==='paused';
+    const daysLeft=c.expiry?Math.ceil((new Date(c.expiry)-new Date())/864e5):null;
+    const urgency=daysLeft!==null&&daysLeft<=7&&!expired;
+    let discLabel='';
+    if(c.type==='pct') discLabel=`${c.value}% Off`;
+    else if(c.type==='flat') discLabel=`AED ${c.value} Off`;
+    else discLabel='Free Service';
+    return`<div class="coupon-card${expired?' expired':''}">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="background:${expired?'#F1F5F9':paused?'var(--warnl)':'var(--bl)'};border-radius:8px;padding:8px 14px;font-family:var(--fh);font-size:18px;font-weight:900;color:${expired?'var(--muted)':paused?'var(--warn)':'var(--b)'};letter-spacing:.05em;">${c.code}</div>
+          <div>
+            <div style="font-weight:800;font-size:14px;">${discLabel}</div>
+            <div style="font-size:12px;color:var(--muted);">${c.description||'No description'}</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+          ${expired?'<span class="badge" style="background:var(--errl);color:var(--err);">Expired</span>':
+            paused?'<span class="badge" style="background:var(--warnl);color:var(--warn);">Paused</span>':
+            urgency?`<span class="badge" style="background:var(--warnl);color:var(--warn);">⚠️ Expires in ${daysLeft}d</span>`:
+            '<span class="badge bg-ok">Active</span>'}
+          <button class="btn bg2 bsm" onclick="ssOpenEditCoupon('${c.id}')">✏️ Edit</button>
+          <button class="btn bd2 bsm" onclick="ssDeleteCoupon('${c.id}')">🗑</button>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">
+        <div><div style="font-size:10.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;">Applies To</div><div style="font-size:12.5px;font-weight:700;margin-top:2px;">${c.applies==='all'?'All Services':c.applies}</div></div>
+        <div><div style="font-size:10.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;">Min. Purchase</div><div style="font-size:12.5px;font-weight:700;margin-top:2px;">${parseFloat(c.min||0)>0?ssFmtAED(c.min):'None'}</div></div>
+        <div><div style="font-size:10.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;">Valid Until</div><div style="font-size:12.5px;font-weight:700;margin-top:2px;color:${expired?'var(--err)':urgency?'var(--warn)':'inherit'};">${ssFmtDate(c.expiry)}</div></div>
+        <div><div style="font-size:10.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;">Uses / Max</div><div style="font-size:12.5px;font-weight:700;margin-top:2px;">${c.uses||0} / ${c.maxuse||'Unlimited'}</div></div>
+      </div>
+    </div>`;
+  }).join('<div style="margin:8px 0;"></div>');
+}
+
+function ssCpnTypeChange(){
+  const type=document.getElementById('ss-cpn-type').value;
+  const wrap=document.getElementById('ss-cpn-val-wrap');
+  const label=document.getElementById('ss-cpn-val-label');
+  if(type==='free'){wrap.style.display='none';}
+  else{wrap.style.display='';label.textContent=type==='pct'?'Discount % *':'Discount Amount (AED) *';}
+}
+
+function ssOpenCoupon(){
+  document.getElementById('ss-cpn-modal-title').textContent='Add Coupon';
+  document.getElementById('ss-cpn-id').value='';
+  ['ss-cpn-code','ss-cpn-value','ss-cpn-min','ss-cpn-desc'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('ss-cpn-type').value='pct';
+  document.getElementById('ss-cpn-applies').value='all';
+  document.getElementById('ss-cpn-status').value='active';
+  document.getElementById('ss-cpn-from').value=new Date().toISOString().split('T')[0];
+  const exp=new Date();exp.setMonth(exp.getMonth()+3);
+  document.getElementById('ss-cpn-expiry').value=exp.toISOString().split('T')[0];
+  document.getElementById('ss-cpn-maxuse').value='';
+  ssCpnTypeChange();
+  openM('ss-cpn-modal');
+}
+
+async function ssOpenEditCoupon(id){
+  const all=await ssGetCoupons();
+  const c=all.find(x=>x.id===id);if(!c)return;
+  document.getElementById('ss-cpn-modal-title').textContent='Edit Coupon';
+  document.getElementById('ss-cpn-id').value=id;
+  document.getElementById('ss-cpn-code').value=c.code||'';
+  document.getElementById('ss-cpn-type').value=c.type||'pct';
+  document.getElementById('ss-cpn-value').value=c.value||'';
+  document.getElementById('ss-cpn-min').value=c.min||'';
+  document.getElementById('ss-cpn-from').value=c.from_date||'';
+  document.getElementById('ss-cpn-expiry').value=c.expiry||'';
+  document.getElementById('ss-cpn-maxuse').value=c.maxuse||'';
+  document.getElementById('ss-cpn-applies').value=c.applies||'all';
+  document.getElementById('ss-cpn-desc').value=c.description||'';
+  document.getElementById('ss-cpn-status').value=c.status||'active';
+  ssCpnTypeChange();
+  openM('ss-cpn-modal');
+}
+
+async function ssSaveCoupon(){
+  const code=document.getElementById('ss-cpn-code').value.trim().toUpperCase();
+  const expiry=document.getElementById('ss-cpn-expiry').value;
+  const type=document.getElementById('ss-cpn-type').value;
+  if(!code){toast('Coupon code is required','error');return;}
+  if(!expiry){toast('Expiry date is required','error');return;}
+  if(type!=='free'&&!document.getElementById('ss-cpn-value').value){toast('Discount value is required','error');return;}
+  const existingId=document.getElementById('ss-cpn-id').value;
+  // Check duplicate code on new coupons
+  if(!existingId){
+    const all=await ssGetCoupons();
+    if(all.find(c=>c.code===code)){toast('Coupon code already exists','error');return;}
+  }
+  const now=new Date().toISOString();
+  const data={
+    id:existingId||ssUID(),code,type,
+    value:type!=='free'?parseFloat(document.getElementById('ss-cpn-value').value):null,
+    min:parseFloat(document.getElementById('ss-cpn-min').value)||0,
+    from_date:document.getElementById('ss-cpn-from').value,
+    expiry,
+    maxuse:document.getElementById('ss-cpn-maxuse').value?parseInt(document.getElementById('ss-cpn-maxuse').value):null,
+    applies:document.getElementById('ss-cpn-applies').value,
+    description:document.getElementById('ss-cpn-desc').value.trim(),
+    status:document.getElementById('ss-cpn-status').value,
+    updated_at:now
+  };
+  if(!existingId){data.created_at=now;data.uses=0;}
+  try{
+    if(existingId){
+      await sb('salon_coupons','PATCH',data,'id=eq.'+existingId);
+    }else{
+      await sb('salon_coupons','POST',data);
+    }
+    _cpnCache=null;
+    closeM('ss-cpn-modal');
+    toast(existingId?'Coupon updated ✅':'Coupon created ✅');
+    ssRenderCoupons();
+  }catch(e){toast('Save failed: '+e.message,'error');}
+}
+
+async function ssDeleteCoupon(id){
+  const all=await ssGetCoupons();
+  const c=all.find(x=>x.id===id);
+  if(!confirm('Delete coupon "'+(c?c.code:'this coupon')+'"?'))return;
+  try{
+    await sb('salon_coupons','DELETE',null,'id=eq.'+id);
+    _cpnCache=null;
+    toast('Coupon deleted','info');
+    ssRenderCoupons();
+  }catch(e){toast('Delete failed: '+e.message,'error');}
+}
+
+// ══ SEED: runs once — pushes all services to Supabase if table is empty ══
+// Also seeds the VAT row and caches it locally.
+(async function ssSeedIfEmpty(){
+  // Check if salon_services already has rows
+  try{
+    const existing=await sbFresh('salon_services','select=id&limit=1');
+    if(existing&&existing.length>0){
+      // Table already has data — just warm the VAT cache
+      try{
+        const vr=await sbFresh('salon_vat','select=*&id=eq.1&limit=1');
+        if(vr&&vr.length)ssLSSet(SS_VAT_CACHE_KEY,vr[0]);
+      }catch(e){}
+      return;
+    }
+  }catch(e){
+    console.warn('Seed check failed:',e.message);
+    return;
+  }
+  console.log('salon_services is empty — seeding…');
+  const now=new Date().toISOString();
+  const raw=[
+    // ── Boys ──
+    {code:'B1', name:'Classic Haircut - Boy',        cat:'haircut',   gender:'boys',  price:40,    duration:30,  vat:'yes', description:'A snip, a clip, and a cheerful smile! Quick, cool, and clean—perfect for school or playtime.'},
+    {code:'B2', name:'Haircut with Tattoo - Boy',    cat:'haircut',   gender:'boys',  price:60,    duration:40,  vat:'yes', description:'Snip into style and finish with a fun hair tattoo! Stars, superheroes, and more.'},
+    {code:'B3', name:'Organic Hair Wash - Boy',      cat:'wash',      gender:'boys',  price:20,    duration:20,  vat:'yes', description:'Bubbly fun with nature\'s best! Gentle organic wash that leaves little scalps clean and happy.'},
+    {code:'B4', name:'Hair Spa - Boy',               cat:'treatment', gender:'boys',  price:50,    duration:45,  vat:'yes', description:'Tiny heads deserve big relaxation! Includes massage, nourishment, and loads of smiles.'},
+    {code:'B5', name:'Color Spray with Line - Boy',  cat:'styling',   gender:'boys',  price:40,    duration:10,  vat:'yes', description:'Add a splash of cool! Temporary color spray in fun shades for parties, photos, or just because!'},
+    {code:'BA3',name:'Head Shaving - Boy',           cat:'other',     gender:'boys',  price:40,    duration:30,  vat:'yes', description:'A smooth start for tiny tots! Gentle, soothing head shaving for your baby\'s first milestone.'},
+    {code:'BA4',name:'Haircut with Certificate - Boy',cat:'other',    gender:'boys',  price:75,    duration:45,  vat:'yes', description:'First haircut magic! A stylish snip followed by a cute certificate to remember the big day.'},
+    // ── Girls ──
+    {code:'G1', name:'Haircut - Short - Girl',       cat:'haircut',   gender:'girls', price:45,    duration:30,  vat:'yes', description:'A breezy trim with lots of charm! Perfect for little princesses who love a light and lovely look.'},
+    {code:'G2', name:'Haircut - Long - Girl',        cat:'haircut',   gender:'girls', price:50,    duration:40,  vat:'yes', description:'Snipping long locks into perfect styles—because every fairy tale needs fabulous hair.'},
+    {code:'G3', name:'Bangs - Girl',                 cat:'haircut',   gender:'girls', price:30,    duration:25,  vat:'yes', description:'Peek-a-boo bangs that bounce with joy! Add a playful edge to any haircut.'},
+    {code:'G4', name:'Organic Hair Wash - Girl',     cat:'wash',      gender:'girls', price:25,    duration:20,  vat:'yes', description:'Gentle, foamy fun! Keeps your little one\'s hair soft, shiny, and smelling sweet.'},
+    {code:'G5', name:'Hair Styling/Nail Art/Makeup', cat:'styling',   gender:'girls', price:110,   duration:60,  vat:'yes', description:'Perfect for birthdays, school events, or just a glam day out.'},
+    {code:'G6', name:'Hair Spa - Short Hair Girls',  cat:'treatment', gender:'girls', price:65,    duration:60,  vat:'yes', description:'A mini pampering session! Warm oils, relaxing scalp massage, and hair that feels happy.'},
+    {code:'BA1',name:'Head Shaving - Girl',          cat:'other',     gender:'girls', price:40,    duration:30,  vat:'yes', description:'A smooth start for tiny tots! Gentle, soothing head shaving for your baby\'s first milestone.'},
+    {code:'BA2',name:'Haircut with Certificate - Girl',cat:'other',   gender:'girls', price:80,    duration:45,  vat:'yes', description:'First haircut magic! A stylish snip followed by a cute certificate to remember the big day.'},
+    // ── Nail Art / Polish ──
+    {code:'GS1',name:'Hair & Makeup - Girl',         cat:'styling',   gender:'girls', price:90,    duration:60,  vat:'yes', description:'Twirl into sparkle! Perfect for parties and playdates—light makeup and hair styling.'},
+    {code:'GS2',name:'Nail Art - Hands (Manicure)',  cat:'other',     gender:'girls', price:40,    duration:25,  vat:'yes', description:'Tiny hands, tiny glam! Sparkles, flowers, or hearts for a fabulous nail makeover.'},
+    {code:'GS3',name:'Nail Art - Feet (Pedicure)',   cat:'other',     gender:'girls', price:40,    duration:25,  vat:'yes', description:'Pamper those dancing toes with colorful, cheerful nail art to match any outfit!'},
+    {code:'GS4',name:'Color Spray - Girl',           cat:'styling',   gender:'girls', price:30,    duration:20,  vat:'yes', description:'Pop, fizz, color! Add a dash of magic with safe, washable sprays in fun hues.'},
+    // ── Add Ons ──
+    {code:'',   name:'Henna 1 Hand',                 cat:'other',     gender:'girls', price:15,    duration:15,  vat:'yes', description:'Henna'},
+    {code:'',   name:'Henna Both Hands',             cat:'other',     gender:'girls', price:27,    duration:29,  vat:'yes', description:'Henna Both Hands'},
+    {code:'',   name:'Hair Cut Short + Henna',       cat:'package',   gender:'girls', price:55,    duration:45,  vat:'yes', description:'Hair Cut and Henna Package'},
+    {code:'',   name:'Hair Cut Long + Henna',        cat:'package',   gender:'girls', price:65,    duration:60,  vat:'yes', description:'Haircut Long + Henna'},
+    {code:'',   name:'Haircut + HairWash + Spray (Short)',cat:'package',gender:'girls',price:90,   duration:60,  vat:'yes', description:'HairCut + HairWash + Spray (Short Hair)'},
+    // ── Braids ──
+    {code:'',   name:'Hair Braiding without Colour Extensions',      cat:'styling',gender:'girls',price:90,  duration:60, vat:'yes', description:'Package - Hair Braiding without colour extensions'},
+    {code:'',   name:'Hair Braiding with Colour Extensions & Glitters',cat:'styling',gender:'girls',price:130,duration:90,vat:'yes', description:'Hair braiding with color extensions and glitters'},
+    {code:'',   name:'Hair Braids with Colour Extensions Single',    cat:'styling',gender:'girls',price:115, duration:90, vat:'no',  description:'Hair braids with color extensions single'},
+    // ── Girls Blow Dry ──
+    {code:'',   name:'Girls - Blow Dry Short Hair',  cat:'wash',      gender:'girls', price:45,    duration:30,  vat:'yes', description:'Blow dry short hair'},
+    {code:'',   name:'Girls - Blow Dry Long Hair',   cat:'wash',      gender:'girls', price:50,    duration:40,  vat:'yes', description:'Blow Dry Long Hair'},
+    // ── Girls Hair & Makeup ──
+    {code:'',   name:'Hair & Makeup Long Hair',      cat:'styling',   gender:'girls', price:95,    duration:59,  vat:'yes', description:'Hair & Makeup Long Hair'},
+    // ── Spa ──
+    {code:'',   name:'Hair Spa Long Hair',           cat:'treatment', gender:'both',  price:75,    duration:60,  vat:'yes', description:'Hair Spa Long Hair'},
+    // ── Boys Combo Packages ──
+    {code:'',   name:'Boys - Haircut + Hair Tattoo + Hair Wash', cat:'package',gender:'boys',price:80, duration:60, vat:'yes', description:'Haircut + Hair Tattoo + Hair Wash'},
+    {code:'',   name:'Boys - Haircut + Colour + Hair Wash',      cat:'package',gender:'boys',price:80, duration:60, vat:'yes', description:'Haircut + Colour + Hair Wash'},
+    {code:'',   name:'Boys - Haircut + Colour + Hair Tattoo',    cat:'package',gender:'boys',price:80, duration:45, vat:'yes', description:'Haircut + Colour + Hair Tattoo'},
+    // ── Prince / Hero Packages ──
+    {code:'',   name:'Prince Adventure Package',     cat:'package',   gender:'boys',  price:85,    duration:45,  vat:'yes', description:'Superhero face mask, welcome drink, haircut, head massage, hair wash, hair spray'},
+    {code:'',   name:'Mini Hero',                    cat:'package',   gender:'girls', price:60,    duration:30,  vat:'yes', description:'Haircut, juice, superhero mask, sticker and candy'},
+    {code:'',   name:'Smart Prince Package',         cat:'package',   gender:'boys',  price:70,    duration:45,  vat:'yes', description:'Haircut, hair wash or styling, juice, superhero mask, sticker and candy'},
+    {code:'',   name:'Superstar Prince Package',     cat:'package',   gender:'boys',  price:95,    duration:60,  vat:'yes', description:'Haircut, hair wash, color spray, juice, superhero mask, sticker and candy'},
+    {code:'',   name:'Cool Boy',                     cat:'package',   gender:'boys',  price:57.75, duration:45,  vat:'yes', description:'Haircut, hair wash, stickers'},
+    {code:'',   name:'Hero Cut',                     cat:'package',   gender:'boys',  price:70,    duration:45,  vat:'yes', description:'Haircut, hair tattoo or color spray, face mask, juice, candy and stickers'},
+    {code:'',   name:'Prince Birthday Package',      cat:'package',   gender:'boys',  price:115,   duration:60,  vat:'yes', description:'Haircut, hair wash, color spray or tattoo, head massage, superhero mask, juice, candy and stickers'},
+    // ── Princess Sparkling Series ──
+    {code:'',   name:'Princess Sparkling Cut & Wash - Short',      cat:'package',gender:'girls',price:65,   duration:45, vat:'yes', description:'Haircut and hair wash'},
+    {code:'',   name:'Princess Sparkling Cut & Wash - Long',       cat:'package',gender:'girls',price:70,   duration:45, vat:'yes', description:'Haircut and hair wash'},
+    {code:'',   name:'Princess Sparkling Blowdry - Short',         cat:'package',gender:'girls',price:65,   duration:45, vat:'yes', description:'Hair wash and blow dry'},
+    {code:'',   name:'Sparkling Hairstyling Short',                cat:'styling', gender:'girls',price:80,   duration:60, vat:'yes', description:'Hair wash and blowdry'},
+    {code:'',   name:'Sparkling Hairstyling Long',                 cat:'styling', gender:'girls',price:85,   duration:45, vat:'yes', description:'Hair wash and styling'},
+    {code:'',   name:'Princess Sparkling Diva - Short',            cat:'package',gender:'girls',price:99,   duration:60, vat:'yes', description:'Haircut, hairwash, blowdry, juice'},
+    {code:'',   name:'Princess Sparkling Diva - Long',             cat:'package',gender:'girls',price:120.75,duration:74,vat:'yes', description:'Haircut, hairwash, blowdry, juice'},
+    {code:'',   name:'Princess Sparkling Cut, Wash, Blowdry - Long',cat:'package',gender:'girls',price:120, duration:60, vat:'yes', description:'Haircut, hairwash and blowdry'},
+    // ── Birthday Princess ──
+    {code:'',   name:'Birthday Princess Package 1',  cat:'package',   gender:'girls', price:175,   duration:90,  vat:'yes', description:'Hair wash, hair styling, manicure, pedicure, tiara, juice and stickers'},
+    {code:'',   name:'Birthday Princess Package 2',  cat:'package',   gender:'girls', price:236.25,duration:90,  vat:'yes', description:'Haircut, hair wash, hair styling, manicure, pedicure, tiara, juice and stickers'},
+    // ── Pretty & Polished ──
+    {code:'',   name:'Pretty and Polished - Short',  cat:'package',   gender:'girls', price:99,    duration:60,  vat:'yes', description:'Hair wash, blowdry, manicure, juice, sticker'},
+    {code:'',   name:'Pretty and Polished - Long Hair',cat:'package', gender:'girls', price:105,   duration:75,  vat:'yes', description:'Hairwash, blowdry, manicure, juice and stickers'},
+    // ── Hair Spa Glow ──
+    {code:'',   name:'Hair Spa Glow Long Hair',      cat:'package',   gender:'girls', price:130,   duration:90,  vat:'yes', description:'Hair spa, hair wash, blowdry, hairclip, juice, stickers'},
+    {code:'',   name:'Hair Spa Glow Short Hair',     cat:'package',   gender:'girls', price:110,   duration:90,  vat:'yes', description:'Hair spa, hair wash, blowdry, hairclip, juice, stickers'},
+    // ── Hairstyling ──
+    {code:'',   name:'Hairstyling - Long Hair',      cat:'styling',   gender:'girls', price:70,    duration:45,  vat:'yes', description:'Hairstyling - Long Hair'},
+    {code:'',   name:'Hairstyling - Short Hair',     cat:'styling',   gender:'girls', price:65,    duration:44,  vat:'yes', description:'Hairstyling - Short Hair'},
+    // ── Manicure + Pedicure ──
+    {code:'',   name:'Manicure + Pedicure',          cat:'other',     gender:'girls', price:75,    duration:60,  vat:'yes', description:'Nail art hand and feet'},
+    // ── Certificate ──
+    {code:'',   name:'Haircut Certificate',          cat:'other',     gender:'both',  price:20,    duration:30,  vat:'yes', description:'Haircut Certificate add-on'},
+  ];
+  const toInsert=raw.map(s=>({id:ssUID(),created_at:now,updated_at:now,status:'active',...s}));
+  // Insert in batches of 20 to stay under Supabase request limits
+  for(let i=0;i<toInsert.length;i+=20){
+    const batch=toInsert.slice(i,i+20);
+    try{await sb('salon_services','POST',batch);}catch(e){console.error('Seed batch failed:',e.message);}
+  }
+  // Seed VAT row
+  try{
+    await fetch(SB_URL+'/rest/v1/salon_vat?on_conflict=id',{
+      method:'POST',
+      headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates'},
+      body:JSON.stringify({id:1,rate:5,applies:'all',reg:'',biz:'MiNiCUTS FZCO',saved_at:now})
+    });
+    ssLSSet(SS_VAT_CACHE_KEY,{rate:5,applies:'all',reg:'',biz:'MiNiCUTS FZCO'});
+  }catch(e){console.warn('VAT seed failed:',e.message);}
+  console.log('Seed complete —',toInsert.length,'services inserted.');
+  _svcCache=null; // force fresh fetch on next render
+})();
+
 
 </script>
