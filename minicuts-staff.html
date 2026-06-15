@@ -112,6 +112,45 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
 @keyframes ti{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
 .toast.ok{border-left:4px solid var(--ok);}.toast.err{border-left:4px solid var(--err);}.toast.info{border-left:4px solid var(--b);}
 #clk{font-family:var(--fh);font-size:11px;font-weight:700;color:rgba(255,255,255,.7);}
+
+/* ─── MOBILE RESPONSIVE ─── */
+@media (max-width:760px){
+  .top{padding:8px 12px;flex-wrap:wrap;gap:6px;}
+  .top-brand{font-size:14px;}
+  .top-right{gap:6px;}
+  #clk{display:none;}
+
+  .tabs{padding:0 6px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+  .tabs::-webkit-scrollbar{display:none;}
+  .tab{padding:9px 11px;font-size:12px;}
+
+  .stats-strip{padding:8px 12px;gap:12px;justify-content:space-between;}
+  .sstat-n{font-size:18px;}
+  .sstat-div{display:none;}
+
+  .page{padding:10px;}
+
+  .filters{padding:10px;gap:8px;}
+  .filters .fg{min-width:0!important;flex:1 1 100%!important;}
+  .filters > div[style*="display:flex"]{flex:1 1 100%;}
+
+  /* Settings & two-column cards collapse to single column */
+  #t-config > div[style*="grid-template-columns:1fr 1fr"],
+  div[style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr!important;}
+
+  /* Tables: switch to horizontal scroll, allow shrinking columns */
+  .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  .qt{table-layout:auto;min-width:640px;}
+  .qt th,.qt td{padding:6px 6px;font-size:11.5px;}
+  .qt th:nth-child(6),.qt td:nth-child(6){width:auto;min-width:160px;}
+
+  /* Modals: full width with margins */
+  div[style*="max-width:420px"]{max-width:94vw!important;padding:18px!important;}
+
+  .tc{left:10px;right:10px;bottom:10px;}
+  .toast{min-width:0;width:100%;}
+}
+
 </style>
 </head>
 <body>
@@ -920,13 +959,14 @@ function renderHist(){
   const date=histGetDate();const isToday=date===today();
   const data=_histData;
   if(!data.length){body.innerHTML='<tr><td colspan="11" style="text-align:center;padding:40px;color:var(--muted);">No records for '+date+' 🐼</td></tr>';return;}
-  const totalTips=data.filter(r=>r.tip>0).reduce((s,r)=>s+(Number(r.tip)||0),0);
-  const totalRev=data.filter(r=>r.service_value>0).reduce((s,r)=>s+(Number(r.service_value)||0),0);
-  const cashRev=data.filter(r=>r.payment_type==='Cash').reduce((s,r)=>s+(Number(r.service_value)||0),0);
-  const creditRev=data.filter(r=>r.payment_type==='Credit').reduce((s,r)=>s+(Number(r.service_value)||0),0);
-  const cashTip=data.filter(r=>r.payment_type==='Cash').reduce((s,r)=>s+(Number(r.tip)||0),0);
-  const creditTip=data.filter(r=>r.payment_type==='Credit').reduce((s,r)=>s+(Number(r.tip)||0),0);
-  const done=data.filter(r=>r.status==='done').length;
+  const stamped=data.filter(r=>r.status==='done');
+  const totalTips=stamped.filter(r=>r.tip>0).reduce((s,r)=>s+(Number(r.tip)||0),0);
+  const totalRev=stamped.filter(r=>r.service_value>0).reduce((s,r)=>s+(Number(r.service_value)||0),0);
+  const cashRev=stamped.filter(r=>r.payment_type==='Cash').reduce((s,r)=>s+(Number(r.service_value)||0),0);
+  const creditRev=stamped.filter(r=>r.payment_type==='Credit').reduce((s,r)=>s+(Number(r.service_value)||0),0);
+  const cashTip=stamped.filter(r=>r.payment_type==='Cash').reduce((s,r)=>s+(Number(r.tip)||0),0);
+  const creditTip=stamped.filter(r=>r.payment_type==='Credit').reduce((s,r)=>s+(Number(r.tip)||0),0);
+  const done=stamped.length;
   const sumEl=document.getElementById('hist-summary');
   if(sumEl){sumEl.style.display='block';
     sumEl.innerHTML=
