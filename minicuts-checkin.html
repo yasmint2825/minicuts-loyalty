@@ -392,6 +392,7 @@ function setPhF(pId,nId,mob){const p=splitM(mob);const ps=document.getElementByI
 let _kidsCount = 0;          // how many kids count button selected
 let _foundKids = [];         // kids returned by doLookup (all registered under this mobile)
 let _alreadyQueued = new Set(); // customer_ids already in today's queue
+let _selectedKidIds = new Set(); // ids of registered kids the parent has actually tapped to bring in today
 let _reservedTokens = [];    // not used for pre-reservation anymore — kept for reset cleanup
 
 // ── TOKEN BLOCK: inserts real queue rows atomically at check-in time ──
@@ -424,6 +425,7 @@ async function reserveTokenBlock(n, mob, kidRows){
 // Called when customer taps a count button — just updates UI, NO DB writes
 function setKidsCount(n, btn){
   _kidsCount = n;
+  _selectedKidIds = new Set(); // changing the count invalidates any prior taps
   document.querySelectorAll('.kids-count-btn').forEach(b=>{
     b.style.background='#fff'; b.style.borderColor='var(--border)'; b.style.color='var(--bd)';
   });
@@ -441,17 +443,18 @@ function setKidsCount(n, btn){
 function renderKidsPanel(){
   const n = _kidsCount;
   const eligible = _foundKids.filter(k=>!_alreadyQueued.has(k.id));
-  const regSlots  = Math.min(eligible.length, n);   // registered kids to show pre-checked
-  const newSlots  = Math.max(0, n - eligible.length); // extra kids needing registration
+  const newSlots  = Math.max(0, n - eligible.length); // extra kids needing registration (only relevant once enough are tapped)
 
-  // ── Registered kids (pre-ticked, name only) ──
+  // ── Registered kids: shown UNselected, parent taps which ones are here today ──
   const kidsEl = document.getElementById('lu-kids');
   if(eligible.length > 0 && n > 0){
-    let html = '<div style="font-size:11.5px;font-weight:700;color:var(--b);background:#EEF6FF;border-radius:8px;padding:7px 11px;margin-bottom:8px;">✅ Registered children — included in check-in</div>';
-    eligible.slice(0, n).forEach(k=>{
+    const selCount = _selectedKidIds.size;
+    let html = '<div style="font-size:11.5px;font-weight:700;color:var(--b);background:#EEF6FF;border-radius:8px;padding:7px 11px;margin-bottom:8px;">👇 Tap which child'+(n>1?'ren are':' is')+' here today ('+selCount+' of '+n+' selected)</div>';
+    eligible.forEach(k=>{
       const g = k.gender==='girl';
-      html += '<div class="kid-row selected" style="cursor:default;">'
-        +'<div style="font-size:18px;flex-shrink:0;">✅</div>'
+      const isSel = _selectedKidIds.has(k.id);
+      html += '<div class="kid-row'+(isSel?' selected':'')+'" onclick="toggleKidSelect(\''+k.id+'\')">'
+        +'<div style="font-size:18px;flex-shrink:0;">'+(isSel?'✅':'⬜')+'</div>'
         +'<div class="kav '+(g?'girl':'')+'">'+(k.name.charAt(0).toUpperCase())+'</div>'
         +'<div style="flex:1;min-width:0;">'
           +'<div style="font-weight:800;font-size:14px;">'+k.name+'</div>'
@@ -465,9 +468,11 @@ function renderKidsPanel(){
     kidsEl.style.display = 'none';
   }
 
-  // ── New-kid forms for the extra slots ──
+  // ── New-kid forms for the extra slots (only once parent has tapped all available registered kids and still needs more) ──
   const newEl = document.getElementById('lu-new-kids');
-  if(newSlots > 0){
+  const showNewSlots = newSlots > 0 && _selectedKidIds.size >= eligible.length;
+  if(showNewSlots){
+    const regSlots = eligible.length;
     const cy = new Date().getFullYear();
     const yr = Array.from({length:20},(_,i)=>'<option value="'+(cy-i)+'">'+(cy-i)+'</option>').join('');
     const mo = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].map((m,i)=>'<option value="'+String(i+1).padStart(2,'0')+'">'+m+'</option>').join('');
@@ -500,6 +505,19 @@ function renderKidsPanel(){
   updBtn();
 }
 
+// Toggle a single registered kid in/out of today's selection.
+// Caps at _kidsCount: once the parent has tapped that many, further taps on
+// un-tapped kids are ignored until they untap one (button stays disabled-looking via re-render).
+function toggleKidSelect(id){
+  if(_selectedKidIds.has(id)){
+    _selectedKidIds.delete(id);
+  } else {
+    if(_selectedKidIds.size >= _kidsCount) return; // already at the chosen count — must untap one first
+    _selectedKidIds.add(id);
+  }
+  renderKidsPanel();
+}
+
 function nkGender(i, g){
   document.getElementById('nk-boy-'+i)?.classList.toggle('active', g==='boy');
   document.getElementById('nk-girl-'+i)?.classList.toggle('active', g==='girl');
@@ -511,7 +529,7 @@ function onLookup(){
   ['lu-st','lu-count','lu-kids','lu-new-kids','lu-act','lu-nf','lu-reg-sibling'].forEach(id=>{
     const e=document.getElementById(id); if(e) e.style.display='none';
   });
-  _sel=[]; _kidsCount=0; _foundKids=[]; _alreadyQueued=new Set();
+  _sel=[]; _kidsCount=0; _foundKids=[]; _alreadyQueued=new Set(); _selectedKidIds=new Set();
   document.querySelectorAll('.kids-count-btn').forEach(b=>{b.style.background='#fff';b.style.borderColor='var(--border)';b.style.color='var(--bd)';});
   if(!num.length) return;
   if(num.length<7){
@@ -563,9 +581,10 @@ async function doLookup(){
     document.getElementById('lu-count').style.display='block';
     document.getElementById('lu-reg-sibling').style.display='block';
 
-    // If exactly 1 eligible kid, auto-select count=1
+    // If exactly 1 eligible kid exists at all, there's no ambiguity — auto-select count=1 AND that specific kid
     if(eligible.length===1){
       _kidsCount=1;
+      _selectedKidIds=new Set([eligible[0].id]);
       const firstBtn=document.querySelector('.kids-count-btn');
       if(firstBtn){firstBtn.style.background='var(--bd)';firstBtn.style.borderColor='var(--bd)';firstBtn.style.color='#fff';}
       renderKidsPanel();
@@ -579,32 +598,42 @@ async function doLookup(){
 
 function updBtn(){
   const eligible = _foundKids.filter(k=>!_alreadyQueued.has(k.id));
-  const regCount = Math.min(eligible.length, _kidsCount);
-  const newCount = Math.max(0, _kidsCount - eligible.length);
+  const regKids = eligible.filter(k=>_selectedKidIds.has(k.id)); // only the kids the parent actually tapped
+  const regCount = regKids.length;
+  // New-kid slots only "open up" once the parent has tapped every available registered kid and still needs more
+  const newCount = (regCount >= eligible.length) ? Math.max(0, _kidsCount - eligible.length) : 0;
   const total = regCount + newCount;
   const act = document.getElementById('lu-act');
   const btn = document.getElementById('lu-btn');
   const sum = document.getElementById('lu-sum');
-  if(!_kidsCount || total===0){ act.style.display='none'; return; }
+
+  if(!_kidsCount){ act.style.display='none'; return; }
+
+  // Require the parent to have tapped exactly _kidsCount specific kids (registered + new) before showing the action
+  if(regCount < _kidsCount && regCount < eligible.length){
+    act.style.display='none';
+    return;
+  }
+  if(total < _kidsCount){ act.style.display='none'; return; }
+  if(total===0){ act.style.display='none'; return; }
   act.style.display='block';
 
   // Button label
   const hasNew = newCount > 0;
   if(total===1 && !hasNew){
-    btn.textContent='✅ Check In '+eligible[0].name;
+    btn.textContent='✅ Check In '+regKids[0].name;
     sum.style.display='none';
   } else if(hasNew){
     btn.textContent='✅ Register & Check In '+(total>1?total+' Children':'');
     sum.style.display='block';
-    sum.textContent='🎫 '+regCount+' registered + '+newCount+' new child'+(newCount>1?'ren':'')+' to register';
+    sum.textContent='🎫 '+regCount+' selected + '+newCount+' new child'+(newCount>1?'ren':'')+' to register';
   } else {
     btn.textContent='✅ Check In '+total+' Children';
     sum.style.display='block';
-    sum.textContent='🎫 '+eligible.slice(0,total).map(k=>k.name).join(' → ');
+    sum.textContent='🎫 '+regKids.map(k=>k.name).join(' → ');
   }
 
   // "How did you hear" — show if any new kids OR any returning kid who never answered
-  const regKids = eligible.slice(0, regCount);
   const needsHear = hasNew || regKids.some(c=>!c.heard_via && (Number(c.stamps)||0)===0);
   const hearEl = document.getElementById('lu-hear');
   if(hearEl) hearEl.style.display = needsHear ? 'block' : 'none';
@@ -624,8 +653,15 @@ function updBtn(){
 async function proceedCheckin(){
   if(!_kidsCount){ document.getElementById('kids-count-err').style.display='block'; return; }
   const eligible = _foundKids.filter(k=>!_alreadyQueued.has(k.id));
-  const regKids  = eligible.slice(0, _kidsCount);
-  const newCount = Math.max(0, _kidsCount - eligible.length);
+  const regKids  = eligible.filter(k=>_selectedKidIds.has(k.id)); // exactly the kids the parent tapped
+  const newCount = (regKids.length >= eligible.length) ? Math.max(0, _kidsCount - eligible.length) : 0;
+
+  // Safety check: parent must have tapped specific kids matching the chosen count
+  if(regKids.length + newCount < _kidsCount){
+    document.getElementById('kids-count-err').textContent='Please select which child'+(_kidsCount>1?'ren':'')+' is here today 👆';
+    document.getElementById('kids-count-err').style.display='block';
+    return;
+  }
 
   // Validate hear-about
   const needsHear = newCount>0 || regKids.some(c=>!c.heard_via && (Number(c.stamps)||0)===0);
@@ -965,7 +1001,7 @@ function resetCI(){
   // Full field reset
   const numEl=document.getElementById('lu-num');if(numEl)numEl.value='';
   ['lu-st','lu-count','lu-kids','lu-new-kids','lu-act','lu-nf','lu-reg-sibling'].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display='none';});
-  _sel=[];_kidsCount=0;_hearAbout=null;_foundKids=[];_alreadyQueued=new Set();
+  _sel=[];_kidsCount=0;_hearAbout=null;_foundKids=[];_alreadyQueued=new Set();_selectedKidIds=new Set();
   document.querySelectorAll('.hear-btn').forEach(b=>{b.style.background='#fff';b.style.borderColor='var(--border)';b.style.color='var(--text)';});
   document.querySelectorAll('.kids-count-btn').forEach(b=>{b.style.background='#fff';b.style.borderColor='var(--border)';b.style.color='var(--bd)';});
   document.querySelectorAll('.kid-row').forEach(r=>r.classList.remove('selected'));
