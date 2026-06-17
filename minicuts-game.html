@@ -708,7 +708,7 @@ function refreshGameCards(){
     if(prompt){
       prompt.innerHTML=`<div style="background:rgba(255,214,0,.12);border:1.5px solid rgba(255,214,0,.4);border-radius:10px;padding:7px 10px;text-align:center;display:flex;align-items:center;justify-content:center;gap:6px;">
         <span style="font-size:16px;">🔒✂️</span>
-        <span style="font-family:'Baloo 2',cursive;font-size:13px;font-weight:800;color:#0D47A1;">Games unlock after the haircut!</span>
+        <span style="font-family:'Baloo 2',cursive;font-size:13px;font-weight:800;color:#0D47A1;">Games unlock once you're checked in!</span>
       </div>`;
       prompt.style.cssText='';
     }
@@ -916,7 +916,7 @@ function showScreen(id){
 }
 function goBack(){showScreen(prevScreen);}
 async function goProfile(){
-  // Always re-fetch stamp status live — catches stamps given after the player logged in
+  // Always re-fetch latest stats — catches stamps/points updated after the player logged in
   if(player.id){
     try{
       const fresh=await sb('customers','GET',null,
@@ -928,8 +928,7 @@ async function goProfile(){
         player.game_spins    = fresh[0].game_spins;
       }
     }catch(e){ /* use cached data if fetch fails */ }
-    // Live-check visits table — the definitive stamp gate
-    // Re-read stamps fresh in case staff just stamped
+    // Live-check today's queue — the definitive games-unlock gate (per kid, per day)
     try{
       const s=await sb('customers','GET',null,'select=stamps&id=eq.'+player.id);
       if(s&&s[0]) player.stamps=Number(s[0].stamps)||0;
@@ -941,7 +940,7 @@ async function goProfile(){
   renderProfile();
   showScreen('s-profile');
   loadSidebarLb();
-  // Start polling every 15s while on profile — gate lifts automatically when staff stamps
+  // Start polling every 15s while on profile — gate lifts automatically the moment staff checks the kid in
   clearInterval(window._stampPollTimer);
   window._stampPollTimer=setInterval(async()=>{
     if(!document.getElementById('s-profile').classList.contains('active')){
@@ -960,7 +959,7 @@ async function goProfile(){
         const old=document.getElementById('stampGateTap');if(old)old.remove();
         const t=document.createElement('div');
         t.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#FFD600,#FF8C00);color:#0D47A1;padding:12px 22px;border-radius:99px;font-family:\'Baloo 2\',cursive;font-size:16px;font-weight:900;z-index:8000;box-shadow:0 8px 24px rgba(255,214,0,.4);white-space:nowrap;';
-        t.textContent='✂️ Stamp received — games unlocked! 🎮';
+        t.textContent='✅ Checked in — games unlocked! 🎮';
         document.body.appendChild(t);setTimeout(()=>t.remove(),3000);
       }
     }catch(e){}
@@ -1059,7 +1058,7 @@ function drawWheel(angle){
   ctx.textAlign='center';ctx.textBaseline='middle';
   ctx.fillText('🐼',CX,CY);
 }
-// Re-fetches stamp status live before allowing any game — catches stamps given while page is open
+// Re-fetches latest customer fields before allowing any game; actual unlock check is queue-based (hasStampedToday)
 async function checkAndPlay(gameFn){
   if(player.id){
     try{
@@ -1415,27 +1414,29 @@ function drawMilestoneTrack(containerId,pts){
 
 
 async function hasStampedTodayLive(){
-  // Check visits table directly — only true if staff added a stamp today
+  // Games unlock as soon as THIS specific child has a real token in today's queue —
+  // not when staff stamps the haircut as done. Stamps/rewards still require an actual
+  // completed haircut (handled elsewhere); this only gates game access.
   if(!player.id) return false;
-  // New customer with 0 stamps can never be unlocked
-  if((Number(player.stamps)||0) === 0) return false;
   try{
     const now=new Date();
-    const todayStart=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0')+'T00:00:00';
-    const rows=await sb('visits','GET',null,
+    const todayStr=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+    const rows=await sb('queue','GET',null,
       'select=id&customer_id=eq.'+player.id+
-      '&created_at=gte.'+encodeURIComponent(todayStart)+
-      '&type=eq.paid&limit=1');
+      '&checkin_date=eq.'+todayStr+
+      '&status=in.(waiting,called,done)&limit=1');
     return !!(rows&&rows.length);
   }catch(e){
-    // Fallback to last_visit_date if visits table unreachable
+    // Fallback to last_visit_date if queue table unreachable
     return hasStampedTodayFallback();
   }
 }
 
 function hasStampedTodayFallback(){
-  // Extra guard: new customers with 0 stamps can never be considered stamped
-  if(!player.last_visit_date || (Number(player.stamps)||0) === 0) return false;
+  // Degraded-mode fallback (queue table unreachable) — best guess using last_visit_date.
+  // No longer gated on stamps>0, since a brand-new customer can have a same-day
+  // check-in with zero stamps and should still unlock games.
+  if(!player.last_visit_date) return false;
   const now=new Date();
   const localToday=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
   const v=new Date(player.last_visit_date);
@@ -1449,7 +1450,7 @@ function hasStampedToday(){
 }
 
 function showStampGate(){
-  // Show a friendly locked screen if not stamped today
+  // Show a friendly locked screen if not checked in today
   const overlay=document.createElement('div');
   overlay.id='stampGateOverlay';
   overlay.style.cssText='position:fixed;inset:0;background:rgba(13,71,161,.92);z-index:9000;display:flex;align-items:center;justify-content:center;padding:20px;';
@@ -1458,11 +1459,11 @@ function showStampGate(){
       <div style="font-size:64px;margin-bottom:8px;animation:bounce-anim 1s infinite;">🐼</div>
       <div style="font-family:'Baloo 2',cursive;font-size:24px;font-weight:900;color:#0D47A1;margin-bottom:8px;">Oops! Not yet! 🎮</div>
       <div style="font-size:15px;color:#374151;line-height:1.7;margin-bottom:16px;">
-        Your games will unlock <strong style="color:#FF8C00;">after your next haircut</strong> at MiniCuts! ✂️<br>
-        Ask the staff for your stamp — then come back and play! 🌟
+        Your games unlock as soon as you're <strong style="color:#FF8C00;">checked in</strong> at MiniCuts! ✂️<br>
+        Ask the staff to check you in — then come back and play! 🌟
       </div>
       <div style="background:linear-gradient(135deg,#EFF6FF,#FFF7CC);border-radius:12px;padding:12px;margin-bottom:18px;font-size:13px;font-weight:800;color:#0D47A1;border:1.5px solid rgba(255,214,0,.5);">
-        🎁 Spin · Tap Panda · Memory — all 3 unlock with 1 stamp!
+        🎁 Spin · Tap Panda · Memory — all 3 unlock the moment you're in the queue!
       </div>
       <button onclick="document.getElementById('stampGateOverlay').remove();goProfile();"
         style="width:100%;padding:13px;background:linear-gradient(135deg,#FFD600,#FF8C00);border:none;border-radius:12px;font-family:'Baloo 2',cursive;font-size:18px;font-weight:800;color:#0D47A1;cursor:pointer;margin-bottom:8px;">
@@ -2741,7 +2742,17 @@ function launchConfetti(){
         if(isGlobalBest){ hintEl.innerHTML='<span style="font-size:18px;font-weight:900;">🏆 NEW ALL-TIME RECORD: '+memSeconds+'s!</span><br><span style="font-size:14px;">Fastest among all players. +2 bonus!</span>'; hintEl.style.background='rgba(22,163,74,.2)';hintEl.style.borderColor='rgba(22,163,74,.5)';hintEl.style.color='#4ADE80'; }
         else{ hintEl.innerHTML='<span style="font-size:16px;font-weight:900;">⏱️ Your time: '+memSeconds+'s</span><br><span style="font-size:13px;">All-time best is <strong>'+globalBestTime+'s</strong>'+(globalBestName?' by '+globalBestName:'')+'. Earned 8 pts.</span>'; hintEl.style.background='rgba(255,214,0,.15)';hintEl.style.borderColor='rgba(255,214,0,.3)';hintEl.style.color='var(--y)'; }
       }
-      const btn=$('memStartBtn'); if(btn){btn.style.display='block';btn.textContent='See my '+pts+' pts! 🎉';btn.disabled=false;btn.onclick=()=>saveAndShowResult(pts,'memory',isPersonalBest?memSeconds:null);}
+      const btn=$('memStartBtn');
+      if(btn){
+        btn.style.display='block';btn.textContent='See my '+pts+' pts! 🎉';btn.disabled=false;
+        let _claimed=false; // guards against double-tap firing saveAndShowResult twice
+        btn.onclick=()=>{
+          if(_claimed) return;
+          _claimed=true;
+          btn.disabled=true; btn.onclick=null; btn.style.opacity='0.7';
+          saveAndShowResult(pts,'memory',isPersonalBest?memSeconds:null);
+        };
+      }
       // saveAndShowResult calls savePoints — removed duplicate call here
     };
   }
