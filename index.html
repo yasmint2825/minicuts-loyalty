@@ -2434,44 +2434,54 @@ async function renderMissYou(){
     const TWO_WEEKS=14*24*60*60*1000;
     const now2=new Date();
 
+    // Shared "Sent → Waiting" rule: once a message is marked Sent (nudge_sent_at is
+    // stamped), the customer must disappear from EVERY source tab (Nudge, Lapsed,
+    // Expiring, Birthdays, Free Gift) and live only in Waiting, until either they
+    // return (Returned tab) or 2 weeks pass with no return (falls back into the
+    // relevant source tab so staff can try again).
+    function inCooldown(c){
+      if(!c.nudge_sent_at) return false;
+      const age=now2-new Date(c.nudge_sent_at);
+      const returned=c.last_visit_date&&new Date(c.last_visit_date)>new Date(c.nudge_sent_at);
+      return !returned&&age<=TWO_WEEKS;
+    }
+
     // ── Tab 1: Nudge (needsNudge but not yet nudged / window expired) ──
     const dndCusts=custs.filter(c=>c.dnd);
     const toNudge=custs.filter(c=>{
       if(isExp(c)||c.dnd) return false;
       if(!needsNudge(c)) return false;
-      if(!c.nudge_sent_at) return true;
-      const age=now2-new Date(c.nudge_sent_at);
-      const returned=c.last_visit_date&&new Date(c.last_visit_date)>new Date(c.nudge_sent_at);
-      return !returned&&age>TWO_WEEKS;
+      return !inCooldown(c);
     }).sort((a,b)=>(weeksSinceVisit(b)||0)-(weeksSinceVisit(a)||0));
 
     // ── Tab 2: Lapsed ──
-    const lapsed=custs.filter(c=>!isExp(c)&&!c.dnd&&isLapsed(c)).sort((a,b)=>(weeksSinceVisit(b)||0)-(weeksSinceVisit(a)||0));
+    const lapsed=custs.filter(c=>!isExp(c)&&!c.dnd&&isLapsed(c)&&!inCooldown(c)).sort((a,b)=>(weeksSinceVisit(b)||0)-(weeksSinceVisit(a)||0));
 
     // ── Tab 3: Expiring ──
-    const expiring=custs.filter(c=>!isExp(c)&&!c.dnd&&isExpiringSoon(c)).sort((a,b)=>dLeft(a)-dLeft(b));
+    const expiring=custs.filter(c=>!isExp(c)&&!c.dnd&&isExpiringSoon(c)&&!inCooldown(c)).sort((a,b)=>dLeft(a)-dLeft(b));
 
-    // ── Tab 4: Birthdays this week ──
-    const weekStart=new Date(now2);weekStart.setDate(now2.getDate()-now2.getDay());
-    const weekEnd=new Date(weekStart);weekEnd.setDate(weekStart.getDate()+6);
+    // ── Tab 4: Birthdays — forward-looking only (today → end of this week) ──
+    // Past birthdays fall off automatically since "today" is recalculated on every
+    // render; nothing needs to be manually cleaned up.
+    const todayOnly=new Date(now2.getFullYear(),now2.getMonth(),now2.getDate());
+    const weekEnd=new Date(todayOnly);weekEnd.setDate(todayOnly.getDate()+(6-now2.getDay()));
     const bdays=custs.filter(c=>{
       if(!c.dob||c.dnd) return false;
+      if(inCooldown(c)) return false; // wish already sent — sits in Waiting instead
       const bd=new Date(c.dob);
       const thisYear=new Date(now2.getFullYear(),bd.getMonth(),bd.getDate());
-      return thisYear>=weekStart&&thisYear<=weekEnd;
+      return thisYear>=todayOnly&&thisYear<=weekEnd;
+    }).sort((a,b)=>{
+      const ab=new Date(a.dob),bb=new Date(b.dob);
+      return new Date(now2.getFullYear(),ab.getMonth(),ab.getDate())-new Date(now2.getFullYear(),bb.getMonth(),bb.getDate());
     });
 
     // ── Tab 5: Free Hair Wash ready 🚿 ──
-    // freeCut: ready for special gift, not DND, not already nudged today
-    const todayStr=new Date().toISOString().split('T')[0];
+    // freeCut: ready for special gift, not DND, not already nudged/waiting
     const freeCut=custs.filter(c=>{
       if((c.stamps||0)<paidNeeded()) return false;
       if(isExp(c)||c.dnd) return false;
-      // Hide if nudge already sent today (staff already actioned)
-      if(c.nudge_sent_at){
-        const sentDay=new Date(c.nudge_sent_at).toISOString().split('T')[0];
-        if(sentDay===todayStr) return false;
-      }
+      if(inCooldown(c)) return false; // already nudged — sits in Waiting instead
       return true;
     });
 
@@ -2530,6 +2540,7 @@ async function renderMissYou(){
         <div style="flex:1;min-width:0;margin:0 10px;">
           <div style="font-size:13.5px;font-weight:700;">${c.name}</div>
           <div style="font-size:11.5px;color:var(--muted);">${c.mobile}${extraInfo?' · '+extraInfo:''}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:1px;">🗓️ Last visited: ${fmtDate(c.last_visit_date)}</div>
         </div>
         <button class="btn bsm" style="background:#25D366;color:#fff;border:none;padding:7px 12px;white-space:nowrap;flex-shrink:0;"
           onclick="sendWANudge('${c.id}','${c.mobile}','${c.gender}','${c.name}',${c.stamps||0},${paidNeeded()},'${msgType}')">💬 Send</button>
@@ -2566,6 +2577,7 @@ async function renderMissYou(){
         <div style="flex:1;min-width:0;margin:0 10px;">
           <div style="font-size:13.5px;font-weight:700;">${c.name}</div>
           <div style="font-size:11.5px;color:var(--muted);">${c.mobile} · nudged ${daysAgo}d ago · ${daysLeft}d left to return</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:1px;">🗓️ Last visited: ${fmtDate(c.last_visit_date)}</div>
           <div style="width:100%;height:4px;background:var(--border);border-radius:99px;margin-top:5px;">
             <div style="width:${pct}%;height:100%;background:var(--b);border-radius:99px;transition:width .5s;"></div>
           </div>
@@ -2586,6 +2598,7 @@ async function renderMissYou(){
         <div style="flex:1;min-width:0;margin:0 10px;">
           <div style="font-size:13.5px;font-weight:700;">${c.name}</div>
           <div style="font-size:11.5px;color:var(--muted);">${c.mobile} · ${c.gender==='girl'?'👧 Girl':'👦 Boy'} · ${c.stamps||0}/${paidNeeded()} stamps</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:1px;">🗓️ Last visited: ${fmtDate(c.last_visit_date)}</div>
         </div>
         <button class="btn bg2 bsm" onclick="toggleDND('${c.id}',false,'${c.name}')">↩ Re-enable</button>
       </div>`).join('')
