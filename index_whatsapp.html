@@ -476,6 +476,75 @@ async function testWAConnection(){
     resEl.style.color='var(--err)';
   }
 }
+// ── Preset templates — your existing 13 messages, ready to submit ──
+const WA_PRESET_TEMPLATES=[
+  {name:'mc_boy_expiry_reminder',category:'MARKETING',language:'en',body:"Hi! 🐼 Just a reminder that {{1}}'s MiniCuts loyalty passport is expiring soon. Don't let those stamps go to waste! Book a haircut today 💈",examples:['Ali'],footer:'Reply STOP to opt out of promotional messages'},
+  {name:'mc_girl_expiry_reminder',category:'MARKETING',language:'en',body:"Hi! 🐼 {{1}}'s MiniCuts loyalty passport expires soon. She's earned those stamps — book before they expire! 💇‍♀️",examples:['Sara'],footer:'Reply STOP to opt out of promotional messages'},
+  {name:'mc_boy_nudge',category:'MARKETING',language:'en',body:'Hi! 🐼 Just checking in — {{1}} is due for a haircut at MiniCuts DSO! His stamps are waiting. Book anytime this week ✂️',examples:['Ali'],footer:'Reply STOP to opt out of promotional messages'},
+  {name:'mc_girl_nudge',category:'MARKETING',language:'en',body:'Hi! 🐼 Just checking in — {{1}} is due for a visit at MiniCuts DSO! Her stamps are waiting. Book anytime 💇‍♀️',examples:['Sara'],footer:'Reply STOP to opt out of promotional messages'},
+  {name:'mc_boy_winback',category:'MARKETING',language:'en',body:"Hey! 🐼 We really miss {{1}} at MiniCuts! It's been a while — pop in for a fresh cut and keep those stamps going! ✂️😊",examples:['Ali'],footer:'Reply STOP to opt out of promotional messages'},
+  {name:'mc_girl_winback',category:'MARKETING',language:'en',body:"Hey! 🐼 We really miss {{1}} at MiniCuts! It's been a while — come back for a lovely visit, her stamps are waiting! 💇‍♀️😊",examples:['Sara'],footer:'Reply STOP to opt out of promotional messages'},
+  {name:'mc_boy_reward_ready',category:'MARKETING',language:'en',body:'🎉 Great news! {{1}} has earned a FREE Hair Wash 🚿 at MiniCuts! Bring him in anytime to redeem. See you soon! 🐼✂️',examples:['Ali'],footer:'Reply STOP to opt out of promotional messages'},
+  {name:'mc_girl_reward_ready',category:'MARKETING',language:'en',body:'🎉 Great news! {{1}} has earned a FREE Hair Wash 🚿 at MiniCuts! Bring her in anytime to redeem. See you soon! 🐼💇‍♀️',examples:['Sara'],footer:'Reply STOP to opt out of promotional messages'},
+  {name:'mc_boy_birthday',category:'MARKETING',language:'en',body:'🎂 Happy Birthday to {{1}}! Wishing him a wonderful day from all of us at MiniCuts 🐼 Come in for a special birthday haircut!',examples:['Ali'],footer:'Reply STOP to opt out of promotional messages'},
+  {name:'mc_girl_birthday',category:'MARKETING',language:'en',body:'🎂 Happy Birthday to {{1}}! Wishing her a wonderful day from all of us at MiniCuts 🐼 Come in for a special birthday haircut!',examples:['Sara'],footer:'Reply STOP to opt out of promotional messages'},
+  {name:'mc_after_service_thanks',category:'UTILITY',language:'en',body:'Hi {{1}}! Thank you for visiting MiniCuts — we loved having {{2}} with us today! Stamps: {{3}} collected, just {{4}} more for a free hair wash. View the passport here: {{5}} — see you next time!',examples:['Fatima','Ali','3','3','https://minicuts.example/passport/123'],footer:''},
+  {name:'mc_gift_voucher',category:'UTILITY',language:'en',body:"Hi! 🎁 You've received a MiniCuts gift voucher worth {{1}}. Redeem it anytime at our DSO salon: {{2}}",examples:['AED 50','https://minicuts.example/voucher/123'],footer:''},
+  {name:'mc_reward_redeemed',category:'UTILITY',language:'en',body:'Hi {{1}}! 🎉 Your FREE Hair Wash has been redeemed at MiniCuts today! Hope {{2}} loved it! ✂️🐼 See you next time!',examples:['Ali','Ali'],footer:''},
+];
+let WA_TPL_STATUS_MAP={}; // name -> {status, rejected_reason} from last Refresh list
+
+// ── Mimics Meta's own template review checks, so problems surface before
+// you submit instead of coming back as a rejection a day later. ──
+function validateTemplate(name,category,body,examples,footer){
+  const errors=[],warnings=[];
+  if(!/^[a-z0-9_]+$/.test(name)) errors.push('Name must be lowercase letters, numbers, and underscores only.');
+  if(body.length>1024) errors.push('Body is over 1024 characters — Meta will reject this.');
+  const vars=[...body.matchAll(/\{\{(\d+)\}\}/g)].map(m=>parseInt(m[1]));
+  if(vars.length){
+    if(/^\{\{\d+\}\}/.test(body.trim())) errors.push("Body can't start with a variable — add a greeting or word before {{1}}.");
+    if(/\{\{\d+\}\}$/.test(body.trim())) errors.push("Body can't end with a variable — add a word or punctuation after it.");
+    const expected=Array.from({length:Math.max(...vars)},(_,i)=>i+1);
+    if(JSON.stringify([...new Set(vars)].sort((a,b)=>a-b))!==JSON.stringify(expected)) errors.push('Variables must be sequential starting at {{1}} with no gaps (e.g. not {{1}} then {{3}}).');
+    if(examples.length!==vars.length) errors.push(`Provide ${vars.length} sample value(s) — one per {{n}} occurrence, in order.`);
+  }
+  const capsWords=(body.match(/\b[A-Z]{4,}\b/g)||[]).filter(w=>!['MINICUTS'].includes(w));
+  if(capsWords.length) warnings.push('Contains ALL-CAPS word(s) ('+capsWords.join(', ')+') — can read as shouting/spammy to Meta\'s reviewer.');
+  if(/[!?]{2,}/.test(body)) warnings.push('Multiple !! or ?? in a row can trigger spam detection.');
+  const promoWords=/\bfree\b|\boffer\b|\bdiscount\b|\bwin\b|\bsale\b/i;
+  if(category==='UTILITY'&&promoWords.test(body)) warnings.push('Body sounds promotional but category is Utility — Meta often re-classifies this as Marketing, which can delay approval.');
+  if(category==='MARKETING'&&!footer) warnings.push('No footer/opt-out line — not required, but Marketing templates with one tend to have fewer compliance issues.');
+  return {errors,warnings};
+}
+
+function renderWATemplatePresets(){
+  const el=document.getElementById('WA_TPL_PRESETS');
+  if(!el) return;
+  el.innerHTML=WA_PRESET_TEMPLATES.map((t,i)=>{
+    const st=WA_TPL_STATUS_MAP[t.name];
+    const statusColor={APPROVED:'var(--ok)',PENDING:'var(--warn)',REJECTED:'var(--err)'};
+    const badge=st?`<span style="font-size:11px;font-weight:700;color:${statusColor[st.status]||'var(--muted)'};">${st.status}</span>`
+      :`<span style="font-size:11px;color:var(--muted);">not submitted</span>`;
+    return `<div style="border:1.5px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:10px;">
+      <div style="min-width:0;">
+        <div style="font-weight:700;font-size:13px;">${t.name} <span style="font-weight:400;color:var(--muted);font-size:11px;">(${t.category})</span></div>
+        <div style="font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${t.body}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;">
+        ${badge}
+        <button class="btn bp bsm" style="font-size:11.5px;padding:5px 10px;" onclick="submitPresetTemplate(${i})">Submit</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+async function submitPresetTemplate(i){
+  const t=WA_PRESET_TEMPLATES[i];
+  const {errors,warnings}=validateTemplate(t.name,t.category,t.body,t.examples,t.footer);
+  if(errors.length){alert('Cannot submit — '+errors.join(' '));return;}
+  if(warnings.length&&!confirm('Meta may flag this:\n\n'+warnings.join('\n')+'\n\nSubmit anyway?')) return;
+  await doSubmitTemplate(t.name,t.category,t.language,t.body,t.examples,t.footer);
+  loadWATemplates();
+}
 function toggleNewTemplateForm(){
   const f=document.getElementById('WA_TPL_FORM');
   f.style.display=f.style.display==='none'?'block':'none';
@@ -486,25 +555,40 @@ async function submitWATemplate(){
   const language=document.getElementById('WA_TPL_LANG').value;
   const body_text=document.getElementById('WA_TPL_BODY').value.trim();
   const examplesRaw=document.getElementById('WA_TPL_EXAMPLES').value.trim();
+  const footer=document.getElementById('WA_TPL_FOOTER').value.trim();
   const examples=examplesRaw?examplesRaw.split(',').map(s=>s.trim()):[];
+  const warnEl=document.getElementById('WA_TPL_WARNINGS');
   const resEl=document.getElementById('WA_TPL_CREATE_RESULT');
   if(!name||!body_text){resEl.textContent='Name and body text are required.';resEl.style.color='var(--err)';return;}
+  const {errors,warnings}=validateTemplate(name,category,body_text,examples,footer);
+  if(errors.length){warnEl.innerHTML='❌ '+errors.join('<br>❌ ');warnEl.style.color='var(--err)';return;}
+  warnEl.textContent='';
+  if(warnings.length&&!confirm('Meta may flag this:\n\n'+warnings.join('\n')+'\n\nSubmit anyway?')) return;
+  const ok=await doSubmitTemplate(name,category,language,body_text,examples,footer);
+  if(ok){
+    document.getElementById('WA_TPL_NAME').value='';
+    document.getElementById('WA_TPL_BODY').value='';
+    document.getElementById('WA_TPL_EXAMPLES').value='';
+    document.getElementById('WA_TPL_FOOTER').value='';
+  }
+}
+async function doSubmitTemplate(name,category,language,body_text,examples,footer){
+  const resEl=document.getElementById('WA_TPL_CREATE_RESULT');
   resEl.textContent='Submitting to Meta for review…';resEl.style.color='var(--muted)';
   try{
     const r=await fetch(WA_TEMPLATES_URL,{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY},
-      body:JSON.stringify({action:'create',admin_user:CFG.user,admin_pass:CFG.pass,name,category,language,body_text,examples})});
+      body:JSON.stringify({action:'create',admin_user:CFG.user,admin_pass:CFG.pass,name,category,language,body_text,examples,footer_text:footer||undefined})});
     const j=await r.json();
     if(j.ok){
       resEl.textContent='✅ Submitted — status: '+j.status+'. Refresh the list in a bit to see if it\'s approved.';
       resEl.style.color='var(--ok)';
-      document.getElementById('WA_TPL_NAME').value='';
-      document.getElementById('WA_TPL_BODY').value='';
-      document.getElementById('WA_TPL_EXAMPLES').value='';
       loadWATemplates();
+      return true;
     } else {
       resEl.textContent='❌ '+(j.error||'Submission failed');resEl.style.color='var(--err)';
+      return false;
     }
-  }catch(e){resEl.textContent='❌ '+e.message;resEl.style.color='var(--err)';}
+  }catch(e){resEl.textContent='❌ '+e.message;resEl.style.color='var(--err)';return false;}
 }
 async function loadWATemplates(){
   const listEl=document.getElementById('WA_TPL_LIST');
@@ -513,7 +597,10 @@ async function loadWATemplates(){
     const r=await fetch(WA_TEMPLATES_URL,{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY},body:JSON.stringify({action:'list'})});
     const j=await r.json();
     if(!j.ok){listEl.textContent='❌ '+(j.error||'Could not load templates');listEl.style.color='var(--err)';return;}
-    if(!j.templates||!j.templates.length){listEl.innerHTML='No templates yet — create one above.';listEl.style.color='var(--muted)';return;}
+    WA_TPL_STATUS_MAP={};
+    (j.templates||[]).forEach(t=>WA_TPL_STATUS_MAP[t.name]={status:t.status,rejected_reason:t.rejected_reason});
+    renderWATemplatePresets();
+    if(!j.templates||!j.templates.length){listEl.innerHTML='No templates submitted yet.';listEl.style.color='var(--muted)';return;}
     const statusColor={APPROVED:'var(--ok)',PENDING:'var(--warn)',REJECTED:'var(--err)'};
     listEl.innerHTML=j.templates.map(t=>{
       const bodyComp=(t.components||[]).find(c=>c.type==='BODY');
@@ -1022,18 +1109,25 @@ async function archiveCycle(customerId,stamps,firstStampDate,expiryDate,endedBy)
         <div class="card" style="max-width:640px;margin-bottom:18px;">
           <div style="font-family:var(--fh);font-size:16px;font-weight:800;margin-bottom:4px;">📋 Meta Message Templates</div>
           <div style="font-size:13px;color:var(--muted);margin-bottom:14px;">Create and submit templates for Meta's approval, and see their status — no need to open Meta's own dashboard.</div>
-          <div style="display:flex;gap:10px;margin-bottom:14px;">
+          <div style="display:flex;gap:10px;margin-bottom:16px;">
             <button class="btn bg2 bsm" onclick="loadWATemplates()">🔄 Refresh list</button>
-            <button class="btn bp bsm" onclick="toggleNewTemplateForm()">+ New Template</button>
+            <button class="btn bp bsm" onclick="toggleNewTemplateForm()">+ Custom Template</button>
           </div>
+
+          <div style="font-size:12px;font-weight:700;color:var(--b);text-transform:uppercase;margin-bottom:8px;">Ready-made — your existing 13 messages</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">Pre-filled and pre-checked against Meta's approval rules. One click submits each.</div>
+          <div id="WA_TPL_PRESETS"></div>
+
+          <div style="border-top:1px solid var(--border);margin:18px 0;"></div>
           <div id="WA_TPL_FORM" style="display:none;border:1.5px solid var(--border);border-radius:10px;padding:14px;margin-bottom:16px;">
+            <div style="font-size:12px;font-weight:700;color:var(--b);text-transform:uppercase;margin-bottom:10px;">Custom template</div>
             <div class="fg"><label class="fl">Template name (lowercase, underscores)</label><input class="fi" type="text" id="WA_TPL_NAME" placeholder="e.g. mc_boy_nudge"></div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
               <div class="fg"><label class="fl">Category</label>
                 <select class="fi" id="WA_TPL_CAT">
-                  <option value="MARKETING">Marketing</option>
-                  <option value="UTILITY">Utility</option>
-                  <option value="AUTHENTICATION">Authentication</option>
+                  <option value="MARKETING">Marketing — promotions, offers, reminders to return</option>
+                  <option value="UTILITY">Utility — confirms something that already happened</option>
+                  <option value="AUTHENTICATION">Authentication — OTPs / login codes</option>
                 </select>
               </div>
               <div class="fg"><label class="fl">Language</label>
@@ -1045,9 +1139,13 @@ async function archiveCycle(customerId,stamps,firstStampDate,expiryDate,endedBy)
             </div>
             <div class="fg"><label class="fl">Body text — use {{1}}, {{2}}… for variables</label><textarea class="fi" id="WA_TPL_BODY" rows="3" style="resize:vertical;" placeholder="Hi! Just checking in — {{1}} is due for a haircut..."></textarea></div>
             <div class="fg"><label class="fl">Sample values for each variable (comma separated, in order)</label><input class="fi" type="text" id="WA_TPL_EXAMPLES" placeholder="e.g. Ali"></div>
-            <button class="btn bp bsm" onclick="submitWATemplate()">Submit for approval</button>
+            <div class="fg"><label class="fl">Footer (optional — recommended for Marketing)</label><input class="fi" type="text" id="WA_TPL_FOOTER" placeholder="Reply STOP to opt out of promotional messages"></div>
+            <div id="WA_TPL_WARNINGS" style="font-size:12px;color:var(--warn);margin-bottom:8px;"></div>
+            <button class="btn bp bsm" onclick="submitWATemplate()">Check & submit for approval</button>
             <div id="WA_TPL_CREATE_RESULT" style="font-size:12.5px;margin-top:8px;"></div>
           </div>
+
+          <div style="font-size:12px;font-weight:700;color:var(--b);text-transform:uppercase;margin:6px 0 8px;">Submission status</div>
           <div id="WA_TPL_LIST" style="font-size:13px;color:var(--muted);">Click "Refresh list" to load templates from Meta.</div>
         </div>
         <div class="card" style="max-width:640px;margin-bottom:18px;">
@@ -2012,7 +2110,7 @@ function showPage(id,btn){
   if(id==='dashboard'){renderDash();loadAfterService();}
   if(id==='customers') loadCustomers();
   if(id==='qrpage') renderSalonQR();
-  if(id==='config'){syncCfgInputs();ltRender();renderWAApiStatus();}
+  if(id==='config'){syncCfgInputs();ltRender();renderWAApiStatus();renderWATemplatePresets();}
   if(id==='missyou') renderMissYou();
   if(id==='analytics') loadAnalytics();
   if(id==='staffmgmt') smInit();
