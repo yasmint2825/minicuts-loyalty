@@ -255,6 +255,7 @@ const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZ
 // staff login (CFG.user/CFG.pass) already used to sign into this app.
 const WA_API_URL=SB_URL+'/functions/v1/send-whatsapp';
 const WA_CONFIG_URL=SB_URL+'/functions/v1/whatsapp-config';
+const WA_TEMPLATES_URL=SB_URL+'/functions/v1/whatsapp-templates';
 const DC={
   stampsNeeded:6,
   boyMonths:12, girlMonths:15,
@@ -402,12 +403,12 @@ function openWA(mobile,msg){
 //       e.g. 'boy_nudge', 'girl_winback', 'after_service'
 // params: ordered array of values for the template's {{1}},{{2}}... slots
 // Returns {ok:true,message_id} or {ok:false,error}
-async function sendWAvApi(type,mobile,params,customerId,customerName){
+async function sendWAvApi(type,mobile,params,customerId,customerName,templateName,templateLang){
   try{
     const r=await fetch(WA_API_URL,{
       method:'POST',
       headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY},
-      body:JSON.stringify({mobile,type,params:params||[],customer_id:customerId||null,customer_name:customerName||null,admin_user:CFG.user,admin_pass:CFG.pass})
+      body:JSON.stringify({mobile,type:type||undefined,template_name:templateName||undefined,template_lang:templateLang||undefined,params:params||[],customer_id:customerId||null,customer_name:customerName||null,admin_user:CFG.user,admin_pass:CFG.pass})
     });
     const j=await r.json();
     return j;
@@ -431,7 +432,7 @@ async function renderWAApiStatus(){
     const j=await r.json();
     if(j.ok&&j.configured){
       el.style.background='var(--okl)';el.style.color='var(--ok)';
-      el.innerHTML='✅ Connected — number ending '+j.phone_number_id_masked+(j.updated_at?' · saved '+new Date(j.updated_at).toLocaleString():'');
+      el.innerHTML='✅ Connected — number ending '+j.phone_number_id_masked+(j.waba_id?' · WABA connected':' · <span style="color:var(--warn);">no WABA ID saved — template management won\'t work until you add it</span>')+(j.updated_at?' · saved '+new Date(j.updated_at).toLocaleString():'');
     } else {
       el.style.background='var(--errl)';el.style.color='var(--err)';
       el.innerHTML='⚠️ Not connected yet — paste your Meta access token + phone number ID below and save.';
@@ -444,12 +445,13 @@ async function renderWAApiStatus(){
 async function saveWAConnection(){
   const token=document.getElementById('WA_TOKEN_INPUT').value.trim();
   const phoneId=document.getElementById('WA_PHONEID_INPUT').value.trim();
+  const wabaId=document.getElementById('WA_WABAID_INPUT').value.trim();
   const resEl=document.getElementById('WA_CONNECT_RESULT');
-  if(!token||!phoneId){resEl.textContent='Both fields are required.';resEl.style.color='var(--err)';return;}
+  if(!token||!phoneId){resEl.textContent='Access token and Phone Number ID are required.';resEl.style.color='var(--err)';return;}
   resEl.textContent='Saving…';resEl.style.color='var(--muted)';
   try{
     const r=await fetch(WA_CONFIG_URL,{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY},
-      body:JSON.stringify({action:'save',admin_user:CFG.user,admin_pass:CFG.pass,access_token:token,phone_number_id:phoneId})});
+      body:JSON.stringify({action:'save',admin_user:CFG.user,admin_pass:CFG.pass,access_token:token,phone_number_id:phoneId,waba_id:wabaId||null})});
     const j=await r.json();
     if(j.ok){
       resEl.textContent='✅ Saved — WhatsApp is connected.';resEl.style.color='var(--ok)';
@@ -465,7 +467,7 @@ async function testWAConnection(){
   const resEl=document.getElementById('WA_TEST_RESULT');
   if(!num){resEl.textContent='Enter a number first.';resEl.style.color='var(--err)';return;}
   resEl.textContent='Sending test message…';resEl.style.color='var(--muted)';
-  const res=await sendWAvApi('boy_nudge',num,['Test'],null,'API Test');
+  const res=await sendWAvApi('test',num,[],null,'API Test');
   if(res.ok){
     resEl.textContent='✅ Sent — Meta message id '+res.message_id+'. Check the phone for delivery.';
     resEl.style.color='var(--ok)';
@@ -473,6 +475,68 @@ async function testWAConnection(){
     resEl.textContent='❌ '+(res.error||'Send failed')+(res.details?' — '+JSON.stringify(res.details):'');
     resEl.style.color='var(--err)';
   }
+}
+function toggleNewTemplateForm(){
+  const f=document.getElementById('WA_TPL_FORM');
+  f.style.display=f.style.display==='none'?'block':'none';
+}
+async function submitWATemplate(){
+  const name=document.getElementById('WA_TPL_NAME').value.trim();
+  const category=document.getElementById('WA_TPL_CAT').value;
+  const language=document.getElementById('WA_TPL_LANG').value;
+  const body_text=document.getElementById('WA_TPL_BODY').value.trim();
+  const examplesRaw=document.getElementById('WA_TPL_EXAMPLES').value.trim();
+  const examples=examplesRaw?examplesRaw.split(',').map(s=>s.trim()):[];
+  const resEl=document.getElementById('WA_TPL_CREATE_RESULT');
+  if(!name||!body_text){resEl.textContent='Name and body text are required.';resEl.style.color='var(--err)';return;}
+  resEl.textContent='Submitting to Meta for review…';resEl.style.color='var(--muted)';
+  try{
+    const r=await fetch(WA_TEMPLATES_URL,{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY},
+      body:JSON.stringify({action:'create',admin_user:CFG.user,admin_pass:CFG.pass,name,category,language,body_text,examples})});
+    const j=await r.json();
+    if(j.ok){
+      resEl.textContent='✅ Submitted — status: '+j.status+'. Refresh the list in a bit to see if it\'s approved.';
+      resEl.style.color='var(--ok)';
+      document.getElementById('WA_TPL_NAME').value='';
+      document.getElementById('WA_TPL_BODY').value='';
+      document.getElementById('WA_TPL_EXAMPLES').value='';
+      loadWATemplates();
+    } else {
+      resEl.textContent='❌ '+(j.error||'Submission failed');resEl.style.color='var(--err)';
+    }
+  }catch(e){resEl.textContent='❌ '+e.message;resEl.style.color='var(--err)';}
+}
+async function loadWATemplates(){
+  const listEl=document.getElementById('WA_TPL_LIST');
+  listEl.textContent='Loading…';listEl.style.color='var(--muted)';
+  try{
+    const r=await fetch(WA_TEMPLATES_URL,{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY},body:JSON.stringify({action:'list'})});
+    const j=await r.json();
+    if(!j.ok){listEl.textContent='❌ '+(j.error||'Could not load templates');listEl.style.color='var(--err)';return;}
+    if(!j.templates||!j.templates.length){listEl.innerHTML='No templates yet — create one above.';listEl.style.color='var(--muted)';return;}
+    const statusColor={APPROVED:'var(--ok)',PENDING:'var(--warn)',REJECTED:'var(--err)'};
+    listEl.innerHTML=j.templates.map(t=>{
+      const bodyComp=(t.components||[]).find(c=>c.type==='BODY');
+      const bodyText=bodyComp?bodyComp.text:'';
+      const color=statusColor[t.status]||'var(--muted)';
+      const rejected=t.status==='REJECTED'&&t.rejected_reason?`<div style="font-size:11px;color:var(--err);margin-top:4px;">Reason: ${t.rejected_reason}</div>`:'';
+      return `<div style="border:1.5px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+          <div style="font-weight:700;font-size:13px;">${t.name} <span style="font-weight:400;color:var(--muted);">(${t.category}, ${t.language})</span></div>
+          <span style="font-size:11px;font-weight:700;color:${color};">${t.status}</span>
+        </div>
+        <div style="font-size:12.5px;color:var(--muted);margin-top:4px;">${bodyText}</div>
+        ${rejected}
+        ${t.status==='APPROVED'?`<button class="btn bg2 bsm" style="margin-top:8px;font-size:11.5px;padding:5px 10px;" onclick="testSendTemplate('${t.name}','${t.language}')">Send test</button>`:''}
+      </div>`;
+    }).join('');
+  }catch(e){listEl.textContent='❌ '+e.message;listEl.style.color='var(--err)';}
+}
+async function testSendTemplate(name,lang){
+  const num=prompt('Send "'+name+'" as a test to which number? (e.g. 971501234567)');
+  if(!num) return;
+  const res=await sendWAvApi(null,num,[],null,'Template Test',name,lang);
+  alert(res.ok?'✅ Sent — message id '+res.message_id:'❌ '+(res.error||'Send failed'));
 }
 async function openWAMessageLog(){
   const overlay=document.createElement('div');
@@ -941,6 +1005,7 @@ async function archiveCycle(customerId,stamps,firstStampDate,expiryDate,endedBy)
           <div id="WA_API_STATUS" style="font-size:13px;padding:10px 14px;border-radius:10px;margin-bottom:14px;"></div>
           <div class="fg"><label class="fl">Meta Access Token</label><input class="fi" type="password" id="WA_TOKEN_INPUT" placeholder="Paste permanent access token"></div>
           <div class="fg"><label class="fl">Phone Number ID</label><input class="fi" type="text" id="WA_PHONEID_INPUT" placeholder="e.g. 109876543210987"></div>
+          <div class="fg"><label class="fl">WhatsApp Business Account ID (WABA ID)</label><input class="fi" type="text" id="WA_WABAID_INPUT" placeholder="Needed for template management — Business Settings > Accounts > WhatsApp Accounts"></div>
           <button class="btn bp bsm" onclick="saveWAConnection()">Save & Connect</button>
           <div id="WA_CONNECT_RESULT" style="font-size:12.5px;margin-top:8px;"></div>
           <div style="border-top:1px solid var(--border);margin:16px 0;"></div>
@@ -953,6 +1018,37 @@ async function archiveCycle(customerId,stamps,firstStampDate,expiryDate,endedBy)
             <button class="btn bg2 bsm" onclick="openWAMessageLog()">View send log</button>
           </div>
           <div id="WA_TEST_RESULT" style="font-size:12.5px;margin-top:8px;"></div>
+        </div>
+        <div class="card" style="max-width:640px;margin-bottom:18px;">
+          <div style="font-family:var(--fh);font-size:16px;font-weight:800;margin-bottom:4px;">📋 Meta Message Templates</div>
+          <div style="font-size:13px;color:var(--muted);margin-bottom:14px;">Create and submit templates for Meta's approval, and see their status — no need to open Meta's own dashboard.</div>
+          <div style="display:flex;gap:10px;margin-bottom:14px;">
+            <button class="btn bg2 bsm" onclick="loadWATemplates()">🔄 Refresh list</button>
+            <button class="btn bp bsm" onclick="toggleNewTemplateForm()">+ New Template</button>
+          </div>
+          <div id="WA_TPL_FORM" style="display:none;border:1.5px solid var(--border);border-radius:10px;padding:14px;margin-bottom:16px;">
+            <div class="fg"><label class="fl">Template name (lowercase, underscores)</label><input class="fi" type="text" id="WA_TPL_NAME" placeholder="e.g. mc_boy_nudge"></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+              <div class="fg"><label class="fl">Category</label>
+                <select class="fi" id="WA_TPL_CAT">
+                  <option value="MARKETING">Marketing</option>
+                  <option value="UTILITY">Utility</option>
+                  <option value="AUTHENTICATION">Authentication</option>
+                </select>
+              </div>
+              <div class="fg"><label class="fl">Language</label>
+                <select class="fi" id="WA_TPL_LANG">
+                  <option value="en">English</option>
+                  <option value="ar">Arabic</option>
+                </select>
+              </div>
+            </div>
+            <div class="fg"><label class="fl">Body text — use {{1}}, {{2}}… for variables</label><textarea class="fi" id="WA_TPL_BODY" rows="3" style="resize:vertical;" placeholder="Hi! Just checking in — {{1}} is due for a haircut..."></textarea></div>
+            <div class="fg"><label class="fl">Sample values for each variable (comma separated, in order)</label><input class="fi" type="text" id="WA_TPL_EXAMPLES" placeholder="e.g. Ali"></div>
+            <button class="btn bp bsm" onclick="submitWATemplate()">Submit for approval</button>
+            <div id="WA_TPL_CREATE_RESULT" style="font-size:12.5px;margin-top:8px;"></div>
+          </div>
+          <div id="WA_TPL_LIST" style="font-size:13px;color:var(--muted);">Click "Refresh list" to load templates from Meta.</div>
         </div>
         <div class="card" style="max-width:640px;margin-bottom:18px;">
           <div style="font-family:var(--fh);font-size:16px;font-weight:800;margin-bottom:4px;">WhatsApp Message Templates</div>
