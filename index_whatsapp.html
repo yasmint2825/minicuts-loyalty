@@ -246,6 +246,15 @@ const SB_URL='https://wtapyfgtwkjyjrjdnhkb.supabase.co';
    alter table customers add column if not exists dnd boolean default false;
 */
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind0YXB5Zmd0d2tqeWpyamRuaGtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0NDc3ODEsImV4cCI6MjA5NTAyMzc4MX0.y_-iPfb8Pcg9zh42h6RGVBsUVZm80LcA9sPlz_Gl_fA';
+
+// ── WhatsApp Cloud API (Meta) — replaces wa.me desktop-app links ──
+// No secrets live in this file. The Meta access token + phone number ID
+// are entered once via Settings > WhatsApp API Connection and stored
+// server-side (whatsapp_secrets table, no anon access) by the
+// whatsapp-config edge function. Every send is authorized using the same
+// staff login (CFG.user/CFG.pass) already used to sign into this app.
+const WA_API_URL=SB_URL+'/functions/v1/send-whatsapp';
+const WA_CONFIG_URL=SB_URL+'/functions/v1/whatsapp-config';
 const DC={
   stampsNeeded:6,
   boyMonths:12, girlMonths:15,
@@ -386,6 +395,104 @@ function toWANum(mobile){
 function openWA(mobile,msg){
   const wa='https://wa.me/'+toWANum(mobile)+'?text='+encodeURIComponent(msg);
   window.open(wa,'_blank');
+}
+
+// ── Send via Meta WhatsApp Cloud API (through the Supabase edge function) ──
+// type: one of the TEMPLATE_MAP keys in supabase/functions/send-whatsapp
+//       e.g. 'boy_nudge', 'girl_winback', 'after_service'
+// params: ordered array of values for the template's {{1}},{{2}}... slots
+// Returns {ok:true,message_id} or {ok:false,error}
+async function sendWAvApi(type,mobile,params,customerId,customerName){
+  try{
+    const r=await fetch(WA_API_URL,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY},
+      body:JSON.stringify({mobile,type,params:params||[],customer_id:customerId||null,customer_name:customerName||null,admin_user:CFG.user,admin_pass:CFG.pass})
+    });
+    const j=await r.json();
+    return j;
+  }catch(e){
+    return {ok:false,error:e.message};
+  }
+}
+// gender + label -> TEMPLATE_MAP key used by the edge function
+function waTypeKey(gender,kind){
+  const g=gender==='girl'?'girl':'boy';
+  return g+'_'+kind; // kind: expiry|nudge|lapsed|ready|birthday
+}
+
+async function renderWAApiStatus(){
+  const el=document.getElementById('WA_API_STATUS');
+  if(!el) return;
+  el.style.background='var(--bl)';el.style.color='var(--b)';
+  el.textContent='Checking connection…';
+  try{
+    const r=await fetch(WA_CONFIG_URL,{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY},body:JSON.stringify({action:'status'})});
+    const j=await r.json();
+    if(j.ok&&j.configured){
+      el.style.background='var(--okl)';el.style.color='var(--ok)';
+      el.innerHTML='✅ Connected — number ending '+j.phone_number_id_masked+(j.updated_at?' · saved '+new Date(j.updated_at).toLocaleString():'');
+    } else {
+      el.style.background='var(--errl)';el.style.color='var(--err)';
+      el.innerHTML='⚠️ Not connected yet — paste your Meta access token + phone number ID below and save.';
+    }
+  }catch(e){
+    el.style.background='var(--errl)';el.style.color='var(--err)';
+    el.innerHTML='⚠️ Could not reach the WhatsApp config service — has whatsapp-config been deployed? ('+e.message+')';
+  }
+}
+async function saveWAConnection(){
+  const token=document.getElementById('WA_TOKEN_INPUT').value.trim();
+  const phoneId=document.getElementById('WA_PHONEID_INPUT').value.trim();
+  const resEl=document.getElementById('WA_CONNECT_RESULT');
+  if(!token||!phoneId){resEl.textContent='Both fields are required.';resEl.style.color='var(--err)';return;}
+  resEl.textContent='Saving…';resEl.style.color='var(--muted)';
+  try{
+    const r=await fetch(WA_CONFIG_URL,{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY},
+      body:JSON.stringify({action:'save',admin_user:CFG.user,admin_pass:CFG.pass,access_token:token,phone_number_id:phoneId})});
+    const j=await r.json();
+    if(j.ok){
+      resEl.textContent='✅ Saved — WhatsApp is connected.';resEl.style.color='var(--ok)';
+      document.getElementById('WA_TOKEN_INPUT').value='';
+      renderWAApiStatus();
+    } else {
+      resEl.textContent='❌ '+(j.error||'Save failed');resEl.style.color='var(--err)';
+    }
+  }catch(e){resEl.textContent='❌ '+e.message;resEl.style.color='var(--err)';}
+}
+async function testWAConnection(){
+  const num=document.getElementById('WA_TEST_NUM').value.trim();
+  const resEl=document.getElementById('WA_TEST_RESULT');
+  if(!num){resEl.textContent='Enter a number first.';resEl.style.color='var(--err)';return;}
+  resEl.textContent='Sending test message…';resEl.style.color='var(--muted)';
+  const res=await sendWAvApi('boy_nudge',num,['Test'],null,'API Test');
+  if(res.ok){
+    resEl.textContent='✅ Sent — Meta message id '+res.message_id+'. Check the phone for delivery.';
+    resEl.style.color='var(--ok)';
+  } else {
+    resEl.textContent='❌ '+(res.error||'Send failed')+(res.details?' — '+JSON.stringify(res.details):'');
+    resEl.style.color='var(--err)';
+  }
+}
+async function openWAMessageLog(){
+  const overlay=document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:2000;display:flex;align-items:center;justify-content:center;padding:16px;';
+  const box=document.createElement('div');
+  box.style.cssText='background:#fff;border-radius:16px;padding:22px;max-width:640px;width:100%;max-height:80vh;overflow-y:auto;';
+  box.innerHTML='<div style="font-family:var(--fh);font-size:17px;font-weight:800;margin-bottom:10px;">💬 WhatsApp Send Log</div><div id="_wa_log_body">Loading…</div><button id="_wa_log_close" class="btn bg2 bsm" style="margin-top:12px;width:100%;">Close</button>';
+  overlay.appendChild(box);document.body.appendChild(overlay);
+  document.getElementById('_wa_log_close').addEventListener('click',()=>document.body.removeChild(overlay));
+  overlay.addEventListener('click',(e)=>{if(e.target===overlay) document.body.removeChild(overlay);});
+  try{
+    const rows=await sb('whatsapp_messages','GET',null,'select=*&order=sent_at.desc&limit=50');
+    const body=document.getElementById('_wa_log_body');
+    if(!rows||!rows.length){body.innerHTML='<div style="color:var(--muted);">No messages sent via the API yet.</div>';return;}
+    body.innerHTML='<table style="width:100%;font-size:12.5px;"><thead><tr style="text-align:left;color:var(--muted);"><th style="padding:4px 8px;">When</th><th style="padding:4px 8px;">Customer</th><th style="padding:4px 8px;">Type</th><th style="padding:4px 8px;">Status</th></tr></thead><tbody>'+
+      rows.map(r=>'<tr style="border-top:1px solid var(--border);"><td style="padding:4px 8px;">'+new Date(r.sent_at).toLocaleString()+'</td><td style="padding:4px 8px;">'+(r.customer_name||r.mobile)+'</td><td style="padding:4px 8px;">'+r.msg_type+'</td><td style="padding:4px 8px;color:'+(r.status==='failed'?'var(--err)':'var(--ok)')+';">'+r.status+'</td></tr>').join('')+
+      '</tbody></table>';
+  }catch(e){
+    document.getElementById('_wa_log_body').innerHTML='<div style="color:var(--err);">Could not load log (has whatsapp_messages.sql been run?): '+e.message+'</div>';
+  }
 }
 
 async function sb(path,method='GET',body=null,params=''){
@@ -827,6 +934,25 @@ async function archiveCycle(customerId,stamps,firstStampDate,expiryDate,endedBy)
             </div>
           </div>
           <button class="btn bp" onclick="saveConfig()">Save Retention Settings</button>
+        </div>
+        <div class="card" style="max-width:640px;margin-bottom:18px;">
+          <div style="font-family:var(--fh);font-size:16px;font-weight:800;margin-bottom:4px;">💬 WhatsApp API Connection</div>
+          <div style="font-size:13px;color:var(--muted);margin-bottom:14px;">Messages send through Meta's official WhatsApp Cloud API instead of the desktop app. Paste your credentials once — they're stored securely server-side, never in this page. See WHATSAPP_META_SETUP.md for how to get them from Meta.</div>
+          <div id="WA_API_STATUS" style="font-size:13px;padding:10px 14px;border-radius:10px;margin-bottom:14px;"></div>
+          <div class="fg"><label class="fl">Meta Access Token</label><input class="fi" type="password" id="WA_TOKEN_INPUT" placeholder="Paste permanent access token"></div>
+          <div class="fg"><label class="fl">Phone Number ID</label><input class="fi" type="text" id="WA_PHONEID_INPUT" placeholder="e.g. 109876543210987"></div>
+          <button class="btn bp bsm" onclick="saveWAConnection()">Save & Connect</button>
+          <div id="WA_CONNECT_RESULT" style="font-size:12.5px;margin-top:8px;"></div>
+          <div style="border-top:1px solid var(--border);margin:16px 0;"></div>
+          <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
+            <div style="flex:1;min-width:200px;">
+              <label class="fl">Test send to number</label>
+              <input class="fi" type="text" id="WA_TEST_NUM" placeholder="971501234567">
+            </div>
+            <button class="btn bg2 bsm" onclick="testWAConnection()">Send test</button>
+            <button class="btn bg2 bsm" onclick="openWAMessageLog()">View send log</button>
+          </div>
+          <div id="WA_TEST_RESULT" style="font-size:12.5px;margin-top:8px;"></div>
         </div>
         <div class="card" style="max-width:640px;margin-bottom:18px;">
           <div style="font-family:var(--fh);font-size:16px;font-weight:800;margin-bottom:4px;">WhatsApp Message Templates</div>
@@ -1790,7 +1916,7 @@ function showPage(id,btn){
   if(id==='dashboard'){renderDash();loadAfterService();}
   if(id==='customers') loadCustomers();
   if(id==='qrpage') renderSalonQR();
-  if(id==='config'){syncCfgInputs();ltRender();}
+  if(id==='config'){syncCfgInputs();ltRender();renderWAApiStatus();}
   if(id==='missyou') renderMissYou();
   if(id==='analytics') loadAnalytics();
   if(id==='staffmgmt') smInit();
@@ -1860,10 +1986,10 @@ async function loadAfterService(){
           <div style="font-size:11px;color:var(--b);margin-top:3px;">${stampLine}</div>
         </div>
         <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
-          <button class="btn bsm" style="background:#25D366;color:#fff;border:none;padding:8px 12px;white-space:nowrap;font-size:13px;"
-            onclick="openWA('${c.mobile}',decodeURIComponent('${encodeURIComponent(msg)}'))">💬 WhatsApp</button>
+          <button id="as-send-${c.id}" class="btn bsm" style="background:#25D366;color:#fff;border:none;padding:8px 12px;white-space:nowrap;font-size:13px;"
+            onclick="sendASviaApi('${c.id}','${c.name}','${(greetName||'').replace(/'/g,"\\'")}','${c.mobile}',${st},${Math.max(0,pN-st)},'${portalUrl}')">💬 Send</button>
           <button class="btn bg2 bsm" style="font-size:12px;padding:7px 10px;white-space:nowrap;"
-            onclick="markASsent('${c.id}','${c.name}')">✅ Mark Sent</button>
+            onclick="openWA('${c.mobile}',decodeURIComponent('${encodeURIComponent(msg)}'))">Manual</button>
         </div>
       </div>`;
     }).join('');
@@ -1872,6 +1998,18 @@ async function loadAfterService(){
   }
 }
 
+async function sendASviaApi(id,name,greetName,mobile,stamps,needed,portalUrl){
+  const btn=document.getElementById('as-send-'+id);
+  if(btn){btn.disabled=true;btn.textContent='Sending…';}
+  const res=await sendWAvApi('after_service',mobile,[greetName,name,String(stamps),String(needed),portalUrl],id,name);
+  if(res.ok){
+    toast('✅ Sent via WhatsApp API to '+name);
+    markASsent(id,name);
+  } else {
+    if(btn){btn.disabled=false;btn.textContent='💬 Send';}
+    toast('Send failed: '+(res.error||'unknown error')+' — use Manual button','error');
+  }
+}
 async function markASsent(id,name){
   try{
     await sb('customers','PATCH',{followup_sent_at:new Date().toISOString()},'id=eq.'+id);
@@ -2622,26 +2760,10 @@ async function renderMissYou(){
 
 
 async function sendWANudge(id,mobile,gender,name,stamps,paid,msgType='lapsed'){
-  // Step 1: Open WhatsApp chooser
+  // Opens the WhatsApp chooser; the API send itself now confirms and
+  // records nudge_sent_at (see sendWA / confirmNudgeSentSilent) — no more
+  // manual "did you send it?" step, since the API tells us for certain.
   sendWA(id,mobile,gender,name,stamps,paid,msgType);
-  // Step 2: After WA opens, show confirmation on the row
-  const row=document.getElementById('nudge-row-'+id);
-  if(row){
-    // Replace row content with confirmation prompt
-    row.style.background='#FFFBEB';
-    row.style.borderRadius='10px';
-    row.style.padding='10px';
-    row.style.transition='background .3s';
-    row.innerHTML=`
-      <div style="flex:1;">
-        <div style="font-size:13.5px;font-weight:700;color:#92400E;">💬 Did you send the WhatsApp to <strong>${name}</strong>?</div>
-        <div style="font-size:12px;color:#B45309;margin-top:3px;">Confirm only if message was sent successfully</div>
-      </div>
-      <div style="display:flex;gap:8px;flex-shrink:0;margin-left:10px;">
-        <button class="btn bs bsm" onclick="confirmNudgeSent('${id}','${name}',this)">✅ Yes, sent</button>
-        <button class="btn bg2 bsm" onclick="cancelNudge('${id}')">✗ Not sent</button>
-      </div>`;
-  }
 }
 
 async function markDNDFromWaiting(id,name){
@@ -2728,13 +2850,14 @@ function cancelNudge(id){
 }
 
 function sendWA(id,mobile,gender,name,stamps,paid,msgType='lapsed'){
-  // Store msgs in closure-safe variables
+  // Store msgs in closure-safe variables. 'kind' matches the edge function's
+  // TEMPLATE_MAP keys (boy_/girl_ + kind) — see supabase/functions/send-whatsapp
   const msgs={
-    '🔔 Nudge (gentle reminder)': getWAMsg({name,gender},'nudge'),
-    '🎁 Special Gift Ready': getWAMsg({name,gender},'ready'),
-    '⏰ Expiry Reminder':    getWAMsg({name,gender},'expiry'),
-    '😴 Win-back':           getWAMsg({name,gender},'lapsed'),
-    '🎂 Birthday':           getWAMsg({name,gender},'birthday')
+    '🔔 Nudge (gentle reminder)': {kind:'nudge',  text:getWAMsg({name,gender},'nudge')},
+    '🎁 Special Gift Ready':      {kind:'ready',  text:getWAMsg({name,gender},'ready')},
+    '⏰ Expiry Reminder':          {kind:'expiry', text:getWAMsg({name,gender},'expiry')},
+    '😴 Win-back':                 {kind:'lapsed', text:getWAMsg({name,gender},'lapsed')},
+    '🎂 Birthday':                 {kind:'birthday',text:getWAMsg({name,gender},'birthday')}
   };
   // Pre-select the right message type
   const typeMap={nudge:'🔔 Nudge (gentle reminder)',ready:'🎁 Special Gift Ready',expiry:'⏰ Expiry Reminder',lapsed:'😴 Win-back',birthday:'🎂 Birthday'};
@@ -2745,14 +2868,16 @@ function sendWA(id,mobile,gender,name,stamps,paid,msgType='lapsed'){
   const box=document.createElement('div');
   box.style.cssText='background:#fff;border-radius:16px;padding:24px;max-width:480px;width:100%;max-height:90vh;overflow-y:auto;';
   box.innerHTML=`<div style="font-family:var(--fh);font-size:18px;font-weight:800;margin-bottom:4px;">💬 Send WhatsApp</div>
-    <div style="font-size:13px;color:#6B7280;margin-bottom:16px;">Choose message for ${name}</div>
+    <div style="font-size:13px;color:#6B7280;margin-bottom:16px;">Choose message for ${name} — sent via Meta WhatsApp API</div>
     <div id="_wa_list"></div>
+    <div id="_wa_status" style="font-size:12.5px;margin-top:2px;min-height:18px;"></div>
     <button id="_wa_cancel" style="width:100%;padding:10px;border:1.5px solid #E5E7EB;border-radius:8px;background:transparent;cursor:pointer;font-weight:700;margin-top:4px;">Cancel</button>`;
   overlay.appendChild(box);
   document.body.appendChild(overlay);
   // Add message items using DOM (avoids quote issues)
   const list=document.getElementById('_wa_list');
-  Object.entries(msgs).forEach(([label,msg])=>{
+  const statusEl=document.getElementById('_wa_status');
+  Object.entries(msgs).forEach(([label,{kind,text:msg}])=>{
     const item=document.createElement('div');
     item.style.cssText='border:1.5px solid #E5E7EB;border-radius:10px;padding:12px;margin-bottom:10px;cursor:pointer;';
     const lbl=document.createElement('div');
@@ -2763,11 +2888,27 @@ function sendWA(id,mobile,gender,name,stamps,paid,msgType='lapsed'){
     txt.textContent=msg;
     const cta=document.createElement('div');
     cta.style.cssText='margin-top:8px;color:#25D366;font-size:12px;font-weight:700;';
-    cta.textContent='✓ Tap to open WhatsApp →';
+    cta.textContent='✓ Tap to send via WhatsApp API →';
     item.appendChild(lbl);item.appendChild(txt);item.appendChild(cta);
-    item.addEventListener('click',()=>{
-      openWA(mobile,msg);
-      document.body.removeChild(overlay);
+    item.addEventListener('click',async()=>{
+      list.querySelectorAll('div').forEach(d=>d.style.pointerEvents='none');
+      cta.textContent='Sending…';
+      statusEl.textContent='';statusEl.style.color='#6B7280';
+      const type=waTypeKey(gender,kind);
+      const res=await sendWAvApi(type,mobile,[name],id,name);
+      if(res.ok){
+        cta.textContent='✅ Sent';
+        statusEl.textContent='Delivered to Meta for sending.';statusEl.style.color='#16A34A';
+        if(id) await confirmNudgeSentSilent(id);
+        setTimeout(()=>document.body.contains(overlay)&&document.body.removeChild(overlay),900);
+      } else {
+        cta.textContent='❌ Failed';
+        statusEl.innerHTML=(res.error||'Send failed')+' — <a href="#" id="_wa_fallback" style="color:#1565C0;font-weight:700;">open WhatsApp manually instead</a>';
+        statusEl.style.color='#DC2626';
+        const fb=document.getElementById('_wa_fallback');
+        if(fb) fb.addEventListener('click',(e)=>{e.preventDefault();openWA(mobile,msg);document.body.removeChild(overlay);});
+        list.querySelectorAll('div').forEach(d=>d.style.pointerEvents='');
+      }
     });
     const isPreSelected=preSelected&&label===preSelected;
     if(isPreSelected){item.style.borderColor='#25D366';item.style.background='#F0FFF4';}
@@ -2777,6 +2918,14 @@ function sendWA(id,mobile,gender,name,stamps,paid,msgType='lapsed'){
   });
   document.getElementById('_wa_cancel').addEventListener('click',()=>document.body.removeChild(overlay));
   overlay.addEventListener('click',(e)=>{if(e.target===overlay) document.body.removeChild(overlay);});
+}
+// Records nudge_sent_at without the manual "did you send it?" prompt — the
+// API send itself is the confirmation now.
+async function confirmNudgeSentSilent(id){
+  try{
+    await sb('customers','PATCH',{nudge_sent_at:new Date().toISOString()},'id=eq.'+id);
+    if(document.getElementById('page-missyou')&&document.getElementById('page-missyou').classList.contains('active')) renderMissYou();
+  }catch(e){}
 }
 function buildFollowupSection(c,followupSent,followupAge,followupMsg){
   const pc=document.getElementById('PC');
@@ -2824,24 +2973,25 @@ function buildFollowupSection(c,followupSent,followupAge,followupMsg){
     actions.style.cssText='display:grid;grid-template-columns:1fr 1fr;gap:10px;';
     const waBtn=document.createElement('button');
     waBtn.className='btn bs bsm';
-    waBtn.textContent='💬 Open WhatsApp';
-    waBtn.onclick=()=>sendFollowup(c.id,c.mobile,c.name);
+    waBtn.id='fu-send-'+c.id;
+    waBtn.textContent='💬 Send via WhatsApp API';
+    waBtn.onclick=()=>sendFollowupViaApi(c.id,c.mobile,c.name,waBtn);
     const markBtn=document.createElement('button');
-    markBtn.className='btn by bsm';
-    markBtn.textContent='✅ Mark as Sent';
-    markBtn.onclick=()=>markFollowupSent(c.id);
+    markBtn.className='btn bg2 bsm';
+    markBtn.textContent='Open manually';
+    markBtn.onclick=()=>sendFollowup(c.id,c.mobile,c.name);
     actions.appendChild(waBtn);
     actions.appendChild(markBtn);
     const hint=document.createElement('div');
     hint.style.cssText='font-size:11px;color:var(--muted);text-align:center;margin-top:8px;';
-    hint.textContent='Tap WhatsApp → send → come back → Mark as Sent';
+    hint.textContent='Sends immediately via the Meta API — no manual confirmation needed';
     card.appendChild(hint);
   } else {
     const waBtn=document.createElement('button');
     waBtn.className='btn bg2 bsm';
     waBtn.style.width='100%';
-    waBtn.textContent='💬 Send Again on WhatsApp';
-    waBtn.onclick=()=>sendFollowup(c.id,c.mobile,c.name);
+    waBtn.textContent='💬 Send Again via WhatsApp API';
+    waBtn.onclick=()=>sendFollowupViaApi(c.id,c.mobile,c.name,waBtn);
     actions.appendChild(waBtn);
   }
 
@@ -2870,6 +3020,25 @@ async function sendFollowup(id,mobile,name){
   }catch(e){toast('Error: '+e.message,'error');}
 }
 
+async function sendFollowupViaApi(id,mobile,name,btn){
+  try{
+    const rows=await sbFresh('customers','select=*&id=eq.'+id);
+    if(!rows||!rows.length) return;
+    const c=rows[0];
+    const st=parseInt(c.stamps)||0;
+    const pN=paidNeeded();
+    const portalUrl='https://yasmint2825.github.io/minicuts-loyalty/?customer=1&lookup='+encodeURIComponent(c.mobile);
+    if(btn){btn.disabled=true;btn.textContent='Sending…';}
+    const res=await sendWAvApi('after_service',mobile,[c.parent||c.name,c.name,String(st),String(Math.max(0,pN-st)),portalUrl],id,c.name);
+    if(res.ok){
+      toast('✅ Sent via WhatsApp API to '+name);
+      markFollowupSent(id);
+    } else {
+      if(btn){btn.disabled=false;btn.textContent='💬 Send via WhatsApp API';}
+      toast('Send failed: '+(res.error||'unknown error')+' — try "Open manually"','error');
+    }
+  }catch(e){toast('Error: '+e.message,'error');}
+}
 async function markFollowupSent(id){
   try{
     await sb('customers','PATCH',{followup_sent_at:new Date().toISOString()},'id=eq.'+id);
