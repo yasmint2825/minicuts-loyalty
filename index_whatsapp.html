@@ -260,7 +260,34 @@ const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZ
 // send messages. Generate one in the console under API keys, paste it here.
 const WA_API_URL=SB_URL+'/functions/v1/send-whatsapp';
 const MW_TENANT_ID='minicuts';
-const MW_TENANT_KEY='PASTE-TENANT-API-KEY-FROM-CONSOLE-HERE';
+// The tenant API key is NOT hardcoded here — this file is public source
+// (anyone can view it on your live site), so a key baked in here would be
+// too. Instead it's entered once through Settings > Platform Connection
+// and stored in this browser's localStorage — visible only to someone
+// with access to this specific browser session, not to every site visitor.
+function getTenantKey(){ return localStorage.getItem('mw_tenant_key')||''; }
+function setTenantKey(k){ localStorage.setItem('mw_tenant_key',k); }
+function renderPlatformKeyStatus(){
+  const el=document.getElementById('PLATFORM_KEY_STATUS');
+  if(!el) return;
+  const key=getTenantKey();
+  if(key){
+    el.style.background='var(--okl)';el.style.color='var(--ok)';
+    el.textContent='✅ Connected on this device — key ending …'+key.slice(-4);
+  } else {
+    el.style.background='var(--errl)';el.style.color='var(--err)';
+    el.textContent='⚠️ Not set on this device — paste the key below.';
+  }
+}
+function savePlatformKey(){
+  const val=document.getElementById('PLATFORM_KEY_INPUT').value.trim();
+  const r=document.getElementById('PLATFORM_KEY_RESULT');
+  if(!val){r.textContent='Enter a key first.';r.style.color='var(--err)';return;}
+  setTenantKey(val);
+  document.getElementById('PLATFORM_KEY_INPUT').value='';
+  r.textContent='✅ Saved on this device.';r.style.color='var(--ok)';
+  renderPlatformKeyStatus();
+}
 const DC={
   stampsNeeded:6,
   boyMonths:12, girlMonths:15,
@@ -409,10 +436,12 @@ function openWA(mobile,msg){
 // params: ordered array of values for the template's {{1}},{{2}}... slots
 // Returns {ok:true,message_id} or {ok:false,error}
 async function sendWAvApi(type,mobile,params,customerId,customerName,templateName,templateLang){
+  const key=getTenantKey();
+  if(!key) return {ok:false,error:'No platform connection key set — go to Settings > Platform Connection and paste your MiniCuts API key from the console.'};
   try{
     const r=await fetch(WA_API_URL,{
       method:'POST',
-      headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'x-tenant-key':MW_TENANT_KEY},
+      headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'x-tenant-key':key},
       body:JSON.stringify({tenant_id:MW_TENANT_ID,mobile,type:type||undefined,template_name:templateName||undefined,template_lang:templateLang||undefined,params:params||[],customer_id:customerId||null,customer_name:customerName||null})
     });
     const j=await r.json();
@@ -870,7 +899,12 @@ async function archiveCycle(customerId,stamps,firstStampDate,expiryDate,endedBy)
         </div>
         <div class="card" style="max-width:640px;margin-bottom:18px;">
           <div style="font-family:var(--fh);font-size:16px;font-weight:800;margin-bottom:4px;">📡 Platform connection</div>
-          <div style="font-size:13px;color:var(--muted);margin-bottom:14px;">WhatsApp sending, message templates, and the engagement agent are now managed in the separate platform console (console.html) — this app only needs its tenant API key to send messages. Generate one in the console under API keys, then paste it into the <code>MW_TENANT_KEY</code> constant near the top of this file and redeploy.</div>
+          <div style="font-size:13px;color:var(--muted);margin-bottom:14px;">WhatsApp sending, message templates, and the engagement agent are managed in the separate platform console — this app only needs its tenant API key to send messages. Generate one in the console under API keys.</div>
+          <div id="PLATFORM_KEY_STATUS" style="font-size:13px;padding:10px 14px;border-radius:10px;margin-bottom:12px;"></div>
+          <label class="fl">Tenant API key</label>
+          <input class="fi" type="password" id="PLATFORM_KEY_INPUT" placeholder="mwk_...">
+          <button class="btn bp bsm" onclick="savePlatformKey()">Save</button>
+          <div id="PLATFORM_KEY_RESULT" style="font-size:12.5px;margin-top:8px;"></div>
         </div>
         <div class="card" style="max-width:640px;margin-bottom:18px;">
           <div style="font-family:var(--fh);font-size:16px;font-weight:800;margin-bottom:4px;">WhatsApp Message Templates</div>
@@ -1834,7 +1868,7 @@ function showPage(id,btn){
   if(id==='dashboard'){renderDash();loadAfterService();}
   if(id==='customers') loadCustomers();
   if(id==='qrpage') renderSalonQR();
-  if(id==='config'){syncCfgInputs();ltRender();}
+  if(id==='config'){syncCfgInputs();ltRender();renderPlatformKeyStatus();}
   if(id==='missyou') renderMissYou();
   if(id==='analytics') loadAnalytics();
   if(id==='staffmgmt') smInit();
