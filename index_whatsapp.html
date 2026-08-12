@@ -259,6 +259,7 @@ const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZ
 // separate platform console — this file only needs a tenant API key to
 // send messages. Generate one in the console under API keys, paste it here.
 const WA_API_URL=SB_URL+'/functions/v1/send-whatsapp';
+const MW_INGEST_URL=SB_URL+'/functions/v1/mw-ingest';
 const MW_TENANT_ID='minicuts';
 // The tenant API key is NOT hardcoded here — this file is public source
 // (anyone can view it on your live site), so a key baked in here would be
@@ -267,6 +268,33 @@ const MW_TENANT_ID='minicuts';
 // with access to this specific browser session, not to every site visitor.
 function getTenantKey(){ return localStorage.getItem('mw_tenant_key')||''; }
 function setTenantKey(k){ localStorage.setItem('mw_tenant_key',k); }
+
+// Welcome Rewards config — read from the platform (console-configurable)
+// instead of hardcoded here. Cached after first fetch; falls back to
+// sensible defaults if the platform is unreachable, so checkout never
+// breaks even if this read fails.
+let WELCOME_CONFIG=null;
+async function getWelcomeConfig(){
+  if(WELCOME_CONFIG) return WELCOME_CONFIG;
+  const fallback={discount_percent:10,threshold_value_max:60,applies_at_visit_counts:[1,2]};
+  const key=getTenantKey();
+  if(!key) return fallback;
+  try{
+    const res=await fetch(MW_INGEST_URL,{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'x-tenant-key':key},
+      body:JSON.stringify({action:'get_campaign_strategy',campaign_key:'new_customer_offer'})});
+    const j=await res.json();
+    if(j.ok&&j.strategy){
+      WELCOME_CONFIG={
+        discount_percent:j.strategy.discount_percent??fallback.discount_percent,
+        threshold_value_max:j.strategy.threshold_value_max??fallback.threshold_value_max,
+        applies_at_visit_counts:(j.strategy.applies_at_visit_counts&&j.strategy.applies_at_visit_counts.length)?j.strategy.applies_at_visit_counts:fallback.applies_at_visit_counts,
+        enabled:j.strategy.enabled!==false,
+      };
+      return WELCOME_CONFIG;
+    }
+  }catch(e){/* fall through to default below */}
+  return fallback;
+}
 function renderPlatformKeyStatus(){
   const el=document.getElementById('PLATFORM_KEY_STATUS');
   if(!el) return;
@@ -482,6 +510,12 @@ async function sbFresh(path,params=''){
 function fmtDate(iso){if(!iso)return '—';return new Date(iso).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});}
 function fmtDateTime(iso){if(!iso)return '—';return new Date(iso).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});}
 function addMonths(d,m){const x=new Date(d);x.setMonth(x.getMonth()+m);return x.toISOString();}
+function addDays(d,n){const x=new Date(d);x.setDate(x.getDate()+n);return x.toISOString();}
+function isWelcomeDiscountActive(c){
+  if(!c.welcome_reward_unlocked_until) return false;
+  return new Date(c.welcome_reward_unlocked_until).setHours(23,59,59,999) >= new Date().setHours(0,0,0,0);
+}
+function welcomeDiscountPercent(){ return (WELCOME_CONFIG&&WELCOME_CONFIG.discount_percent)||10; }
 function isExp(c){if(!c.expiry_date||!c.first_stamp_date)return false;return new Date()>new Date(c.expiry_date);}
 function dLeft(c){if(!c.expiry_date)return null;return Math.ceil((new Date(c.expiry_date)-new Date())/864e5);}
 function getStatus(c){
@@ -1839,6 +1873,7 @@ function showStaffPanel(u){
   document.getElementById('MA').style.display='flex';
   document.getElementById('SN').textContent=u.charAt(0).toUpperCase()+u.slice(1);
   document.getElementById('SAV').textContent=u.charAt(0).toUpperCase();
+  getWelcomeConfig(); // warm the cache early so badges render with the real % on first paint
   // Load config from DB first, then render
   loadCfgFromDB().then(()=>{
     renderDash();
@@ -2112,7 +2147,7 @@ function renderCT(data){
       <td>${c.mobile}</td>
       <td><span class="badge ${c.gender==='girl'?'bg-p':'bg-b'}">${c.gender==='girl'?'👧 Girl':'👦 Boy'}</span></td>
       <td>${dots} <span style="font-size:11px;color:var(--muted);margin-left:2px;">${st}/${paidNeeded()}</span></td>
-      <td><span class="badge ${s.cls}">${s.label}</span>${c.dnd?' <span class="badge bg-err" style="font-size:10px;">🔕 DND</span>':''}</td>
+      <td><span class="badge ${s.cls}">${s.label}</span>${c.dnd?' <span class="badge bg-err" style="font-size:10px;">🔕 DND</span>':''}${isWelcomeDiscountActive(c)?' <span style="display:inline-block;background:#FFFBEB;color:#B45309;border:1px solid #FDE68A;padding:2px 7px;border-radius:99px;font-size:10px;font-weight:800;">💛 '+welcomeDiscountPercent()+'% OFF</span>':''}</td>
       <td style="font-size:12px;color:var(--muted);white-space:nowrap;">${fmtDate(c.created_at)||'—'}</td>
       <td style="font-size:12px;color:var(--muted);white-space:nowrap;">${fmtDate(c.last_visit_date)||'—'}</td>
       <td><div style="display:flex;gap:4px;flex-wrap:nowrap;align-items:center;">
@@ -2215,7 +2250,8 @@ function renderProfile(c,visits,cycles,prizes){
         ${c.heard_via?`<span style="display:inline-flex;align-items:center;gap:4px;background:#FEF3C7;color:#D97706;padding:4px 10px;border-radius:99px;font-size:12px;font-weight:700;">📣 ${c.heard_via}</span>`:'<span style="display:inline-flex;align-items:center;gap:4px;background:#F3F4F6;color:var(--muted);padding:4px 10px;border-radius:99px;font-size:12px;font-weight:700;">📣 Source not recorded</span>'}
       </div>
       ${c.notes?`<p style="font-size:12.5px;color:var(--warn);margin-top:6px;">📝 ${c.notes}</p>`:''}
-      ${c.dnd?`<p style="font-size:12px;margin-top:3px;"><span class="badge bg-err">🔕 Do Not Disturb</span></p>`:''}</div>
+      ${c.dnd?`<p style="font-size:12px;margin-top:3px;"><span class="badge bg-err">🔕 Do Not Disturb</span></p>`:''}
+      ${isWelcomeDiscountActive(c)?`<p style="margin-top:8px;"><span style="display:inline-flex;align-items:center;gap:5px;background:#FFFBEB;color:#B45309;border:1.5px solid #FDE68A;padding:6px 12px;border-radius:99px;font-size:13px;font-weight:800;">💛 ${welcomeDiscountPercent()}% OFF this visit — Welcome Reward (valid until ${fmtDate(c.welcome_reward_unlocked_until)})</span></p>`:''}</div>
       <div style="margin-left:auto;display:flex;gap:7px;flex-wrap:wrap;">
         <button class="btn bg2 bsm" onclick="openEditM('${c.id}')">✏️ Edit</button>
         ${c.dnd?
@@ -2384,6 +2420,12 @@ async function addStamp(id){
     const currentStamps=parseInt(c.stamps)||0;
     const paid=paidNeeded();
     if(currentStamps>=paid){toast('All '+paid+' stamps collected — use Give Free Hair Wash 🚿 button!','error');return;}
+
+    // Welcome Rewards: was THIS visit eligible for 10% off? (checked
+    // before recording the visit, since staff need to know before
+    // charging, not after.)
+    const discountAppliedThisVisit=isWelcomeDiscountActive(c);
+
     const ns=currentStamps+1;
     const now=new Date().toISOString();
     const months=c.gender==='girl'?CFG.girlMonths:CFG.boyMonths;
@@ -2391,11 +2433,33 @@ async function addStamp(id){
     const expiry=c.expiry_date||addMonths(firstStamp,months);
     await sb('customers','PATCH',{stamps:ns,first_stamp_date:firstStamp,expiry_date:expiry,last_visit_date:now},'id=eq.'+id);
     await sb('visits','POST',{customer_id:id,type:'paid',stamp_count_after:ns,cycle_expiry:expiry});
+
+    // Welcome Rewards progression — one-time only, visits 1/2/3 of this
+    // customer's lifetime, never repeats on later 5-stamp cycles. Purely
+    // additive to the stamp program above; doesn't touch it. Fully
+    // configurable from the console — nothing here is hardcoded.
+    const wc=await getWelcomeConfig();
+    if(wc.enabled!==false){
+      const qualifyingStages=wc.applies_at_visit_counts||[1,2];
+      const finalStage=Math.max.apply(null,qualifyingStages)+1;
+      const windowDays=wc.threshold_value_max||60;
+      const stage=c.welcome_reward_stage||0;
+      if(stage<finalStage){
+        const newStage=stage+1;
+        const newUnlockedUntil=qualifyingStages.includes(newStage)?addDays(now,windowDays):null;
+        await sb('customers','PATCH',{welcome_reward_stage:newStage,welcome_reward_unlocked_until:newUnlockedUntil},'id=eq.'+id);
+        const welcomeType='welcome_reward_'+newStage;
+        sendWAvApi(welcomeType,c.mobile,[c.parent||c.name,c.name,String(wc.discount_percent)],id,c.name).catch(()=>{});
+        if(newStage<finalStage) toast('💛 '+c.name+' unlocked '+wc.discount_percent+'% off their NEXT visit (valid '+windowDays+' days).');
+        else toast('🎉 '+c.name+' is now an official MiniCuts regular!');
+      }
+    }
+
     // Detect if this customer returned after a nudge
     if(c.nudge_sent_at&&(!c.last_visit_date||new Date(c.last_visit_date)<new Date(c.nudge_sent_at))){
       toast('🎉 '+c.name+' returned after nudge! Stamp '+ns+'/'+paid+' added.'+(ns>=paid?' free wash + free hair wash ready!':''));
     } else {
-      toast('✅ Stamp '+ns+'/'+paid+' added for '+c.name+(ns>=paid?' 🎁 free wash + free hair wash ready!':''));
+      toast((discountAppliedThisVisit?'💛 10% OFF applied — ':'✅ ')+'Stamp '+ns+'/'+paid+' added for '+c.name+(ns>=paid?' 🎁 free wash + free hair wash ready!':''));
     }
     if(curPID===id) viewProfile(id);
     renderDash();
