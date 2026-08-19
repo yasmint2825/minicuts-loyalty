@@ -5429,23 +5429,27 @@ async function acqRender(){
       .filter(m=>!isNaN(m)&&m>=0&&m<300); // discard bad/missing timestamps and outliers >5h
     const avgWaitMins=mWaitMins.length?mWaitMins.reduce((a,b)=>a+b,0)/mWaitMins.length:null;
 
-    const mRevService=mQueue.reduce((a,q)=>a+(parseFloat(q.service_value)||0),0);
-    const mRevTips=mQueue.reduce((a,q)=>a+(parseFloat(q.tip)||0),0);
-    const mRevTotal=mRevService+mRevTips;
+    // Revenue = sum of the queue "Value" column (service_value) for this month — matching
+    // Staff Mgmt exactly. Tip is a separate column there and is NOT part of revenue.
+    const mRevTotal=mQueue.reduce((a,q)=>a+(parseFloat(q.service_value)||0),0);
     const histMonthRev=hist.filter(r=>{if(!r.date)return false;const d=new Date(r.date);return !isNaN(d)&&d>=mStart&&d<=mEnd;}).reduce((a,r)=>a+(parseFloat(r.amount)||0),0);
-    // Current (running) month: revenue comes ONLY from live Staff-app records (service_value + tips).
+    // Current (running) month: revenue comes ONLY from live Staff-app "Value" entries.
     // Excel historical data predates the system and must never be added to the current month's total.
     // Past months keep the combined live+historical total, unchanged.
     const isCurMonth=acqIsCurrentMonth();
     const combinedRev=isCurMonth?mRevTotal:(mRevTotal+histMonthRev);
 
+    // "Total This Month" = the number of served rows in Staff Mgmt for the month (visits, not
+    // unique customers) — this is what you can directly count against the Staff Mgmt table.
+    const kidsThisMonth=mQueue.length;
+
     // ── KPIs ──
     document.getElementById('acq-kpis').innerHTML=[
       acqKpiHtml('🆕','New Customers',newCount,acqIsCurrentMonth()?'🟢 running this month':'','var(--ok)'),
       acqKpiHtml('🔄','Returning Customers',retCount,`${returnRate}% return rate`,'var(--b)'),
-      acqKpiHtml('👥','Total This Month',newCount+retCount+unknownCount,'incl. '+unknownCount+' no-phone'),
+      acqKpiHtml('👥','Total This Month',kidsThisMonth,'visits recorded in Staff Mgmt'),
       acqKpiHtml('📊','Return Rate',returnRate+'%',histHasData?'cross-ref vs history':'system data only',returnRate>=40?'var(--ok)':returnRate>=20?'var(--warn)':'var(--err)'),
-      acqKpiHtml('💰','Revenue (Live)',mRevTotal?'AED '+mRevTotal.toFixed(0):'—','service + tips','var(--ok)'),
+      acqKpiHtml('💰','Revenue (Live)',mRevTotal?'AED '+mRevTotal.toFixed(0):'—','sum of Value column','var(--ok)'),
       acqKpiHtml('📂',isCurMonth?'Revenue (This Month)':'Revenue (Hist+Live)',combinedRev?'AED '+combinedRev.toFixed(0):'—',isCurMonth?'live only — Excel excluded':(histMonthRev?'+AED '+histMonthRev.toFixed(0)+' from Excel':'upload Excel for pre-June')),
       acqKpiHtml('⏱','Avg Wait Time',avgWaitMins!==null?acqFmtMins(avgWaitMins):'—',mWaitMins.length?mWaitMins.length+' records':'no called_at data yet',avgWaitMins>20?'var(--err)':avgWaitMins>10?'var(--warn)':'var(--ok)'),
     ].join('');
@@ -5461,7 +5465,7 @@ async function acqRender(){
     });
     // Assign revenue (service + tip) by source and new/returning status
     mQueue.forEach(q=>{
-      const amt=(parseFloat(q.service_value)||0)+(parseFloat(q.tip)||0);if(!amt)return;
+      const amt=parseFloat(q.service_value)||0;if(!amt)return;
       const ph=acqQueuePhone(q);
       const c=ph?custByPhone[ph]:null;
       const src=c?acqMapSource(c.heard_via):'Unknown';
