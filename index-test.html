@@ -5261,6 +5261,15 @@ const SRC_CONFIG=[
 ];
 const SRC_KEYS=SRC_CONFIG.map(s=>s.key);
 
+// Historical Excel data only stores stylist phone numbers, not names — map to display names.
+const STYLIST_PHONE_MAP={
+  '589430453':'Chubz',
+  '552278403':'George',
+  '554561253':'Heyden',
+  '554430607':'Lester',
+  '568729138':'Rani',
+};
+
 // ── Tab switch ──
 function acqTab(name,btn){
   ['acquisition','operations','revenue','upload'].forEach(t=>{
@@ -5333,7 +5342,7 @@ async function acqRender(){
       const batch=await sb('customers','GET',null,'select=id,name,mobile,created_at,heard_via&order=created_at.asc&limit='+PAGE+'&offset='+offset);
       customers=[...customers,...(batch||[])];if(!batch||batch.length<PAGE)break;offset+=PAGE;
     }
-    // Fetch queue (for revenue — service_value field)
+    // Fetch ALL-TIME done queue records (for revenue and for first-service dating — not month-filtered here)
     let queueAll=[];
     try{
       offset=0;
@@ -5342,68 +5351,107 @@ async function acqRender(){
         queueAll=[...queueAll,...(batch||[])];if(!batch||batch.length<PAGE)break;offset+=PAGE;
       }
     }catch(e){}
-    // Historical
+    // Historical (uploaded Excel — old data, pre-system)
     const hist=JSON.parse(localStorage.getItem(ACQ_HIST_KEY)||'[]');
-    const histPhones=new Set(hist.map(r=>acqNormalizePhone(r.mobile||r.phone)).filter(Boolean));
-    const histHasData=histPhones.size>0;
-    const histLookup={};hist.forEach(r=>{const ph=acqNormalizePhone(r.mobile||r.phone);if(ph&&!histLookup[ph])histLookup[ph]=r;});
+    const histHasData=hist.length>0;
+
+    // ── Lookups ──
+    const custById={};customers.forEach(c=>{custById[c.id]=c;});
+    const custByPhone={};customers.forEach(c=>{const ph=acqNormalizePhone(c.mobile);if(ph&&!custByPhone[ph])custByPhone[ph]=c;});
+    function acqQueuePhone(q){
+      return acqNormalizePhone(q.mobile)||(q.customer_id&&custById[q.customer_id]?acqNormalizePhone(custById[q.customer_id].mobile):'');
+    }
+
+    // ── Single source of truth: first-ever-service date per phone ──
+    // "First service" = earliest completed visit, whether recorded live (queue) or historically (Excel).
+    // A customer only counts as NEW in the month their very first such record falls in,
+    // and only if no earlier record exists anywhere (live DB or historical Excel).
+    const firstQueueDate={};
+    queueAll.forEach(q=>{
+      if(!q.checkin_date)return;
+      const ph=acqQueuePhone(q);if(!ph)return;
+      const d=new Date(q.checkin_date);if(isNaN(d))return;
+      if(!firstQueueDate[ph]||d<firstQueueDate[ph])firstQueueDate[ph]=d;
+    });
+    const firstHistDate={};
+    hist.forEach(r=>{
+      const ph=acqNormalizePhone(r.mobile||r.phone);if(!ph||!r.date)return;
+      const d=new Date(r.date);if(isNaN(d))return;
+      if(!firstHistDate[ph]||d<firstHistDate[ph])firstHistDate[ph]=d;
+    });
+    const firstServiceDate={};
+    new Set([...Object.keys(firstQueueDate),...Object.keys(firstHistDate)]).forEach(ph=>{
+      const a=firstQueueDate[ph],b=firstHistDate[ph];
+      firstServiceDate[ph]=(a&&b)?(a<b?a:b):(a||b);
+    });
 
     // Month window
     const mStart=new Date(acqYear,acqMonth,1);
     const mEnd=new Date(acqYear,acqMonth+1,0,23,59,59);
 
-    // Existing phones before this month
-    const existingPhones=new Set(customers.filter(c=>new Date(c.created_at)<mStart).map(c=>acqNormalizePhone(c.mobile)).filter(Boolean));
-    const allKnownBefore=new Set([...histPhones,...existingPhones]);
+    // Total unique customers ever seen (live + historical)
+    const totalUnique=Object.keys(firstServiceDate).length;
 
-    // Customers registered this month
-    const mCusts=customers.filter(c=>{const d=new Date(c.created_at);return d>=mStart&&d<=mEnd;});
-    // Total unique customers ever (system + hist phones)
-    const allSysPhones=new Set(customers.map(c=>acqNormalizePhone(c.mobile)).filter(Boolean));
-    const totalUnique=new Set([...allSysPhones,...histPhones]).size;
-    const oldCustomers=histPhones.size+existingPhones.size; // rough: hist + pre-month system
-    // New vs returning this month
-    let newCount=0,retCount=0,unknownCount=0;
-    const newCustIds=new Set();const retCustIds=new Set();
-    mCusts.forEach(c=>{
-      const ph=acqNormalizePhone(c.mobile);
-      if(!ph){unknownCount++;return;}
-      if(allKnownBefore.has(ph)){retCount++;retCustIds.add(c.id);}
-      else{newCount++;newCustIds.add(c.id);}
-    });
-    // Queue this month
+    // NEW this month = phones whose very first service ever falls inside this month
+    const newPhones=new Set(Object.keys(firstServiceDate).filter(ph=>{
+      const d=firstServiceDate[ph];return d>=mStart&&d<=mEnd;
+    }));
+
+    // Queue records that fall in this month (live activity for the month)
     const mQueue=queueAll.filter(q=>{if(!q.checkin_date)return false;const d=new Date(q.checkin_date);return d>=mStart&&d<=mEnd;});
+
+    // Phones ACTIVE this month (had a done visit — live or historical — inside the window)
+    const activePhonesThisMonth=new Set();
+    mQueue.forEach(q=>{const ph=acqQueuePhone(q);if(ph)activePhonesThisMonth.add(ph);});
+    let unknownCount=0; // done visits this month with no phone on file at all
+    mQueue.forEach(q=>{if(!acqQueuePhone(q))unknownCount++;});
+    hist.forEach(r=>{
+      if(!r.date)return;const d=new Date(r.date);if(isNaN(d)||d<mStart||d>mEnd)return;
+      const ph=acqNormalizePhone(r.mobile||r.phone);if(ph)activePhonesThisMonth.add(ph);
+    });
+
+    // RETURNING this month = active this month but their first-ever service was before this month
+    const retPhones=new Set([...activePhonesThisMonth].filter(ph=>!newPhones.has(ph)));
+
+    const newCount=newPhones.size;
+    const retCount=retPhones.size;
+    const returnRate=(newCount+retCount)>0?Math.round(retCount/(newCount+retCount)*100):0;
+
+    // Hist revenue this month (only meaningful for past months — Excel is old/pre-system data)
     const mRevTotal=mQueue.reduce((a,q)=>a+(parseFloat(q.service_value)||0),0);
-    // Hist revenue this month
-    const histMonthRev=hist.filter(r=>{if(!r.date)return false;const d=new Date(r.date);return d>=mStart&&d<=mEnd;}).reduce((a,r)=>a+(parseFloat(r.amount)||0),0);
-    const combinedRev=mRevTotal+histMonthRev;
-    // Return rate: customers this month who had a previous visit
-    const returnRate=mCusts.length>0?Math.round(retCount/mCusts.length*100):0;
+    const histMonthRev=hist.filter(r=>{if(!r.date)return false;const d=new Date(r.date);return !isNaN(d)&&d>=mStart&&d<=mEnd;}).reduce((a,r)=>a+(parseFloat(r.amount)||0),0);
+    // Current (running) month: revenue comes ONLY from live records entered via the Staff app (queue.service_value).
+    // Excel historical data predates the system and must never be added to the current month's total.
+    // Past months keep the combined live+historical total, unchanged.
+    const isCurMonth=acqIsCurrentMonth();
+    const combinedRev=isCurMonth?mRevTotal:(mRevTotal+histMonthRev);
 
     // ── KPIs ──
     document.getElementById('acq-kpis').innerHTML=[
       acqKpiHtml('🆕','New Customers',newCount,acqIsCurrentMonth()?'🟢 running this month':'','var(--ok)'),
       acqKpiHtml('🔄','Returning Customers',retCount,`${returnRate}% return rate`,'var(--b)'),
-      acqKpiHtml('👥','Total This Month',mCusts.length+unknownCount,'incl. '+unknownCount+' no-phone'),
+      acqKpiHtml('👥','Total This Month',newCount+retCount+unknownCount,'incl. '+unknownCount+' no-phone'),
       acqKpiHtml('📊','Return Rate',returnRate+'%',histHasData?'cross-ref vs history':'system data only',returnRate>=40?'var(--ok)':returnRate>=20?'var(--warn)':'var(--err)'),
       acqKpiHtml('💰','Revenue (Live)',mRevTotal?'AED '+mRevTotal.toFixed(0):'—','queue.service_value','var(--ok)'),
-      acqKpiHtml('📂','Revenue (Hist+Live)',combinedRev?'AED '+combinedRev.toFixed(0):'—',histMonthRev?'+AED '+histMonthRev.toFixed(0)+' from Excel':'upload Excel for pre-June'),
+      acqKpiHtml('📂',isCurMonth?'Revenue (This Month)':'Revenue (Hist+Live)',combinedRev?'AED '+combinedRev.toFixed(0):'—',isCurMonth?'live only — Excel excluded':(histMonthRev?'+AED '+histMonthRev.toFixed(0)+' from Excel':'upload Excel for pre-June')),
     ].join('');
 
-    // ── Source bars ──
+    // ── Source bars (NEW customers this month, by source) ──
     const srcNew={},srcRev={new:{},ret:{}};
     const allSrc=[...SRC_CONFIG,{key:'Unknown',label:'Unknown',color:'#9CA3AF',emoji:'❓'}];
     allSrc.forEach(s=>{srcNew[s.key]=0;srcRev.new[s.key]=0;srcRev.ret[s.key]=0;});
-    // Build customer→source map
-    const custSrc={};customers.forEach(c=>{custSrc[c.id]=acqMapSource(c.heard_via);});
-    // Count new customers by source
-    mCusts.forEach(c=>{if(newCustIds.has(c.id)){const src=acqMapSource(c.heard_via);srcNew[src]=(srcNew[src]||0)+1;}});
-    // Assign revenue by source and new/ret status
+    newPhones.forEach(ph=>{
+      const c=custByPhone[ph];
+      const src=c?acqMapSource(c.heard_via):'Unknown';
+      srcNew[src]=(srcNew[src]||0)+1;
+    });
+    // Assign revenue by source and new/returning status (using the same first-service definition)
     mQueue.forEach(q=>{
       const amt=parseFloat(q.service_value)||0;if(!amt)return;
-      const src=q.customer_id?custSrc[q.customer_id]||'Unknown':'Unknown';
-      const ph=acqNormalizePhone(q.mobile);
-      const isNew=ph?!allKnownBefore.has(ph):false;
+      const ph=acqQueuePhone(q);
+      const c=ph?custByPhone[ph]:null;
+      const src=c?acqMapSource(c.heard_via):'Unknown';
+      const isNew=ph?newPhones.has(ph):false;
       if(isNew)srcRev.new[src]=(srcRev.new[src]||0)+amt;
       else srcRev.ret[src]=(srcRev.ret[src]||0)+amt;
     });
@@ -5434,15 +5482,15 @@ async function acqRender(){
       else revNote.style.display='none';
     }
 
-    // Monthly table
-    acqBuildMonthlyTable(customers,allKnownBefore,hist);
+    // Monthly table (uses the same first-service-date definition for every month)
+    acqBuildMonthlyTable(firstServiceDate,custByPhone,hist);
 
     // New vs Returning bar
     const nrEl=document.getElementById('acq-newret');
     const tot_nr=newCount+retCount+unknownCount||1;
     nrEl.innerHTML=`
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:14px;">
-        ${acqKpiHtml('🆕','New',newCount,'first visit ever','var(--ok)')}
+        ${acqKpiHtml('🆕','New',newCount,'first service ever','var(--ok)')}
         ${acqKpiHtml('🔄','Returning',retCount,returnRate+'% return rate','var(--b)')}
         ${acqKpiHtml('❓','Unknown',unknownCount,'no phone recorded','var(--muted)')}
       </div>
@@ -5459,11 +5507,12 @@ async function acqRender(){
   }
 }
 
-function acqBuildMonthlyTable(customers,allKnownBefore,hist){
+function acqBuildMonthlyTable(firstServiceDate,custByPhone,hist){
   const el=document.getElementById('acq-monthly-table');if(!el)return;
+  const phones=Object.keys(firstServiceDate);
+  if(!phones.length){el.innerHTML='<div style="color:var(--muted);font-size:13px;">No data yet.</div>';return;}
   let earliest=new Date();
-  customers.forEach(c=>{const d=new Date(c.created_at);if(d<earliest)earliest=d;});
-  hist.forEach(r=>{if(r.date){const d=new Date(r.date);if(d<earliest)earliest=d;}});
+  phones.forEach(ph=>{const d=firstServiceDate[ph];if(d<earliest)earliest=d;});
   const now=new Date();const months=[];
   let y=earliest.getFullYear(),m=earliest.getMonth();
   while(y<now.getFullYear()||(y===now.getFullYear()&&m<=now.getMonth())){
@@ -5472,12 +5521,20 @@ function acqBuildMonthlyTable(customers,allKnownBefore,hist){
   const srcLabels=[...SRC_KEYS,'Unknown'];
   const srcColors={};SRC_CONFIG.forEach(s=>srcColors[s.key]=s.color);srcColors['Unknown']='#9CA3AF';
   const SRC_EMOJI={Google:'🔍',Instagram:'📸','Friends/Family':'👨‍👩‍👧','Ad Board':'📋','Walk-in':'🚶',Other:'💬',Unknown:'❓'};
+  // Bucket every phone's FIRST-EVER service into its month, once.
+  const byMonth={};
+  phones.forEach(ph=>{
+    const d=firstServiceDate[ph];
+    const key=d.getFullYear()+'-'+d.getMonth();
+    if(!byMonth[key])byMonth[key]={};
+    const c=custByPhone[ph];
+    const src=c?acqMapSource(c.heard_via):'Unknown';
+    byMonth[key][src]=(byMonth[key][src]||0)+1;
+  });
   const tableData=months.map(({y,m})=>{
-    const mStart=new Date(y,m,1);const mEnd=new Date(y,m+1,0,23,59,59);
-    const mCusts=customers.filter(c=>{const d=new Date(c.created_at);return d>=mStart&&d<=mEnd;});
-    const knownBefore=new Set([...Array.from(allKnownBefore),...customers.filter(c=>new Date(c.created_at)<mStart).map(c=>acqNormalizePhone(c.mobile)).filter(Boolean)]);
     const byCounts={};srcLabels.forEach(k=>byCounts[k]=0);
-    mCusts.forEach(c=>{const ph=acqNormalizePhone(c.mobile);if(ph&&knownBefore.has(ph))return;const src=acqMapSource(c.heard_via);byCounts[src]=(byCounts[src]||0)+1;});
+    const found=byMonth[y+'-'+m]||{};
+    Object.keys(found).forEach(k=>{byCounts[k]=(byCounts[k]||0)+found[k];});
     const total=Object.values(byCounts).reduce((a,b)=>a+b,0);
     return{y,m,byCounts,total};
   }).filter(r=>r.total>0);
@@ -5507,6 +5564,7 @@ function acqBuildMonthlyTable(customers,allKnownBefore,hist){
   el.innerHTML=html;
 }
 
+
 function acqRenderHistInsights(hist){
   const card=document.getElementById('acq-hist-insights');if(!card)return;
   if(!hist||!hist.length){card.style.display='none';return;}
@@ -5519,7 +5577,7 @@ function acqRenderHistInsights(hist){
   // Stylist
   const stylMap={};hist.forEach(r=>{const s=r.stylist_phone||(r.stylist)||'Unknown';const key=s?acqNormalizePhone(s)||s:'Unknown';stylMap[key]=(stylMap[key]||0)+1;});
   const stylEl=document.getElementById('acq-hist-stylist');const STYL_COLORS=['#1565C0','#7C3AED','#16A34A','#D97706','#DC2626'];
-  if(stylEl)stylEl.innerHTML=Object.entries(stylMap).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([k,v],i)=>acqBar('💈 '+k.slice(0,12),v,total,STYL_COLORS[i%5])).join('');
+  if(stylEl)stylEl.innerHTML=Object.entries(stylMap).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([k,v],i)=>acqBar('💈 '+(STYLIST_PHONE_MAP[k]||k).slice(0,12),v,total,STYL_COLORS[i%5])).join('');
   // Services
   const svcMap={};hist.forEach(r=>{const d=(r.description||'').trim();if(!d)return;svcMap[d]=(svcMap[d]||0)+1;});
   const svcEl=document.getElementById('acq-hist-services');const SVC_COLORS=['#1565C0','#7C3AED','#16A34A','#D97706','#DC2626','#0891B2','#9333EA','#EA580C'];
