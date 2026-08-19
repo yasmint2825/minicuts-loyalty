@@ -129,7 +129,7 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
 <!-- TABS -->
 <div class="tabs">
   <button class="tab active" onclick="showTab('t-queue',this)">📋 Queue</button>
-  <button class="tab" onclick="showTab('t-history',this);histSetDate(today());loadHist();">🕐 History</button>
+  <button class="tab" onclick="showTab('t-history',this);histSetDate(today());histSyncRange();loadHist();">🕐 History</button>
   <button class="tab" onclick="showTab('t-prizes',this);loadPrizes();">🎁 Game Prizes</button>
   <button class="tab" onclick="showTab('t-freewash',this);loadFreeWash();">🚿 Free Wash</button>
   <button class="tab" onclick="showTab('t-config',this);loadCfgScreen();">⚙️ Settings</button>
@@ -185,11 +185,14 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
     </div>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
       <div style="display:flex;gap:6px;align-items:center;background:#fff;border:1.5px solid var(--border);border-radius:9px;padding:6px 10px;">
-        <span style="font-size:12px;font-weight:700;color:var(--muted);">📅 Date:</span>
-        <input type="date" id="hist-date" style="border:none;outline:none;font-family:var(--fb);font-size:13px;color:var(--text);background:transparent;cursor:pointer;" onchange="loadHist()"/>
+        <span style="font-size:12px;font-weight:700;color:var(--muted);">📅 From:</span>
+        <input type="date" id="hist-date" style="border:none;outline:none;font-family:var(--fb);font-size:13px;color:var(--text);background:transparent;cursor:pointer;" onchange="histSyncRange();loadHist()"/>
+        <span style="font-size:12px;font-weight:700;color:var(--muted);">To:</span>
+        <input type="date" id="hist-date-to" style="border:none;outline:none;font-family:var(--fb);font-size:13px;color:var(--text);background:transparent;cursor:pointer;" onchange="loadHist()"/>
       </div>
       <button class="btn btn-ghost btn-sm" onclick="histNav(-1)">← Prev</button>
-      <button class="btn btn-ghost btn-sm" onclick="histSetDate(today());loadHist();">Today</button>
+      <button class="btn btn-ghost btn-sm" onclick="histSetDate(today());histSyncRange();loadHist();">Today</button>
+      <button class="btn btn-ghost btn-sm" onclick="histSetMonth();loadHist();">This Month</button>
       <button class="btn btn-ghost btn-sm" onclick="histNav(1)">Next →</button>
       <button class="btn btn-b btn-sm" onclick="loadHist()">↻ Load</button>
     </div>
@@ -719,27 +722,49 @@ let _histData=[];
 
 function histSetDate(d){const el=document.getElementById('hist-date');if(el)el.value=d;}
 function histGetDate(){return document.getElementById('hist-date')?.value||today();}
+function histSetDateTo(d){const el=document.getElementById('hist-date-to');if(el)el.value=d;}
+function histGetDateTo(){return document.getElementById('hist-date-to')?.value||histGetDate();}
+// Keeps the "To" date in step with "From" when navigating a single day (Prev/Next/Today),
+// so those buttons still behave as a single-day view unless the user deliberately widens "To".
+function histSyncRange(){histSetDateTo(histGetDate());}
+function histSetMonth(){
+  const d=new Date(histGetDate()+'T12:00:00');
+  const from=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-01';
+  const lastDay=new Date(d.getFullYear(),d.getMonth()+1,0).getDate();
+  const to=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(lastDay).padStart(2,'0');
+  histSetDate(from);histSetDateTo(to);
+}
 function histNav(dir){
   const d=new Date(histGetDate()+'T12:00:00');
   d.setDate(d.getDate()+dir);
   histSetDate(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'));
+  histSyncRange();
   loadHist();
 }
 async function loadHist(){
-  const date=histGetDate();
+  const from=histGetDate();
+  const to=histGetDateTo();
+  const label=from===to?from:(from+' → '+to);
   const body=document.getElementById('hist-body');
-  if(body)body.innerHTML='<tr><td colspan="11" style="text-align:center;padding:30px;color:var(--muted);">Loading '+date+'...</td></tr>';
+  if(body)body.innerHTML='<tr><td colspan="11" style="text-align:center;padding:30px;color:var(--muted);">Loading '+label+'...</td></tr>';
   const sumEl=document.getElementById('hist-summary');if(sumEl)sumEl.style.display='none';
   try{
-    const rows=await sb('queue','GET',null,'select=*&checkin_date=eq.'+date+'&order=token_number.asc&limit=500');
-    _histData=rows||[];renderHist();
+    let rows=[];let offset=0;const PAGE=1000;
+    while(true){
+      const batch=await sb('queue','GET',null,'select=*&checkin_date=gte.'+from+'&checkin_date=lte.'+to+'&order=checkin_date.asc,token_number.asc&limit='+PAGE+'&offset='+offset);
+      rows=[...rows,...(batch||[])];
+      if(!batch||batch.length<PAGE)break;offset+=PAGE;
+    }
+    _histData=rows;renderHist();
   }catch(e){if(body)body.innerHTML='<tr><td colspan="11" style="color:var(--err);padding:16px;">Error: '+e.message+'</td></tr>';}
 }
 function renderHist(){
   const body=document.getElementById('hist-body');if(!body)return;
-  const date=histGetDate();const isToday=date===today();
+  const from=histGetDate();const to=histGetDateTo();
+  const isSingleDay=from===to;const isToday=isSingleDay&&from===today();
+  const rangeLabel=isSingleDay?from:(from+' → '+to);
   const data=_histData;
-  if(!data.length){body.innerHTML='<tr><td colspan="11" style="text-align:center;padding:40px;color:var(--muted);">No records for '+date+' 🐼</td></tr>';return;}
+  if(!data.length){body.innerHTML='<tr><td colspan="11" style="text-align:center;padding:40px;color:var(--muted);">No records for '+rangeLabel+' 🐼</td></tr>';return;}
   const totalTips=data.filter(r=>r.tip>0).reduce((s,r)=>s+(Number(r.tip)||0),0);
   const totalRev=data.filter(r=>r.service_value>0).reduce((s,r)=>s+(Number(r.service_value)||0),0);
   const cashRev=data.filter(r=>r.payment_type==='Cash').reduce((s,r)=>s+(Number(r.service_value)||0),0);
@@ -751,7 +776,7 @@ function renderHist(){
   if(sumEl){sumEl.style.display='block';
     sumEl.innerHTML=
       '<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:6px;">'
-      +'<span style="font-size:13px;">📊 <strong>'+date+(isToday?' (Today)':'')+'</strong> · '+data.length+' check-ins · '+done+' served</span>'
+      +'<span style="font-size:13px;">📊 <strong>'+rangeLabel+(isToday?' (Today)':'')+'</strong> · '+data.length+' check-ins · '+done+' served</span>'
       +'</div>'
       +'<div style="display:flex;flex-wrap:wrap;gap:8px;">'
       +'<span style="background:#E0F2FE;color:#0369A1;padding:5px 13px;border-radius:8px;font-size:12.5px;font-weight:700;">💰 Total: AED '+(totalRev+totalTips)+'</span>'
@@ -784,7 +809,7 @@ function renderHist(){
       +'<td>'+payBadge+'</td>'
       +'<td style="font-size:12px;color:var(--muted);max-width:150px;">'+(r.remark||'—')+'</td>'
       +'<td>'+sp+'</td>'
-      +'<td style="font-size:12px;color:var(--muted);">'+fmtT(r.checkin_time)+'</td>'
+      +'<td style="font-size:12px;color:var(--muted);">'+(isSingleDay?'':((r.checkin_date||'')+' ')) +fmtT(r.checkin_time)+'</td>'
       +'<td><div style="display:flex;flex-direction:column;gap:4px;">'
         +'<button class="btn btn-ghost btn-sm" style="font-size:11px;" onclick="editHistRow(\''+r.id+'\')">✏️ Edit</button>'
         +waHistBtn
