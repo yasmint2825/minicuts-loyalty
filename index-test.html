@@ -5422,6 +5422,13 @@ async function acqRender(){
     const returnRate=(newCount+retCount)>0?Math.round(retCount/(newCount+retCount)*100):0;
 
     // Revenue = service_value + tips, matching the Staff app's own History/summary total exactly.
+    // Avg wait time: gap between checkin_time (registered) and called_at (called), from the queue table.
+    const mWaitMins=mQueue
+      .filter(q=>q.checkin_time&&q.called_at)
+      .map(q=>(new Date(q.called_at)-new Date(q.checkin_time))/60000)
+      .filter(m=>!isNaN(m)&&m>=0&&m<300); // discard bad/missing timestamps and outliers >5h
+    const avgWaitMins=mWaitMins.length?mWaitMins.reduce((a,b)=>a+b,0)/mWaitMins.length:null;
+
     const mRevService=mQueue.reduce((a,q)=>a+(parseFloat(q.service_value)||0),0);
     const mRevTips=mQueue.reduce((a,q)=>a+(parseFloat(q.tip)||0),0);
     const mRevTotal=mRevService+mRevTips;
@@ -5440,6 +5447,7 @@ async function acqRender(){
       acqKpiHtml('📊','Return Rate',returnRate+'%',histHasData?'cross-ref vs history':'system data only',returnRate>=40?'var(--ok)':returnRate>=20?'var(--warn)':'var(--err)'),
       acqKpiHtml('💰','Revenue (Live)',mRevTotal?'AED '+mRevTotal.toFixed(0):'—','service + tips','var(--ok)'),
       acqKpiHtml('📂',isCurMonth?'Revenue (This Month)':'Revenue (Hist+Live)',combinedRev?'AED '+combinedRev.toFixed(0):'—',isCurMonth?'live only — Excel excluded':(histMonthRev?'+AED '+histMonthRev.toFixed(0)+' from Excel':'upload Excel for pre-June')),
+      acqKpiHtml('⏱','Avg Wait Time',avgWaitMins!==null?acqFmtMins(avgWaitMins):'—',mWaitMins.length?mWaitMins.length+' records':'no called_at data yet',avgWaitMins>20?'var(--err)':avgWaitMins>10?'var(--warn)':'var(--ok)'),
     ].join('');
 
     // ── Source bars (NEW customers this month, by source) ──
