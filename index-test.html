@@ -5351,20 +5351,22 @@ async function acqRender(){
   });
   try{
     // Fetch customers
-    let customers=[];let offset=0;const PAGE=1000;
+    let customers=[];let offset=0;const PAGE=1000;let guard=0;
     while(true){
       const batch=await sb('customers','GET',null,'select=id,name,mobile,created_at,heard_via,gender&order=created_at.asc&limit='+PAGE+'&offset='+offset);
       customers=[...customers,...(batch||[])];if(!batch||batch.length<PAGE)break;offset+=PAGE;
+      if(++guard>200)throw new Error('customers fetch did not terminate — pagination may be stuck (fetched '+customers.length+' rows)');
     }
     // Fetch ALL-TIME queue records — NO status filter, matches Staff Mgmt exactly (see below).
     let queueAll=[];
     try{
-      offset=0;
+      offset=0;guard=0;
       while(true){
         const batch=await sb('queue','GET',null,'select=customer_id,customer_name,mobile,service_value,tip,checkin_date,checkin_time,called_at,done_at,stylist,status,payment_type&order=checkin_date.asc&limit='+PAGE+'&offset='+offset);
         queueAll=[...queueAll,...(batch||[])];if(!batch||batch.length<PAGE)break;offset+=PAGE;
+        if(++guard>200){console.error('acqRender: queue fetch pagination did not terminate, stopping after',queueAll.length,'rows');break;}
       }
-    }catch(e){}
+    }catch(e){console.error('acqRender: queue fetch failed:',e);}
     // A queue row counts as an actual incurred service if it's marked done OR has a recorded
     // service value (mirrors the Staff app History screen's own revenue filter: service_value>0).
     const isIncurred=q=>q.status==='done'||(parseFloat(q.service_value)||0)>0;
@@ -5549,7 +5551,8 @@ async function acqRender(){
 
     acqRenderHistInsights(hist);
   }catch(e){
-    ['acq-kpis','acq-src-bars','acq-newret'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=`<div style="color:var(--err);padding:12px;font-size:13px;font-weight:700;">Error: ${e.message}</div>`;});
+    console.error('acqRender failed:',e);
+    ['acq-kpis','acq-src-bars','acq-newret'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=`<div style="color:var(--err);padding:12px;font-size:13px;font-weight:700;">⚠️ Acquisition tab error: ${e.message||e}<br><span style="font-weight:400;font-size:11.5px;">Check browser console for details, or share this message.</span></div>`;});
   }
 }
 
