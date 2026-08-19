@@ -410,6 +410,21 @@ async function sbFresh(path,params=''){
   return t?JSON.parse(t):[];
 }
 
+// Paginated GET — fetches ALL rows past Supabase's 1000-row default limit
+async function sbAll(path,params='',pageSize=1000){
+  let all=[],offset=0,guard=0;
+  while(true){
+    const sep=params?'&':'';
+    const batch=await sb(path,'GET',null,params+sep+'limit='+pageSize+'&offset='+offset);
+    if(!batch||!batch.length) break;
+    all=[...all,...batch];
+    if(batch.length<pageSize) break;
+    offset+=pageSize;
+    if(++guard>200) {console.warn('sbAll safety limit hit for',path);break;}
+  }
+  return all;
+}
+
 function fmtDate(iso){if(!iso)return '—';return new Date(iso).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});}
 function fmtDateTime(iso){if(!iso)return '—';return new Date(iso).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});}
 function addMonths(d,m){const x=new Date(d);x.setMonth(x.getMonth()+m);return x.toISOString();}
@@ -2046,7 +2061,7 @@ async function loadAfterService(){
   if(!el) return;
   el.innerHTML='<div class="load"><div class="spin"></div></div>';
   try{
-    const all=await sb('customers','GET',null,'select=*&order=created_at.desc');
+    const all=await sbAll('customers','select=*&order=created_at.desc');
     const now=new Date();
     const cutoff=new Date(now.getTime()-48*60*60*1000);
 
@@ -2146,7 +2161,7 @@ function filterCustomersByWidget(type){
 async function renderDash(){
   document.getElementById('SR').innerHTML='<div class="load"><div class="spin"></div></div>';
   try{
-    const custs=await sb('customers','GET',null,'select=*&order=created_at.desc');
+    const custs=await sbAll('customers','select=*&order=created_at.desc');
     const visits=await sb('visits','GET',null,'select=*,customers(name,mobile)&order=created_at.desc&limit=8');
     const total=custs.length,active=custs.filter(c=>!isExp(c)).length;
     const ready=custs.filter(c=>(c.stamps||0)>=paidNeeded()&&!isExp(c)).length;
@@ -2237,7 +2252,7 @@ var allC=[];
 async function loadCustomers(){
   document.getElementById('CT').innerHTML='<div class="load"><div class="spin"></div></div>';
   try{
-    allC=await sb('customers','GET',null,'select=*&order=name.asc');
+    allC=await sbAll('customers','select=*&order=name.asc');
     if(dashFilter){
       const banner=document.getElementById('cust-filter-banner');
       banner.style.display='flex';
@@ -2673,7 +2688,7 @@ async function renderMissYou(){
   document.getElementById('MY_girlLapsed').textContent=CFG.girlLapsedWeeks||26;
   document.getElementById('MY_STATS').innerHTML='<div class="load"><div class="spin"></div></div>';
   try{
-    const custs=await sb('customers','GET',null,'select=*&order=name.asc');
+    const custs=await sbAll('customers','select=*&order=name.asc');
     const TWO_WEEKS=14*24*60*60*1000;
     const now2=new Date();
 
@@ -3573,7 +3588,7 @@ function resetASMsg(){
 }
 
 async function exportCSV(){
-  const data=await sb('customers','GET',null,'select=*&order=name.asc');
+  const data=await sbAll('customers','select=*&order=name.asc');
   const h=['name','mobile','gender','stamps','parent','notes','redemptions','expiry_date','first_stamp_date'];
   const rows=data.map(c=>h.map(k=>(c[k]||'')).join(','));
   const csv=[h.join(','),...rows].join('\n');
@@ -5393,115 +5408,157 @@ async function acqRender(){
     }
     console.log('[ACQ] customers:',customers.length);
 
-    // 2. Fetch ALL queue rows for the current month — filter service_value>0 client-side
-    //    (mirrors Staff Mgmt exactly: fetches all rows, filters revenue client-side)
-    const qFromDate=`${acqYear}-${String(acqMonth+1).padStart(2,'0')}-01`;
-    const qToDate=`${acqYear}-${String(acqMonth+1).padStart(2,'0')}-${new Date(acqYear,acqMonth+1,0).getDate().toString().padStart(2,'0')}`;
-    let qRev=[];
-    try{let off=0,g=0;
-      while(true){
-        const b=await sb('queue','GET',null,
-          `select=customer_id,mobile,service_value,checkin_date,checkin_time,called_at,status&checkin_date=gte.${qFromDate}&checkin_date=lte.${qToDate}&order=checkin_date.asc&limit=1000&offset=${off}`);
-        if(!b||!b.length)break;
-        qRev=[...qRev,...b];
-        if(b.length<1000)break;off+=1000;if(++g>50)break;
-      }
-    }catch(e){console.warn('[ACQ] queue fetch failed:',e.message);}
-    // Client-side filter: service_value > 0, exactly matching Staff Mgmt History tab
-    const allQueueRows=qRev.length; // total fetched before filter (for debug)
-    qRev=qRev.filter(q=>(parseFloat(q.service_value)||0)>0);
-    console.log(`[ACQ] queue for ${qFromDate}→${qToDate}: ${allQueueRows} total rows, ${qRev.length} with service_value>0, AED total:`,qRev.reduce((a,q)=>a+(parseFloat(q.service_value)||0),0));
+    // 2. Revenue from Supabase queue — ONLY for dates after June 7 2026
+    //    (system went live June 8; data before that is in the Excel upload)
+    //    Matches Staff Mgmt History tab exactly: service_value + tip, any row with service_value > 0
+    const DB_CUTOFF = '2026-06-07'; // on or before this date → use Excel only
+    const qFromDate = `${acqYear}-${String(acqMonth+1).padStart(2,'0')}-01`;
+    const qToDate   = `${acqYear}-${String(acqMonth+1).padStart(2,'0')}-${new Date(acqYear,acqMonth+1,0).getDate().toString().padStart(2,'0')}`;
+    let qRev = [];
+    // Only fetch from DB if the month is at least partly after the cutoff
+    if(qToDate > DB_CUTOFF){
+      try{
+        let off=0,g=0;
+        while(true){
+          const b = await sb('queue','GET',null,
+            `select=customer_id,mobile,service_value,tip,checkin_date,checkin_time,called_at,status`
+            +`&checkin_date=gte.${qFromDate}&checkin_date=lte.${qToDate}`
+            +`&order=checkin_date.asc&limit=1000&offset=${off}`);
+          if(!b||!b.length) break;
+          qRev=[...qRev,...b];
+          if(b.length<1000) break;
+          off+=1000; if(++g>50) break;
+        }
+      }catch(e){console.warn('[ACQ] queue fetch failed:',e.message);}
+    }
+    // Keep only rows with a recorded service value, and only rows AFTER the cutoff
+    qRev = qRev.filter(q=>{
+      if((parseFloat(q.service_value)||0)<=0) return false;
+      return q.checkin_date > DB_CUTOFF; // strict: cutoff date rows → Excel only
+    });
+    // Revenue = service_value ONLY (tip excluded, matches "Value" column in Staff Mgmt)
+    const mRevDB   = qRev.reduce((a,q)=>a+(parseFloat(q.service_value)||0),0);
+    const mRevDBsvc= mRevDB;
+    const mRevDBtip= qRev.reduce((a,q)=>a+(parseFloat(q.tip)||0),0); // tracked separately for info
+    console.log(`[ACQ] DB queue ${qFromDate}→${qToDate} (after ${DB_CUTOFF}): ${qRev.length} rows · svc AED ${mRevDB} · tips AED ${mRevDBtip} (excluded)`);
 
-    // 3. Historical Excel data
-    const hist=JSON.parse(localStorage.getItem(ACQ_HIST_KEY)||'[]');
+    // 3. Historical data — localStorage first, fall back to Supabase DB
+    let hist=JSON.parse(localStorage.getItem(ACQ_HIST_KEY)||'[]');
+    if(!hist.length){
+      try{
+        hist=await sbAll('historical_transactions','select=mobile,name,date,amount,description,segment,stylist_phone,external_id&order=date.asc');
+        if(hist.length){
+          // Cache in localStorage for speed
+          localStorage.setItem(ACQ_HIST_KEY,JSON.stringify(hist));
+          console.log('[ACQ] loaded',hist.length,'historical records from Supabase DB');
+        }
+      }catch(e){console.warn('[ACQ] historical_transactions fetch failed:',e.message);}
+    }
     const histHasData=hist.length>0;
 
     // 4. Lookups
     const custById={};
     customers.forEach(c=>custById[c.id]=c);
 
-    // Build phone → earliest registration date across ALL DB records
-    // This catches: same phone registered in June, walks in again August = returning
+    // Phone → earliest registration date across ALL DB records
     const phoneFirstRegDate={};
     customers.forEach(c=>{
-      const ph=acqNormalizePhone(c.mobile);if(!ph)return;
+      const ph=acqNormalizePhone(c.mobile); if(!ph) return;
       const d=new Date(c.created_at);
-      if(!phoneFirstRegDate[ph]||d<phoneFirstRegDate[ph])phoneFirstRegDate[ph]=d;
+      if(!phoneFirstRegDate[ph]||d<phoneFirstRegDate[ph]) phoneFirstRegDate[ph]=d;
     });
 
-    // Historical: earliest date per phone (pre-system Excel)
+    // Historical Excel: earliest date per phone
     const histFirstDate={};
     hist.forEach(r=>{
       const ph=acqNormalizePhone(r.mobile||r.phone);
-      if(!ph||!r.date)return;
-      const d=new Date(r.date);if(isNaN(d))return;
-      if(!histFirstDate[ph]||d<histFirstDate[ph])histFirstDate[ph]=d;
+      if(!ph||!r.date) return;
+      const d=new Date(r.date); if(isNaN(d)) return;
+      if(!histFirstDate[ph]||d<histFirstDate[ph]) histFirstDate[ph]=d;
     });
 
-    // 5. Each customer's absolute first-ever date:
-    //    min(their own created_at,
-    //        earliest DB record for their phone (another family member registered earlier),
-    //        earliest Excel record for their phone)
+    // 5. Each customer's absolute first-ever date
     const custFirstDate={};
     customers.forEach(c=>{
       const ph=acqNormalizePhone(c.mobile);
-      const ownReg=new Date(c.created_at);
-      const dbFirst=ph&&phoneFirstRegDate[ph]?phoneFirstRegDate[ph]:null;
-      const excelFirst=ph&&histFirstDate[ph]?histFirstDate[ph]:null;
-      let first=ownReg;
-      if(dbFirst&&dbFirst<first)first=dbFirst;
-      if(excelFirst&&excelFirst<first)first=excelFirst;
+      let first=new Date(c.created_at);
+      const dbFirst=ph&&phoneFirstRegDate[ph]; if(dbFirst&&dbFirst<first) first=dbFirst;
+      const exFirst=ph&&histFirstDate[ph];     if(exFirst&&exFirst<first) first=exFirst;
       custFirstDate[c.id]=first;
     });
 
     // 6. Month window
-    const mStart=new Date(acqYear,acqMonth,1);
-    const mEnd=new Date(acqYear,acqMonth+1,0,23,59,59,999);
+    const mStart = new Date(acqYear, acqMonth, 1);
+    const mEnd   = new Date(acqYear, acqMonth+1, 0, 23, 59, 59, 999);
 
     // Customers registered this month
-    const mCusts=customers.filter(c=>{const d=new Date(c.created_at);return d>=mStart&&d<=mEnd;});
+    const mCusts = customers.filter(c=>{const d=new Date(c.created_at);return d>=mStart&&d<=mEnd;});
     console.log('[ACQ] registered this month:',mCusts.length);
 
-    // Classify: new = phone not seen anywhere before this month (no prior DB + no Excel)
-    let newCount=0,retCount=0,unknownCount=0;
+    // Classify new vs returning
+    let newCount=0, retCount=0, unknownCount=0;
     const newIds=new Set();
     mCusts.forEach(c=>{
       const ph=acqNormalizePhone(c.mobile);
       if(!ph){unknownCount++;return;}
-      // Prior DB record for same phone before this month?
-      const priorDB=phoneFirstRegDate[ph]&&phoneFirstRegDate[ph]<mStart;
-      // Excel record for same phone?
-      const priorExcel=histFirstDate[ph]&&histFirstDate[ph]<mStart;
-      if(priorDB||priorExcel){retCount++;}
-      else{newCount++;newIds.add(c.id);}
+      const priorDB    = phoneFirstRegDate[ph] && phoneFirstRegDate[ph]<mStart;
+      const priorExcel = histFirstDate[ph]      && histFirstDate[ph]<mStart;
+      if(priorDB||priorExcel) retCount++;
+      else{newCount++; newIds.add(c.id);}
     });
     console.log('[ACQ] new:',newCount,'ret:',retCount,'unknown:',unknownCount);
 
-    const returnRate=mCusts.length?Math.round(retCount/mCusts.length*100):0;
+    const returnRate = mCusts.length ? Math.round(retCount/mCusts.length*100) : 0;
 
-    // 7. Revenue: queue done rows this month, Value column = service_value
-    const mQRev=qRev.filter(q=>{if(!q.checkin_date)return false;const d=new Date(q.checkin_date);return d>=mStart&&d<=mEnd;});
-    const mRevLive=mQRev.reduce((a,q)=>a+(parseFloat(q.service_value)||0),0);
-    const mRevHist=hist.filter(r=>{if(!r.date)return false;const d=new Date(r.date);return !isNaN(d)&&d>=mStart&&d<=mEnd;}).reduce((a,r)=>a+(parseFloat(r.amount)||0),0);
-    const isCur=acqIsCurrentMonth();
-    const mRevCombined=isCur?mRevLive:(mRevLive+mRevHist);
+    // 7. Revenue — two clean buckets, no overlap:
+    //    • AFTER June 7  → DB queue (service_value + tip)
+    //    • ON/BEFORE June 7 → Excel upload (amount column)
+    const cutoffDate = new Date('2026-06-07T23:59:59');
+
+    // DB revenue: rows already filtered to after cutoff above
+    const mRevFromDB = qRev
+      .filter(q=>{const d=new Date(q.checkin_date);return d>=mStart&&d<=mEnd;})
+      .reduce((a,q)=>a+(parseFloat(q.service_value)||0), 0);
+
+    // Excel revenue: only rows ON OR BEFORE June 7, within this month's window
+    const mRevFromExcel = hist
+      .filter(r=>{
+        if(!r.date) return false;
+        const d=new Date(r.date);
+        return !isNaN(d) && d>=mStart && d<=mEnd && d<=cutoffDate;
+      })
+      .reduce((a,r)=>a+(parseFloat(r.amount)||0), 0);
+
+    const mRevTotal    = mRevFromDB + mRevFromExcel;
+    const mRevDBrows   = qRev.filter(q=>{const d=new Date(q.checkin_date);return d>=mStart&&d<=mEnd;}).length;
+    const mRevExcelRows= hist.filter(r=>{if(!r.date)return false;const d=new Date(r.date);return !isNaN(d)&&d>=mStart&&d<=mEnd&&d<=cutoffDate;}).length;
+
+    console.log(`[ACQ] Revenue: DB AED ${mRevFromDB} (${mRevDBrows} rows) + Excel AED ${mRevFromExcel} (${mRevExcelRows} rows) = AED ${mRevTotal}`);
 
     // Wait time
-    const waits=mQRev.filter(q=>q.checkin_time&&q.called_at)
+    const waits = qRev
+      .filter(q=>{const d=new Date(q.checkin_date);return d>=mStart&&d<=mEnd;})
+      .filter(q=>q.checkin_time&&q.called_at)
       .map(q=>(new Date(q.called_at)-new Date(q.checkin_time))/60000)
       .filter(m=>!isNaN(m)&&m>=0&&m<300);
-    const avgWait=waits.length?waits.reduce((a,b)=>a+b,0)/waits.length:null;
+    const avgWait = waits.length ? waits.reduce((a,b)=>a+b,0)/waits.length : null;
 
     // 8. KPIs
     document.getElementById('acq-kpis').innerHTML=[
       acqKpiHtml('🆕','New Customers',newCount,acqIsCurrentMonth()?'🟢 running':'first visit ever','var(--ok)'),
       acqKpiHtml('🔄','Returning',retCount,histHasData?'cross-ref vs Excel':'upload Excel to improve','var(--b)'),
-      acqKpiHtml('👥','Registered This Month',mCusts.length,'total new registrations'),
-      acqKpiHtml('👤','All Customers',customers.length,'total in system'),
-      acqKpiHtml('📊','Return Rate',returnRate+'%',histHasData?'vs history':'system data only',returnRate>=40?'var(--ok)':returnRate>=20?'var(--warn)':'var(--err)'),
-      acqKpiHtml('💰','Revenue (Live)','AED '+(mRevLive||0).toFixed(0),mQRev.length+' done visits · Value col','var(--ok)'),
-      acqKpiHtml('📂',isCur?'Revenue (This Month)':'Revenue (Combined)','AED '+(mRevCombined||0).toFixed(0),isCur?'live only':(mRevHist?'+AED '+mRevHist.toFixed(0)+' Excel':'')),
-      acqKpiHtml('⏱','Avg Wait',avgWait!==null?acqFmtMins(avgWait):'—',waits.length?waits.length+' records':'no called_at yet',avgWait>20?'var(--err)':avgWait>10?'var(--warn)':'var(--ok)'),
+      acqKpiHtml('👥','Registered This Month',mCusts.length,'total registrations'),
+      acqKpiHtml('👤','All Customers (DB)',customers.length,'in system since June 2025'),
+      acqKpiHtml('📊','Return Rate',returnRate+'%',histHasData?'incl. Excel cross-ref':'DB only',returnRate>=40?'var(--ok)':returnRate>=20?'var(--warn)':'var(--err)'),
+      acqKpiHtml('💰','Revenue (DB, excl. tips)','AED '+(mRevFromDB||0).toFixed(0),
+        mRevDBrows+' visits · service_value only','var(--ok)'),
+      acqKpiHtml('📂','Revenue (Excel ≤7 Jun)','AED '+(mRevFromExcel||0).toFixed(0),
+        mRevExcelRows+' Excel rows on/before Jun 7','var(--muted)'),
+      acqKpiHtml('💵','Revenue (Total)','AED '+(mRevTotal||0).toFixed(0),
+        'DB svc + Excel — tips excluded'),
+      acqKpiHtml('⏱','Avg Wait',avgWait!==null?acqFmtMins(avgWait):'—',
+        waits.length?waits.length+' records':'no called_at yet',
+        avgWait>20?'var(--err)':avgWait>10?'var(--warn)':'var(--ok)'),
     ].join('');
 
     // 9. Source breakdown — ALL customers registered this month (new + returning)
@@ -5564,10 +5621,12 @@ async function acqRender(){
         <div style="font-size:11px;color:var(--muted);margin-top:5px;">Blank/null = source not recorded at check-in (customer was not asked or skipped the question).</div>
       </div>`;
 
-    // 10. Revenue by source (new vs returning)
+    // 10. Revenue by source (new vs returning) — DB rows only (after cutoff)
     const sRN={},sRR={};allSrc.forEach(s=>{sRN[s.key]=0;sRR[s.key]=0;});
-    mQRev.forEach(q=>{
-      const amt=parseFloat(q.service_value)||0;if(!amt)return;
+    const mQRevForSource=qRev.filter(q=>{const d=new Date(q.checkin_date);return d>=mStart&&d<=mEnd;});
+    mQRevForSource.forEach(q=>{
+      const amt=parseFloat(q.service_value)||0;
+      if(!amt)return;
       const c=q.customer_id?custById[q.customer_id]:null;
       const src=c?acqMapSource(c.heard_via):'Unknown';
       if(c&&newIds.has(c.id))sRN[src]=(sRN[src]||0)+amt;
@@ -5584,7 +5643,12 @@ async function acqRender(){
       ?allSrc.filter(s=>sRR[s.key]>0).sort((a,b)=>sRR[b.key]-sRR[a.key]).map(s=>acqBar(s.emoji+' '+s.label,sRR[s.key],mxRR,s.color,'AED ')).join('')
       :'<div style="color:var(--muted);font-size:12.5px;padding:8px 0;">No revenue data for returning customers this month.</div>';
     const rn=document.getElementById('acq-rev-note');
-    if(rn){if(mQRev.length&&!mRevLive){rn.style.display='block';rn.textContent='⚠️ Done visits found but no AED values — staff must enter the service value when marking Done in the Staff app.';}else rn.style.display='none';}
+    if(rn){
+      if(mQRevForSource.length&&!mRevFromDB){
+        rn.style.display='block';
+        rn.textContent='⚠️ Queue rows found but no AED values — staff must enter service value when marking Done in the Staff app.';
+      }else rn.style.display='none';
+    }
 
     // 11. Monthly table
     acqBuildMonthlyTable(customers,custFirstDate,hist);
@@ -6267,11 +6331,65 @@ function acqParseRow(row,mapping){
   return{mobile:acqNormalizePhone(get('mobile')),date:get('date')||null,amount:parseFloat(get('amount'))||0,name:get('name')||null,email:get('email')||null,dob:get('dob')||null,description:get('description')||null,segment:get('segment')||null,stylist_phone:get('stylist_phone')||null,external_id:get('external_id')||null};
 }
 function acqBackToMapper(){document.getElementById('acq-step2').style.display='block';document.getElementById('acq-step3').style.display='none';}
-function acqCommitHistorical(){
-  const records=window._acqPendingRecords||[];if(!records.length){toast('No valid records to save','error');return;}
+async function acqCommitHistorical(){
+  const records=window._acqPendingRecords||[];
+  if(!records.length){toast('No valid records to save','error');return;}
+
+  // Always save to localStorage first (fast, offline)
   localStorage.setItem(ACQ_HIST_KEY,JSON.stringify(records));
   if(window._acqPendingAvg)localStorage.setItem(ACQ_AVG_KEY,window._acqPendingAvg);
-  acqResetUpload();acqShowHistStatus();toast(`✅ ${records.length.toLocaleString()} historical records saved`);
+
+  // Then save to Supabase historical_transactions table
+  const statusEl=document.getElementById('acq-upload-status');
+  if(statusEl)statusEl.innerHTML=`<div style="background:var(--bl);color:var(--b);border-radius:8px;padding:10px 14px;font-size:13px;font-weight:700;">⏳ Saving to Supabase…</div>`;
+
+  const toRow=r=>({
+    mobile:r.mobile||null, name:r.name||null, email:r.email||null,
+    date:r.date||null, amount:r.amount||null, description:r.description||null,
+    dob:r.dob||null, segment:r.segment||null,
+    stylist_phone:r.stylist_phone||null, external_id:r.external_id||null,
+  });
+
+  try{
+    // Clear existing records first (full replace semantics)
+    await sb('historical_transactions','DELETE',null,'id=neq.00000000-0000-0000-0000-000000000000');
+    // Insert in batches of 200
+    const BATCH=200;let saved=0;
+    for(let i=0;i<records.length;i+=BATCH){
+      const batch=records.slice(i,i+BATCH).map(toRow);
+      await sb('historical_transactions','POST',batch);
+      saved+=batch.length;
+      if(statusEl)statusEl.innerHTML=`<div style="background:var(--bl);color:var(--b);border-radius:8px;padding:10px 14px;font-size:13px;font-weight:700;">⏳ ${saved}/${records.length} saved…</div>`;
+    }
+    toast(`✅ ${records.length.toLocaleString()} records saved to Supabase`);
+    if(statusEl)statusEl.innerHTML='';
+  }catch(e){
+    console.warn('[ACQ] Supabase save failed:',e.message);
+    // Show the SQL to create the table if it doesn't exist yet
+    if(statusEl)statusEl.innerHTML=`<div style="background:var(--warnl);border-radius:8px;padding:12px 14px;font-size:12.5px;">
+      <div style="font-weight:800;color:var(--warn);margin-bottom:8px;">⚠️ Supabase save failed — table may not exist yet. Run this SQL in Supabase → SQL Editor:</div>
+      <pre style="background:#1e293b;color:#e2e8f0;border-radius:8px;padding:12px;font-size:11px;overflow-x:auto;margin:0;">CREATE TABLE IF NOT EXISTS historical_transactions (
+  id            uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  mobile        text,
+  name          text,
+  email         text,
+  date          text,
+  amount        numeric,
+  description   text,
+  dob           text,
+  segment       text,
+  stylist_phone text,
+  external_id   text,
+  created_at    timestamptz DEFAULT now()
+);
+ALTER TABLE historical_transactions ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "allow_all" ON historical_transactions FOR ALL USING (true) WITH CHECK (true);</pre>
+      <div style="margin-top:8px;color:var(--muted);font-size:12px;">Data is saved in browser localStorage for now. After creating the table, re-upload your Excel to persist it to the DB.</div>
+    </div>`;
+    toast('Saved to browser. Create DB table to persist to Supabase.','info');
+  }
+  acqResetUpload();
+  acqShowHistStatus();
   setTimeout(acqRender,400);
 }
 function acqResetUpload(){
@@ -6279,18 +6397,33 @@ function acqResetUpload(){
   ['acq-step1','acq-step2','acq-step3'].forEach((id,i)=>{const el=document.getElementById(id);if(el)el.style.display=i===0?'block':'none';});
   document.getElementById('acq-upload-status').innerHTML='';
 }
-function acqShowHistStatus(){
-  const records=JSON.parse(localStorage.getItem(ACQ_HIST_KEY)||'[]');
+async function acqShowHistStatus(){
   const status=document.getElementById('acq-upload-status');if(!status)return;
-  if(records.length){
-    const unique=new Set(records.map(r=>r.mobile||r.phone)).size;const withAmt=records.filter(r=>r.amount>0).length;
+  const local=JSON.parse(localStorage.getItem(ACQ_HIST_KEY)||'[]');
+  // Also check DB
+  let dbCount=0;
+  try{
+    const r=await sb('historical_transactions','GET',null,'select=id&limit=1');
+    if(r&&r.length){
+      // Get full count via head request
+      const url=SB_URL+'/rest/v1/historical_transactions?select=id';
+      const h={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Prefer':'count=exact','Range':'0-0'};
+      const res=await fetch(url,{method:'GET',headers:h});
+      const cr=res.headers.get('content-range');
+      if(cr) dbCount=parseInt(cr.split('/')[1])||0;
+    }
+  }catch(e){}
+  if(local.length||dbCount){
+    const unique=new Set(local.map(r=>r.mobile||r.phone)).size;
     status.innerHTML=`<div style="background:var(--okl);color:var(--ok);border-radius:8px;padding:10px 14px;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
-      <span>✅ Historical active · ${records.length.toLocaleString()} records · ${unique.toLocaleString()} unique phones${withAmt?' · '+withAmt+' with amount':''}</span>
+      <span>✅ Historical data active · ${local.length.toLocaleString()} records in browser${dbCount?' · '+dbCount.toLocaleString()+' in Supabase DB':' · ⚠️ not yet in DB'} · ${unique.toLocaleString()} unique phones</span>
       <div style="display:flex;gap:6px;">
         <button onclick="acqReupload()" style="background:var(--bl);color:var(--b);border:none;border-radius:6px;padding:4px 10px;font-size:11.5px;font-weight:700;cursor:pointer;">↺ Re-upload</button>
         <button onclick="acqClearHistorical()" style="background:var(--errl);color:var(--err);border:none;border-radius:6px;padding:4px 10px;font-size:11.5px;font-weight:700;cursor:pointer;">🗑 Clear</button>
       </div></div>`;
-  }else{status.innerHTML='<div style="font-size:12.5px;color:var(--muted);">No historical data uploaded yet.</div>';}
+  }else{
+    status.innerHTML='<div style="font-size:12.5px;color:var(--muted);">No historical data uploaded yet. Without it, pre-June customers are treated as new.</div>';
+  }
 }
 function acqReupload(){acqResetUpload();document.getElementById('acq-hist-file').click();}
 function acqClearHistorical(){if(!confirm('Remove all uploaded historical data?'))return;localStorage.removeItem(ACQ_HIST_KEY);localStorage.removeItem(ACQ_AVG_KEY);toast('Cleared','info');acqShowHistStatus();acqRender();}
