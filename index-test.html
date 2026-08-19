@@ -5408,14 +5408,13 @@ async function acqRender(){
     }
     console.log('[ACQ] customers:',customers.length);
 
-    // 2. Revenue from Supabase queue — ONLY for dates after June 7 2026
-    //    (system went live June 8; data before that is in the Excel upload)
-    //    Matches Staff Mgmt History tab exactly: service_value + tip, any row with service_value > 0
-    const DB_CUTOFF = '2026-06-07'; // on or before this date → use Excel only
-    const qFromDate = `${acqYear}-${String(acqMonth+1).padStart(2,'0')}-01`;
-    const qToDate   = `${acqYear}-${String(acqMonth+1).padStart(2,'0')}-${new Date(acqYear,acqMonth+1,0).getDate().toString().padStart(2,'0')}`;
+    // 2. Revenue from Supabase queue
+    // checkin_date may be stored as 'date' or 'timestamptz' — handle both
+    const DB_CUTOFF    = '2026-06-07';
+    const qFromDate    = `${acqYear}-${String(acqMonth+1).padStart(2,'0')}-01`;
+    const qToDate      = `${acqYear}-${String(acqMonth+1).padStart(2,'0')}-${new Date(acqYear,acqMonth+1,0).getDate().toString().padStart(2,'0')}`;
+    // Use plain YYYY-MM-DD for both bounds — works for both date and timestamptz columns
     let qRev = [];
-    // Only fetch from DB if the month is at least partly after the cutoff
     if(qToDate > DB_CUTOFF){
       try{
         let off=0,g=0;
@@ -5431,16 +5430,23 @@ async function acqRender(){
         }
       }catch(e){console.warn('[ACQ] queue fetch failed:',e.message);}
     }
-    // Keep only rows with a recorded service value, and only rows AFTER the cutoff
-    qRev = qRev.filter(q=>{
+    console.log('[ACQ] raw queue rows fetched:',qRev.length);
+    if(qRev.length>0){
+      console.log('[ACQ] first row sample:',JSON.stringify(qRev[0]));
+      console.log('[ACQ] rows with service_value>0:',qRev.filter(q=>(parseFloat(q.service_value)||0)>0).length);
+      console.log('[ACQ] unique checkin_date formats:',
+        [...new Set(qRev.slice(0,10).map(q=>(q.checkin_date||'').slice(0,10)))]);
+    }
+
+    // Filter: service_value > 0 and date after cutoff
+    // Normalise date to 'YYYY-MM-DD' string (handles both date and timestamptz)
+    const qRevFiltered = qRev.filter(q=>{
       if((parseFloat(q.service_value)||0)<=0) return false;
-      return q.checkin_date > DB_CUTOFF; // strict: cutoff date rows → Excel only
+      const dateStr = (q.checkin_date||'').toString().slice(0,10);
+      return dateStr > DB_CUTOFF;
     });
-    // Revenue = service_value ONLY (tip excluded, matches "Value" column in Staff Mgmt)
-    const mRevDB   = qRev.reduce((a,q)=>a+(parseFloat(q.service_value)||0),0);
-    const mRevDBsvc= mRevDB;
-    const mRevDBtip= qRev.reduce((a,q)=>a+(parseFloat(q.tip)||0),0); // tracked separately for info
-    console.log(`[ACQ] DB queue ${qFromDate}→${qToDate} (after ${DB_CUTOFF}): ${qRev.length} rows · svc AED ${mRevDB} · tips AED ${mRevDBtip} (excluded)`);
+    const mRevFromDB = qRevFiltered.reduce((a,q)=>a+(parseFloat(q.service_value)||0), 0);
+    console.log(`[ACQ] qRevFiltered: ${qRevFiltered.length} rows, mRevFromDB: AED ${mRevFromDB}`);
 
     // 3. Historical data — localStorage first, fall back to Supabase DB
     let hist=JSON.parse(localStorage.getItem(ACQ_HIST_KEY)||'[]');
@@ -5510,34 +5516,34 @@ async function acqRender(){
 
     const returnRate = mCusts.length ? Math.round(retCount/mCusts.length*100) : 0;
 
-    // 7. Revenue — two clean buckets, no overlap:
-    //    • AFTER June 7  → DB queue (service_value + tip)
-    //    • ON/BEFORE June 7 → Excel upload (amount column)
-    const cutoffDate = new Date('2026-06-07T23:59:59');
+    // 7. Revenue — two buckets, no overlap:
+    //    DB queue   → checkin_date after June 7 2026  (mRevFromDB, computed above)
+    //    Excel data → date on or before June 7 2026   (pre-system)
+    //
+    // For June 2026: DB covers Jun 8–30, Excel covers Jun 1–7
+    // For May 2025 and earlier: Excel covers the whole month (all rows < cutoff)
+    // For Aug 2026+: DB only (Excel has no rows in those months)
 
-    // DB revenue: rows already filtered to after cutoff above
-    const mRevFromDB = qRev
-      .filter(q=>{const d=new Date(q.checkin_date);return d>=mStart&&d<=mEnd;})
-      .reduce((a,q)=>a+(parseFloat(q.service_value)||0), 0);
+    const cutoffDate = new Date('2026-06-07T23:59:59.999');
+    const excelRowsThisMonth = hist.filter(r=>{
+      if(!r.date) return false;
+      // Normalise date string — Excel stores '2025-05-23 21:00:00', parse carefully
+      const raw = String(r.date).replace(' ','T');
+      const d = new Date(raw);
+      if(isNaN(d)) return false;
+      return d >= mStart && d <= mEnd && d <= cutoffDate;
+    });
+    const mRevFromExcel = excelRowsThisMonth.reduce((a,r)=>a+(parseFloat(r.amount)||0), 0);
+    const mRevTotal     = mRevFromDB + mRevFromExcel;
+    const mRevDBrows    = qRevFiltered.length;
+    const mRevExcelRows = excelRowsThisMonth.length;
 
-    // Excel revenue: only rows ON OR BEFORE June 7, within this month's window
-    const mRevFromExcel = hist
-      .filter(r=>{
-        if(!r.date) return false;
-        const d=new Date(r.date);
-        return !isNaN(d) && d>=mStart && d<=mEnd && d<=cutoffDate;
-      })
-      .reduce((a,r)=>a+(parseFloat(r.amount)||0), 0);
-
-    const mRevTotal    = mRevFromDB + mRevFromExcel;
-    const mRevDBrows   = qRev.filter(q=>{const d=new Date(q.checkin_date);return d>=mStart&&d<=mEnd;}).length;
-    const mRevExcelRows= hist.filter(r=>{if(!r.date)return false;const d=new Date(r.date);return !isNaN(d)&&d>=mStart&&d<=mEnd&&d<=cutoffDate;}).length;
-
-    console.log(`[ACQ] Revenue: DB AED ${mRevFromDB} (${mRevDBrows} rows) + Excel AED ${mRevFromExcel} (${mRevExcelRows} rows) = AED ${mRevTotal}`);
+    console.log(`[ACQ] Excel rows in this month window (≤Jun7): ${mRevExcelRows}, AED ${mRevFromExcel}`);
+    console.log(`[ACQ] TOTAL REVENUE: AED ${mRevTotal} (DB: ${mRevFromDB} + Excel: ${mRevFromExcel})`);
+    if(!histHasData) console.warn('[ACQ] hist is empty — Excel revenue will be AED 0. Upload Excel or check historical_transactions table.');
 
     // Wait time
-    const waits = qRev
-      .filter(q=>{const d=new Date(q.checkin_date);return d>=mStart&&d<=mEnd;})
+    const waits = qRevFiltered
       .filter(q=>q.checkin_time&&q.called_at)
       .map(q=>(new Date(q.called_at)-new Date(q.checkin_time))/60000)
       .filter(m=>!isNaN(m)&&m>=0&&m<300);
@@ -5623,7 +5629,7 @@ async function acqRender(){
 
     // 10. Revenue by source (new vs returning) — DB rows only (after cutoff)
     const sRN={},sRR={};allSrc.forEach(s=>{sRN[s.key]=0;sRR[s.key]=0;});
-    const mQRevForSource=qRev.filter(q=>{const d=new Date(q.checkin_date);return d>=mStart&&d<=mEnd;});
+    const mQRevForSource = qRevFiltered;
     mQRevForSource.forEach(q=>{
       const amt=parseFloat(q.service_value)||0;
       if(!amt)return;
@@ -6335,13 +6341,15 @@ async function acqCommitHistorical(){
   const records=window._acqPendingRecords||[];
   if(!records.length){toast('No valid records to save','error');return;}
 
-  // Always save to localStorage first (fast, offline)
+  const statusEl=document.getElementById('acq-upload-status');
+  const step3=document.getElementById('acq-step3');
+
+  // Step 1: Save to localStorage immediately (always succeeds)
   localStorage.setItem(ACQ_HIST_KEY,JSON.stringify(records));
   if(window._acqPendingAvg)localStorage.setItem(ACQ_AVG_KEY,window._acqPendingAvg);
 
-  // Then save to Supabase historical_transactions table
-  const statusEl=document.getElementById('acq-upload-status');
-  if(statusEl)statusEl.innerHTML=`<div style="background:var(--bl);color:var(--b);border-radius:8px;padding:10px 14px;font-size:13px;font-weight:700;">⏳ Saving to Supabase…</div>`;
+  // Step 2: Save to Supabase
+  if(statusEl)statusEl.innerHTML=`<div style="background:var(--bl);color:var(--b);border-radius:8px;padding:10px 14px;font-size:13px;font-weight:700;">⏳ Saving ${records.length.toLocaleString()} records to Supabase DB…</div>`;
 
   const toRow=r=>({
     mobile:r.mobile||null, name:r.name||null, email:r.email||null,
@@ -6350,8 +6358,9 @@ async function acqCommitHistorical(){
     stylist_phone:r.stylist_phone||null, external_id:r.external_id||null,
   });
 
+  let dbOk=false;
   try{
-    // Clear existing records first (full replace semantics)
+    // Delete all existing rows (full replace)
     await sb('historical_transactions','DELETE',null,'id=neq.00000000-0000-0000-0000-000000000000');
     // Insert in batches of 200
     const BATCH=200;let saved=0;
@@ -6359,16 +6368,18 @@ async function acqCommitHistorical(){
       const batch=records.slice(i,i+BATCH).map(toRow);
       await sb('historical_transactions','POST',batch);
       saved+=batch.length;
-      if(statusEl)statusEl.innerHTML=`<div style="background:var(--bl);color:var(--b);border-radius:8px;padding:10px 14px;font-size:13px;font-weight:700;">⏳ ${saved}/${records.length} saved…</div>`;
+      if(statusEl)statusEl.innerHTML=`<div style="background:var(--bl);color:var(--b);border-radius:8px;padding:10px 14px;font-size:13px;font-weight:700;">⏳ ${saved.toLocaleString()} / ${records.length.toLocaleString()} saved to Supabase…</div>`;
     }
+    dbOk=true;
+    if(statusEl)statusEl.innerHTML=`<div style="background:var(--okl);color:var(--ok);border-radius:8px;padding:10px 14px;font-size:13px;font-weight:700;">✅ ${records.length.toLocaleString()} records saved to Supabase + browser storage</div>`;
     toast(`✅ ${records.length.toLocaleString()} records saved to Supabase`);
-    if(statusEl)statusEl.innerHTML='';
   }catch(e){
-    console.warn('[ACQ] Supabase save failed:',e.message);
-    // Show the SQL to create the table if it doesn't exist yet
-    if(statusEl)statusEl.innerHTML=`<div style="background:var(--warnl);border-radius:8px;padding:12px 14px;font-size:12.5px;">
-      <div style="font-weight:800;color:var(--warn);margin-bottom:8px;">⚠️ Supabase save failed — table may not exist yet. Run this SQL in Supabase → SQL Editor:</div>
-      <pre style="background:#1e293b;color:#e2e8f0;border-radius:8px;padding:12px;font-size:11px;overflow-x:auto;margin:0;">CREATE TABLE IF NOT EXISTS historical_transactions (
+    console.error('[ACQ] Supabase save failed:',e.message);
+    // Show SQL and DO NOT reset — let user fix and retry
+    if(statusEl)statusEl.innerHTML=`<div style="background:var(--errl);border-radius:8px;padding:14px;font-size:12.5px;">
+      <div style="font-weight:800;color:var(--err);margin-bottom:8px;font-size:13px;">❌ Supabase save failed: ${e.message}</div>
+      <div style="color:var(--text);margin-bottom:10px;font-weight:700;">The historical_transactions table probably doesn't exist yet. Run this SQL in <a href="https://supabase.com/dashboard/project/wtapyfgtwkjyjrjdnhkb/sql/new" target="_blank" style="color:var(--b);">Supabase → SQL Editor</a>, then click Retry:</div>
+      <pre style="background:#1e293b;color:#e2e8f0;border-radius:8px;padding:12px;font-size:11px;overflow-x:auto;margin:0 0 12px 0;white-space:pre;">CREATE TABLE IF NOT EXISTS historical_transactions (
   id            uuid DEFAULT gen_random_uuid() PRIMARY KEY,
   mobile        text,
   name          text,
@@ -6384,11 +6395,23 @@ async function acqCommitHistorical(){
 );
 ALTER TABLE historical_transactions ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "allow_all" ON historical_transactions FOR ALL USING (true) WITH CHECK (true);</pre>
-      <div style="margin-top:8px;color:var(--muted);font-size:12px;">Data is saved in browser localStorage for now. After creating the table, re-upload your Excel to persist it to the DB.</div>
+      <div style="display:flex;gap:8px;">
+        <button onclick="acqCommitHistorical()" class="btn bp bsm">↺ Retry Save to Supabase</button>
+        <span style="font-size:12px;color:var(--ok);font-weight:700;align-self:center;">✅ Data already saved to browser localStorage — metrics will work on this device</span>
+      </div>
     </div>`;
-    toast('Saved to browser. Create DB table to persist to Supabase.','info');
+    // Don't return — still continue to show metrics from localStorage
   }
-  acqResetUpload();
+
+  if(dbOk){
+    // Only reset the wizard on success
+    acqResetUpload();
+  }else{
+    // On failure: hide the wizard steps but keep the error visible
+    ['acq-step1','acq-step2','acq-step3'].forEach(id=>{
+      const el=document.getElementById(id);if(el)el.style.display='none';
+    });
+  }
   acqShowHistStatus();
   setTimeout(acqRender,400);
 }
