@@ -1275,12 +1275,10 @@ async function archiveCycle(customerId,stamps,firstStampDate,expiryDate,endedBy)
     <!-- Revenue by source: new vs old -->
     <div class="acq-card">
       <div style="font-family:var(--fh);font-size:15px;font-weight:800;margin-bottom:4px;">💰 Revenue — New vs Returning by Source</div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">From <code>queue.service_value</code> (live) + historical Excel amount (pre-June). Revenue attributed to acquisition channel of each customer.</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">From <code>visits.service_value</code> (tips excluded). Totals + per-source breakdown for new and returning customers.</div>
       <div id="acq-rev-note" style="display:none;background:var(--warnl);color:var(--warn);border-radius:8px;padding:8px 12px;font-size:12px;font-weight:700;margin-bottom:10px;"></div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-        <div><div style="font-size:12px;font-weight:800;color:var(--ok);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">🆕 New Customer Revenue</div><div id="acq-rev-new"></div></div>
-        <div><div style="font-size:12px;font-weight:800;color:var(--b);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">🔄 Returning Customer Revenue</div><div id="acq-rev-ret"></div></div>
-      </div>
+      <div id="acq-rev-new"></div>
+      <div id="acq-rev-ret" style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);"></div>
     </div>
 
     <!-- Monthly trend table -->
@@ -5610,42 +5608,57 @@ async function acqRender(){
 
     const maxAll=Math.max(1,...Object.values(srcAll));
     const totalAll=mCusts.length||1;
+    const totalNew=newCount||1;
+    const totalRet=retCount||1;
     const srcEl=document.getElementById('acq-src-bars');
 
     const srcBars=allSrc.map(s=>{
       const total=srcAll[s.key]||0;
       const nw=srcNewBySource[s.key]||0;
       const rt=srcRetBySource[s.key]||0;
-      const pct=Math.round(total/totalAll*100);
-      if(total===0)return`<div class="src-bar-wrap" style="opacity:.25;">
+      if(total===0)return`<div class="src-bar-wrap" style="opacity:.2;">
         <div class="src-bar-label">${s.emoji} ${s.label}</div>
         <div class="src-bar-track"></div>
         <div class="src-bar-val" style="color:var(--muted);">0</div>
-        <div class="src-bar-pct">—</div>
+        <div style="min-width:200px;"></div>
       </div>`;
-      return`<div class="src-bar-wrap">
+      const pctOfAll=Math.round(total/totalAll*100);
+      const pctNew=newCount>0?Math.round(nw/totalNew*100):0;   // % of ALL new customers
+      const pctRet=retCount>0?Math.round(rt/totalRet*100):0;   // % of ALL returning customers
+      return`<div class="src-bar-wrap" style="margin-bottom:12px;">
         <div class="src-bar-label">${s.emoji} ${s.label}</div>
-        <div class="src-bar-track" style="position:relative;">
-          <div style="position:absolute;left:0;top:0;height:100%;width:${Math.round(total/maxAll*100)}%;background:${s.color};border-radius:99px;display:flex;overflow:hidden;">
-            <div style="width:${total>0?Math.round(nw/total*100):0}%;background:${s.color};opacity:1;"></div>
-            <div style="flex:1;background:${s.color};opacity:.4;"></div>
+        <div style="flex:1;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px;">
+            <div class="src-bar-track" style="flex:1;">
+              <div style="height:100%;border-radius:99px;display:flex;overflow:hidden;width:${Math.round(total/maxAll*100)}%;">
+                <div style="width:${total>0?Math.round(nw/total*100):0}%;background:${s.color};"></div>
+                <div style="flex:1;background:${s.color};opacity:.35;"></div>
+              </div>
+            </div>
+            <div style="font-size:13px;font-weight:800;color:${s.color};min-width:30px;text-align:right;">${total}</div>
+            <div style="font-size:12px;font-weight:700;color:var(--muted);min-width:35px;text-align:right;">${pctOfAll}%</div>
+          </div>
+          <div style="display:flex;gap:12px;font-size:11.5px;font-weight:700;padding-left:2px;">
+            <span style="color:var(--ok);">🆕 ${nw} new (${pctNew}% of all new)</span>
+            <span style="color:var(--b);">🔄 ${rt} returning (${pctRet}% of all returning)</span>
           </div>
         </div>
-        <div class="src-bar-val" style="color:${s.color};">${total}</div>
-        <div class="src-bar-pct">${pct}% <span style="font-size:10px;color:var(--muted);">(${nw}🆕 ${rt}🔄)</span></div>
       </div>`;
     }).join('');
 
     srcEl.innerHTML=`
-      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">
-        All <strong style="color:var(--text);">${mCusts.length}</strong> customers registered this month by source.
-        Each bar shows total count · <span style="font-weight:700;color:var(--ok);">🆕 new</span> and <span style="font-weight:700;color:var(--b);">🔄 returning</span> breakdown.
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;">
+        <div class="acq-kpi"><div class="acq-kpi-n" style="color:var(--text);">${mCusts.length}</div><div class="acq-kpi-l">Total Registered</div></div>
+        <div class="acq-kpi"><div class="acq-kpi-n" style="color:var(--ok);">${newCount}</div><div class="acq-kpi-l">New (${Math.round(newCount/totalAll*100)}%)</div></div>
+        <div class="acq-kpi"><div class="acq-kpi-n" style="color:var(--b);">${retCount}</div><div class="acq-kpi-l">Returning (${Math.round(retCount/totalAll*100)}%)</div></div>
+      </div>
+      <div style="font-size:11.5px;color:var(--muted);margin-bottom:12px;">
+        Bar = total by source · solid = 🆕 new · faded = 🔄 returning · percentages show each source's share of new and returning pools
       </div>
       ${srcBars}
       <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);">
         <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Raw heard_via stored in DB (all registered this month):</div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;">${rawDebug||'<span style="color:var(--muted);font-size:12px;">none</span>'}</div>
-        <div style="font-size:11px;color:var(--muted);margin-top:5px;">Blank/null = source not recorded at check-in (customer was not asked or skipped the question).</div>
       </div>`;
 
     // 10. Revenue by source (new vs returning) — DB rows only (after cutoff)
@@ -5663,12 +5676,39 @@ async function acqRender(){
     const tRR=Object.values(sRR).reduce((a,b)=>a+b,0);
     const mxRN=Math.max(1,...Object.values(sRN));
     const mxRR=Math.max(1,...Object.values(sRR));
-    document.getElementById('acq-rev-new').innerHTML=tRN>0
-      ?allSrc.filter(s=>sRN[s.key]>0).sort((a,b)=>sRN[b.key]-sRN[a.key]).map(s=>acqBar(s.emoji+' '+s.label,sRN[s.key],mxRN,s.color,'AED ')).join('')
-      :'<div style="color:var(--muted);font-size:12.5px;padding:8px 0;">No revenue data for new customers this month.</div>';
-    document.getElementById('acq-rev-ret').innerHTML=tRR>0
-      ?allSrc.filter(s=>sRR[s.key]>0).sort((a,b)=>sRR[b.key]-sRR[a.key]).map(s=>acqBar(s.emoji+' '+s.label,sRR[s.key],mxRR,s.color,'AED ')).join('')
-      :'<div style="color:var(--muted);font-size:12.5px;padding:8px 0;">No revenue data for returning customers this month.</div>';
+    const tRevAll=tRN+tRR||1;
+
+    const revTotals=`<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px;">
+      <div class="acq-kpi"><div class="acq-kpi-n" style="color:var(--b);">AED ${(tRN+tRR).toFixed(0)}</div><div class="acq-kpi-l">Total Revenue</div><div class="acq-kpi-sub" style="color:var(--muted);">DB visits this month</div></div>
+      <div class="acq-kpi"><div class="acq-kpi-n" style="color:var(--ok);">AED ${tRN.toFixed(0)}</div><div class="acq-kpi-l">From New Customers</div><div class="acq-kpi-sub" style="color:var(--ok);">${Math.round(tRN/tRevAll*100)}% of revenue</div></div>
+      <div class="acq-kpi"><div class="acq-kpi-n" style="color:var(--b);">AED ${tRR.toFixed(0)}</div><div class="acq-kpi-l">From Returning</div><div class="acq-kpi-sub" style="color:var(--b);">${Math.round(tRR/tRevAll*100)}% of revenue</div></div>
+    </div>`;
+
+    document.getElementById('acq-rev-new').innerHTML=revTotals+(tRN>0
+      ?'<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">New Customer Revenue by Source</div>'
+        +allSrc.filter(s=>sRN[s.key]>0).sort((a,b)=>sRN[b.key]-sRN[a.key]).map(s=>{
+          const pct=Math.round(sRN[s.key]/tRN*100);
+          return`<div class="src-bar-wrap">
+            <div class="src-bar-label">${s.emoji} ${s.label}</div>
+            <div class="src-bar-track"><div class="src-bar-fill" style="width:${Math.round(sRN[s.key]/mxRN*100)}%;background:${s.color};"></div></div>
+            <div class="src-bar-val" style="color:${s.color};">AED ${sRN[s.key].toFixed(0)}</div>
+            <div class="src-bar-pct">${pct}%</div>
+          </div>`;
+        }).join('')
+      :'<div style="color:var(--muted);font-size:12.5px;padding:8px 0;">No revenue from new customers this month — staff must enter AED value when closing visits.</div>');
+
+    document.getElementById('acq-rev-ret').innerHTML=(tRR>0
+      ?'<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Returning Customer Revenue by Source</div>'
+        +allSrc.filter(s=>sRR[s.key]>0).sort((a,b)=>sRR[b.key]-sRR[a.key]).map(s=>{
+          const pct=Math.round(sRR[s.key]/tRR*100);
+          return`<div class="src-bar-wrap">
+            <div class="src-bar-label">${s.emoji} ${s.label}</div>
+            <div class="src-bar-track"><div class="src-bar-fill" style="width:${Math.round(sRR[s.key]/mxRR*100)}%;background:${s.color};"></div></div>
+            <div class="src-bar-val" style="color:${s.color};">AED ${sRR[s.key].toFixed(0)}</div>
+            <div class="src-bar-pct">${pct}%</div>
+          </div>`;
+        }).join('')
+      :'<div style="color:var(--muted);font-size:12.5px;padding:8px 0;">No revenue from returning customers this month.</div>');
     const rn=document.getElementById('acq-rev-note');
     if(rn){
       if(mQRevForSource.length&&!mRevFromDB){
