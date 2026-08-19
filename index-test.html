@@ -5304,13 +5304,21 @@ function acqNormalizePhone(ph){
 }
 function acqMapSource(raw){
   if(!raw)return'Unknown';
-  const v=raw.toLowerCase().trim();
-  if(v.includes('google'))return'Google';
-  if(v.includes('instagram')||v.includes('insta')||v.includes('ig'))return'Instagram';
-  if(v.includes('friend')||v.includes('family')||v.includes('referr')||v.includes('word'))return'Friends/Family';
-  if(v.includes('ad')||v.includes('board')||v.includes('hoard')||v.includes('banner')||v.includes('sign'))return'Ad Board';
-  if(v.includes('walk')||v.includes('passing'))return'Walk-in';
-  if(v===''||v==='-'||v==='unknown')return'Unknown';
+  const v=raw.trim();
+  const vl=v.toLowerCase();
+  // Exact matches first (as stored by minicuts-checkin.html buttons)
+  if(v==='Google')return'Google';
+  if(v==='Instagram')return'Instagram';
+  if(v==='Friends / Family'||v==='Friends/Family')return'Friends/Family';
+  if(v==='Ad Board')return'Ad Board';
+  if(v==='Walk-in'||v==='Walkin')return'Walk-in';
+  // Fuzzy fallback for any custom / legacy values
+  if(vl.includes('google'))return'Google';
+  if(vl.includes('instagram')||vl.includes('insta'))return'Instagram';
+  if(vl.includes('friend')||vl.includes('family')||vl.includes('referr')||vl.includes('word of mouth'))return'Friends/Family';
+  if(vl.includes('ad board')||vl.includes('hoarding')||vl.includes('banner')||vl.includes('signage'))return'Ad Board';
+  if(vl.includes('walk'))return'Walk-in';
+  if(vl===''||vl==='-'||vl==='unknown'||vl==='n/a')return'Unknown';
   return'Other';
 }
 function acqFmtMins(mins){if(isNaN(mins)||mins===null)return'—';if(mins<1)return'<1m';return Math.round(mins)+'m';}
@@ -5364,17 +5372,19 @@ async function acqRender(){
     }
     console.log('[ACQ] customers:',customers.length);
 
-    // 2. Fetch DONE queue rows for revenue
+    // 2. Fetch queue rows with service_value recorded (matches Staff Mgmt History tab exactly:
+    //    History shows all rows where service_value > 0, regardless of status)
     let qRev=[];
     try{let off=0,g=0;
       while(true){
-        const b=await sb('queue','GET',null,'select=customer_id,mobile,service_value,checkin_date,checkin_time,called_at,status&status=eq.done&order=checkin_date.asc&limit=1000&offset='+off);
+        const b=await sb('queue','GET',null,
+          'select=customer_id,mobile,service_value,checkin_date,checkin_time,called_at,status&service_value=gt.0&order=checkin_date.asc&limit=1000&offset='+off);
         if(!b||!b.length)break;
         qRev=[...qRev,...b];
         if(b.length<1000)break;off+=1000;if(++g>50)break;
       }
     }catch(e){console.warn('[ACQ] queue fetch failed:',e.message);}
-    console.log('[ACQ] queue done rows:',qRev.length);
+    console.log('[ACQ] queue revenue rows (service_value>0):',qRev.length);
 
     // 3. Historical Excel data
     const hist=JSON.parse(localStorage.getItem(ACQ_HIST_KEY)||'[]');
@@ -5461,7 +5471,12 @@ async function acqRender(){
     const maxSN=Math.max(1,...Object.values(srcNew));
     const srcEl=document.getElementById('acq-src-bars');
     const srcRows=allSrc.filter(s=>srcNew[s.key]>0).sort((a,b)=>srcNew[b.key]-srcNew[a.key]).map(s=>acqBar(s.emoji+' '+s.label,srcNew[s.key],maxSN,s.color));
-    srcEl.innerHTML=srcRows.length?srcRows.join(''):'<div style="color:var(--muted);font-size:13px;padding:12px 0;">No new customers registered this month yet.</div>';
+    // Also show raw heard_via breakdown so you can verify the mapping
+    const rawSrc={};mCusts.filter(c=>newIds.has(c.id)).forEach(c=>{const v=c.heard_via||'(blank)';rawSrc[v]=(rawSrc[v]||0)+1;});
+    const rawDebug=Object.entries(rawSrc).sort((a,b)=>b[1]-a[1])
+      .map(([k,v])=>`<span style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:2px 8px;font-size:11px;font-weight:700;">${k}: ${v}</span>`).join(' ');
+    srcEl.innerHTML=(srcRows.length?srcRows.join(''):'<div style="color:var(--muted);font-size:13px;padding:12px 0;">No new customers registered this month yet.</div>')
+      +(rawDebug?`<div style="margin-top:12px;border-top:1px solid var(--border);padding-top:10px;"><span style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.04em;">Raw values stored: </span>${rawDebug}</div>`:'');
 
     // 10. Revenue by source (new vs returning)
     const sRN={},sRR={};allSrc.forEach(s=>{sRN[s.key]=0;sRR[s.key]=0;});
