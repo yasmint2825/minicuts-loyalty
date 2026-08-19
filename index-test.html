@@ -5350,188 +5350,216 @@ async function acqRender(){
     const el=document.getElementById(id);if(el)el.innerHTML='<div class="load"><div class="spin"></div></div>';
   });
   try{
-    // Fetch customers
+    // ── Fetch customers ──
     let customers=[];let offset=0;const PAGE=1000;let guard=0;
     while(true){
       const batch=await sb('customers','GET',null,'select=id,name,mobile,created_at,heard_via,gender&order=created_at.asc&limit='+PAGE+'&offset='+offset);
       customers=[...customers,...(batch||[])];if(!batch||batch.length<PAGE)break;offset+=PAGE;
-      if(++guard>200)throw new Error('customers fetch did not terminate — pagination may be stuck (fetched '+customers.length+' rows)');
+      if(++guard>200)throw new Error('customers fetch loop exceeded safety limit');
     }
-    // Fetch ALL-TIME queue records — NO status filter, matches Staff Mgmt exactly (see below).
+
+    // ── Fetch queue (done rows + any row with service_value recorded = "incurred") ──
     let queueAll=[];
     try{
       offset=0;guard=0;
       while(true){
-        const batch=await sb('queue','GET',null,'select=customer_id,customer_name,mobile,service_value,tip,checkin_date,checkin_time,called_at,done_at,stylist,status,payment_type&order=checkin_date.asc&limit='+PAGE+'&offset='+offset);
+        const batch=await sb('queue','GET',null,
+          'select=id,customer_id,customer_name,mobile,service_value,checkin_date,checkin_time,called_at,done_at,stylist,status,payment_type&order=checkin_date.asc&limit='+PAGE+'&offset='+offset);
         queueAll=[...queueAll,...(batch||[])];if(!batch||batch.length<PAGE)break;offset+=PAGE;
-        if(++guard>200){console.error('acqRender: queue fetch pagination did not terminate, stopping after',queueAll.length,'rows');break;}
+        if(++guard>200){console.error('queue fetch safety limit hit');break;}
       }
-    }catch(e){console.error('acqRender: queue fetch failed:',e);}
-    // A queue row counts as an actual incurred service if it's marked done OR has a recorded
-    // service value (mirrors the Staff app History screen's own revenue filter: service_value>0).
-    const isIncurred=q=>q.status==='done'||(parseFloat(q.service_value)||0)>0;
-    const queueServed=queueAll.filter(isIncurred);
+    }catch(e){console.error('queue fetch failed:',e);}
+    // Keep only rows that represent a real completed/paid visit — matches Staff Mgmt "History" tab
+    const queueServed=queueAll.filter(q=>q.status==='done'||(parseFloat(q.service_value)||0)>0);
 
-    // Historical (uploaded Excel — old data, pre-system)
+    // ── Historical (uploaded Excel) ──
     const hist=JSON.parse(localStorage.getItem(ACQ_HIST_KEY)||'[]');
     const histHasData=hist.length>0;
 
-    // ── Lookups ──
+    // ── Build lookups ──
+    // By ID — used to resolve customer_id on queue rows (most reliable link)
     const custById={};customers.forEach(c=>{custById[c.id]=c;});
-    // custByKey: keyed by phone+name (the live-data uniqueness rule) — used for source lookup.
-    const custByKey={};customers.forEach(c=>{const ph=acqNormalizePhone(c.mobile);if(!ph)return;const k=acqLiveKey(ph,c.name);if(!custByKey[k])custByKey[k]=c;});
-    // Resolve a queue row to its live identity key (phone+name), falling back to the linked
-    // customer profile when the queue row itself is missing mobile/name.
-    function acqQueueKey(q){
-      const linked=q.customer_id?custById[q.customer_id]:null;
-      const ph=acqNormalizePhone(q.mobile)||(linked?acqNormalizePhone(linked.mobile):'');
-      const nm=q.customer_name||(linked?linked.name:'');
-      if(!ph)return'';
-      return acqLiveKey(ph,nm);
-    }
-    // Resolve a queue row's cross-system key (phone+gender) for checking against historical
-    // Excel data, which only has segment (not name) to identify individuals.
-    function acqQueueCrossKey(q){
-      const linked=q.customer_id?custById[q.customer_id]:null;
-      const ph=acqNormalizePhone(q.mobile)||(linked?acqNormalizePhone(linked.mobile):'');
-      const gender=linked?linked.gender:null;
-      if(!ph||!gender)return'';
-      return acqCrossKey(ph,gender);
+
+    // By normalised phone — fallback for guest queue rows (no customer_id)
+    // Uniqueness rule for LIVE data: phone + name (siblings share a phone).
+    // BUT for source lookup we just need the phone → customer mapping, because
+    // queue rows link via customer_id. For guests (no customer_id) we use phone only.
+    const custByPhone={};
+    customers.forEach(c=>{
+      const ph=acqNormalizePhone(c.mobile);
+      if(!ph)return;
+      // Keep earliest-registered customer per phone (first visit wins)
+      if(!custByPhone[ph]||new Date(c.created_at)<new Date(custByPhone[ph].created_at))
+        custByPhone[ph]=c;
+    });
+
+    // Resolve which customer a queue row belongs to:
+    function resolveCustomer(q){
+      if(q.customer_id&&custById[q.customer_id])return custById[q.customer_id];
+      const ph=acqNormalizePhone(q.mobile);
+      return ph?custByPhone[ph]:null;
     }
 
-    // ── Single source of truth: first-ever-service date per LIVE customer identity ──
-    const firstQueueDate={}; // keyed by acqLiveKey (phone+name)
+    // ── Unique identity key for "new vs returning" classification ──
+    // LIVE: phone + name (siblings on same phone are separate kids)
+    // We key from the customers table (authoritative), not from queue.customer_name
+    // because names in the queue can be abbreviated/inconsistent.
+    function liveKey(c){
+      if(!c)return'';
+      const ph=acqNormalizePhone(c.mobile);
+      return ph?acqLiveKey(ph,c.name):'';
+    }
+
+    // ── First-ever service date per unique live identity ──
+    // Derived from the queue (when they were first served), cross-checked against Excel.
+    const firstQueueDate={}; // liveKey → Date
     queueServed.forEach(q=>{
       if(!q.checkin_date)return;
-      const k=acqQueueKey(q);if(!k)return;
+      const c=resolveCustomer(q);
+      const k=liveKey(c);if(!k)return;
       const d=new Date(q.checkin_date);if(isNaN(d))return;
       if(!firstQueueDate[k]||d<firstQueueDate[k])firstQueueDate[k]=d;
     });
-    // Historical first-appearance, keyed by phone+segment (the Excel uniqueness rule) — used
-    // only to cross-check "did this person already exist before the live system", since Excel
-    // predates live tracking and has no reliable name field to key on.
-    const firstHistDateByCrossKey={};
+
+    // Historical first-appearance per phone+segment (Excel uniqueness rule)
+    const firstHistDate={}; // crossKey(phone,segment) → Date
     hist.forEach(r=>{
       const ph=acqNormalizePhone(r.mobile||r.phone);if(!ph||!r.date)return;
       const d=new Date(r.date);if(isNaN(d))return;
       const ck=acqCrossKey(ph,r.segment);
-      if(!firstHistDateByCrossKey[ck]||d<firstHistDateByCrossKey[ck])firstHistDateByCrossKey[ck]=d;
+      if(!firstHistDate[ck]||d<firstHistDate[ck])firstHistDate[ck]=d;
     });
-    // Final first-service date per live identity = earliest of their own live record, or an
-    // earlier historical (Excel) record for the same phone+gender, if one exists.
+
+    // Merge: final first-service date = earliest of live queue or matching historical record
     const firstServiceDate={};
-    Object.keys(firstQueueDate).forEach(k=>{firstServiceDate[k]=firstQueueDate[k];});
+    Object.entries(firstQueueDate).forEach(([k,d])=>{firstServiceDate[k]=d;});
+    // For each served queue row, check if the same person appeared in historical Excel earlier
     queueServed.forEach(q=>{
-      const k=acqQueueKey(q);if(!k||!firstServiceDate[k])return;
-      const ck=acqQueueCrossKey(q);
-      const hd=ck?firstHistDateByCrossKey[ck]:null;
+      const c=resolveCustomer(q);if(!c)return;
+      const k=liveKey(c);if(!k||!firstServiceDate[k])return;
+      const ph=acqNormalizePhone(c.mobile||q.mobile);
+      const ck=acqCrossKey(ph,c.gender);
+      const hd=ck?firstHistDate[ck]:null;
       if(hd&&hd<firstServiceDate[k])firstServiceDate[k]=hd;
     });
 
-    // Month window
+    // ── Month window ──
     const mStart=new Date(acqYear,acqMonth,1);
     const mEnd=new Date(acqYear,acqMonth+1,0,23,59,59);
 
-    // NEW this month = live identities whose very first service ever falls inside this month
+    // NEW this month = first-ever-service date falls within this month
     const newKeys=new Set(Object.keys(firstServiceDate).filter(k=>{
       const d=firstServiceDate[k];return d>=mStart&&d<=mEnd;
     }));
 
-    // Queue records (served) that fall in this month
-    const mQueue=queueServed.filter(q=>{if(!q.checkin_date)return false;const d=new Date(q.checkin_date);return d>=mStart&&d<=mEnd;});
+    // Queue rows served this month
+    const mQueue=queueServed.filter(q=>{
+      if(!q.checkin_date)return false;
+      const d=new Date(q.checkin_date);return d>=mStart&&d<=mEnd;
+    });
 
-    // Identities ACTIVE this month (served inside the window)
+    // Active identities this month
     const activeKeysThisMonth=new Set();
-    let unknownCount=0; // served this month with no phone on file at all
-    mQueue.forEach(q=>{const k=acqQueueKey(q);if(k)activeKeysThisMonth.add(k);else unknownCount++;});
+    let unknownCount=0;
+    mQueue.forEach(q=>{
+      const c=resolveCustomer(q);
+      const k=liveKey(c);
+      if(k)activeKeysThisMonth.add(k);else unknownCount++;
+    });
 
-    // RETURNING this month = active this month but their first-ever service was before this month
+    // RETURNING = active this month but first service was before this month
     const retKeys=new Set([...activeKeysThisMonth].filter(k=>!newKeys.has(k)));
 
     const newCount=newKeys.size;
     const retCount=retKeys.size;
     const returnRate=(newCount+retCount)>0?Math.round(retCount/(newCount+retCount)*100):0;
 
-    // Revenue = sum of the queue "Value" column (service_value) for this month — matching
-    // Staff Mgmt exactly. Tip is a separate column there and is NOT part of revenue.
+    // ── Revenue = sum of service_value from queue (matches Staff Mgmt History tab exactly) ──
     const mRevTotal=mQueue.reduce((a,q)=>a+(parseFloat(q.service_value)||0),0);
-    const histMonthRev=hist.filter(r=>{if(!r.date)return false;const d=new Date(r.date);return !isNaN(d)&&d>=mStart&&d<=mEnd;}).reduce((a,r)=>a+(parseFloat(r.amount)||0),0);
-    // Current (running) month: revenue comes ONLY from live Staff-app "Value" entries.
-    // Excel historical data predates the system and must never be added to the current month's total.
-    // Past months keep the combined live+historical total, unchanged.
+    const histMonthRev=hist.filter(r=>{
+      if(!r.date)return false;const d=new Date(r.date);
+      return !isNaN(d)&&d>=mStart&&d<=mEnd;
+    }).reduce((a,r)=>a+(parseFloat(r.amount)||0),0);
     const isCurMonth=acqIsCurrentMonth();
     const combinedRev=isCurMonth?mRevTotal:(mRevTotal+histMonthRev);
 
-    // "Total This Month" = the number of served rows in Staff Mgmt for the month (visits, not
-    // unique customers) — this is what you can directly count against the Staff Mgmt table.
     const kidsThisMonth=mQueue.length;
 
-    // Avg wait time: gap between checkin_time (registered) and called_at (called), from the queue table.
+    // Avg wait
     const mWaitMins=mQueue
       .filter(q=>q.checkin_time&&q.called_at)
       .map(q=>(new Date(q.called_at)-new Date(q.checkin_time))/60000)
-      .filter(m=>!isNaN(m)&&m>=0&&m<300); // discard bad/missing timestamps and outliers >5h
+      .filter(m=>!isNaN(m)&&m>=0&&m<300);
     const avgWaitMins=mWaitMins.length?mWaitMins.reduce((a,b)=>a+b,0)/mWaitMins.length:null;
 
     // ── KPIs ──
     document.getElementById('acq-kpis').innerHTML=[
       acqKpiHtml('🆕','New Customers',newCount,acqIsCurrentMonth()?'🟢 running this month':'','var(--ok)'),
       acqKpiHtml('🔄','Returning Customers',retCount,`${returnRate}% return rate`,'var(--b)'),
-      acqKpiHtml('👥','Total This Month',kidsThisMonth,'visits recorded in Staff Mgmt'),
+      acqKpiHtml('👥','Total Visits This Month',kidsThisMonth,'matches Staff Mgmt count'),
       acqKpiHtml('📊','Return Rate',returnRate+'%',histHasData?'cross-ref vs history':'system data only',returnRate>=40?'var(--ok)':returnRate>=20?'var(--warn)':'var(--err)'),
-      acqKpiHtml('💰','Revenue (Live)',mRevTotal?'AED '+mRevTotal.toFixed(0):'—','sum of Value column','var(--ok)'),
-      acqKpiHtml('📂',isCurMonth?'Revenue (This Month)':'Revenue (Hist+Live)',combinedRev?'AED '+combinedRev.toFixed(0):'—',isCurMonth?'live only — Excel excluded':(histMonthRev?'+AED '+histMonthRev.toFixed(0)+' from Excel':'upload Excel for pre-June')),
-      acqKpiHtml('⏱','Avg Wait Time',avgWaitMins!==null?acqFmtMins(avgWaitMins):'—',mWaitMins.length?mWaitMins.length+' records':'no called_at data yet',avgWaitMins>20?'var(--err)':avgWaitMins>10?'var(--warn)':'var(--ok)'),
+      acqKpiHtml('💰','Revenue (Live)','AED '+(mRevTotal||0).toFixed(0),'from Staff Mgmt Value column','var(--ok)'),
+      acqKpiHtml('📂',isCurMonth?'Revenue (Live Only)':'Revenue (Hist+Live)','AED '+(combinedRev||0).toFixed(0),isCurMonth?'Excel excluded from current month':(histMonthRev?'+AED '+histMonthRev.toFixed(0)+' from Excel':'upload Excel for pre-June')),
+      acqKpiHtml('⏱','Avg Wait Time',avgWaitMins!==null?acqFmtMins(avgWaitMins):'—',mWaitMins.length?mWaitMins.length+' records with called_at':'no called_at data yet',avgWaitMins>20?'var(--err)':avgWaitMins>10?'var(--warn)':'var(--ok)'),
     ].join('');
 
-    // ── Source bars (NEW customers this month, by source) ──
-    const srcNew={},srcRev={new:{},ret:{}};
+    // ── Source bars (new customers this month, by acquisition channel) ──
     const allSrc=[...SRC_CONFIG,{key:'Unknown',label:'Unknown',color:'#9CA3AF',emoji:'❓'}];
-    allSrc.forEach(s=>{srcNew[s.key]=0;srcRev.new[s.key]=0;srcRev.ret[s.key]=0;});
+    const srcNew={},srcRevNew={},srcRevRet={};
+    allSrc.forEach(s=>{srcNew[s.key]=0;srcRevNew[s.key]=0;srcRevRet[s.key]=0;});
+
+    // Count new customers by source — keyed from the customer record (heard_via)
     newKeys.forEach(k=>{
-      const c=custByKey[k];
+      // k = phone|name — find the customer
+      const [ph,nm]=k.split('|');
+      const c=custByPhone[ph]||null;
       const src=c?acqMapSource(c.heard_via):'Unknown';
       srcNew[src]=(srcNew[src]||0)+1;
     });
-    // Assign revenue by source and new/returning status
+
+    // Revenue by source and new/returning status — use resolveCustomer for each queue row
     mQueue.forEach(q=>{
       const amt=parseFloat(q.service_value)||0;if(!amt)return;
-      const k=acqQueueKey(q);
-      const c=k?custByKey[k]:null;
+      const c=resolveCustomer(q);
       const src=c?acqMapSource(c.heard_via):'Unknown';
+      const k=liveKey(c);
       const isNew=k?newKeys.has(k):false;
-      if(isNew)srcRev.new[src]=(srcRev.new[src]||0)+amt;
-      else srcRev.ret[src]=(srcRev.ret[src]||0)+amt;
+      if(isNew)srcRevNew[src]=(srcRevNew[src]||0)+amt;
+      else srcRevRet[src]=(srcRevRet[src]||0)+amt;
     });
+
     const maxNew=Math.max(1,...Object.values(srcNew));
     const srcEl=document.getElementById('acq-src-bars');
     srcEl.innerHTML=allSrc.filter(s=>srcNew[s.key]>0).sort((a,b)=>srcNew[b.key]-srcNew[a.key])
       .map(s=>acqBar(s.emoji+' '+s.label,srcNew[s.key],maxNew,s.color)).join('')
-      ||'<div style="color:var(--muted);font-size:13px;">No new customers this month yet.</div>';
+      ||'<div style="color:var(--muted);font-size:13px;padding:12px 0;">No new customers this month yet.</div>';
 
-    // Revenue breakdown: new vs returning by source
-    const maxRevNew=Math.max(1,...Object.values(srcRev.new));
-    const maxRevRet=Math.max(1,...Object.values(srcRev.ret));
+    const totalRevNew=Object.values(srcRevNew).reduce((a,b)=>a+b,0);
+    const totalRevRet=Object.values(srcRevRet).reduce((a,b)=>a+b,0);
+    const maxRevNew=Math.max(1,...Object.values(srcRevNew));
+    const maxRevRet=Math.max(1,...Object.values(srcRevRet));
     const revNewEl=document.getElementById('acq-rev-new');
     const revRetEl=document.getElementById('acq-rev-ret');
-    const totalRevNew=Object.values(srcRev.new).reduce((a,b)=>a+b,0);
-    const totalRevRet=Object.values(srcRev.ret).reduce((a,b)=>a+b,0);
-    revNewEl.innerHTML=(totalRevNew>0
-      ?allSrc.filter(s=>srcRev.new[s.key]>0).sort((a,b)=>srcRev.new[b.key]-srcRev.new[a.key]).map(s=>acqBar(s.emoji+' '+s.label,srcRev.new[s.key],maxRevNew,s.color,'AED ')).join('')
-      :'<div style="color:var(--muted);font-size:12.5px;">No revenue data for new customers yet.</div>');
-    revRetEl.innerHTML=(totalRevRet>0
-      ?allSrc.filter(s=>srcRev.ret[s.key]>0).sort((a,b)=>srcRev.ret[b.key]-srcRev.ret[a.key]).map(s=>acqBar(s.emoji+' '+s.label,srcRev.ret[s.key],maxRevRet,s.color,'AED ')).join('')
-      :'<div style="color:var(--muted);font-size:12.5px;">No returning customer revenue data yet.</div>');
-    // Note if no service_value
-    const withSV=mQueue.filter(q=>q.service_value>0).length;
+    revNewEl.innerHTML=totalRevNew>0
+      ?allSrc.filter(s=>srcRevNew[s.key]>0).sort((a,b)=>srcRevNew[b.key]-srcRevNew[a.key])
+          .map(s=>acqBar(s.emoji+' '+s.label,srcRevNew[s.key],maxRevNew,s.color,'AED ')).join('')
+      :'<div style="color:var(--muted);font-size:12.5px;">No revenue recorded for new customers yet.</div>';
+    revRetEl.innerHTML=totalRevRet>0
+      ?allSrc.filter(s=>srcRevRet[s.key]>0).sort((a,b)=>srcRevRet[b.key]-srcRevRet[a.key])
+          .map(s=>acqBar(s.emoji+' '+s.label,srcRevRet[s.key],maxRevRet,s.color,'AED ')).join('')
+      :'<div style="color:var(--muted);font-size:12.5px;">No revenue recorded for returning customers yet.</div>';
+
+    const withSV=mQueue.filter(q=>(parseFloat(q.service_value)||0)>0).length;
     const revNote=document.getElementById('acq-rev-note');
     if(revNote){
-      if(mQueue.length>0&&withSV===0){revNote.style.display='block';revNote.textContent='⚠️ No service_value found in queue records — enter AED when marking customers done in the Queue tab to enable live revenue tracking.';}
-      else revNote.style.display='none';
+      if(mQueue.length>0&&withSV===0){
+        revNote.style.display='block';
+        revNote.textContent='⚠️ No service_value found in queue records for this month — staff must enter the AED value when completing a visit in the Staff app to enable revenue tracking.';
+      }else revNote.style.display='none';
     }
 
-    // Monthly table (uses the same first-service-date definition for every month)
-    acqBuildMonthlyTable(firstServiceDate,custByKey,hist);
+    // Monthly trend table
+    acqBuildMonthlyTable(firstServiceDate,custById,custByPhone,hist);
 
     // New vs Returning bar
     const nrEl=document.getElementById('acq-newret');
@@ -5540,23 +5568,27 @@ async function acqRender(){
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:14px;">
         ${acqKpiHtml('🆕','New',newCount,'first service ever','var(--ok)')}
         ${acqKpiHtml('🔄','Returning',retCount,returnRate+'% return rate','var(--b)')}
-        ${acqKpiHtml('❓','Unknown',unknownCount,'no phone recorded','var(--muted)')}
+        ${acqKpiHtml('❓','Unknown',unknownCount,'no phone on file','var(--muted)')}
       </div>
       <div style="display:flex;height:16px;border-radius:99px;overflow:hidden;margin-bottom:10px;">
-        <div style="width:${Math.round(newCount/tot_nr*100)}%;background:var(--ok);" title="New"></div>
-        <div style="width:${Math.round(retCount/tot_nr*100)}%;background:var(--b);" title="Returning"></div>
-        <div style="width:${Math.round(unknownCount/tot_nr*100)}%;background:#E5E7EB;" title="Unknown"></div>
+        <div style="width:${Math.round(newCount/tot_nr*100)}%;background:var(--ok);" title="New: ${newCount}"></div>
+        <div style="width:${Math.round(retCount/tot_nr*100)}%;background:var(--b);" title="Returning: ${retCount}"></div>
+        <div style="width:${Math.round(unknownCount/tot_nr*100)}%;background:#E5E7EB;" title="Unknown: ${unknownCount}"></div>
       </div>
-      ${!histHasData?'<div style="font-size:12px;color:var(--warn);font-weight:700;">⚠️ Upload historical Excel in the Historical Data tab to improve classification accuracy.</div>':''}`;
+      ${!histHasData?'<div style="font-size:12px;color:var(--warn);font-weight:700;">⚠️ Upload historical Excel in the Historical Data tab to improve classification accuracy for pre-June customers.</div>':''}`;
 
     acqRenderHistInsights(hist);
+
   }catch(e){
     console.error('acqRender failed:',e);
-    ['acq-kpis','acq-src-bars','acq-newret'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=`<div style="color:var(--err);padding:12px;font-size:13px;font-weight:700;">⚠️ Acquisition tab error: ${e.message||e}<br><span style="font-weight:400;font-size:11.5px;">Check browser console for details, or share this message.</span></div>`;});
+    ['acq-kpis','acq-src-bars','acq-newret'].forEach(id=>{
+      const el=document.getElementById(id);
+      if(el)el.innerHTML=`<div style="color:var(--err);padding:12px;font-size:13px;font-weight:700;">⚠️ ${e.message||e}<br><small style="font-weight:400;">Check browser console (F12) for details.</small></div>`;
+    });
   }
 }
 
-function acqBuildMonthlyTable(firstServiceDate,custByKey,hist){
+function acqBuildMonthlyTable(firstServiceDate,custById,custByPhone,hist){
   const el=document.getElementById('acq-monthly-table');if(!el)return;
   const keys=Object.keys(firstServiceDate);
   if(!keys.length){el.innerHTML='<div style="color:var(--muted);font-size:13px;">No data yet.</div>';return;}
@@ -5570,15 +5602,17 @@ function acqBuildMonthlyTable(firstServiceDate,custByKey,hist){
   const srcLabels=[...SRC_KEYS,'Unknown'];
   const srcColors={};SRC_CONFIG.forEach(s=>srcColors[s.key]=s.color);srcColors['Unknown']='#9CA3AF';
   const SRC_EMOJI={Google:'🔍',Instagram:'📸','Friends/Family':'👨‍👩‍👧','Ad Board':'📋','Walk-in':'🚶',Other:'💬',Unknown:'❓'};
-  // Bucket every identity's FIRST-EVER service into its month, once.
+  // Bucket every identity's FIRST-EVER service into its month, using phone to find the customer
   const byMonth={};
   keys.forEach(k=>{
     const d=firstServiceDate[k];
-    const key=d.getFullYear()+'-'+d.getMonth();
-    if(!byMonth[key])byMonth[key]={};
-    const c=custByKey[k];
+    const mKey=d.getFullYear()+'-'+d.getMonth();
+    if(!byMonth[mKey])byMonth[mKey]={};
+    // k = phone|name — extract phone to look up customer
+    const ph=k.split('|')[0];
+    const c=ph?custByPhone[ph]:null;
     const src=c?acqMapSource(c.heard_via):'Unknown';
-    byMonth[key][src]=(byMonth[key][src]||0)+1;
+    byMonth[mKey][src]=(byMonth[mKey][src]||0)+1;
   });
   const tableData=months.map(({y,m})=>{
     const byCounts={};srcLabels.forEach(k=>byCounts[k]=0);
