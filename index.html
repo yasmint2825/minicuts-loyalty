@@ -1288,6 +1288,13 @@ async function archiveCycle(customerId,stamps,firstStampDate,expiryDate,endedBy)
       <div id="acq-monthly-table" style="overflow-x:auto;"></div>
     </div>
 
+    <!-- Location × Source breakdown -->
+    <div class="acq-card">
+      <div style="font-family:var(--fh);font-size:15px;font-weight:800;margin-bottom:4px;">📍 New vs Returning by Location × Source</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">Which locations bring new customers and which retain returning ones, split by acquisition source.</div>
+      <div id="acq-loc-src"></div>
+    </div>
+
     <!-- New vs Returning -->
     <div class="acq-card">
       <div style="font-family:var(--fh);font-size:15px;font-weight:800;margin-bottom:4px;">🔄 New vs Returning</div>
@@ -2034,8 +2041,44 @@ function doLogout(){
 }
 
 // ══ NAV ══
+const MGMT_PASS='8065'; // ← change this to your preferred password
+window._MGMT_PASS=MGMT_PASS;
+let _mgmtUnlocked=false;
+
+function requireMgmtPass(onSuccess){
+  if(_mgmtUnlocked){onSuccess();return;}
+  const overlay=document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;display:flex;align-items:center;justify-content:center;';
+  overlay.innerHTML=`<div style="background:#fff;border-radius:16px;padding:28px 28px 24px;max-width:340px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.3);text-align:center;">
+    <div style="font-size:32px;margin-bottom:8px;">🔒</div>
+    <div style="font-family:var(--fh);font-size:18px;font-weight:800;margin-bottom:4px;">Manager Access</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:18px;">Analytics &amp; Acquisition are restricted to managers only.</div>
+    <input id="_mgmt_pw_input" type="password" placeholder="Enter password" class="fi"
+      style="margin-bottom:12px;text-align:center;font-size:15px;letter-spacing:.1em;"
+      onkeydown="if(event.key==='Enter')document.getElementById('_mgmt_pw_btn').click()">
+    <div id="_mgmt_pw_err" style="color:var(--err);font-size:12.5px;font-weight:700;min-height:16px;margin-bottom:10px;"></div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn bg2" style="flex:1;" onclick="this.closest('div[style*=fixed]').remove()">Cancel</button>
+      <button id="_mgmt_pw_btn" class="btn bp" style="flex:1;" onclick="
+        const v=document.getElementById('_mgmt_pw_input').value;
+        if(v===window._MGMT_PASS){_mgmtUnlocked=true;this.closest('div[style*=fixed]').remove();onSuccessRef();}
+        else{document.getElementById('_mgmt_pw_err').textContent='Incorrect password';document.getElementById('_mgmt_pw_input').value='';document.getElementById('_mgmt_pw_input').focus();}
+      ">Unlock</button>
+    </div>
+  </div>`;
+  // Store callback ref so the inline onclick can find it
+  window.onSuccessRef=onSuccess;
+  document.body.appendChild(overlay);
+  setTimeout(()=>document.getElementById('_mgmt_pw_input')?.focus(),100);
+}
+
 function showPage(id,btn){
-  stopTodayAutoRefresh(); // clear any lingering timer
+  // Password gate for manager-only pages
+  if((id==='analytics'||id==='acquisition')&&!_mgmtUnlocked){
+    requireMgmtPass(()=>showPage(id,btn));
+    return;
+  }
+  stopTodayAutoRefresh();
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.ni').forEach(n=>n.classList.remove('active'));
   document.getElementById('page-'+id).classList.add('active');
@@ -5398,7 +5441,7 @@ async function acqRender(){
     let customers=[];
     {let off=0,g=0;
       while(true){
-        const b=await sb('customers','GET',null,'select=id,name,mobile,created_at,heard_via,gender&order=created_at.asc&limit=1000&offset='+off);
+        const b=await sb('customers','GET',null,'select=id,name,mobile,created_at,heard_via,gender,location&order=created_at.asc&limit=1000&offset='+off);
         if(!b||!b.length)break;
         customers=[...customers,...b];
         if(b.length<1000)break;off+=1000;if(++g>50)break;
@@ -5683,19 +5726,24 @@ async function acqRender(){
         <div style="display:flex;gap:6px;flex-wrap:wrap;">${rawDebug||'<span style="color:var(--muted);font-size:12px;">none</span>'}</div>
       </div>`;
 
-    // 10. Revenue by source (new vs returning) — DB rows only (after cutoff)
+    // 10. Revenue by source (new vs returning)
+    // Uses same qRevFiltered as KPI top — must produce identical total
     const sRN={},sRR={};allSrc.forEach(s=>{sRN[s.key]=0;sRR[s.key]=0;});
     const mQRevForSource = qRevFiltered;
     mQRevForSource.forEach(q=>{
       const amt=parseFloat(q.service_value)||0;
       if(!amt)return;
       const c=q.customer_id?custById[q.customer_id]:null;
+      // If customer not found (guest or missing) → Unknown source
       const src=c?acqMapSource(c.heard_via):'Unknown';
+      // New/returning: if no customer record found, treat as returning (conservative)
       if(c&&newIds.has(c.id))sRN[src]=(sRN[src]||0)+amt;
       else sRR[src]=(sRR[src]||0)+amt;
     });
     const tRN=Object.values(sRN).reduce((a,b)=>a+b,0);
     const tRR=Object.values(sRR).reduce((a,b)=>a+b,0);
+    // Verify totals match — tRN+tRR must equal mRevFromDB
+    console.log(`[ACQ] Revenue check: KPI=${mRevFromDB.toFixed(0)}, Source breakdown=${(tRN+tRR).toFixed(0)}, diff=${(mRevFromDB-tRN-tRR).toFixed(0)}`);
     const mxRN=Math.max(1,...Object.values(sRN));
     const mxRR=Math.max(1,...Object.values(sRR));
     const tRevAll=tRN+tRR||1;
@@ -5741,6 +5789,9 @@ async function acqRender(){
 
     // 11. Monthly table
     acqBuildMonthlyTable(customers,custFirstDate,hist);
+
+    // 11b. Location × Source breakdown
+    acqBuildLocSrc(mCusts,newIds);
 
     // 12. New vs Returning bar
     const nrEl=document.getElementById('acq-newret');
@@ -5915,6 +5966,63 @@ async function acqValidate(){
   }catch(e){
     el.innerHTML=`<div style="color:var(--err);padding:12px;font-size:13px;font-weight:700;">Error: ${e.message}</div>`;
   }
+}
+
+function acqBuildLocSrc(mCusts,newIds){
+  const el=document.getElementById('acq-loc-src');if(!el)return;
+  if(!mCusts.length){el.innerHTML='<div style="color:var(--muted);font-size:13px;">No registrations this month.</div>';return;}
+
+  // Build location × source matrix
+  // location → {src → {new:0, ret:0}}
+  const matrix={};
+  const NO_LOC='(No location)';
+  mCusts.forEach(c=>{
+    const loc=(c.location||'').trim()||NO_LOC;
+    const src=acqMapSource(c.heard_via);
+    const isNew=newIds.has(c.id);
+    if(!matrix[loc])matrix[loc]={};
+    if(!matrix[loc][src])matrix[loc][src]={new:0,ret:0,total:0};
+    matrix[loc][src].total++;
+    if(isNew)matrix[loc][src].new++;else matrix[loc][src].ret++;
+  });
+
+  // Sort locations by total count
+  const locs=Object.entries(matrix)
+    .map(([loc,srcs])=>({loc,srcs,total:Object.values(srcs).reduce((a,s)=>a+s.total,0)}))
+    .sort((a,b)=>b.total-a.total);
+
+  const allSrcs=[...SRC_CONFIG,{key:'Unknown',label:'Unknown',color:'#9CA3AF',emoji:'❓'}];
+  const SRC_COLORS={};allSrcs.forEach(s=>SRC_COLORS[s.key]=s.color);
+  const SRC_EMOJI={};allSrcs.forEach(s=>SRC_EMOJI[s.key]=s.emoji);
+  const totalAll=mCusts.length||1;
+
+  el.innerHTML=locs.map(({loc,srcs,total})=>{
+    const newTotal=Object.values(srcs).reduce((a,s)=>a+s.new,0);
+    const retTotal=Object.values(srcs).reduce((a,s)=>a+s.ret,0);
+    const srcRows=Object.entries(srcs).sort((a,b)=>b[1].total-a[1].total).map(([src,counts])=>{
+      const cfg=allSrcs.find(s=>s.key===src)||{color:'#9CA3AF',emoji:'❓'};
+      return`<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;padding-left:12px;">
+        <div style="font-size:12px;font-weight:700;min-width:160px;color:${cfg.color};">${cfg.emoji} ${src}</div>
+        <div style="font-size:12px;color:var(--ok);font-weight:700;min-width:60px;">🆕 ${counts.new}</div>
+        <div style="font-size:12px;color:var(--b);font-weight:700;min-width:60px;">🔄 ${counts.ret}</div>
+        <div style="font-size:12px;color:var(--muted);font-weight:700;">${counts.total} total</div>
+      </div>`;
+    }).join('');
+
+    const pct=Math.round(total/totalAll*100);
+    const retRate=total>0?Math.round(retTotal/total*100):0;
+    return`<div style="background:var(--bg);border-radius:10px;padding:12px 14px;margin-bottom:10px;border:1px solid var(--border);">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+        <div style="font-family:var(--fh);font-size:14px;font-weight:800;">📍 ${loc}</div>
+        <div style="display:flex;gap:8px;font-size:12px;font-weight:700;flex-wrap:wrap;">
+          <span style="background:#fff;border:1px solid var(--border);padding:2px 10px;border-radius:99px;">${total} customers (${pct}% of month)</span>
+          <span style="background:var(--okl);color:var(--ok);padding:2px 10px;border-radius:99px;">🆕 ${newTotal} new</span>
+          <span style="background:var(--bl);color:var(--b);padding:2px 10px;border-radius:99px;">🔄 ${retTotal} returning (${retRate}%)</span>
+        </div>
+      </div>
+      ${srcRows}
+    </div>`;
+  }).join('')||'<div style="color:var(--muted);font-size:13px;">No location data recorded yet — add location at check-in to see this breakdown.</div>';
 }
 
 function acqBuildMonthlyTable(customers,custFirstDate,hist){
