@@ -1290,7 +1290,6 @@ async function archiveCycle(customerId,stamps,firstStampDate,expiryDate,endedBy)
         <div><div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;margin-bottom:8px;">👦👧 Segment</div><div id="acq-hist-gender"></div></div>
         <div><div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;margin-bottom:8px;">💈 By Stylist</div><div id="acq-hist-stylist"></div></div>
       </div>
-      <div style="margin-bottom:14px;"><div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;margin-bottom:8px;">✂️ Top Services</div><div id="acq-hist-services"></div></div>
       <div><div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;margin-bottom:8px;">📅 Monthly Revenue (Historical)</div><div id="acq-hist-rev-table" style="overflow-x:auto;"></div></div>
     </div>
 
@@ -5342,15 +5341,24 @@ async function acqRender(){
       const batch=await sb('customers','GET',null,'select=id,name,mobile,created_at,heard_via&order=created_at.asc&limit='+PAGE+'&offset='+offset);
       customers=[...customers,...(batch||[])];if(!batch||batch.length<PAGE)break;offset+=PAGE;
     }
-    // Fetch ALL-TIME done queue records (for revenue and for first-service dating — not month-filtered here)
+    // Fetch ALL-TIME queue records — NO status filter.
+    // The Staff app's own History/summary (the source of truth for "what happened in the salon")
+    // counts every record with a service_value entered, regardless of whether `status` was ever
+    // flipped to 'done'. We match that here instead of requiring status=done, which was silently
+    // dropping real, paid visits (and therefore real customers) from these numbers.
     let queueAll=[];
     try{
       offset=0;
       while(true){
-        const batch=await sb('queue','GET',null,'select=customer_id,mobile,service_value,checkin_date,checkin_time,called_at,done_at,stylist,status,payment_type&status=eq.done&order=checkin_date.asc&limit='+PAGE+'&offset='+offset);
+        const batch=await sb('queue','GET',null,'select=customer_id,mobile,service_value,tip,checkin_date,checkin_time,called_at,done_at,stylist,status,payment_type&order=checkin_date.asc&limit='+PAGE+'&offset='+offset);
         queueAll=[...queueAll,...(batch||[])];if(!batch||batch.length<PAGE)break;offset+=PAGE;
       }
     }catch(e){}
+    // A queue row counts as an actual incurred service if it's marked done OR has a recorded
+    // service value (mirrors the Staff app History screen's own revenue filter: service_value>0).
+    const isIncurred=q=>q.status==='done'||(parseFloat(q.service_value)||0)>0;
+    const queueServed=queueAll.filter(isIncurred);
+
     // Historical (uploaded Excel — old data, pre-system)
     const hist=JSON.parse(localStorage.getItem(ACQ_HIST_KEY)||'[]');
     const histHasData=hist.length>0;
@@ -5363,11 +5371,10 @@ async function acqRender(){
     }
 
     // ── Single source of truth: first-ever-service date per phone ──
-    // "First service" = earliest completed visit, whether recorded live (queue) or historically (Excel).
-    // A customer only counts as NEW in the month their very first such record falls in,
-    // and only if no earlier record exists anywhere (live DB or historical Excel).
+    // "First service" = earliest incurred visit, whether recorded live (queue) or historically (Excel).
+    // A customer only counts as NEW in the month their earliest such record falls in.
     const firstQueueDate={};
-    queueAll.forEach(q=>{
+    queueServed.forEach(q=>{
       if(!q.checkin_date)return;
       const ph=acqQueuePhone(q);if(!ph)return;
       const d=new Date(q.checkin_date);if(isNaN(d))return;
@@ -5389,21 +5396,18 @@ async function acqRender(){
     const mStart=new Date(acqYear,acqMonth,1);
     const mEnd=new Date(acqYear,acqMonth+1,0,23,59,59);
 
-    // Total unique customers ever seen (live + historical)
-    const totalUnique=Object.keys(firstServiceDate).length;
-
     // NEW this month = phones whose very first service ever falls inside this month
     const newPhones=new Set(Object.keys(firstServiceDate).filter(ph=>{
       const d=firstServiceDate[ph];return d>=mStart&&d<=mEnd;
     }));
 
-    // Queue records that fall in this month (live activity for the month)
-    const mQueue=queueAll.filter(q=>{if(!q.checkin_date)return false;const d=new Date(q.checkin_date);return d>=mStart&&d<=mEnd;});
+    // Queue records (served) that fall in this month
+    const mQueue=queueServed.filter(q=>{if(!q.checkin_date)return false;const d=new Date(q.checkin_date);return d>=mStart&&d<=mEnd;});
 
-    // Phones ACTIVE this month (had a done visit — live or historical — inside the window)
+    // Phones ACTIVE this month (served — live or historical — inside the window)
     const activePhonesThisMonth=new Set();
     mQueue.forEach(q=>{const ph=acqQueuePhone(q);if(ph)activePhonesThisMonth.add(ph);});
-    let unknownCount=0; // done visits this month with no phone on file at all
+    let unknownCount=0; // served this month with no phone on file at all
     mQueue.forEach(q=>{if(!acqQueuePhone(q))unknownCount++;});
     hist.forEach(r=>{
       if(!r.date)return;const d=new Date(r.date);if(isNaN(d)||d<mStart||d>mEnd)return;
@@ -5417,10 +5421,12 @@ async function acqRender(){
     const retCount=retPhones.size;
     const returnRate=(newCount+retCount)>0?Math.round(retCount/(newCount+retCount)*100):0;
 
-    // Hist revenue this month (only meaningful for past months — Excel is old/pre-system data)
-    const mRevTotal=mQueue.reduce((a,q)=>a+(parseFloat(q.service_value)||0),0);
+    // Revenue = service_value + tips, matching the Staff app's own History/summary total exactly.
+    const mRevService=mQueue.reduce((a,q)=>a+(parseFloat(q.service_value)||0),0);
+    const mRevTips=mQueue.reduce((a,q)=>a+(parseFloat(q.tip)||0),0);
+    const mRevTotal=mRevService+mRevTips;
     const histMonthRev=hist.filter(r=>{if(!r.date)return false;const d=new Date(r.date);return !isNaN(d)&&d>=mStart&&d<=mEnd;}).reduce((a,r)=>a+(parseFloat(r.amount)||0),0);
-    // Current (running) month: revenue comes ONLY from live records entered via the Staff app (queue.service_value).
+    // Current (running) month: revenue comes ONLY from live Staff-app records (service_value + tips).
     // Excel historical data predates the system and must never be added to the current month's total.
     // Past months keep the combined live+historical total, unchanged.
     const isCurMonth=acqIsCurrentMonth();
@@ -5432,7 +5438,7 @@ async function acqRender(){
       acqKpiHtml('🔄','Returning Customers',retCount,`${returnRate}% return rate`,'var(--b)'),
       acqKpiHtml('👥','Total This Month',newCount+retCount+unknownCount,'incl. '+unknownCount+' no-phone'),
       acqKpiHtml('📊','Return Rate',returnRate+'%',histHasData?'cross-ref vs history':'system data only',returnRate>=40?'var(--ok)':returnRate>=20?'var(--warn)':'var(--err)'),
-      acqKpiHtml('💰','Revenue (Live)',mRevTotal?'AED '+mRevTotal.toFixed(0):'—','queue.service_value','var(--ok)'),
+      acqKpiHtml('💰','Revenue (Live)',mRevTotal?'AED '+mRevTotal.toFixed(0):'—','service + tips','var(--ok)'),
       acqKpiHtml('📂',isCurMonth?'Revenue (This Month)':'Revenue (Hist+Live)',combinedRev?'AED '+combinedRev.toFixed(0):'—',isCurMonth?'live only — Excel excluded':(histMonthRev?'+AED '+histMonthRev.toFixed(0)+' from Excel':'upload Excel for pre-June')),
     ].join('');
 
@@ -5445,9 +5451,9 @@ async function acqRender(){
       const src=c?acqMapSource(c.heard_via):'Unknown';
       srcNew[src]=(srcNew[src]||0)+1;
     });
-    // Assign revenue by source and new/returning status (using the same first-service definition)
+    // Assign revenue (service + tip) by source and new/returning status
     mQueue.forEach(q=>{
-      const amt=parseFloat(q.service_value)||0;if(!amt)return;
+      const amt=(parseFloat(q.service_value)||0)+(parseFloat(q.tip)||0);if(!amt)return;
       const ph=acqQueuePhone(q);
       const c=ph?custByPhone[ph]:null;
       const src=c?acqMapSource(c.heard_via):'Unknown';
@@ -5506,6 +5512,7 @@ async function acqRender(){
     ['acq-kpis','acq-src-bars','acq-newret'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=`<div style="color:var(--err);padding:12px;font-size:13px;font-weight:700;">Error: ${e.message}</div>`;});
   }
 }
+
 
 function acqBuildMonthlyTable(firstServiceDate,custByPhone,hist){
   const el=document.getElementById('acq-monthly-table');if(!el)return;
@@ -5578,10 +5585,6 @@ function acqRenderHistInsights(hist){
   const stylMap={};hist.forEach(r=>{const s=r.stylist_phone||(r.stylist)||'Unknown';const key=s?acqNormalizePhone(s)||s:'Unknown';stylMap[key]=(stylMap[key]||0)+1;});
   const stylEl=document.getElementById('acq-hist-stylist');const STYL_COLORS=['#1565C0','#7C3AED','#16A34A','#D97706','#DC2626'];
   if(stylEl)stylEl.innerHTML=Object.entries(stylMap).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([k,v],i)=>acqBar('💈 '+(STYLIST_PHONE_MAP[k]||k).slice(0,12),v,total,STYL_COLORS[i%5])).join('');
-  // Services
-  const svcMap={};hist.forEach(r=>{const d=(r.description||'').trim();if(!d)return;svcMap[d]=(svcMap[d]||0)+1;});
-  const svcEl=document.getElementById('acq-hist-services');const SVC_COLORS=['#1565C0','#7C3AED','#16A34A','#D97706','#DC2626','#0891B2','#9333EA','#EA580C'];
-  if(svcEl)svcEl.innerHTML=Object.entries(svcMap).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([k,v],i)=>acqBar(k,v,Object.values(svcMap)[0],SVC_COLORS[i%8])).join('')||'<div style="color:var(--muted);font-size:12.5px;">No description data.</div>';
   // Monthly revenue
   const mRevMap={};const mVolMap={};
   hist.forEach(r=>{if(!r.date)return;const d=new Date(r.date);if(isNaN(d))return;const key=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');mRevMap[key]=(mRevMap[key]||0)+(parseFloat(r.amount)||0);mVolMap[key]=(mVolMap[key]||0)+1;});
