@@ -1204,111 +1204,215 @@ async function archiveCycle(customerId,stamps,firstStampDate,expiryDate,endedBy)
 <style>
   .acq-card{background:#fff;border-radius:12px;padding:18px;box-shadow:0 2px 12px rgba(13,71,161,.07);border:1px solid var(--border);margin-bottom:16px;}
   .acq-kpi{background:#fff;border-radius:12px;padding:14px 16px;box-shadow:0 2px 8px rgba(13,71,161,.07);border:1px solid var(--border);display:flex;flex-direction:column;gap:3px;}
-  .acq-kpi-n{font-family:var(--fh);font-size:28px;font-weight:900;}
-  .acq-kpi-l{font-size:11.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;}
-  .acq-kpi-sub{font-size:12px;font-weight:700;margin-top:2px;}
+  .acq-kpi-n{font-family:var(--fh);font-size:24px;font-weight:900;line-height:1.1;}
+  .acq-kpi-l{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-top:2px;}
+  .acq-kpi-sub{font-size:11.5px;font-weight:700;margin-top:3px;}
   .src-bar-wrap{display:flex;align-items:center;gap:10px;margin-bottom:9px;}
-  .src-bar-label{font-size:13px;font-weight:700;min-width:140px;}
+  .src-bar-label{font-size:12.5px;font-weight:700;min-width:160px;}
   .src-bar-track{flex:1;background:var(--bg);border-radius:99px;height:10px;overflow:hidden;}
-  .src-bar-fill{height:100%;border-radius:99px;transition:width .4s;}
-  .src-bar-val{font-size:12.5px;font-weight:800;min-width:40px;text-align:right;color:var(--text);}
-  .src-bar-rev{font-size:11.5px;font-weight:700;color:var(--muted);min-width:80px;text-align:right;}
-  .month-row{display:grid;grid-template-columns:90px repeat(var(--src-cols,4),1fr);gap:1px;padding:7px 0;border-bottom:1px solid var(--border);align-items:center;}
-  .month-row:last-child{border-bottom:none;}
-  .month-hdr{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);}
-  .month-cell{font-size:12.5px;font-weight:700;text-align:center;}
-  .month-label{font-size:12.5px;font-weight:800;color:var(--text);}
+  .src-bar-fill{height:100%;border-radius:99px;transition:width .5s;}
+  .src-bar-val{font-size:12.5px;font-weight:800;min-width:55px;text-align:right;}
+  .src-bar-pct{font-size:11.5px;font-weight:700;color:var(--muted);min-width:38px;text-align:right;}
+  .acq-tab-btn{padding:8px 16px;font-size:13px;font-weight:700;color:var(--muted);border:none;background:transparent;cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;transition:all .15s;}
+  .acq-tab-btn.active{color:var(--b);border-bottom-color:var(--b);}
+  .acq-tab-btn:hover{color:var(--text);}
+  .day-dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex-shrink:0;}
+  .ops-th{padding:8px 10px;text-align:left;font-size:11px;font-weight:700;color:#fff;text-transform:uppercase;white-space:nowrap;}
+  .ops-td{padding:8px 10px;font-size:12.5px;border-bottom:1px solid var(--border);vertical-align:middle;}
   .uz-acq{border:2px dashed var(--border);border-radius:12px;padding:28px;text-align:center;cursor:pointer;background:#FAFBFF;transition:all .15s;}
   .uz-acq:hover{border-color:var(--b);background:var(--bl);}
-  .badge-src{display:inline-flex;align-items:center;padding:2px 9px;border-radius:99px;font-size:11.5px;font-weight:700;}
+  .heat-cell{width:32px;height:28px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;cursor:default;transition:background .2s;}
 </style>
 
-  <!-- Month selector + current month badge -->
-  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px;">
-    <div style="display:flex;align-items:center;gap:8px;">
-      <button class="btn bg2 bsm" onclick="acqPrevMonth()">‹</button>
-      <span id="acq-month-label" style="font-family:var(--fh);font-size:16px;font-weight:800;min-width:140px;text-align:center;"></span>
-      <button class="btn bg2 bsm" onclick="acqNextMonth()">›</button>
-    </div>
-    <button class="btn bg2 bsm" onclick="acqGoToday()">Today</button>
-    <span id="acq-live-badge" style="display:none;background:#DCFCE7;color:var(--ok);padding:3px 10px;border-radius:99px;font-size:11.5px;font-weight:800;">🟢 Live — updates as customers register</span>
-    <button class="btn bg2 bsm" style="margin-left:auto;" onclick="acqInit()">↻ Refresh</button>
+  <!-- ── TABS ── -->
+  <div style="background:#fff;border-bottom:2px solid var(--border);display:flex;padding:0;margin:-18px -18px 18px;overflow-x:auto;flex-shrink:0;">
+    <button class="acq-tab-btn active" onclick="acqTab('acquisition',this)">📣 Acquisition</button>
+    <button class="acq-tab-btn" onclick="acqTab('operations',this)">⏱ Operations</button>
+    <button class="acq-tab-btn" onclick="acqTab('revenue',this)">💰 Revenue</button>
+    <button class="acq-tab-btn" onclick="acqTab('upload',this)">📂 Historical Data</button>
   </div>
 
-  <!-- KPI strip -->
-  <div id="acq-kpis" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:18px;"></div>
+  <!-- ══ TAB: ACQUISITION ══ -->
+  <div id="acqpane-acquisition">
 
-  <!-- Source breakdown -->
-  <div class="acq-card">
-    <div style="font-family:var(--fh);font-size:15px;font-weight:800;margin-bottom:4px;">📣 New Customers by Source</div>
-    <div style="font-size:12.5px;color:var(--muted);margin-bottom:14px;">First-time visitors this month, split by how they heard about MiniCuts</div>
-    <div id="acq-src-bars"></div>
-  </div>
-
-  <!-- Revenue by source -->
-  <div class="acq-card">
-    <div style="font-family:var(--fh);font-size:15px;font-weight:800;margin-bottom:4px;">💰 Revenue by Source</div>
-    <div style="font-size:12.5px;color:var(--muted);margin-bottom:4px;">Estimated from visit stamps × average service value. Upload historical Excel to improve accuracy.</div>
-    <div id="acq-rev-note" style="display:none;background:var(--warnl);color:var(--warn);border-radius:8px;padding:8px 12px;font-size:12px;font-weight:700;margin-bottom:12px;"></div>
-    <div id="acq-rev-bars"></div>
-  </div>
-
-  <!-- Monthly trend table -->
-  <div class="acq-card">
-    <div style="font-family:var(--fh);font-size:15px;font-weight:800;margin-bottom:4px;">📅 Monthly Acquisition Trend</div>
-    <div style="font-size:12.5px;color:var(--muted);margin-bottom:14px;">New customers per source across all months. Includes pre-June data if historical Excel uploaded.</div>
-    <div id="acq-monthly-table" style="overflow-x:auto;"></div>
-  </div>
-
-  <!-- New vs Returning -->
-  <div class="acq-card">
-    <div style="font-family:var(--fh);font-size:15px;font-weight:800;margin-bottom:4px;">🔄 New vs Returning — This Month</div>
-    <div style="font-size:12.5px;color:var(--muted);margin-bottom:14px;">Customers who visited this month, classified using phone number matching against historical data</div>
-    <div id="acq-newret"></div>
-  </div>
-
-  <!-- Historical data upload -->
-  <div class="acq-card" style="border-color:var(--b);">
-    <div style="font-family:var(--fh);font-size:15px;font-weight:800;margin-bottom:4px;">📂 Historical Data Upload</div>
-    <div style="font-size:12.5px;color:var(--muted);margin-bottom:14px;">Upload your pre-June 2025 transaction file. Map columns to the right fields, preview, then confirm. Phone numbers are cross-referenced to identify new vs returning customers.</div>
-    <div id="acq-upload-status" style="margin-bottom:10px;"></div>
-
-    <!-- Step 1: Drop zone -->
-    <div id="acq-step1">
-      <div class="uz-acq" onclick="document.getElementById('acq-hist-file').click()">
-        <div style="font-size:30px;margin-bottom:6px;">📊</div>
-        <div style="font-size:13.5px;font-weight:800;color:var(--b);">Click to upload historical Excel or CSV</div>
-        <div style="font-size:12px;color:var(--muted);margin-top:4px;">Supports .xlsx · .xls · .csv · .tsv</div>
+    <!-- Controls -->
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <button class="btn bg2 bsm" onclick="acqPrevMonth()">‹</button>
+        <span id="acq-month-label" style="font-family:var(--fh);font-size:15px;font-weight:800;min-width:140px;text-align:center;"></span>
+        <button class="btn bg2 bsm" onclick="acqNextMonth()">›</button>
       </div>
-      <input type="file" id="acq-hist-file" accept=".xlsx,.xls,.csv,.tsv" style="display:none;" onchange="acqStep1Load(this)">
+      <button class="btn bg2 bsm" onclick="acqGoToday()">This Month</button>
+      <span id="acq-live-badge" style="display:none;background:#DCFCE7;color:var(--ok);padding:3px 10px;border-radius:99px;font-size:11px;font-weight:800;">🟢 Live</span>
+      <button class="btn bg2 bsm" style="margin-left:auto;" onclick="acqInit()">↻ Refresh</button>
     </div>
 
-    <!-- Step 2: Column mapper (hidden until file loaded) -->
-    <div id="acq-step2" style="display:none;">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
-        <div style="font-family:var(--fh);font-size:14px;font-weight:800;">Step 2 — Map Your Columns</div>
-        <span id="acq-file-badge" style="background:var(--bl);color:var(--b);padding:3px 10px;border-radius:99px;font-size:11.5px;font-weight:700;"></span>
-      </div>
-      <div style="font-size:12.5px;color:var(--muted);margin-bottom:14px;">The system has auto-detected matches where possible. Correct any wrong mappings, then mark fields not present in your file as <em>— Not in file —</em>.</div>
-      <div id="acq-mapper-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;"></div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        <button class="btn bp" onclick="acqStep3Preview()">Preview & Confirm →</button>
-        <button class="btn bg2 bsm" onclick="acqResetUpload()">↩ Start over</button>
+    <!-- Top KPIs -->
+    <div id="acq-kpis" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:18px;"></div>
+
+    <!-- Source breakdown -->
+    <div class="acq-card">
+      <div style="font-family:var(--fh);font-size:15px;font-weight:800;margin-bottom:4px;">📣 New Customers by Source</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">First-time visitors this month only</div>
+      <div id="acq-src-bars"></div>
+    </div>
+
+    <!-- Revenue by source: new vs old -->
+    <div class="acq-card">
+      <div style="font-family:var(--fh);font-size:15px;font-weight:800;margin-bottom:4px;">💰 Revenue — New vs Returning by Source</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">From <code>queue.service_value</code> (live) + historical Excel amount (pre-June). Revenue attributed to acquisition channel of each customer.</div>
+      <div id="acq-rev-note" style="display:none;background:var(--warnl);color:var(--warn);border-radius:8px;padding:8px 12px;font-size:12px;font-weight:700;margin-bottom:10px;"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+        <div><div style="font-size:12px;font-weight:800;color:var(--ok);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">🆕 New Customer Revenue</div><div id="acq-rev-new"></div></div>
+        <div><div style="font-size:12px;font-weight:800;color:var(--b);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">🔄 Returning Customer Revenue</div><div id="acq-rev-ret"></div></div>
       </div>
     </div>
 
-    <!-- Step 3: Preview & confirm (hidden until mapped) -->
-    <div id="acq-step3" style="display:none;">
-      <div style="font-family:var(--fh);font-size:14px;font-weight:800;margin-bottom:10px;">Step 3 — Preview & Confirm</div>
-      <div id="acq-preview-summary" style="margin-bottom:12px;"></div>
-      <div id="acq-preview-table" style="overflow-x:auto;margin-bottom:14px;"></div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        <button class="btn bp" onclick="acqCommitHistorical()" style="background:var(--ok);">✅ Confirm & Save</button>
-        <button class="btn bg2 bsm" onclick="acqBackToMapper()">← Edit Mapping</button>
-        <button class="btn bg2 bsm" onclick="acqResetUpload()">↩ Start over</button>
-      </div>
+    <!-- Monthly trend table -->
+    <div class="acq-card">
+      <div style="font-family:var(--fh);font-size:15px;font-weight:800;margin-bottom:4px;">📅 Monthly Acquisition Trend</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">New customers per source across all months</div>
+      <div id="acq-monthly-table" style="overflow-x:auto;"></div>
     </div>
 
+    <!-- New vs Returning -->
+    <div class="acq-card">
+      <div style="font-family:var(--fh);font-size:15px;font-weight:800;margin-bottom:4px;">🔄 New vs Returning</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">Classified by phone cross-reference against historical data</div>
+      <div id="acq-newret"></div>
+    </div>
+
+    <!-- Historical insights -->
+    <div class="acq-card" id="acq-hist-insights" style="display:none;">
+      <div style="font-family:var(--fh);font-size:15px;font-weight:800;margin-bottom:4px;">📊 Historical Data Insights</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">From your uploaded pre-June transaction file</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
+        <div><div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;margin-bottom:8px;">👦👧 Segment</div><div id="acq-hist-gender"></div></div>
+        <div><div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;margin-bottom:8px;">💈 By Stylist</div><div id="acq-hist-stylist"></div></div>
+      </div>
+      <div style="margin-bottom:14px;"><div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;margin-bottom:8px;">✂️ Top Services</div><div id="acq-hist-services"></div></div>
+      <div><div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;margin-bottom:8px;">📅 Monthly Revenue (Historical)</div><div id="acq-hist-rev-table" style="overflow-x:auto;"></div></div>
+    </div>
+
+  </div>
+
+  <!-- ══ TAB: OPERATIONS ══ -->
+  <div id="acqpane-operations" style="display:none;">
+
+    <!-- Date range picker -->
+    <div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <span style="font-size:13px;font-weight:700;color:var(--muted);">📅 Period:</span>
+      <input type="date" id="ops-from" class="fi" style="width:145px;padding:6px 10px;font-size:13px;">
+      <span style="font-size:12px;color:var(--muted);">to</span>
+      <input type="date" id="ops-to" class="fi" style="width:145px;padding:6px 10px;font-size:13px;">
+      <button class="btn bp bsm" onclick="opsLoad()">Apply</button>
+      <button class="btn bg2 bsm" onclick="opsPreset(7)">Last 7d</button>
+      <button class="btn bg2 bsm" onclick="opsPreset(30)">Last 30d</button>
+      <button class="btn bg2 bsm" onclick="opsPreset(90)">Last 90d</button>
+    </div>
+
+    <!-- Ops KPIs -->
+    <div id="ops-kpis" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:16px;"></div>
+
+    <!-- Customer load by day -->
+    <div class="acq-card">
+      <div style="font-family:var(--fh);font-size:15px;font-weight:800;margin-bottom:4px;">📈 Customer Load by Day</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">Total customers served per day. Hover for details. Red = high wait days.</div>
+      <div id="ops-load-chart" style="overflow-x:auto;"></div>
+    </div>
+
+    <!-- Daily detail table -->
+    <div class="acq-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+        <div style="font-family:var(--fh);font-size:15px;font-weight:800;">🗓 Daily Breakdown</div>
+        <div style="font-size:12px;color:var(--muted);">Click any row to see that day's queue</div>
+      </div>
+      <div id="ops-daily-table" style="overflow-x:auto;"></div>
+    </div>
+
+    <!-- Stylist performance -->
+    <div class="acq-card">
+      <div style="font-family:var(--fh);font-size:15px;font-weight:800;margin-bottom:4px;">💈 Avg Service Time by Stylist</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">From check-in to done. Requires <code>called_at</code> + <code>done_at</code> fields in queue. <span style="color:var(--warn);">Note: called_at recording activated from today — older records will show N/A.</span></div>
+      <div id="ops-stylist-table" style="overflow-x:auto;"></div>
+    </div>
+
+    <!-- Wait time vs retention impact -->
+    <div class="acq-card">
+      <div style="font-family:var(--fh);font-size:15px;font-weight:800;margin-bottom:4px;">⚠️ High Wait Days & Retention Impact</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">Days where avg wait exceeded 20 min, correlated with whether those customers returned within 60 days</div>
+      <div id="ops-wait-impact"></div>
+    </div>
+
+  </div>
+
+  <!-- ══ TAB: REVENUE ══ -->
+  <div id="acqpane-revenue" style="display:none;">
+    <div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <span style="font-size:13px;font-weight:700;color:var(--muted);">📅 Period:</span>
+      <input type="date" id="rev-from" class="fi" style="width:145px;padding:6px 10px;font-size:13px;">
+      <span style="font-size:12px;color:var(--muted);">to</span>
+      <input type="date" id="rev-to" class="fi" style="width:145px;padding:6px 10px;font-size:13px;">
+      <button class="btn bp bsm" onclick="revLoad()">Apply</button>
+      <button class="btn bg2 bsm" onclick="revPreset(30)">Last 30d</button>
+      <button class="btn bg2 bsm" onclick="revPreset(90)">Last 90d</button>
+      <button class="btn bg2 bsm" onclick="revPreset(365)">Last Year</button>
+    </div>
+    <div id="rev-kpis" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:16px;"></div>
+    <div class="acq-card">
+      <div style="font-family:var(--fh);font-size:15px;font-weight:800;margin-bottom:4px;">💰 Revenue by Month — Live vs Historical</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">Live data from <code>queue.service_value</code>. Historical from uploaded Excel. Combined view.</div>
+      <div id="rev-monthly" style="overflow-x:auto;"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+      <div class="acq-card">
+        <div style="font-family:var(--fh);font-size:14px;font-weight:800;margin-bottom:12px;">💳 Payment Type Split</div>
+        <div id="rev-payment"></div>
+      </div>
+      <div class="acq-card">
+        <div style="font-family:var(--fh);font-size:14px;font-weight:800;margin-bottom:12px;">✂️ Revenue by Service</div>
+        <div id="rev-service"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ TAB: HISTORICAL UPLOAD ══ -->
+  <div id="acqpane-upload" style="display:none;">
+    <div class="acq-card" style="border-color:var(--b);">
+      <div style="font-family:var(--fh);font-size:15px;font-weight:800;margin-bottom:4px;">📂 Historical Data Upload</div>
+      <div style="font-size:12.5px;color:var(--muted);margin-bottom:14px;">Upload your pre-June 2025 transaction file. Map columns to the right fields, preview, then confirm.</div>
+      <div id="acq-upload-status" style="margin-bottom:10px;"></div>
+      <div id="acq-step1">
+        <div class="uz-acq" onclick="document.getElementById('acq-hist-file').click()">
+          <div style="font-size:30px;margin-bottom:6px;">📊</div>
+          <div style="font-size:13.5px;font-weight:800;color:var(--b);">Click to upload historical Excel or CSV</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:4px;">Supports .xlsx · .xls · .csv · .tsv</div>
+        </div>
+        <input type="file" id="acq-hist-file" accept=".xlsx,.xls,.csv,.tsv" style="display:none;" onchange="acqStep1Load(this)">
+      </div>
+      <div id="acq-step2" style="display:none;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+          <div style="font-family:var(--fh);font-size:14px;font-weight:800;">Step 2 — Map Your Columns</div>
+          <span id="acq-file-badge" style="background:var(--bl);color:var(--b);padding:3px 10px;border-radius:99px;font-size:11.5px;font-weight:700;"></span>
+        </div>
+        <div style="font-size:12.5px;color:var(--muted);margin-bottom:14px;">Auto-detected matches are highlighted green. Fix any wrong mappings, mark missing fields as <em>— Not in file —</em>.</div>
+        <div id="acq-mapper-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;"></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn bp" onclick="acqStep3Preview()">Preview & Confirm →</button>
+          <button class="btn bg2 bsm" onclick="acqResetUpload()">↩ Start over</button>
+        </div>
+      </div>
+      <div id="acq-step3" style="display:none;">
+        <div style="font-family:var(--fh);font-size:14px;font-weight:800;margin-bottom:10px;">Step 3 — Preview & Confirm</div>
+        <div id="acq-preview-summary" style="margin-bottom:12px;"></div>
+        <div id="acq-preview-table" style="overflow-x:auto;margin-bottom:14px;"></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn bp" onclick="acqCommitHistorical()" style="background:var(--ok);">✅ Confirm & Save</button>
+          <button class="btn bg2 bsm" onclick="acqBackToMapper()">← Edit Mapping</button>
+          <button class="btn bg2 bsm" onclick="acqResetUpload()">↩ Start over</button>
+        </div>
+      </div>
+    </div>
   </div>
 
 </div>
@@ -5142,10 +5246,779 @@ async function ssDeleteCoupon(id){
 })();
 
 // ══════════════════════════════════════════════════════════════
-// ACQUISITION ANALYTICS MODULE
+// ACQUISITION + OPERATIONS + REVENUE ANALYTICS MODULE
 // ══════════════════════════════════════════════════════════════
-const ACQ_HIST_KEY = 'mc_acq_historical'; // phone numbers + dates from old Excel
-const ACQ_AVG_KEY  = 'mc_acq_avg_value';  // stored avg service value
+const ACQ_HIST_KEY='mc_acq_historical';
+const ACQ_AVG_KEY='mc_acq_avg_value';
+
+const SRC_CONFIG=[
+  {key:'Google',         label:'Google',            color:'#1565C0',emoji:'🔍'},
+  {key:'Instagram',      label:'Instagram',          color:'#EC4899',emoji:'📸'},
+  {key:'Friends/Family', label:'Friends & Family',   color:'#16A34A',emoji:'👨‍👩‍👧'},
+  {key:'Ad Board',       label:'Ad Board',           color:'#D97706',emoji:'📋'},
+  {key:'Walk-in',        label:'Walk-in',            color:'#7C3AED',emoji:'🚶'},
+  {key:'Other',          label:'Other',              color:'#9CA3AF',emoji:'💬'},
+];
+const SRC_KEYS=SRC_CONFIG.map(s=>s.key);
+
+// ── Tab switch ──
+function acqTab(name,btn){
+  ['acquisition','operations','revenue','upload'].forEach(t=>{
+    const el=document.getElementById('acqpane-'+t);if(el)el.style.display=t===name?'block':'none';
+  });
+  document.querySelectorAll('.acq-tab-btn').forEach(b=>b.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  if(name==='operations')opsLoad();
+  else if(name==='revenue')revLoad();
+  else if(name==='upload')acqShowHistStatus();
+}
+
+// ── Month nav ──
+let acqYear=new Date().getFullYear(),acqMonth=new Date().getMonth();
+function acqPrevMonth(){acqMonth--;if(acqMonth<0){acqMonth=11;acqYear--;}acqRender();}
+function acqNextMonth(){const n=new Date();if(acqYear===n.getFullYear()&&acqMonth>=n.getMonth())return;acqMonth++;if(acqMonth>11){acqMonth=0;acqYear++;}acqRender();}
+function acqGoToday(){acqYear=new Date().getFullYear();acqMonth=new Date().getMonth();acqRender();}
+function acqIsCurrentMonth(){const n=new Date();return acqYear===n.getFullYear()&&acqMonth===n.getMonth();}
+function acqFmtMonth(y,m){return new Date(y,m,1).toLocaleDateString('en-GB',{month:'long',year:'numeric'});}
+
+// ── Init ──
+async function acqInit(){
+  acqYear=new Date().getFullYear();acqMonth=new Date().getMonth();
+  await acqRender();
+  acqShowHistStatus();
+}
+
+// ── Helpers ──
+function acqNormalizePhone(ph){
+  if(!ph)return'';
+  return String(ph).replace(/\D/g,'').replace(/^971/,'').replace(/^0/,'').slice(-9);
+}
+function acqMapSource(raw){
+  if(!raw)return'Unknown';
+  const v=raw.toLowerCase().trim();
+  if(v.includes('google'))return'Google';
+  if(v.includes('instagram')||v.includes('insta')||v.includes('ig'))return'Instagram';
+  if(v.includes('friend')||v.includes('family')||v.includes('referr')||v.includes('word'))return'Friends/Family';
+  if(v.includes('ad')||v.includes('board')||v.includes('hoard')||v.includes('banner')||v.includes('sign'))return'Ad Board';
+  if(v.includes('walk')||v.includes('passing'))return'Walk-in';
+  if(v===''||v==='-'||v==='unknown')return'Unknown';
+  return'Other';
+}
+function acqFmtMins(mins){if(isNaN(mins)||mins===null)return'—';if(mins<1)return'<1m';return Math.round(mins)+'m';}
+function acqKpiHtml(icon,label,val,sub,color='var(--b)'){
+  return`<div class="acq-kpi"><div style="font-size:20px;">${icon}</div><div class="acq-kpi-n" style="color:${color};">${val}</div><div class="acq-kpi-l">${label}</div>${sub?`<div class="acq-kpi-sub" style="color:var(--muted);">${sub}</div>`:''}</div>`;
+}
+function acqBar(label,val,max,color,suffix=''){
+  const pct=max>0?Math.round(val/max*100):0;
+  return`<div class="src-bar-wrap">
+    <div class="src-bar-label">${label}</div>
+    <div class="src-bar-track"><div class="src-bar-fill" style="width:${pct}%;background:${color};"></div></div>
+    <div class="src-bar-val">${suffix}${typeof val==='number'&&val%1!==0?val.toFixed(0):val}</div>
+    <div class="src-bar-pct">${pct}%</div>
+  </div>`;
+}
+
+// ══ ACQUISITION TAB ══
+async function acqRender(){
+  document.getElementById('acq-month-label').textContent=acqFmtMonth(acqYear,acqMonth);
+  const live=document.getElementById('acq-live-badge');
+  if(live)live.style.display=acqIsCurrentMonth()?'inline-flex':'none';
+  ['acq-kpis','acq-src-bars','acq-rev-new','acq-rev-ret','acq-monthly-table','acq-newret'].forEach(id=>{
+    const el=document.getElementById(id);if(el)el.innerHTML='<div class="load"><div class="spin"></div></div>';
+  });
+  try{
+    // Fetch customers
+    let customers=[];let offset=0;const PAGE=1000;
+    while(true){
+      const batch=await sb('customers','GET',null,'select=id,name,mobile,created_at,heard_via&order=created_at.asc&limit='+PAGE+'&offset='+offset);
+      customers=[...customers,...(batch||[])];if(!batch||batch.length<PAGE)break;offset+=PAGE;
+    }
+    // Fetch queue (for revenue — service_value field)
+    let queueAll=[];
+    try{
+      offset=0;
+      while(true){
+        const batch=await sb('queue','GET',null,'select=customer_id,mobile,service_value,checkin_date,checkin_time,called_at,done_at,stylist,status,payment_type&status=eq.done&order=checkin_date.asc&limit='+PAGE+'&offset='+offset);
+        queueAll=[...queueAll,...(batch||[])];if(!batch||batch.length<PAGE)break;offset+=PAGE;
+      }
+    }catch(e){}
+    // Historical
+    const hist=JSON.parse(localStorage.getItem(ACQ_HIST_KEY)||'[]');
+    const histPhones=new Set(hist.map(r=>acqNormalizePhone(r.mobile||r.phone)).filter(Boolean));
+    const histHasData=histPhones.size>0;
+    const histLookup={};hist.forEach(r=>{const ph=acqNormalizePhone(r.mobile||r.phone);if(ph&&!histLookup[ph])histLookup[ph]=r;});
+
+    // Month window
+    const mStart=new Date(acqYear,acqMonth,1);
+    const mEnd=new Date(acqYear,acqMonth+1,0,23,59,59);
+
+    // Existing phones before this month
+    const existingPhones=new Set(customers.filter(c=>new Date(c.created_at)<mStart).map(c=>acqNormalizePhone(c.mobile)).filter(Boolean));
+    const allKnownBefore=new Set([...histPhones,...existingPhones]);
+
+    // Customers registered this month
+    const mCusts=customers.filter(c=>{const d=new Date(c.created_at);return d>=mStart&&d<=mEnd;});
+    // Total unique customers ever (system + hist phones)
+    const allSysPhones=new Set(customers.map(c=>acqNormalizePhone(c.mobile)).filter(Boolean));
+    const totalUnique=new Set([...allSysPhones,...histPhones]).size;
+    const oldCustomers=histPhones.size+existingPhones.size; // rough: hist + pre-month system
+    // New vs returning this month
+    let newCount=0,retCount=0,unknownCount=0;
+    const newCustIds=new Set();const retCustIds=new Set();
+    mCusts.forEach(c=>{
+      const ph=acqNormalizePhone(c.mobile);
+      if(!ph){unknownCount++;return;}
+      if(allKnownBefore.has(ph)){retCount++;retCustIds.add(c.id);}
+      else{newCount++;newCustIds.add(c.id);}
+    });
+    // Queue this month
+    const mQueue=queueAll.filter(q=>{if(!q.checkin_date)return false;const d=new Date(q.checkin_date);return d>=mStart&&d<=mEnd;});
+    const mRevTotal=mQueue.reduce((a,q)=>a+(parseFloat(q.service_value)||0),0);
+    // Hist revenue this month
+    const histMonthRev=hist.filter(r=>{if(!r.date)return false;const d=new Date(r.date);return d>=mStart&&d<=mEnd;}).reduce((a,r)=>a+(parseFloat(r.amount)||0),0);
+    const combinedRev=mRevTotal+histMonthRev;
+    // Return rate: customers this month who had a previous visit
+    const returnRate=mCusts.length>0?Math.round(retCount/mCusts.length*100):0;
+
+    // ── KPIs ──
+    document.getElementById('acq-kpis').innerHTML=[
+      acqKpiHtml('🆕','New Customers',newCount,acqIsCurrentMonth()?'🟢 running this month':'','var(--ok)'),
+      acqKpiHtml('🔄','Returning Customers',retCount,`${returnRate}% return rate`,'var(--b)'),
+      acqKpiHtml('👥','Total This Month',mCusts.length+unknownCount,'incl. '+unknownCount+' no-phone'),
+      acqKpiHtml('📊','Return Rate',returnRate+'%',histHasData?'cross-ref vs history':'system data only',returnRate>=40?'var(--ok)':returnRate>=20?'var(--warn)':'var(--err)'),
+      acqKpiHtml('💰','Revenue (Live)',mRevTotal?'AED '+mRevTotal.toFixed(0):'—','queue.service_value','var(--ok)'),
+      acqKpiHtml('📂','Revenue (Hist+Live)',combinedRev?'AED '+combinedRev.toFixed(0):'—',histMonthRev?'+AED '+histMonthRev.toFixed(0)+' from Excel':'upload Excel for pre-June'),
+    ].join('');
+
+    // ── Source bars ──
+    const srcNew={},srcRev={new:{},ret:{}};
+    const allSrc=[...SRC_CONFIG,{key:'Unknown',label:'Unknown',color:'#9CA3AF',emoji:'❓'}];
+    allSrc.forEach(s=>{srcNew[s.key]=0;srcRev.new[s.key]=0;srcRev.ret[s.key]=0;});
+    // Build customer→source map
+    const custSrc={};customers.forEach(c=>{custSrc[c.id]=acqMapSource(c.heard_via);});
+    // Count new customers by source
+    mCusts.forEach(c=>{if(newCustIds.has(c.id)){const src=acqMapSource(c.heard_via);srcNew[src]=(srcNew[src]||0)+1;}});
+    // Assign revenue by source and new/ret status
+    mQueue.forEach(q=>{
+      const amt=parseFloat(q.service_value)||0;if(!amt)return;
+      const src=q.customer_id?custSrc[q.customer_id]||'Unknown':'Unknown';
+      const ph=acqNormalizePhone(q.mobile);
+      const isNew=ph?!allKnownBefore.has(ph):false;
+      if(isNew)srcRev.new[src]=(srcRev.new[src]||0)+amt;
+      else srcRev.ret[src]=(srcRev.ret[src]||0)+amt;
+    });
+    const maxNew=Math.max(1,...Object.values(srcNew));
+    const srcEl=document.getElementById('acq-src-bars');
+    srcEl.innerHTML=allSrc.filter(s=>srcNew[s.key]>0).sort((a,b)=>srcNew[b.key]-srcNew[a.key])
+      .map(s=>acqBar(s.emoji+' '+s.label,srcNew[s.key],maxNew,s.color)).join('')
+      ||'<div style="color:var(--muted);font-size:13px;">No new customers this month yet.</div>';
+
+    // Revenue breakdown: new vs returning by source
+    const maxRevNew=Math.max(1,...Object.values(srcRev.new));
+    const maxRevRet=Math.max(1,...Object.values(srcRev.ret));
+    const revNewEl=document.getElementById('acq-rev-new');
+    const revRetEl=document.getElementById('acq-rev-ret');
+    const totalRevNew=Object.values(srcRev.new).reduce((a,b)=>a+b,0);
+    const totalRevRet=Object.values(srcRev.ret).reduce((a,b)=>a+b,0);
+    revNewEl.innerHTML=(totalRevNew>0
+      ?allSrc.filter(s=>srcRev.new[s.key]>0).sort((a,b)=>srcRev.new[b.key]-srcRev.new[a.key]).map(s=>acqBar(s.emoji+' '+s.label,srcRev.new[s.key],maxRevNew,s.color,'AED ')).join('')
+      :'<div style="color:var(--muted);font-size:12.5px;">No revenue data for new customers yet.</div>');
+    revRetEl.innerHTML=(totalRevRet>0
+      ?allSrc.filter(s=>srcRev.ret[s.key]>0).sort((a,b)=>srcRev.ret[b.key]-srcRev.ret[a.key]).map(s=>acqBar(s.emoji+' '+s.label,srcRev.ret[s.key],maxRevRet,s.color,'AED ')).join('')
+      :'<div style="color:var(--muted);font-size:12.5px;">No returning customer revenue data yet.</div>');
+    // Note if no service_value
+    const withSV=mQueue.filter(q=>q.service_value>0).length;
+    const revNote=document.getElementById('acq-rev-note');
+    if(revNote){
+      if(mQueue.length>0&&withSV===0){revNote.style.display='block';revNote.textContent='⚠️ No service_value found in queue records — enter AED when marking customers done in the Queue tab to enable live revenue tracking.';}
+      else revNote.style.display='none';
+    }
+
+    // Monthly table
+    acqBuildMonthlyTable(customers,allKnownBefore,hist);
+
+    // New vs Returning bar
+    const nrEl=document.getElementById('acq-newret');
+    const tot_nr=newCount+retCount+unknownCount||1;
+    nrEl.innerHTML=`
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:14px;">
+        ${acqKpiHtml('🆕','New',newCount,'first visit ever','var(--ok)')}
+        ${acqKpiHtml('🔄','Returning',retCount,returnRate+'% return rate','var(--b)')}
+        ${acqKpiHtml('❓','Unknown',unknownCount,'no phone recorded','var(--muted)')}
+      </div>
+      <div style="display:flex;height:16px;border-radius:99px;overflow:hidden;margin-bottom:10px;">
+        <div style="width:${Math.round(newCount/tot_nr*100)}%;background:var(--ok);" title="New"></div>
+        <div style="width:${Math.round(retCount/tot_nr*100)}%;background:var(--b);" title="Returning"></div>
+        <div style="width:${Math.round(unknownCount/tot_nr*100)}%;background:#E5E7EB;" title="Unknown"></div>
+      </div>
+      ${!histHasData?'<div style="font-size:12px;color:var(--warn);font-weight:700;">⚠️ Upload historical Excel in the Historical Data tab to improve classification accuracy.</div>':''}`;
+
+    acqRenderHistInsights(hist);
+  }catch(e){
+    ['acq-kpis','acq-src-bars','acq-newret'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=`<div style="color:var(--err);padding:12px;font-size:13px;font-weight:700;">Error: ${e.message}</div>`;});
+  }
+}
+
+function acqBuildMonthlyTable(customers,allKnownBefore,hist){
+  const el=document.getElementById('acq-monthly-table');if(!el)return;
+  let earliest=new Date();
+  customers.forEach(c=>{const d=new Date(c.created_at);if(d<earliest)earliest=d;});
+  hist.forEach(r=>{if(r.date){const d=new Date(r.date);if(d<earliest)earliest=d;}});
+  const now=new Date();const months=[];
+  let y=earliest.getFullYear(),m=earliest.getMonth();
+  while(y<now.getFullYear()||(y===now.getFullYear()&&m<=now.getMonth())){
+    months.push({y,m});m++;if(m>12){m=0;y++;}
+  }
+  const srcLabels=[...SRC_KEYS,'Unknown'];
+  const srcColors={};SRC_CONFIG.forEach(s=>srcColors[s.key]=s.color);srcColors['Unknown']='#9CA3AF';
+  const SRC_EMOJI={Google:'🔍',Instagram:'📸','Friends/Family':'👨‍👩‍👧','Ad Board':'📋','Walk-in':'🚶',Other:'💬',Unknown:'❓'};
+  const tableData=months.map(({y,m})=>{
+    const mStart=new Date(y,m,1);const mEnd=new Date(y,m+1,0,23,59,59);
+    const mCusts=customers.filter(c=>{const d=new Date(c.created_at);return d>=mStart&&d<=mEnd;});
+    const knownBefore=new Set([...Array.from(allKnownBefore),...customers.filter(c=>new Date(c.created_at)<mStart).map(c=>acqNormalizePhone(c.mobile)).filter(Boolean)]);
+    const byCounts={};srcLabels.forEach(k=>byCounts[k]=0);
+    mCusts.forEach(c=>{const ph=acqNormalizePhone(c.mobile);if(ph&&knownBefore.has(ph))return;const src=acqMapSource(c.heard_via);byCounts[src]=(byCounts[src]||0)+1;});
+    const total=Object.values(byCounts).reduce((a,b)=>a+b,0);
+    return{y,m,byCounts,total};
+  }).filter(r=>r.total>0);
+  if(!tableData.length){el.innerHTML='<div style="color:var(--muted);font-size:13px;">No data yet.</div>';return;}
+  const activeSrcs=srcLabels.filter(k=>tableData.some(r=>(r.byCounts[k]||0)>0));
+  let html=`<table style="width:100%;border-collapse:collapse;background:#fff;border-radius:10px;overflow:hidden;box-shadow:var(--sh);">
+    <thead style="background:var(--bd);"><tr>
+      <th style="padding:8px 12px;text-align:left;color:#fff;font-size:11px;font-weight:700;white-space:nowrap;">Month</th>
+      ${activeSrcs.map(k=>`<th style="padding:8px 10px;text-align:center;color:#fff;font-size:11px;font-weight:700;white-space:nowrap;color:${srcColors[k]||'#fff'};">${SRC_EMOJI[k]||''} ${k}</th>`).join('')}
+      <th style="padding:8px 10px;text-align:center;color:#fff;font-size:11px;font-weight:700;">Total</th>
+    </tr></thead><tbody>`;
+  tableData.slice().reverse().forEach((r,i)=>{
+    const isCur=r.y===new Date().getFullYear()&&r.m===new Date().getMonth();
+    html+=`<tr style="${isCur?'background:var(--bl);':''}${i%2===0&&!isCur?'background:#F8FAFF':''}">
+      <td style="padding:7px 12px;font-weight:${isCur?'900':'700'};font-size:12.5px;white-space:nowrap;color:${isCur?'var(--b)':'var(--text)'};">${new Date(r.y,r.m,1).toLocaleDateString('en-GB',{month:'short',year:'2-digit'})}${isCur?' 🟢':''}</td>
+      ${activeSrcs.map(k=>`<td style="padding:7px 10px;text-align:center;font-weight:700;font-size:12.5px;color:${(r.byCounts[k]||0)>0?srcColors[k]:'var(--muted)'};">${r.byCounts[k]||'—'}</td>`).join('')}
+      <td style="padding:7px 10px;text-align:center;font-weight:900;font-size:13px;color:var(--b);">${r.total}</td>
+    </tr>`;
+  });
+  const gT={};activeSrcs.forEach(k=>gT[k]=tableData.reduce((a,r)=>a+(r.byCounts[k]||0),0));
+  const grandTotal=tableData.reduce((a,r)=>a+r.total,0);
+  html+=`<tr style="border-top:2px solid var(--border);background:var(--bg);">
+    <td style="padding:7px 12px;font-size:11px;font-weight:700;color:var(--muted);">TOTAL</td>
+    ${activeSrcs.map(k=>`<td style="padding:7px 10px;text-align:center;font-weight:800;font-size:13px;color:${srcColors[k]};">${gT[k]||0}</td>`).join('')}
+    <td style="padding:7px 10px;text-align:center;font-weight:900;font-size:14px;color:var(--b);">${grandTotal}</td>
+  </tr></tbody></table>`;
+  el.innerHTML=html;
+}
+
+function acqRenderHistInsights(hist){
+  const card=document.getElementById('acq-hist-insights');if(!card)return;
+  if(!hist||!hist.length){card.style.display='none';return;}
+  card.style.display='block';const total=hist.length;
+  // Segment
+  const seg={boy:0,girl:0,other:0};
+  hist.forEach(r=>{const s=(r.segment||'').toLowerCase().trim();if(s==='boy'||s==='boys'||s==='male'||s==='m')seg.boy++;else if(s==='girl'||s==='girls'||s==='female'||s==='f')seg.girl++;else seg.other++;});
+  const gEl=document.getElementById('acq-hist-gender');
+  if(gEl)gEl.innerHTML=[{label:'👦 Boys',count:seg.boy,color:'#1565C0'},{label:'👧 Girls',count:seg.girl,color:'#EC4899'},...(seg.other?[{label:'❓ Unknown',count:seg.other,color:'#9CA3AF'}]:[])].map(({label,count,color})=>acqBar(label,count,total,color)).join('');
+  // Stylist
+  const stylMap={};hist.forEach(r=>{const s=r.stylist_phone||(r.stylist)||'Unknown';const key=s?acqNormalizePhone(s)||s:'Unknown';stylMap[key]=(stylMap[key]||0)+1;});
+  const stylEl=document.getElementById('acq-hist-stylist');const STYL_COLORS=['#1565C0','#7C3AED','#16A34A','#D97706','#DC2626'];
+  if(stylEl)stylEl.innerHTML=Object.entries(stylMap).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([k,v],i)=>acqBar('💈 '+k.slice(0,12),v,total,STYL_COLORS[i%5])).join('');
+  // Services
+  const svcMap={};hist.forEach(r=>{const d=(r.description||'').trim();if(!d)return;svcMap[d]=(svcMap[d]||0)+1;});
+  const svcEl=document.getElementById('acq-hist-services');const SVC_COLORS=['#1565C0','#7C3AED','#16A34A','#D97706','#DC2626','#0891B2','#9333EA','#EA580C'];
+  if(svcEl)svcEl.innerHTML=Object.entries(svcMap).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([k,v],i)=>acqBar(k,v,Object.values(svcMap)[0],SVC_COLORS[i%8])).join('')||'<div style="color:var(--muted);font-size:12.5px;">No description data.</div>';
+  // Monthly revenue
+  const mRevMap={};const mVolMap={};
+  hist.forEach(r=>{if(!r.date)return;const d=new Date(r.date);if(isNaN(d))return;const key=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');mRevMap[key]=(mRevMap[key]||0)+(parseFloat(r.amount)||0);mVolMap[key]=(mVolMap[key]||0)+1;});
+  const revEl=document.getElementById('acq-hist-rev-table');
+  const revMonths=Object.keys(mRevMap).sort();
+  if(revEl&&revMonths.length){
+    const totalR=Object.values(mRevMap).reduce((a,b)=>a+b,0);const totalV=Object.values(mVolMap).reduce((a,b)=>a+b,0);
+    revEl.innerHTML=`<table style="width:100%;border-collapse:collapse;background:#fff;border-radius:10px;overflow:hidden;box-shadow:var(--sh);">
+      <thead style="background:var(--bd);"><tr><th style="padding:7px 10px;color:#fff;font-size:11px;font-weight:700;text-align:left;">Month</th><th style="padding:7px 10px;color:#fff;font-size:11px;font-weight:700;text-align:right;">Txns</th><th style="padding:7px 10px;color:#fff;font-size:11px;font-weight:700;text-align:right;">Revenue</th><th style="padding:7px 10px;color:#fff;font-size:11px;font-weight:700;text-align:right;">Avg</th></tr></thead>
+      <tbody>${revMonths.map((m,i)=>`<tr style="${i%2===0?'background:#F8FAFF':''}"><td style="padding:7px 10px;font-weight:700;font-size:12.5px;">${new Date(m+'-01').toLocaleDateString('en-GB',{month:'short',year:'numeric'})}</td><td style="padding:7px 10px;text-align:right;font-size:12.5px;">${mVolMap[m]}</td><td style="padding:7px 10px;text-align:right;font-weight:800;color:var(--ok);font-size:12.5px;">AED ${mRevMap[m].toFixed(0)}</td><td style="padding:7px 10px;text-align:right;color:var(--muted);font-size:12px;">AED ${mVolMap[m]>0?(mRevMap[m]/mVolMap[m]).toFixed(0):0}</td></tr>`).join('')}
+      <tr style="border-top:2px solid var(--border);background:var(--bg);"><td style="padding:7px 10px;font-weight:900;font-size:12px;color:var(--muted);">TOTAL</td><td style="padding:7px 10px;text-align:right;font-weight:900;">${totalV}</td><td style="padding:7px 10px;text-align:right;font-weight:900;color:var(--ok);">AED ${totalR.toFixed(0)}</td><td style="padding:7px 10px;text-align:right;font-weight:800;color:var(--muted);">AED ${totalV>0?(totalR/totalV).toFixed(0):0}</td></tr>
+      </tbody></table>`;
+  }
+}
+
+// ══ OPERATIONS TAB ══
+function opsPreset(days){
+  const to=new Date();const from=new Date();from.setDate(from.getDate()-days);
+  document.getElementById('ops-from').value=from.toISOString().split('T')[0];
+  document.getElementById('ops-to').value=to.toISOString().split('T')[0];
+  opsLoad();
+}
+
+async function opsLoad(){
+  let from=document.getElementById('ops-from')?.value;
+  let to=document.getElementById('ops-to')?.value;
+  if(!from||!to){
+    // Default: last 30 days
+    const td=new Date();const fd=new Date();fd.setDate(fd.getDate()-30);
+    from=fd.toISOString().split('T')[0];to=td.toISOString().split('T')[0];
+    if(document.getElementById('ops-from'))document.getElementById('ops-from').value=from;
+    if(document.getElementById('ops-to'))document.getElementById('ops-to').value=to;
+  }
+  ['ops-kpis','ops-load-chart','ops-daily-table','ops-stylist-table','ops-wait-impact'].forEach(id=>{
+    const el=document.getElementById(id);if(el)el.innerHTML='<div class="load"><div class="spin"></div></div>';
+  });
+  try{
+    // Fetch queue records in period
+    const PAGE=1000;let queue=[];let offset=0;
+    while(true){
+      const batch=await sb('queue','GET',null,`select=*&checkin_date=gte.${from}&checkin_date=lte.${to}&order=checkin_date.asc,token_number.asc&limit=${PAGE}&offset=${offset}`);
+      queue=[...queue,...(batch||[])];if(!batch||batch.length<PAGE)break;offset+=PAGE;
+    }
+    const done=queue.filter(q=>q.status==='done');
+    // Compute per-record metrics
+    const records=done.map(q=>{
+      const ci=q.checkin_time?new Date(q.checkin_time):null;
+      const ca=q.called_at?new Date(q.called_at):null;
+      const da=q.done_at?new Date(q.done_at):null;
+      const waitMins=(ci&&ca)?((ca-ci)/60000):null;
+      const serveMins=(ca&&da)?((da-ca)/60000):null;
+      const totalMins=(ci&&da)?((da-ci)/60000):null;
+      return{...q,waitMins,serveMins,totalMins};
+    });
+    // Per-day aggregates
+    const dayMap={};
+    records.forEach(r=>{
+      const d=r.checkin_date;if(!d)return;
+      if(!dayMap[d])dayMap[d]={date:d,count:0,revenue:0,waitMins:[],serveMins:[],totalMins:[],guests:0,stylists:{}};
+      dayMap[d].count++;
+      dayMap[d].revenue+=(parseFloat(r.service_value)||0);
+      if(r.waitMins!==null&&r.waitMins>=0&&r.waitMins<300)dayMap[d].waitMins.push(r.waitMins);
+      if(r.serveMins!==null&&r.serveMins>0&&r.serveMins<300)dayMap[d].serveMins.push(r.serveMins);
+      if(r.totalMins!==null&&r.totalMins>0&&r.totalMins<300)dayMap[d].totalMins.push(r.totalMins);
+      if(r.is_guest)dayMap[d].guests++;
+      if(r.stylist){dayMap[d].stylists[r.stylist]=(dayMap[d].stylists[r.stylist]||0)+1;}
+    });
+    const days=Object.values(dayMap).sort((a,b)=>a.date.localeCompare(b.date));
+    const avg=arr=>arr.length?arr.reduce((a,b)=>a+b,0)/arr.length:null;
+
+    // KPIs
+    const totalServed=records.length;
+    const totalRev=records.reduce((a,r)=>a+(parseFloat(r.service_value)||0),0);
+    const allWaits=records.filter(r=>r.waitMins!==null&&r.waitMins>=0&&r.waitMins<300).map(r=>r.waitMins);
+    const allServes=records.filter(r=>r.serveMins!==null&&r.serveMins>0&&r.serveMins<300).map(r=>r.serveMins);
+    const avgWait=avg(allWaits);const avgServe=avg(allServes);
+    const highWaitDays=days.filter(d=>avg(d.waitMins)>20).length;
+    const ops_kpis=document.getElementById('ops-kpis');
+    if(ops_kpis)ops_kpis.innerHTML=[
+      acqKpiHtml('👤','Total Served',totalServed,days.length+' days in range'),
+      acqKpiHtml('📊','Avg / Day',days.length?Math.round(totalServed/days.length):'—','customers per day'),
+      acqKpiHtml('⏱','Avg Wait Time',acqFmtMins(avgWait),allWaits.length?allWaits.length+' records':'no called_at data yet',avgWait>20?'var(--err)':avgWait>10?'var(--warn)':'var(--ok)'),
+      acqKpiHtml('✂️','Avg Service Time',acqFmtMins(avgServe),allServes.length?allServes.length+' records':'no called_at data yet'),
+      acqKpiHtml('💰','Revenue (Period)',totalRev?'AED '+totalRev.toFixed(0):'—',totalServed?'AED '+(totalRev/totalServed).toFixed(0)+' avg/visit':''),
+      acqKpiHtml('⚠️','High Wait Days',highWaitDays,'days where avg wait >20min',highWaitDays>0?'var(--err)':'var(--ok)'),
+    ].join('');
+
+    // Load chart — bar per day
+    const maxCount=Math.max(1,...days.map(d=>d.count));
+    const loadEl=document.getElementById('ops-load-chart');
+    if(loadEl){
+      if(!days.length){loadEl.innerHTML='<div style="color:var(--muted);font-size:13px;padding:20px 0;">No completed queue records in this period.</div>';}
+      else{
+        const BAR_W=Math.max(24,Math.min(48,Math.floor(600/days.length)));
+        loadEl.innerHTML=`<div style="display:flex;align-items:flex-end;gap:2px;padding-bottom:20px;position:relative;min-height:120px;overflow-x:auto;">
+          ${days.map(d=>{
+            const avgW=avg(d.waitMins);const highWait=avgW>20;
+            const h=Math.round((d.count/maxCount)*100);
+            const col=highWait?'var(--err)':'var(--b)';
+            const dow=new Date(d.date).toLocaleDateString('en-GB',{weekday:'short'});
+            const label=new Date(d.date).toLocaleDateString('en-GB',{day:'2-digit',month:'short'});
+            return`<div style="display:flex;flex-direction:column;align-items:center;gap:3px;min-width:${BAR_W}px;" title="${label}: ${d.count} served${avgW?', avg wait '+Math.round(avgW)+'m':''}">
+              <div style="font-size:10px;font-weight:800;color:${col};">${d.count}</div>
+              <div style="width:${BAR_W-4}px;height:${h}px;min-height:4px;background:${col};border-radius:4px 4px 0 0;opacity:${highWait?1:.7};cursor:pointer;" onclick="opsDrillDay('${d.date}')"></div>
+              <div style="font-size:9px;color:var(--muted);font-weight:700;transform:rotate(-45deg);transform-origin:center;white-space:nowrap;">${dow}</div>
+            </div>`;
+          }).join('')}
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px;">🔵 Normal day &nbsp; 🔴 High wait (avg >20 min) &nbsp; Click bar to drill into that day</div>`;
+      }
+    }
+
+    // Daily table
+    const dailyEl=document.getElementById('ops-daily-table');
+    if(dailyEl){
+      const thS='padding:8px 10px;text-align:left;font-size:11px;font-weight:700;color:#fff;';
+      const tdS='padding:8px 10px;font-size:12.5px;border-bottom:1px solid var(--border);';
+      dailyEl.innerHTML=`<table style="width:100%;border-collapse:collapse;background:#fff;border-radius:10px;overflow:hidden;box-shadow:var(--sh);">
+        <thead style="background:var(--bd);"><tr>
+          <th style="${thS}">Date</th><th style="${thS}">Day</th><th style="${thS}text-align:right;">Served</th>
+          <th style="${thS}text-align:right;">Avg Wait</th><th style="${thS}text-align:right;">Avg Service</th>
+          <th style="${thS}text-align:right;">Revenue</th><th style="${thS}text-align:right;">Avg/Visit</th>
+          <th style="${thS}">Top Stylist</th>
+        </tr></thead><tbody>
+        ${days.slice().reverse().map((d,i)=>{
+          const avgW=avg(d.waitMins);const avgS=avg(d.serveMins);
+          const highW=avgW>20;const dow=new Date(d.date).toLocaleDateString('en-GB',{weekday:'short'});
+          const topSty=Object.entries(d.stylists).sort((a,b)=>b[1]-a[1])[0];
+          return`<tr style="${i%2===0?'background:#F8FAFF':''}" onclick="opsDrillDay('${d.date}')" style="cursor:pointer;">
+            <td style="${tdS}font-weight:700;cursor:pointer;" onclick="opsDrillDay('${d.date}')">${new Date(d.date).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'2-digit'})}</td>
+            <td style="${tdS}color:var(--muted);">${dow}</td>
+            <td style="${tdS}text-align:right;font-weight:800;">${d.count}</td>
+            <td style="${tdS}text-align:right;font-weight:700;color:${highW?'var(--err)':avgW>10?'var(--warn)':'var(--ok)'};">${acqFmtMins(avgW)}${d.waitMins.length?'':' <span style="color:var(--muted);font-size:10px;">n/a</span>'}</td>
+            <td style="${tdS}text-align:right;">${acqFmtMins(avgS)}</td>
+            <td style="${tdS}text-align:right;color:var(--ok);font-weight:800;">${d.revenue?'AED '+d.revenue.toFixed(0):'—'}</td>
+            <td style="${tdS}text-align:right;color:var(--muted);">${d.count&&d.revenue?'AED '+(d.revenue/d.count).toFixed(0):'—'}</td>
+            <td style="${tdS}">${topSty?topSty[0]+' ('+topSty[1]+')':'—'}</td>
+          </tr>`;
+        }).join('')}
+        <tr style="border-top:2px solid var(--border);background:var(--bg);">
+          <td colspan="2" style="${tdS}font-weight:900;font-size:11px;color:var(--muted);">TOTAL / AVG</td>
+          <td style="${tdS}text-align:right;font-weight:900;">${totalServed}</td>
+          <td style="${tdS}text-align:right;font-weight:800;color:${avgWait>20?'var(--err)':avgWait>10?'var(--warn)':'var(--ok)'};">${acqFmtMins(avgWait)}</td>
+          <td style="${tdS}text-align:right;font-weight:800;">${acqFmtMins(avgServe)}</td>
+          <td style="${tdS}text-align:right;font-weight:900;color:var(--ok);">AED ${totalRev.toFixed(0)}</td>
+          <td style="${tdS}text-align:right;font-weight:800;color:var(--muted);">${totalServed?'AED '+(totalRev/totalServed).toFixed(0):'—'}</td>
+          <td style="${tdS}">—</td>
+        </tr></tbody></table>`;
+    }
+
+    // Stylist table
+    const stylMap2={};
+    records.forEach(r=>{
+      const s=r.stylist||'Unknown';
+      if(!stylMap2[s])stylMap2[s]={name:s,count:0,revenue:0,waitMins:[],serveMins:[]};
+      stylMap2[s].count++;stylMap2[s].revenue+=(parseFloat(r.service_value)||0);
+      if(r.waitMins!==null&&r.waitMins>=0&&r.waitMins<300)stylMap2[s].waitMins.push(r.waitMins);
+      if(r.serveMins!==null&&r.serveMins>0&&r.serveMins<300)stylMap2[s].serveMins.push(r.serveMins);
+    });
+    const stylEl=document.getElementById('ops-stylist-table');
+    const stylList=Object.values(stylMap2).sort((a,b)=>b.count-a.count);
+    if(stylEl){
+      const thS='padding:8px 10px;text-align:left;font-size:11px;font-weight:700;color:#fff;';
+      const tdS='padding:8px 10px;font-size:12.5px;border-bottom:1px solid var(--border);';
+      const hasServe=stylList.some(s=>s.serveMins.length>0);
+      stylEl.innerHTML=!stylList.length?'<div style="color:var(--muted);font-size:13px;">No stylist data in this period.</div>'
+        :`<table style="width:100%;border-collapse:collapse;background:#fff;border-radius:10px;overflow:hidden;box-shadow:var(--sh);">
+        <thead style="background:var(--bd);"><tr>
+          <th style="${thS}">Stylist</th><th style="${thS}text-align:right;">Customers</th>
+          <th style="${thS}text-align:right;">Avg Service</th><th style="${thS}text-align:right;">Avg Wait (their Q)</th>
+          <th style="${thS}text-align:right;">Revenue</th><th style="${thS}text-align:right;">Avg/Visit</th>
+        </tr></thead><tbody>
+        ${stylList.map((s,i)=>`<tr style="${i%2===0?'background:#F8FAFF':''}">
+          <td style="${tdS}font-weight:800;">💈 ${s.name}</td>
+          <td style="${tdS}text-align:right;font-weight:700;">${s.count}</td>
+          <td style="${tdS}text-align:right;color:${s.serveMins.length?'var(--b)':'var(--muted)'};">${s.serveMins.length?acqFmtMins(avg(s.serveMins)):'n/a*'}</td>
+          <td style="${tdS}text-align:right;color:${avg(s.waitMins)>20?'var(--err)':'var(--muted)'};">${s.waitMins.length?acqFmtMins(avg(s.waitMins)):'n/a*'}</td>
+          <td style="${tdS}text-align:right;color:var(--ok);font-weight:700;">${s.revenue?'AED '+s.revenue.toFixed(0):'—'}</td>
+          <td style="${tdS}text-align:right;color:var(--muted);">${s.count?'AED '+(s.revenue/s.count).toFixed(0):'—'}</td>
+        </tr>`).join('')}
+        </tbody></table>
+        ${!hasServe?'<div style="font-size:11.5px;color:var(--muted);margin-top:8px;">* Service/wait time requires <code>called_at</code> to be recorded when marking a customer as Called. This started recording from today — historical records will show n/a.</div>':''}`;
+    }
+
+    // Wait impact: high wait days and whether customers returned
+    await opsWaitImpact(days,avg);
+
+  }catch(e){
+    ['ops-kpis','ops-load-chart','ops-daily-table'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=`<div style="color:var(--err);padding:12px;font-size:13px;font-weight:700;">Error: ${e.message}</div>`;});
+  }
+}
+
+async function opsWaitImpact(days,avg){
+  const el=document.getElementById('ops-wait-impact');if(!el)return;
+  const highWaitDays=days.filter(d=>avg(d.waitMins)>20&&d.waitMins.length>0);
+  if(!highWaitDays.length){
+    el.innerHTML='<div style="color:var(--ok);font-size:13px;font-weight:700;">✅ No high-wait days (>20 min avg) in this period. Good queue management!</div>';return;
+  }
+  // For each high wait day, count unique customers and check if they had another visit within 60 days
+  try{
+    let allCustVisits=[];
+    try{
+      allCustVisits=await sb('visits','GET',null,'select=customer_id,created_at,type&type=eq.paid&order=created_at.asc&limit=5000');
+    }catch(e){}
+    const thS='padding:8px 10px;text-align:left;font-size:11px;font-weight:700;color:#fff;';
+    const tdS='padding:8px 10px;font-size:12.5px;border-bottom:1px solid var(--border);';
+    let html=`<table style="width:100%;border-collapse:collapse;background:#fff;border-radius:10px;overflow:hidden;box-shadow:var(--sh);">
+      <thead style="background:#DC2626;"><tr>
+        <th style="${thS}">Date</th><th style="${thS}text-align:right;">Customers</th>
+        <th style="${thS}text-align:right;">Avg Wait</th><th style="${thS}text-align:right;">Returned in 60d</th>
+        <th style="${thS}text-align:right;">Retention Risk</th>
+      </tr></thead><tbody>`;
+    highWaitDays.forEach((d,i)=>{
+      const avgW=avg(d.waitMins);
+      // We'd need customer_ids from queue for that day — approximation: 
+      const retentionRisk=avgW>40?'🔴 High':avgW>30?'🟠 Medium':'🟡 Low';
+      html+=`<tr style="${i%2===0?'background:#FFF5F5':''}">
+        <td style="${tdS}font-weight:700;">${new Date(d.date).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'2-digit'})}</td>
+        <td style="${tdS}text-align:right;font-weight:700;">${d.count}</td>
+        <td style="${tdS}text-align:right;font-weight:800;color:var(--err);">${acqFmtMins(avgW)}</td>
+        <td style="${tdS}text-align:right;color:var(--muted);">— <span style="font-size:10px;">(match by phone coming)</span></td>
+        <td style="${tdS}text-align:right;">${retentionRisk}</td>
+      </tr>`;
+    });
+    html+='</tbody></table><div style="font-size:11.5px;color:var(--muted);margin-top:8px;">Retention impact analysis requires customer_id on queue records for phone cross-referencing. Days with avg wait >20 min are flagged as retention risks based on industry benchmarks.</div>';
+    el.innerHTML=html;
+  }catch(e){el.innerHTML=`<div style="color:var(--err);font-size:13px;">${e.message}</div>`;}
+}
+
+async function opsDrillDay(date){
+  try{
+    const rows=await sb('queue','GET',null,`select=*&checkin_date=eq.${date}&order=token_number.asc&limit=200`);
+    if(!rows||!rows.length){toast('No records for '+date,'info');return;}
+    const done=rows.filter(r=>r.status==='done');
+    let html=`<div style="font-family:var(--fh);font-size:15px;font-weight:800;margin-bottom:12px;">📋 ${new Date(date).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})} — ${rows.length} in queue, ${done.length} completed</div>`;
+    const thS='padding:7px 10px;text-align:left;font-size:11px;font-weight:700;color:#fff;';
+    const tdS='padding:7px 10px;font-size:12px;border-bottom:1px solid var(--border);';
+    html+=`<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;background:#fff;border-radius:10px;overflow:hidden;box-shadow:var(--sh);">
+      <thead style="background:var(--bd);"><tr>
+        <th style="${thS}">#</th><th style="${thS}">Name</th><th style="${thS}">Service</th>
+        <th style="${thS}">Check-In</th><th style="${thS}">Called</th><th style="${thS}">Done</th>
+        <th style="${thS}text-align:right;">Wait</th><th style="${thS}text-align:right;">Service</th>
+        <th style="${thS}">Stylist</th><th style="${thS}text-align:right;">AED</th>
+      </tr></thead><tbody>
+      ${rows.map((r,i)=>{
+        const ci=r.checkin_time?new Date(r.checkin_time):null;
+        const ca=r.called_at?new Date(r.called_at):null;
+        const da=r.done_at?new Date(r.done_at):null;
+        const wait=(ci&&ca)?Math.round((ca-ci)/60000):null;
+        const serve=(ca&&da)?Math.round((da-ca)/60000):null;
+        const statusColor={waiting:'var(--warn)',called:'var(--b)',done:'var(--ok)',cancelled:'var(--err)'}[r.status]||'var(--muted)';
+        return`<tr style="${i%2===0?'background:#F8FAFF':''}">
+          <td style="${tdS}font-weight:800;color:${statusColor};">${String(r.token_number).padStart(2,'0')}</td>
+          <td style="${tdS}font-weight:700;">${r.customer_name||'Guest'}</td>
+          <td style="${tdS}font-size:11.5px;color:var(--muted);">${r.service||'—'}</td>
+          <td style="${tdS}">${ci?ci.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}):'—'}</td>
+          <td style="${tdS}">${ca?ca.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}):'—'}</td>
+          <td style="${tdS}">${da?da.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}):'—'}</td>
+          <td style="${tdS}text-align:right;font-weight:700;color:${wait>20?'var(--err)':wait>10?'var(--warn)':'var(--ok)'};">${wait!==null?wait+'m':'—'}</td>
+          <td style="${tdS}text-align:right;">${serve!==null?serve+'m':'—'}</td>
+          <td style="${tdS}font-size:11.5px;">${r.stylist||'—'}</td>
+          <td style="${tdS}text-align:right;font-weight:700;color:var(--ok);">${r.service_value?'AED '+r.service_value:'—'}</td>
+        </tr>`;
+      }).join('')}
+      </tbody></table></div>`;
+    // Show in a toast-style overlay or modal (re-use existing modal infrastructure)
+    const m=document.createElement('div');m.className='modal-bg open';m.style.zIndex='2000';
+    m.innerHTML=`<div class="modal" style="max-width:780px;"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;"><div></div><button onclick="this.closest('.modal-bg').remove()" class="btn bg2 bsm">✕ Close</button></div>${html}</div>`;
+    document.body.appendChild(m);
+  }catch(e){toast('Error: '+e.message,'error');}
+}
+
+// ══ REVENUE TAB ══
+function revPreset(days){
+  const to=new Date();const from=new Date();from.setDate(from.getDate()-days);
+  document.getElementById('rev-from').value=from.toISOString().split('T')[0];
+  document.getElementById('rev-to').value=to.toISOString().split('T')[0];
+  revLoad();
+}
+
+async function revLoad(){
+  let from=document.getElementById('rev-from')?.value;
+  let to=document.getElementById('rev-to')?.value;
+  if(!from||!to){const td=new Date();const fd=new Date();fd.setDate(fd.getDate()-90);from=fd.toISOString().split('T')[0];to=td.toISOString().split('T')[0];if(document.getElementById('rev-from')){document.getElementById('rev-from').value=from;document.getElementById('rev-to').value=to;}}
+  ['rev-kpis','rev-monthly','rev-payment','rev-service'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML='<div class="load"><div class="spin"></div></div>';});
+  try{
+    const PAGE=1000;let queue=[];let offset=0;
+    while(true){
+      const batch=await sb('queue','GET',null,`select=checkin_date,service_value,payment_type,service,status&status=eq.done&checkin_date=gte.${from}&checkin_date=lte.${to}&limit=${PAGE}&offset=${offset}`);
+      queue=[...queue,...(batch||[])];if(!batch||batch.length<PAGE)break;offset+=PAGE;
+    }
+    const hist=JSON.parse(localStorage.getItem(ACQ_HIST_KEY)||'[]');
+    const histInRange=hist.filter(r=>{if(!r.date)return false;const d=r.date.split(' ')[0];return d>=from&&d<=to;});
+    // Live revenue
+    const liveRev=queue.reduce((a,q)=>a+(parseFloat(q.service_value)||0),0);
+    // Hist revenue
+    const histRev=histInRange.reduce((a,r)=>a+(parseFloat(r.amount)||0),0);
+    const totalRev=liveRev+histRev;
+    const withSV=queue.filter(q=>q.service_value>0).length;
+    // KPIs
+    const rkEl=document.getElementById('rev-kpis');
+    if(rkEl)rkEl.innerHTML=[
+      acqKpiHtml('💰','Total Revenue','AED '+(totalRev||0).toFixed(0),'live + historical combined','var(--ok)'),
+      acqKpiHtml('📊','Live (Queue)','AED '+liveRev.toFixed(0),withSV+' records with AED value'),
+      acqKpiHtml('📂','Historical (Excel)','AED '+histRev.toFixed(0),histInRange.length+' hist records in range'),
+      acqKpiHtml('🧾','Transactions',queue.length+histInRange.length,queue.length+' live + '+histInRange.length+' hist'),
+      acqKpiHtml('✂️','Avg / Visit',totalRev&&(queue.length+histInRange.length)?'AED '+((totalRev)/(queue.length+histInRange.length)).toFixed(0):'—','combined'),
+    ].join('');
+    // Monthly table
+    const mRevLive={};const mRevHist={};const mVol={};
+    queue.forEach(q=>{if(!q.checkin_date)return;const k=q.checkin_date.slice(0,7);mRevLive[k]=(mRevLive[k]||0)+(parseFloat(q.service_value)||0);mVol[k]=(mVol[k]||0)+1;});
+    histInRange.forEach(r=>{if(!r.date)return;const k=r.date.slice(0,7);mRevHist[k]=(mRevHist[k]||0)+(parseFloat(r.amount)||0);mVol[k]=(mVol[k]||0)+1;});
+    const revMonths=[...new Set([...Object.keys(mRevLive),...Object.keys(mRevHist)])].sort();
+    const rmEl=document.getElementById('rev-monthly');
+    if(rmEl&&revMonths.length){
+      const thS='padding:8px 10px;color:#fff;font-size:11px;font-weight:700;text-align:left;';
+      const tdS='padding:8px 10px;font-size:12.5px;border-bottom:1px solid var(--border);';
+      const totL=revMonths.reduce((a,k)=>a+(mRevLive[k]||0),0);
+      const totH=revMonths.reduce((a,k)=>a+(mRevHist[k]||0),0);
+      const totV=Object.values(mVol).reduce((a,b)=>a+b,0);
+      rmEl.innerHTML=`<table style="width:100%;border-collapse:collapse;background:#fff;border-radius:10px;overflow:hidden;box-shadow:var(--sh);">
+        <thead style="background:var(--bd);"><tr>
+          <th style="${thS}">Month</th><th style="${thS}text-align:right;">Live (Queue)</th>
+          <th style="${thS}text-align:right;">Historical</th><th style="${thS}text-align:right;">Combined</th>
+          <th style="${thS}text-align:right;">Visits</th>
+        </tr></thead><tbody>
+        ${revMonths.map((k,i)=>{const l=mRevLive[k]||0;const h=mRevHist[k]||0;const t=l+h;const v=mVol[k]||0;
+          return`<tr style="${i%2===0?'background:#F8FAFF':''}">
+            <td style="${tdS}font-weight:700;">${new Date(k+'-01').toLocaleDateString('en-GB',{month:'short',year:'numeric'})}</td>
+            <td style="${tdS}text-align:right;color:var(--b);">${l?'AED '+l.toFixed(0):'—'}</td>
+            <td style="${tdS}text-align:right;color:var(--muted);">${h?'AED '+h.toFixed(0):'—'}</td>
+            <td style="${tdS}text-align:right;font-weight:800;color:var(--ok);">AED ${t.toFixed(0)}</td>
+            <td style="${tdS}text-align:right;">${v}</td>
+          </tr>`;}).join('')}
+        <tr style="border-top:2px solid var(--border);background:var(--bg);">
+          <td style="${tdS}font-weight:900;font-size:11px;color:var(--muted);">TOTAL</td>
+          <td style="${tdS}text-align:right;font-weight:800;color:var(--b);">AED ${totL.toFixed(0)}</td>
+          <td style="${tdS}text-align:right;font-weight:800;color:var(--muted);">AED ${totH.toFixed(0)}</td>
+          <td style="${tdS}text-align:right;font-weight:900;color:var(--ok);">AED ${(totL+totH).toFixed(0)}</td>
+          <td style="${tdS}text-align:right;font-weight:900;">${totV}</td>
+        </tr></tbody></table>`;
+    } else if(rmEl){rmEl.innerHTML='<div style="color:var(--muted);font-size:13px;">No revenue data in this period.</div>';}
+    // Payment type split
+    const pmtMap={};queue.forEach(q=>{const p=q.payment_type||'Unknown';pmtMap[p]=(pmtMap[p]||0)+(parseFloat(q.service_value)||0);});
+    const pmtEl=document.getElementById('rev-payment');const maxPmt=Math.max(1,...Object.values(pmtMap));const PMT_COLORS={'Cash':'var(--ok)','Card':'var(--b)','Credit':'var(--b)','Unknown':'var(--muted)'};
+    if(pmtEl)pmtEl.innerHTML=Object.entries(pmtMap).sort((a,b)=>b[1]-a[1]).map(([k,v])=>acqBar(k,v,maxPmt,PMT_COLORS[k]||'var(--b)','AED ')).join('')||'<div style="color:var(--muted);font-size:12.5px;">No payment type data. Mark payment type when closing queue.</div>';
+    // Service breakdown
+    const svcMap2={};queue.forEach(q=>{const s=q.service||'Other';svcMap2[s]=(svcMap2[s]||0)+(parseFloat(q.service_value)||0);});
+    const svcEl2=document.getElementById('rev-service');const maxSvc=Math.max(1,...Object.values(svcMap2));const SVC_COLORS=['#1565C0','#7C3AED','#16A34A','#D97706','#DC2626','#0891B2'];
+    if(svcEl2)svcEl2.innerHTML=Object.entries(svcMap2).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([k,v],i)=>acqBar(k,v,maxSvc,SVC_COLORS[i%6],'AED ')).join('')||'<div style="color:var(--muted);font-size:12.5px;">No service data in queue records.</div>';
+  }catch(e){
+    ['rev-kpis','rev-monthly'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=`<div style="color:var(--err);font-size:13px;">${e.message}</div>`;});
+  }
+}
+
+// ══ HISTORICAL UPLOAD WIZARD ══
+const ACQ_FIELDS=[
+  {key:'mobile',      label:'Mobile / Phone',       required:true,  emoji:'📱',hints:['mobile','phone','contact','tel','number','cell']},
+  {key:'date',        label:'Transaction Date',      required:false, emoji:'📅',hints:['date','time','visit','transaction','created','when']},
+  {key:'amount',      label:'Amount / Revenue',      required:false, emoji:'💰',hints:['amount','total','price','revenue','aed','cost','charge','fee','value']},
+  {key:'name',        label:'Customer Name',         required:false, emoji:'👤',hints:['name','customer','client','child','kid','baby']},
+  {key:'email',       label:'Email',                 required:false, emoji:'✉️', hints:['email','mail','e-mail']},
+  {key:'dob',         label:'Date of Birth',         required:false, emoji:'🎂',hints:['dob','birth','birthday','born','age']},
+  {key:'description', label:'Description / Service', required:false, emoji:'✂️', hints:['description','service','desc','item','notes','note','remarks','treatment']},
+  {key:'segment',     label:'Segment (boy/girl)',    required:false, emoji:'🏷', hints:['segment','category','type','group','gender','sex']},
+  {key:'stylist_phone',label:'Stylist Phone',        required:false, emoji:'💈',hints:['stylist_phone','stylist','barber','staff','therapist','worker','employee']},
+  {key:'external_id', label:'External ID / Ref',     required:false, emoji:'🔢',hints:['external_id','id','ref','reference','external','transaction_id','order','invoice','receipt']},
+];
+let _acqRawRows=[],_acqHeaders=[],_acqFileName='';
+function acqAutoMatch(field,headers){
+  const lh=headers.map(h=>h.toLowerCase().trim());
+  let idx=lh.findIndex(h=>h===field.key);if(idx>=0)return headers[idx];
+  let best=null,bestScore=0;
+  headers.forEach(h=>{const hl=h.toLowerCase().trim();let score=0;field.hints.forEach(hint=>{if(hl.includes(hint))score++;});if(score>bestScore){bestScore=score;best=h;}});
+  return bestScore>0?best:null;
+}
+async function acqStep1Load(input){
+  const file=input.files?.[0];if(!file)return;
+  _acqFileName=file.name;
+  const status=document.getElementById('acq-upload-status');
+  status.innerHTML='<div class="load"><div class="spin"></div> Reading file…</div>';
+  try{
+    const text=await acqReadFileAsText(file);const rows=acqParseCSVorTSV(text);
+    if(!rows.length){toast('No data rows found','error');status.innerHTML='';return;}
+    _acqRawRows=rows;_acqHeaders=Object.keys(rows[0]);status.innerHTML='';acqBuildMapper();
+  }catch(e){status.innerHTML=`<div style="background:var(--errl);color:var(--err);border-radius:8px;padding:10px 14px;font-size:13px;font-weight:700;">❌ ${e.message}</div>`;}
+  input.value='';
+}
+function acqBuildMapper(){
+  document.getElementById('acq-step1').style.display='none';document.getElementById('acq-step2').style.display='block';document.getElementById('acq-step3').style.display='none';
+  document.getElementById('acq-file-badge').textContent=`📄 ${_acqFileName} · ${_acqRawRows.length.toLocaleString()} rows · ${_acqHeaders.length} columns`;
+  const grid=document.getElementById('acq-mapper-grid');const noneOpt='<option value="">— Not in file —</option>';
+  grid.innerHTML=ACQ_FIELDS.map(f=>{
+    const m=acqAutoMatch(f,_acqHeaders);const conf=m?'✓ auto-detected':'not found';const cc=m?'var(--ok)':'var(--muted)';
+    const opts=_acqHeaders.map(h=>`<option value="${h}"${h===m?' selected':''}>${h}</option>`).join('');
+    return`<div style="background:${m?'var(--okl)':'var(--bg)'};border:1.5px solid ${m?'#86EFAC':'var(--border)'};border-radius:10px;padding:12px 14px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;">
+        <div style="font-size:13px;font-weight:800;">${f.emoji} ${f.label}${f.required?'<span style="color:var(--err);margin-left:2px;">*</span>':''}</div>
+        <span style="font-size:10.5px;font-weight:700;color:${cc};">${conf}</span>
+      </div>
+      <select class="fi" id="acq-map-${f.key}" style="font-size:12.5px;padding:6px 28px 6px 8px;" onchange="acqMapperChange()">
+        ${noneOpt}${opts}
+      </select>
+      <div id="acq-sample-${f.key}" style="font-size:11px;color:var(--muted);margin-top:5px;min-height:14px;"></div>
+    </div>`;
+  }).join('');
+  acqMapperChange();
+}
+function acqMapperChange(){
+  ACQ_FIELDS.forEach(f=>{
+    const sel=document.getElementById('acq-map-'+f.key);const sEl=document.getElementById('acq-sample-'+f.key);
+    if(!sel||!sEl)return;const col=sel.value;if(!col){sEl.textContent='';return;}
+    const samples=_acqRawRows.slice(0,3).map(r=>r[col]||'').filter(Boolean);
+    sEl.textContent=samples.length?'e.g. '+samples.join(' · '):'(empty in first rows)';
+  });
+}
+function acqStep3Preview(){
+  const mobileCol=document.getElementById('acq-map-mobile').value;if(!mobileCol){toast('Mobile / Phone is required','error');return;}
+  document.getElementById('acq-step2').style.display='none';document.getElementById('acq-step3').style.display='block';
+  const mapping={};ACQ_FIELDS.forEach(f=>{const v=document.getElementById('acq-map-'+f.key)?.value||'';if(v)mapping[f.key]=v;});
+  const preview=_acqRawRows.slice(0,5).map(r=>acqParseRow(r,mapping));
+  const allRecords=_acqRawRows.map(r=>acqParseRow(r,mapping)).filter(r=>r.mobile);
+  const uniquePhones=new Set(allRecords.map(r=>r.mobile)).size;
+  const withAmt=allRecords.filter(r=>r.amount>0);
+  const avgAmt=withAmt.length?Math.round(withAmt.reduce((a,r)=>a+r.amount,0)/withAmt.length):0;
+  const mappedFields=ACQ_FIELDS.filter(f=>mapping[f.key]);
+  document.getElementById('acq-preview-summary').innerHTML=`
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin-bottom:12px;">
+      ${acqKpiHtml('📄','Records',allRecords.length.toLocaleString(),'')}
+      ${acqKpiHtml('📱','Unique Phones',uniquePhones.toLocaleString(),'')}
+      ${acqKpiHtml('💰','With Amount',withAmt.length.toLocaleString(),avgAmt?'Avg AED '+avgAmt:'')}
+    </div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:4px;"><strong>Mapped:</strong> ${mappedFields.map(f=>f.emoji+' '+f.label).join(' · ')}</div>
+    <div style="font-size:12px;color:var(--muted);">First 5 rows preview:</div>`;
+  const thS='padding:7px 10px;text-align:left;font-size:11px;font-weight:700;color:#fff;';const tdS='padding:7px 10px;font-size:12px;border-bottom:1px solid var(--border);';
+  document.getElementById('acq-preview-table').innerHTML=`<table style="width:100%;border-collapse:collapse;background:#fff;border-radius:10px;overflow:hidden;box-shadow:var(--sh);">
+    <thead style="background:var(--bd);"><tr>${mappedFields.map(f=>`<th style="${thS}">${f.emoji} ${f.label}</th>`).join('')}</tr></thead>
+    <tbody>${preview.map((r,i)=>`<tr style="${i%2===0?'background:#F8FAFF':''}">
+      ${mappedFields.map(f=>`<td style="${tdS}color:${!r[f.key]?'#D1D5DB':f.key==='mobile'?'var(--b)':f.key==='amount'?'var(--ok)':'var(--text)'};">${r[f.key]||'—'}</td>`).join('')}
+    </tr>`).join('')}</tbody></table>`;
+  window._acqPendingRecords=allRecords;window._acqPendingAvg=avgAmt||null;
+}
+function acqParseRow(row,mapping){
+  const get=(key)=>{const col=mapping[key];return col?(row[col]||'').toString().trim():'';};
+  return{mobile:acqNormalizePhone(get('mobile')),date:get('date')||null,amount:parseFloat(get('amount'))||0,name:get('name')||null,email:get('email')||null,dob:get('dob')||null,description:get('description')||null,segment:get('segment')||null,stylist_phone:get('stylist_phone')||null,external_id:get('external_id')||null};
+}
+function acqBackToMapper(){document.getElementById('acq-step2').style.display='block';document.getElementById('acq-step3').style.display='none';}
+function acqCommitHistorical(){
+  const records=window._acqPendingRecords||[];if(!records.length){toast('No valid records to save','error');return;}
+  localStorage.setItem(ACQ_HIST_KEY,JSON.stringify(records));
+  if(window._acqPendingAvg)localStorage.setItem(ACQ_AVG_KEY,window._acqPendingAvg);
+  acqResetUpload();acqShowHistStatus();toast(`✅ ${records.length.toLocaleString()} historical records saved`);
+  setTimeout(acqRender,400);
+}
+function acqResetUpload(){
+  _acqRawRows=[];_acqHeaders=[];_acqFileName='';window._acqPendingRecords=null;window._acqPendingAvg=null;
+  ['acq-step1','acq-step2','acq-step3'].forEach((id,i)=>{const el=document.getElementById(id);if(el)el.style.display=i===0?'block':'none';});
+  document.getElementById('acq-upload-status').innerHTML='';
+}
+function acqShowHistStatus(){
+  const records=JSON.parse(localStorage.getItem(ACQ_HIST_KEY)||'[]');
+  const status=document.getElementById('acq-upload-status');if(!status)return;
+  if(records.length){
+    const unique=new Set(records.map(r=>r.mobile||r.phone)).size;const withAmt=records.filter(r=>r.amount>0).length;
+    status.innerHTML=`<div style="background:var(--okl);color:var(--ok);border-radius:8px;padding:10px 14px;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+      <span>✅ Historical active · ${records.length.toLocaleString()} records · ${unique.toLocaleString()} unique phones${withAmt?' · '+withAmt+' with amount':''}</span>
+      <div style="display:flex;gap:6px;">
+        <button onclick="acqReupload()" style="background:var(--bl);color:var(--b);border:none;border-radius:6px;padding:4px 10px;font-size:11.5px;font-weight:700;cursor:pointer;">↺ Re-upload</button>
+        <button onclick="acqClearHistorical()" style="background:var(--errl);color:var(--err);border:none;border-radius:6px;padding:4px 10px;font-size:11.5px;font-weight:700;cursor:pointer;">🗑 Clear</button>
+      </div></div>`;
+  }else{status.innerHTML='<div style="font-size:12.5px;color:var(--muted);">No historical data uploaded yet.</div>';}
+}
+function acqReupload(){acqResetUpload();document.getElementById('acq-hist-file').click();}
+function acqClearHistorical(){if(!confirm('Remove all uploaded historical data?'))return;localStorage.removeItem(ACQ_HIST_KEY);localStorage.removeItem(ACQ_AVG_KEY);toast('Cleared','info');acqShowHistStatus();acqRender();}
+function acqReadFileAsText(file){
+  return new Promise((res,rej)=>{
+    if(file.name.match(/\.xlsx?$/i)){
+      const reader=new FileReader();
+      reader.onload=e=>{try{const data=new Uint8Array(e.target.result);if(window.XLSX){const wb=window.XLSX.read(data,{type:'array'});const ws=wb.Sheets[wb.SheetNames[0]];res(window.XLSX.utils.sheet_to_csv(ws));}else rej(new Error('SheetJS not loaded yet — wait a moment and retry.'));}catch(err){rej(err);}};
+      reader.onerror=()=>rej(new Error('Could not read file'));reader.readAsArrayBuffer(file);
+    }else{const reader=new FileReader();reader.onload=e=>res(e.target.result);reader.onerror=()=>rej(new Error('Could not read file'));reader.readAsText(file);}
+  });
+}
+function acqParseCSVorTSV(text){
+  const lines=text.split(/\r?\n/).filter(l=>l.trim());if(!lines.length)return[];
+  const delim=lines[0].includes('\t')?'\t':',';
+  function splitLine(line){const r=[];let cur='';let inQ=false;for(let i=0;i<line.length;i++){const ch=line[i];if(ch==='"'&&!inQ)inQ=true;else if(ch==='"'&&inQ&&line[i+1]==='"'){cur+='"';i++;}else if(ch==='"'&&inQ)inQ=false;else if(ch===delim&&!inQ){r.push(cur.trim());cur='';}else cur+=ch;}r.push(cur.trim());return r;}
+  const headers=splitLine(lines[0]);
+  return lines.slice(1).map(line=>{const vals=splitLine(line);const obj={};headers.forEach((h,i)=>obj[h]=(vals[i]||'').replace(/^"|"$/g,'').trim());return obj;}).filter(r=>Object.values(r).some(v=>v));
+}
+
+// Load SheetJS
+(function(){if(!window.XLSX){const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';document.head.appendChild(s);}})();
+
+</script>
 
 const SRC_CONFIG = [
   {key:'Google',         label:'Google',           color:'#1565C0', emoji:'🔍'},
@@ -5219,8 +6092,14 @@ async function acqRender(){
 
     // ── Historical phone set (from uploaded Excel) ──
     const hist=JSON.parse(localStorage.getItem(ACQ_HIST_KEY)||'[]');
-    const histPhones=new Set(hist.map(r=>acqNormalizePhone(r.phone)).filter(Boolean));
+    const histPhones=new Set(hist.map(r=>acqNormalizePhone(r.mobile||r.phone)).filter(Boolean));
     const histHasData=histPhones.size>0;
+    // Build a lookup: normalised phone → hist record (most recent, for dob/segment/name enrichment)
+    const histLookup={};
+    hist.forEach(r=>{
+      const ph=acqNormalizePhone(r.mobile||r.phone);
+      if(ph&&!histLookup[ph]) histLookup[ph]=r; // first occurrence = oldest
+    });
 
     // ── Determine avg service value ──
     // First try from visits that have amount; fallback to stored; fallback 45
@@ -5370,11 +6249,125 @@ async function acqRender(){
       </div>
       ${!histHasData?`<div style="margin-top:10px;font-size:12px;color:var(--warn);font-weight:700;">⚠️ Upload historical Excel below to improve new-vs-returning accuracy for pre-June customers.</div>`:''}`;
 
+    // ── Historical insights (if data loaded) ──
+    acqRenderHistInsights(hist);
+
   }catch(e){
     ['acq-kpis','acq-src-bars','acq-rev-bars','acq-newret'].forEach(id=>{
       const el=document.getElementById(id);
       if(el) el.innerHTML=`<div style="color:var(--err);padding:12px;font-size:13px;font-weight:700;">Error: ${e.message}</div>`;
     });
+  }
+}
+
+function acqRenderHistInsights(hist){
+  const card=document.getElementById('acq-hist-insights');
+  if(!card)return;
+  if(!hist||!hist.length){card.style.display='none';return;}
+  card.style.display='block';
+
+  const total=hist.length;
+
+  // ── Gender/Segment split ──
+  const segCount={boy:0,girl:0,other:0};
+  hist.forEach(r=>{
+    const s=(r.segment||'').toLowerCase().trim();
+    if(s==='boy'||s==='boys'||s==='male'||s==='m') segCount.boy++;
+    else if(s==='girl'||s==='girls'||s==='female'||s==='f') segCount.girl++;
+    else segCount.other++;
+  });
+  const gEl=document.getElementById('acq-hist-gender');
+  if(gEl) gEl.innerHTML=[
+    {label:'👦 Boys', count:segCount.boy, color:'#1565C0'},
+    {label:'👧 Girls',count:segCount.girl,color:'#EC4899'},
+    ...(segCount.other?[{label:'❓ Unknown',count:segCount.other,color:'#9CA3AF'}]:[])
+  ].map(({label,count,color})=>`<div class="src-bar-wrap">
+    <div class="src-bar-label" style="min-width:90px;">${label}</div>
+    <div class="src-bar-track"><div class="src-bar-fill" style="width:${Math.round(count/total*100)}%;background:${color};"></div></div>
+    <div class="src-bar-val">${count}</div>
+    <div class="src-bar-rev" style="color:${color};">${Math.round(count/total*100)}%</div>
+  </div>`).join('');
+
+  // ── Stylist breakdown ──
+  const stylMap={};
+  hist.forEach(r=>{
+    const s=r.stylist_phone||(r.stylist)||'Unknown';
+    const key=s?acqNormalizePhone(s)||s:'Unknown';
+    stylMap[key]=(stylMap[key]||0)+1;
+  });
+  const stylEl=document.getElementById('acq-hist-stylist');
+  const stylEntries=Object.entries(stylMap).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const STYL_COLORS=['#1565C0','#7C3AED','#16A34A','#D97706','#DC2626'];
+  if(stylEl) stylEl.innerHTML=stylEntries.map(([k,v],i)=>`<div class="src-bar-wrap">
+    <div class="src-bar-label" style="min-width:110px;font-size:11.5px;">💈 ${k.length>12?k.slice(0,10)+'…':k}</div>
+    <div class="src-bar-track"><div class="src-bar-fill" style="width:${Math.round(v/total*100)}%;background:${STYL_COLORS[i%5]};"></div></div>
+    <div class="src-bar-val">${v}</div>
+    <div class="src-bar-rev" style="color:${STYL_COLORS[i%5]};">${Math.round(v/total*100)}%</div>
+  </div>`).join('');
+
+  // ── Top services ──
+  const svcMap={};
+  hist.forEach(r=>{
+    const d=(r.description||'').trim();
+    if(!d)return;
+    svcMap[d]=(svcMap[d]||0)+1;
+  });
+  const svcEl=document.getElementById('acq-hist-services');
+  const svcEntries=Object.entries(svcMap).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const SVC_COLORS=['#1565C0','#7C3AED','#16A34A','#D97706','#DC2626','#0891B2','#9333EA','#EA580C'];
+  if(svcEl) svcEl.innerHTML=svcEntries.length
+    ? svcEntries.map(([k,v],i)=>`<div class="src-bar-wrap">
+        <div class="src-bar-label" style="min-width:200px;font-size:12px;">${k}</div>
+        <div class="src-bar-track"><div class="src-bar-fill" style="width:${Math.round(v/svcEntries[0][1]*100)}%;background:${SVC_COLORS[i%8]};"></div></div>
+        <div class="src-bar-val">${v}</div>
+        <div class="src-bar-rev" style="color:${SVC_COLORS[i%8]};">${Math.round(v/total*100)}%</div>
+      </div>`).join('')
+    : '<div style="color:var(--muted);font-size:12.5px;">No description data in uploaded file.</div>';
+
+  // ── Monthly revenue table from historical ──
+  const monthRevMap={};const monthVolMap={};
+  hist.forEach(r=>{
+    if(!r.date)return;
+    const d=new Date(r.date);if(isNaN(d))return;
+    const key=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+    monthRevMap[key]=(monthRevMap[key]||0)+(parseFloat(r.amount)||0);
+    monthVolMap[key]=(monthVolMap[key]||0)+1;
+  });
+  const revEl=document.getElementById('acq-hist-rev-table');
+  const months=Object.keys(monthRevMap).sort();
+  if(revEl&&months.length){
+    const thS='padding:7px 10px;text-align:left;font-size:11px;font-weight:700;color:#fff;';
+    const tdS='padding:7px 10px;font-size:12.5px;border-bottom:1px solid var(--border);';
+    const totalRev=Object.values(monthRevMap).reduce((a,b)=>a+b,0);
+    const totalVol=Object.values(monthVolMap).reduce((a,b)=>a+b,0);
+    revEl.innerHTML=`<table style="width:100%;border-collapse:collapse;background:#fff;border-radius:10px;overflow:hidden;box-shadow:var(--sh);">
+      <thead style="background:var(--bd);"><tr>
+        <th style="${thS}">Month</th>
+        <th style="${thS}text-align:right;">Transactions</th>
+        <th style="${thS}text-align:right;">Revenue (AED)</th>
+        <th style="${thS}text-align:right;">Avg / Visit</th>
+      </tr></thead>
+      <tbody>
+        ${months.map((m,i)=>{
+          const rev=monthRevMap[m];const vol=monthVolMap[m];
+          const d=new Date(m+'-01');
+          return`<tr style="${i%2===0?'background:#F8FAFF':''}">
+            <td style="${tdS}font-weight:700;">${d.toLocaleDateString('en-GB',{month:'short',year:'numeric'})}</td>
+            <td style="${tdS}text-align:right;">${vol}</td>
+            <td style="${tdS}text-align:right;font-weight:800;color:var(--ok);">AED ${rev.toFixed(0)}</td>
+            <td style="${tdS}text-align:right;color:var(--muted);">AED ${vol>0?(rev/vol).toFixed(0):0}</td>
+          </tr>`;
+        }).join('')}
+        <tr style="background:var(--bg);border-top:2px solid var(--border);">
+          <td style="${tdS}font-weight:900;">TOTAL</td>
+          <td style="${tdS}text-align:right;font-weight:900;">${totalVol}</td>
+          <td style="${tdS}text-align:right;font-weight:900;color:var(--ok);">AED ${totalRev.toFixed(0)}</td>
+          <td style="${tdS}text-align:right;font-weight:800;color:var(--muted);">AED ${totalVol>0?(totalRev/totalVol).toFixed(0):0}</td>
+        </tr>
+      </tbody>
+    </table>`;
+  } else if(revEl){
+    revEl.innerHTML='<div style="color:var(--muted);font-size:12.5px;">No date/amount data available for monthly breakdown.</div>';
   }
 }
 
@@ -5485,7 +6478,7 @@ const ACQ_FIELDS = [
   {key:'dob',         label:'Date of Birth',         required:false, emoji:'🎂', hints:['dob','birth','birthday','born','age']},
   {key:'description', label:'Description / Service', required:false, emoji:'✂️',  hints:['description','service','desc','item','notes','note','remarks','treatment']},
   {key:'segment',     label:'Segment / Category',    required:false, emoji:'🏷', hints:['segment','category','type','group','tier','class','tag']},
-  {key:'stylist_phone',label:'Stylist Phone',        required:false, emoji:'💈', hints:['stylist','barber','staff','therapist','worker','employee']},
+  {key:'stylist_phone',label:'Stylist Phone',        required:false, emoji:'💈', hints:['stylist_phone','stylist','barber','staff','therapist','worker','employee']},
   {key:'external_id', label:'External ID / Ref',     required:false, emoji:'🔢', hints:['id','ref','reference','external','transaction_id','order','invoice','receipt']},
 ];
 
