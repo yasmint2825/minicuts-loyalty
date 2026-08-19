@@ -129,7 +129,7 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
 <!-- TABS -->
 <div class="tabs">
   <button class="tab active" onclick="showTab('t-queue',this)">📋 Queue</button>
-  <button class="tab" onclick="showTab('t-history',this);histSetDate(today());histSyncRange();loadHist();">🕐 History</button>
+  <button class="tab" onclick="showTab('t-history',this);histSetDate(today());loadHist();">🕐 History</button>
   <button class="tab" onclick="showTab('t-prizes',this);loadPrizes();">🎁 Game Prizes</button>
   <button class="tab" onclick="showTab('t-freewash',this);loadFreeWash();">🚿 Free Wash</button>
   <button class="tab" onclick="showTab('t-config',this);loadCfgScreen();">⚙️ Settings</button>
@@ -185,14 +185,11 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
     </div>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
       <div style="display:flex;gap:6px;align-items:center;background:#fff;border:1.5px solid var(--border);border-radius:9px;padding:6px 10px;">
-        <span style="font-size:12px;font-weight:700;color:var(--muted);">📅 From:</span>
-        <input type="date" id="hist-date" style="border:none;outline:none;font-family:var(--fb);font-size:13px;color:var(--text);background:transparent;cursor:pointer;" onchange="histSyncRange();loadHist()"/>
-        <span style="font-size:12px;font-weight:700;color:var(--muted);">To:</span>
-        <input type="date" id="hist-date-to" style="border:none;outline:none;font-family:var(--fb);font-size:13px;color:var(--text);background:transparent;cursor:pointer;" onchange="loadHist()"/>
+        <span style="font-size:12px;font-weight:700;color:var(--muted);">📅 Date:</span>
+        <input type="date" id="hist-date" style="border:none;outline:none;font-family:var(--fb);font-size:13px;color:var(--text);background:transparent;cursor:pointer;" onchange="loadHist()"/>
       </div>
       <button class="btn btn-ghost btn-sm" onclick="histNav(-1)">← Prev</button>
-      <button class="btn btn-ghost btn-sm" onclick="histSetDate(today());histSyncRange();loadHist();">Today</button>
-      <button class="btn btn-ghost btn-sm" onclick="histSetMonth();loadHist();">This Month</button>
+      <button class="btn btn-ghost btn-sm" onclick="histSetDate(today());loadHist();">Today</button>
       <button class="btn btn-ghost btn-sm" onclick="histNav(1)">Next →</button>
       <button class="btn btn-b btn-sm" onclick="loadHist()">↻ Load</button>
     </div>
@@ -621,6 +618,21 @@ function buildRow(r){
   const c=cid?_custMap[cid]:null;
   const loyaltyCell=buildLoyaltyInCell(r);
 
+  // Time + wait metrics
+  const now=Date.now();
+  const ciMs=r.checkin_time?new Date(r.checkin_time).getTime():null;
+  const caMs=r.called_at?new Date(r.called_at).getTime():null;
+  const daMs=r.done_at?new Date(r.done_at).getTime():null;
+  const waitMins=caMs&&ciMs?Math.round((caMs-ciMs)/60000):null;
+  const svcMins=daMs&&caMs?Math.round((daMs-caMs)/60000):null;
+  const liveMins=!daMs&&ciMs?Math.round((now-ciMs)/60000):null;
+  const waitLabel=waitMins!==null
+    ?`<span style="color:${waitMins>20?'var(--err)':waitMins>10?'var(--warn)':'var(--ok)'};font-weight:800;">⏱ ${waitMins}m wait</span>`
+    :(called&&ciMs?`<span style="color:var(--b);font-weight:700;">⏱ ${liveMins}m so far</span>`)
+    :(!called&&!done&&ciMs?`<span style="color:var(--muted);font-size:10px;">${liveMins}m ago</span>`):'';
+  const svcLabel=svcMins!==null
+    ?`<span style="color:var(--muted);font-size:10px;">✂️ ${svcMins}m svc</span>`:'';
+
   return'<tr class="'+(done?'done':called?'called':cancelled?'done':'')+'" id="qr-'+r.id+'">'
     +'<td><div class="tok-b '+(guest?'guest':'')+'">'+String(r.token_number).padStart(2,'0')+'</div></td>'
     // Name + pills on mobile line
@@ -633,8 +645,12 @@ function buildRow(r){
     +'</td>'
     // Service
     +'<td><select class="isel" onchange="updF(\''+r.id+'\',\'service\',this.value)"'+(locked?' disabled':'')+'>'+svcOpts+'</select></td>'
-    // Time
-    +'<td style="font-size:11px;color:var(--muted);">'+fmtT(r.checkin_time)+'</td>'
+    // Time + wait
+    +'<td style="font-size:11px;color:var(--muted);">'
+      +fmtT(r.checkin_time)
+      +(waitLabel?'<div style="margin-top:2px;">'+waitLabel+'</div>':'')
+      +(svcLabel?'<div>'+svcLabel+'</div>':'')
+    +'</td>'
     // Stylists side by side
     +'<td><div style="display:flex;gap:3px;">'
       +'<select class="isel" style="flex:1;min-width:0;" onchange="updF(\''+r.id+'\',\'stylist\',this.value)"'+(locked?' disabled':'')+'>'+sty1Opts+'</select>'
@@ -722,49 +738,27 @@ let _histData=[];
 
 function histSetDate(d){const el=document.getElementById('hist-date');if(el)el.value=d;}
 function histGetDate(){return document.getElementById('hist-date')?.value||today();}
-function histSetDateTo(d){const el=document.getElementById('hist-date-to');if(el)el.value=d;}
-function histGetDateTo(){return document.getElementById('hist-date-to')?.value||histGetDate();}
-// Keeps the "To" date in step with "From" when navigating a single day (Prev/Next/Today),
-// so those buttons still behave as a single-day view unless the user deliberately widens "To".
-function histSyncRange(){histSetDateTo(histGetDate());}
-function histSetMonth(){
-  const d=new Date(histGetDate()+'T12:00:00');
-  const from=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-01';
-  const lastDay=new Date(d.getFullYear(),d.getMonth()+1,0).getDate();
-  const to=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(lastDay).padStart(2,'0');
-  histSetDate(from);histSetDateTo(to);
-}
 function histNav(dir){
   const d=new Date(histGetDate()+'T12:00:00');
   d.setDate(d.getDate()+dir);
   histSetDate(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'));
-  histSyncRange();
   loadHist();
 }
 async function loadHist(){
-  const from=histGetDate();
-  const to=histGetDateTo();
-  const label=from===to?from:(from+' → '+to);
+  const date=histGetDate();
   const body=document.getElementById('hist-body');
-  if(body)body.innerHTML='<tr><td colspan="11" style="text-align:center;padding:30px;color:var(--muted);">Loading '+label+'...</td></tr>';
+  if(body)body.innerHTML='<tr><td colspan="11" style="text-align:center;padding:30px;color:var(--muted);">Loading '+date+'...</td></tr>';
   const sumEl=document.getElementById('hist-summary');if(sumEl)sumEl.style.display='none';
   try{
-    let rows=[];let offset=0;const PAGE=1000;
-    while(true){
-      const batch=await sb('queue','GET',null,'select=*&checkin_date=gte.'+from+'&checkin_date=lte.'+to+'&order=checkin_date.asc,token_number.asc&limit='+PAGE+'&offset='+offset);
-      rows=[...rows,...(batch||[])];
-      if(!batch||batch.length<PAGE)break;offset+=PAGE;
-    }
-    _histData=rows;renderHist();
+    const rows=await sb('queue','GET',null,'select=*&checkin_date=eq.'+date+'&order=token_number.asc&limit=500');
+    _histData=rows||[];renderHist();
   }catch(e){if(body)body.innerHTML='<tr><td colspan="11" style="color:var(--err);padding:16px;">Error: '+e.message+'</td></tr>';}
 }
 function renderHist(){
   const body=document.getElementById('hist-body');if(!body)return;
-  const from=histGetDate();const to=histGetDateTo();
-  const isSingleDay=from===to;const isToday=isSingleDay&&from===today();
-  const rangeLabel=isSingleDay?from:(from+' → '+to);
+  const date=histGetDate();const isToday=date===today();
   const data=_histData;
-  if(!data.length){body.innerHTML='<tr><td colspan="11" style="text-align:center;padding:40px;color:var(--muted);">No records for '+rangeLabel+' 🐼</td></tr>';return;}
+  if(!data.length){body.innerHTML='<tr><td colspan="11" style="text-align:center;padding:40px;color:var(--muted);">No records for '+date+' 🐼</td></tr>';return;}
   const totalTips=data.filter(r=>r.tip>0).reduce((s,r)=>s+(Number(r.tip)||0),0);
   const totalRev=data.filter(r=>r.service_value>0).reduce((s,r)=>s+(Number(r.service_value)||0),0);
   const cashRev=data.filter(r=>r.payment_type==='Cash').reduce((s,r)=>s+(Number(r.service_value)||0),0);
@@ -776,7 +770,7 @@ function renderHist(){
   if(sumEl){sumEl.style.display='block';
     sumEl.innerHTML=
       '<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:6px;">'
-      +'<span style="font-size:13px;">📊 <strong>'+rangeLabel+(isToday?' (Today)':'')+'</strong> · '+data.length+' check-ins · '+done+' served</span>'
+      +'<span style="font-size:13px;">📊 <strong>'+date+(isToday?' (Today)':'')+'</strong> · '+data.length+' check-ins · '+done+' served</span>'
       +'</div>'
       +'<div style="display:flex;flex-wrap:wrap;gap:8px;">'
       +'<span style="background:#E0F2FE;color:#0369A1;padding:5px 13px;border-radius:8px;font-size:12.5px;font-weight:700;">💰 Total: AED '+(totalRev+totalTips)+'</span>'
@@ -809,7 +803,7 @@ function renderHist(){
       +'<td>'+payBadge+'</td>'
       +'<td style="font-size:12px;color:var(--muted);max-width:150px;">'+(r.remark||'—')+'</td>'
       +'<td>'+sp+'</td>'
-      +'<td style="font-size:12px;color:var(--muted);">'+(isSingleDay?'':((r.checkin_date||'')+' ')) +fmtT(r.checkin_time)+'</td>'
+      +'<td style="font-size:12px;color:var(--muted);">'+fmtT(r.checkin_time)+'</td>'
       +'<td><div style="display:flex;flex-direction:column;gap:4px;">'
         +'<button class="btn btn-ghost btn-sm" style="font-size:11px;" onclick="editHistRow(\''+r.id+'\')">✏️ Edit</button>'
         +waHistBtn
@@ -1108,19 +1102,62 @@ function loadCfgScreen(){
     const done=_qdata.filter(r=>r.status==='done');
     const totalTips=_qdata.filter(r=>r.tip>0).reduce((s,r)=>s+(Number(r.tip)||0),0);
     const totalRev=_qdata.filter(r=>r.service_value>0).reduce((s,r)=>s+(Number(r.service_value)||0),0);
+
+    // Wait time: checkin_time → called_at
+    const waits=done.filter(r=>r.checkin_time&&r.called_at).map(r=>{
+      const w=(new Date(r.called_at)-new Date(r.checkin_time))/60000;
+      return w>=0&&w<300?w:null;
+    }).filter(x=>x!==null);
+    const avgWait=waits.length?Math.round(waits.reduce((a,b)=>a+b,0)/waits.length):null;
+
+    // Service time: called_at → done_at
+    const svcs=done.filter(r=>r.called_at&&r.done_at).map(r=>{
+      const s=(new Date(r.done_at)-new Date(r.called_at))/60000;
+      return s>=0&&s<300?s:null;
+    }).filter(x=>x!==null);
+    const avgSvc=svcs.length?Math.round(svcs.reduce((a,b)=>a+b,0)/svcs.length):null;
+
+    // By stylist: count, revenue, avg service time
     const byS={};
     done.forEach(r=>{
       [r.stylist,r.stylist2].filter(Boolean).forEach(s=>{
-        if(!byS[s])byS[s]={count:0,tips:0,rev:0};
+        if(!byS[s])byS[s]={count:0,tips:0,rev:0,svcTimes:[]};
         byS[s].count++;
         byS[s].tips+=Number(r.tip)||0;
       });
       const pri=r.stylist||'Unassigned';
-      if(!byS[pri])byS[pri]={count:0,tips:0,rev:0};
+      if(!byS[pri])byS[pri]={count:0,tips:0,rev:0,svcTimes:[]};
       byS[pri].rev+=Number(r.service_value)||0;
+      if(r.called_at&&r.done_at){
+        const t=(new Date(r.done_at)-new Date(r.called_at))/60000;
+        if(t>=0&&t<300)byS[pri].svcTimes.push(t);
+      }
     });
-    sumEl.innerHTML='<div style="font-size:13px;font-weight:700;margin-bottom:10px;color:var(--bd);">Served: <strong>'+done.length+'</strong> · Revenue: <span style="color:var(--b);">AED '+totalRev+'</span> · Tips: <span style="color:var(--ok);">AED '+totalTips+'</span></div>'
-      +Object.entries(byS).map(([s,v])=>'<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;"><span>✂️ <strong>'+s+'</strong></span><span style="display:flex;gap:12px;"><span>'+v.count+' served</span>'+(v.rev?'<span style="color:var(--b);">AED '+v.rev+'</span>':'')+(v.tips?'<span style="color:var(--ok);">Tip '+v.tips+'</span>':'')+'</span></div>').join('');
+
+    const waitColor=avgWait>20?'var(--err)':avgWait>10?'var(--warn)':'var(--ok)';
+    sumEl.innerHTML=
+      // Top summary row
+      '<div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px;">'
+        +'<span style="background:#EFF6FF;color:var(--b);padding:6px 12px;border-radius:8px;font-size:12.5px;font-weight:700;">👥 Served: '+done.length+'</span>'
+        +'<span style="background:#EFF6FF;color:var(--b);padding:6px 12px;border-radius:8px;font-size:12.5px;font-weight:700;">💰 Rev: AED '+totalRev+'</span>'
+        +(totalTips?'<span style="background:#F0FDF4;color:var(--ok);padding:6px 12px;border-radius:8px;font-size:12.5px;font-weight:700;">🎁 Tips: AED '+totalTips+'</span>':'')
+        +(avgWait!==null?'<span style="background:'+(avgWait>20?'#FEF2F2':avgWait>10?'#FFFBEB':'#F0FDF4')+';color:'+waitColor+';padding:6px 12px;border-radius:8px;font-size:12.5px;font-weight:700;">⏱ Avg Wait: '+avgWait+'m'+(waits.length<done.length?' ('+waits.length+'/'+done.length+' with data)':'')+'</span>':'<span style="background:#F3F4F6;color:var(--muted);padding:6px 12px;border-radius:8px;font-size:12.5px;font-weight:700;">⏱ Wait: n/a — tap 📢 Call to track</span>')
+        +(avgSvc!==null?'<span style="background:#F5F3FF;color:#7C3AED;padding:6px 12px;border-radius:8px;font-size:12.5px;font-weight:700;">✂️ Avg Service: '+avgSvc+'m</span>':'')
+      +'</div>'
+      // Stylist breakdown
+      +'<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">By Stylist</div>'
+      +Object.entries(byS).map(([s,v])=>{
+        const avgT=v.svcTimes.length?Math.round(v.svcTimes.reduce((a,b)=>a+b,0)/v.svcTimes.length):null;
+        return'<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:12.5px;">'
+          +'<span>✂️ <strong>'+s+'</strong></span>'
+          +'<span style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">'
+            +'<span>'+v.count+' served</span>'
+            +(v.rev?'<span style="color:var(--b);font-weight:700;">AED '+v.rev+'</span>':'')
+            +(v.tips?'<span style="color:var(--ok);">Tip '+v.tips+'</span>':'')
+            +(avgT!==null?'<span style="color:#7C3AED;font-weight:700;">✂️ avg '+avgT+'m</span>':'<span style="color:var(--muted);font-size:11px;">no timing data</span>')
+          +'</span>'
+        +'</div>';
+      }).join('');
   } else if(sumEl){sumEl.innerHTML='<div style="color:var(--muted);font-size:13px;">Load the queue first to see today\'s summary.</div>';}
 }
 
