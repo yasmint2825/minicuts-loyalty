@@ -1282,6 +1282,27 @@ async function archiveCycle(customerId,stamps,firstStampDate,expiryDate,endedBy)
       <div id="acq-newret"></div>
     </div>
 
+    <!-- Validation audit -->
+    <div class="acq-card" style="border-color:var(--b);">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:4px;">
+        <div>
+          <div style="font-family:var(--fh);font-size:15px;font-weight:800;">🔍 New Customer Validation Audit</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px;">Every customer classified as NEW — with full evidence showing why. Cross-checks DB history + Excel.</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <select id="acq-val-month" class="fi" style="width:160px;padding:6px 10px;font-size:13px;" onchange="acqValidate()">
+            <option value="current">Current Month</option>
+            <option value="prev1">Previous Month</option>
+            <option value="prev2">2 Months Ago</option>
+            <option value="jul2026">July 2026</option>
+            <option value="aug2026">August 2026</option>
+          </select>
+          <button class="btn bp bsm" onclick="acqValidate()">Run Validation</button>
+        </div>
+      </div>
+      <div id="acq-validation-result" style="margin-top:12px;"></div>
+    </div>
+
     <!-- Historical insights -->
     <div class="acq-card" id="acq-hist-insights" style="display:none;">
       <div style="font-family:var(--fh);font-size:15px;font-weight:800;margin-bottom:4px;">📊 Historical Data Insights</div>
@@ -5391,11 +5412,16 @@ async function acqRender(){
     const histHasData=hist.length>0;
 
     // 4. Lookups
-    const custById={};const custByPhone={};
+    const custById={};
+    customers.forEach(c=>custById[c.id]=c);
+
+    // Build phone → earliest registration date across ALL DB records
+    // This catches: same phone registered in June, walks in again August = returning
+    const phoneFirstRegDate={};
     customers.forEach(c=>{
-      custById[c.id]=c;
-      const ph=acqNormalizePhone(c.mobile);
-      if(ph&&!custByPhone[ph])custByPhone[ph]=c;
+      const ph=acqNormalizePhone(c.mobile);if(!ph)return;
+      const d=new Date(c.created_at);
+      if(!phoneFirstRegDate[ph]||d<phoneFirstRegDate[ph])phoneFirstRegDate[ph]=d;
     });
 
     // Historical: earliest date per phone (pre-system Excel)
@@ -5407,13 +5433,20 @@ async function acqRender(){
       if(!histFirstDate[ph]||d<histFirstDate[ph])histFirstDate[ph]=d;
     });
 
-    // 5. Each customer's first-ever date = min(created_at, historical Excel date if phone matches)
+    // 5. Each customer's absolute first-ever date:
+    //    min(their own created_at,
+    //        earliest DB record for their phone (another family member registered earlier),
+    //        earliest Excel record for their phone)
     const custFirstDate={};
     customers.forEach(c=>{
       const ph=acqNormalizePhone(c.mobile);
-      const reg=new Date(c.created_at);
-      const hist=ph&&histFirstDate[ph]?histFirstDate[ph]:null;
-      custFirstDate[c.id]=(hist&&hist<reg)?hist:reg;
+      const ownReg=new Date(c.created_at);
+      const dbFirst=ph&&phoneFirstRegDate[ph]?phoneFirstRegDate[ph]:null;
+      const excelFirst=ph&&histFirstDate[ph]?histFirstDate[ph]:null;
+      let first=ownReg;
+      if(dbFirst&&dbFirst<first)first=dbFirst;
+      if(excelFirst&&excelFirst<first)first=excelFirst;
+      custFirstDate[c.id]=first;
     });
 
     // 6. Month window
@@ -5424,14 +5457,18 @@ async function acqRender(){
     const mCusts=customers.filter(c=>{const d=new Date(c.created_at);return d>=mStart&&d<=mEnd;});
     console.log('[ACQ] registered this month:',mCusts.length);
 
-    // Classify: new = first-ever date is within this month; returning = had history before
+    // Classify: new = phone not seen anywhere before this month (no prior DB + no Excel)
     let newCount=0,retCount=0,unknownCount=0;
     const newIds=new Set();
     mCusts.forEach(c=>{
-      if(!c.mobile){unknownCount++;return;}
-      const fd=custFirstDate[c.id];
-      if(fd>=mStart&&fd<=mEnd){newCount++;newIds.add(c.id);}
-      else retCount++;
+      const ph=acqNormalizePhone(c.mobile);
+      if(!ph){unknownCount++;return;}
+      // Prior DB record for same phone before this month?
+      const priorDB=phoneFirstRegDate[ph]&&phoneFirstRegDate[ph]<mStart;
+      // Excel record for same phone?
+      const priorExcel=histFirstDate[ph]&&histFirstDate[ph]<mStart;
+      if(priorDB||priorExcel){retCount++;}
+      else{newCount++;newIds.add(c.id);}
     });
     console.log('[ACQ] new:',newCount,'ret:',retCount,'unknown:',unknownCount);
 
@@ -5482,7 +5519,7 @@ async function acqRender(){
     const sRN={},sRR={};allSrc.forEach(s=>{sRN[s.key]=0;sRR[s.key]=0;});
     mQRev.forEach(q=>{
       const amt=parseFloat(q.service_value)||0;if(!amt)return;
-      const c=q.customer_id?custById[q.customer_id]:(custByPhone[acqNormalizePhone(q.mobile)]||null);
+      const c=q.customer_id?custById[q.customer_id]:null;
       const src=c?acqMapSource(c.heard_via):'Unknown';
       if(c&&newIds.has(c.id))sRN[src]=(sRN[src]||0)+amt;
       else sRR[src]=(sRR[src]||0)+amt;
@@ -5533,6 +5570,142 @@ async function acqRender(){
     });
   }
 }
+// ── Validation: prove each "new" customer is genuinely new ──
+async function acqValidate(){
+  const el=document.getElementById('acq-validation-result');
+  if(!el)return;
+  el.innerHTML='<div class="load"><div class="spin"></div> Querying database…</div>';
+
+  // Resolve which month to validate
+  const sel=document.getElementById('acq-val-month')?.value||'current';
+  const now=new Date();
+  let vYear=now.getFullYear(),vMonth=now.getMonth();
+  if(sel==='prev1'){vMonth--;if(vMonth<0){vMonth=11;vYear--;}}
+  else if(sel==='prev2'){vMonth-=2;if(vMonth<0){vMonth+=12;vYear--;}}
+  else if(sel==='jul2026'){vYear=2026;vMonth=6;}
+  else if(sel==='aug2026'){vYear=2026;vMonth=7;}
+
+  const mStart=new Date(vYear,vMonth,1);
+  const mEnd=new Date(vYear,vMonth+1,0,23,59,59,999);
+  const mLabel=mStart.toLocaleDateString('en-GB',{month:'long',year:'numeric'});
+
+  try{
+    // Fetch ALL customers (need full history for cross-check)
+    let allCusts=[];
+    {let off=0,g=0;
+      while(true){
+        const b=await sb('customers','GET',null,'select=id,name,mobile,created_at,heard_via,gender&order=created_at.asc&limit=1000&offset='+off);
+        if(!b||!b.length)break;allCusts=[...allCusts,...b];if(b.length<1000)break;off+=1000;if(++g>50)break;
+      }
+    }
+
+    // Customers registered in target month
+    const mCusts=allCusts.filter(c=>{const d=new Date(c.created_at);return d>=mStart&&d<=mEnd;});
+    if(!mCusts.length){
+      el.innerHTML=`<div style="color:var(--muted);font-size:13px;padding:12px;">No customers registered in ${mLabel}.</div>`;return;
+    }
+
+    // Historical Excel phones
+    const hist=JSON.parse(localStorage.getItem(ACQ_HIST_KEY)||'[]');
+    const histPhoneMap={};
+    hist.forEach(r=>{
+      const ph=acqNormalizePhone(r.mobile||r.phone);if(!ph||!r.date)return;
+      const d=new Date(r.date);if(isNaN(d))return;
+      if(!histPhoneMap[ph]||d<histPhoneMap[ph].date)
+        histPhoneMap[ph]={date:d,description:r.description||'',amount:r.amount||0};
+    });
+
+    // All customers registered BEFORE this month — keyed by phone
+    const priorPhoneMap={};
+    allCusts.filter(c=>new Date(c.created_at)<mStart).forEach(c=>{
+      const ph=acqNormalizePhone(c.mobile);if(!ph)return;
+      if(!priorPhoneMap[ph])priorPhoneMap[ph]=[];
+      priorPhoneMap[ph].push(c);
+    });
+
+    // Build verdict for each customer registered this month
+    const rows=mCusts.map(c=>{
+      const ph=acqNormalizePhone(c.mobile);
+      const regDate=new Date(c.created_at);
+
+      // Check 1: prior DB record for this phone?
+      const priorDB=ph?priorPhoneMap[ph]:null;
+      // Check 2: Excel record for this phone?
+      const excelRec=ph?histPhoneMap[ph]:null;
+
+      let verdict,verdictColor,reason;
+      if(!ph){
+        verdict='⚠️ NO PHONE';verdictColor='#D97706';
+        reason='No mobile number — cannot verify. Cannot rule out returning customer.';
+      } else if(priorDB&&priorDB.length){
+        verdict='🔄 RETURNING';verdictColor='var(--b)';
+        const earliest=priorDB.sort((a,b)=>new Date(a.created_at)-new Date(b.created_at))[0];
+        reason=`Phone ${ph} found in DB — first seen ${new Date(earliest.created_at).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})} as "${earliest.name}".`;
+      } else if(excelRec){
+        verdict='🔄 RETURNING (Excel)';verdictColor='var(--b)';
+        reason=`Phone ${ph} in pre-system Excel — earliest record ${excelRec.date.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}${excelRec.description?' · '+excelRec.description:''}.`;
+      } else {
+        verdict='✅ CONFIRMED NEW';verdictColor='var(--ok)';
+        reason=ph
+          ?`Phone ${ph} not found in any prior DB record or Excel upload. Genuinely first-time.`
+          :'No phone — treated as new (unverifiable).';
+      }
+
+      return{c,ph,verdict,verdictColor,reason,priorDB,excelRec};
+    });
+
+    // Summary counts
+    const confirmed=rows.filter(r=>r.verdict.startsWith('✅')).length;
+    const flagged=rows.filter(r=>r.verdict.startsWith('🔄')).length;
+    const noPhone=rows.filter(r=>r.verdict.startsWith('⚠️')).length;
+    const hasExcel=hist.length>0;
+
+    // Build table
+    const thS='padding:8px 10px;text-align:left;font-size:11px;font-weight:700;color:#fff;white-space:nowrap;';
+    const tdS='padding:9px 10px;font-size:12.5px;border-bottom:1px solid var(--border);vertical-align:top;';
+    let html=`
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:14px;">
+        <div class="acq-kpi"><div class="acq-kpi-n" style="color:var(--ok);">${confirmed}</div><div class="acq-kpi-l">Confirmed New</div></div>
+        <div class="acq-kpi"><div class="acq-kpi-n" style="color:var(--b);">${flagged}</div><div class="acq-kpi-l">Actually Returning</div><div class="acq-kpi-sub" style="color:var(--muted);">miscounted as new</div></div>
+        <div class="acq-kpi"><div class="acq-kpi-n" style="color:var(--warn);">${noPhone}</div><div class="acq-kpi-l">No Phone</div><div class="acq-kpi-sub" style="color:var(--muted);">can't verify</div></div>
+        <div class="acq-kpi"><div class="acq-kpi-n">${rows.length}</div><div class="acq-kpi-l">Total Registered</div><div class="acq-kpi-sub" style="color:var(--muted);">${mLabel}</div></div>
+      </div>
+      ${!hasExcel?'<div style="background:var(--warnl);color:var(--warn);border-radius:8px;padding:9px 12px;font-size:12px;font-weight:700;margin-bottom:12px;">⚠️ No historical Excel uploaded — returning customers from before June 2025 cannot be detected. Upload in the Historical Data tab.</div>':''}
+      <div style="overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;background:#fff;border-radius:10px;overflow:hidden;box-shadow:var(--sh);">
+        <thead style="background:var(--bd);"><tr>
+          <th style="${thS}">Customer</th>
+          <th style="${thS}">Phone (normalised)</th>
+          <th style="${thS}">Registered</th>
+          <th style="${thS}">Source</th>
+          <th style="${thS}">Verdict</th>
+          <th style="${thS}">Evidence</th>
+        </tr></thead>
+        <tbody>
+        ${rows.map((r,i)=>`<tr style="${i%2===0?'background:#F8FAFF':''}">
+          <td style="${tdS}font-weight:700;">${r.c.name||'—'}</td>
+          <td style="${tdS}font-family:monospace;font-size:12px;color:var(--muted);">${r.ph||'—'}</td>
+          <td style="${tdS}white-space:nowrap;">${new Date(r.c.created_at).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}</td>
+          <td style="${tdS}"><span style="background:var(--bl);color:var(--b);padding:2px 7px;border-radius:5px;font-size:11.5px;font-weight:700;">${r.c.heard_via||'—'}</span></td>
+          <td style="${tdS}white-space:nowrap;"><strong style="color:${r.verdictColor};">${r.verdict}</strong></td>
+          <td style="${tdS}font-size:12px;color:var(--muted);">${r.reason}</td>
+        </tr>`).join('')}
+        </tbody>
+      </table></div>
+      <div style="margin-top:10px;font-size:11.5px;color:var(--muted);">
+        <strong>How this works:</strong> Each customer registered in ${mLabel} is checked against
+        (1) earlier DB records for the same phone number, and
+        (2) your uploaded pre-June Excel data.
+        If the phone exists in either, they are classified as Returning — not New.
+        ${!hasExcel?'<strong style="color:var(--warn);"> Upload the Excel file to complete the check.</strong>':''}
+      </div>`;
+
+    el.innerHTML=html;
+  }catch(e){
+    el.innerHTML=`<div style="color:var(--err);padding:12px;font-size:13px;font-weight:700;">Error: ${e.message}</div>`;
+  }
+}
+
 function acqBuildMonthlyTable(customers,custFirstDate,hist){
   const el=document.getElementById('acq-monthly-table');if(!el)return;
   if(!customers.length){el.innerHTML='<div style="color:var(--muted);font-size:13px;">No customer data yet.</div>';return;}
