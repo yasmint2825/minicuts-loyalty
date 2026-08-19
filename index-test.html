@@ -5408,45 +5408,66 @@ async function acqRender(){
     }
     console.log('[ACQ] customers:',customers.length);
 
-    // 2. Revenue from Supabase queue
-    // checkin_date may be stored as 'date' or 'timestamptz' — handle both
-    const DB_CUTOFF    = '2026-06-07';
-    const qFromDate    = `${acqYear}-${String(acqMonth+1).padStart(2,'0')}-01`;
-    const qToDate      = `${acqYear}-${String(acqMonth+1).padStart(2,'0')}-${new Date(acqYear,acqMonth+1,0).getDate().toString().padStart(2,'0')}`;
-    // Use plain YYYY-MM-DD for both bounds — works for both date and timestamptz columns
+    // 2. Revenue — fetch from visits table (service_value written here on every paid visit,
+    //    created_at is timestamptz so range filters work reliably)
+    const DB_CUTOFF = '2026-06-08'; // Excel covers up to Jun 8 incl; queue covers Jun 9+
+    const qFromDate = `${acqYear}-${String(acqMonth+1).padStart(2,'0')}-01`;
+    const qToDate   = `${acqYear}-${String(acqMonth+1).padStart(2,'0')}-${new Date(acqYear,acqMonth+1,0).getDate().toString().padStart(2,'0')}`;
     let qRev = [];
+
     if(qToDate > DB_CUTOFF){
       try{
         let off=0,g=0;
         while(true){
-          const b = await sb('queue','GET',null,
-            `select=customer_id,mobile,service_value,tip,checkin_date,checkin_time,called_at,status`
-            +`&checkin_date=gte.${qFromDate}&checkin_date=lte.${qToDate}`
-            +`&order=checkin_date.asc&limit=1000&offset=${off}`);
+          const b = await sb('visits','GET',null,
+            `select=customer_id,service_value,created_at`
+            +`&created_at=gte.${qFromDate}`
+            +`&created_at=lt.${acqYear}-${String(acqMonth+1).padStart(2,'0')}-${String(new Date(acqYear,acqMonth+1,0).getDate()+1).padStart(2,'0')}`
+            +`&type=eq.paid`
+            +`&order=created_at.asc&limit=1000&offset=${off}`);
           if(!b||!b.length) break;
           qRev=[...qRev,...b];
           if(b.length<1000) break;
           off+=1000; if(++g>50) break;
         }
-      }catch(e){console.warn('[ACQ] queue fetch failed:',e.message);}
-    }
-    console.log('[ACQ] raw queue rows fetched:',qRev.length);
-    if(qRev.length>0){
-      console.log('[ACQ] first row sample:',JSON.stringify(qRev[0]));
-      console.log('[ACQ] rows with service_value>0:',qRev.filter(q=>(parseFloat(q.service_value)||0)>0).length);
-      console.log('[ACQ] unique checkin_date formats:',
-        [...new Set(qRev.slice(0,10).map(q=>(q.checkin_date||'').slice(0,10)))]);
+        console.log('[ACQ] visits fetched:',qRev.length,'rows');
+      }catch(e){
+        console.warn('[ACQ] visits fetch failed:',e.message);
+        // Fallback: try queue table with checkin_date
+        try{
+          let off=0,g=0;
+          while(true){
+            const b = await sb('queue','GET',null,
+              `select=customer_id,mobile,service_value,checkin_date`
+              +`&checkin_date=gte.${qFromDate}&checkin_date=lte.${qToDate}`
+              +`&service_value=gt.0`
+              +`&order=checkin_date.asc&limit=1000&offset=${off}`);
+            if(!b||!b.length) break;
+            qRev=[...qRev,...b.map(q=>({
+              customer_id:q.customer_id,
+              service_value:q.service_value,
+              created_at:q.checkin_date
+            }))];
+            if(b.length<1000) break;
+            off+=1000; if(++g>50) break;
+          }
+          console.log('[ACQ] queue fallback fetched:',qRev.length,'rows');
+        }catch(e2){console.warn('[ACQ] queue fallback also failed:',e2.message);}
+      }
     }
 
-    // Filter: service_value > 0 and date after cutoff
-    // Normalise date to 'YYYY-MM-DD' string (handles both date and timestamptz)
+    console.log('[ACQ] revenue rows total:',qRev.length,
+      '· service_value>0:',qRev.filter(q=>(parseFloat(q.service_value)||0)>0).length,
+      '· AED:',qRev.reduce((a,q)=>a+(parseFloat(q.service_value)||0),0));
+
+    // Filter: service_value > 0, date after cutoff, within this month
     const qRevFiltered = qRev.filter(q=>{
       if((parseFloat(q.service_value)||0)<=0) return false;
-      const dateStr = (q.checkin_date||'').toString().slice(0,10);
-      return dateStr > DB_CUTOFF;
+      const dateStr = (q.created_at||q.checkin_date||'').toString().slice(0,10);
+      return dateStr > DB_CUTOFF && dateStr >= qFromDate && dateStr <= qToDate;
     });
     const mRevFromDB = qRevFiltered.reduce((a,q)=>a+(parseFloat(q.service_value)||0), 0);
-    console.log(`[ACQ] qRevFiltered: ${qRevFiltered.length} rows, mRevFromDB: AED ${mRevFromDB}`);
+    console.log(`[ACQ] qRevFiltered: ${qRevFiltered.length} rows · mRevFromDB: AED ${mRevFromDB}`);
 
     // 3. Historical data — localStorage first, fall back to Supabase DB
     let hist=JSON.parse(localStorage.getItem(ACQ_HIST_KEY)||'[]');
@@ -5524,7 +5545,7 @@ async function acqRender(){
     // For May 2025 and earlier: Excel covers the whole month (all rows < cutoff)
     // For Aug 2026+: DB only (Excel has no rows in those months)
 
-    const cutoffDate = new Date('2026-06-07T23:59:59.999');
+    const cutoffDate = new Date('2026-06-08T23:59:59.999'); // Excel rows up to Jun 8 inclusive
     const excelRowsThisMonth = hist.filter(r=>{
       if(!r.date) return false;
       // Normalise date string — Excel stores '2025-05-23 21:00:00', parse carefully
@@ -5542,7 +5563,7 @@ async function acqRender(){
     console.log(`[ACQ] TOTAL REVENUE: AED ${mRevTotal} (DB: ${mRevFromDB} + Excel: ${mRevFromExcel})`);
     if(!histHasData) console.warn('[ACQ] hist is empty — Excel revenue will be AED 0. Upload Excel or check historical_transactions table.');
 
-    // Wait time
+    // Wait time — only available if we got queue rows (visits has no called_at)
     const waits = qRevFiltered
       .filter(q=>q.checkin_time&&q.called_at)
       .map(q=>(new Date(q.called_at)-new Date(q.checkin_time))/60000)
