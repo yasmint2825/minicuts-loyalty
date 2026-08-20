@@ -590,9 +590,11 @@ const _smCache={
 // smLS: synchronous read from cache (same API as before — no code changes needed)
 function smLS(key){return _smCache[key]||[];}
 
-// smLSSet: write to cache + async sync to Supabase
+// smLSSet: write to cache + localStorage (immediate) + async Supabase sync
 function smLSSet(key,data){
   _smCache[key]=data;
+  // Always keep localStorage in sync — this is what the page reads on reload
+  try{localStorage.setItem(key,JSON.stringify(data));}catch(e){console.warn('[SM] localStorage write failed:',e);}
   _smSyncToDB(key,data);
 }
 
@@ -608,46 +610,39 @@ async function _smSyncToDB(key,data){
   }catch(e){console.warn('[SM] DB sync failed for',table,':',e.message);}
 }
 
-// Load all data from Supabase into cache on startup
-// Strategy: load localStorage IMMEDIATELY (sync, instant render), then
-// fetch from Supabase in background and update cache if DB has more/newer data.
+// Load data into cache
+// Rule: localStorage ALWAYS wins until user explicitly runs migration.
+// After migration, Supabase is the source of truth.
+// We detect "post-migration" by checking if Supabase has data that matches localStorage.
 async function smLoadAllFromDB(){
-  // Step 1: Load localStorage RIGHT NOW — cache is populated before any await
+  // Always load localStorage first — instant, no network, preserves all existing data
+  let anyLS=false;
   Object.keys(SM_TABLE).forEach(key=>{
-    try{_smCache[key]=JSON.parse(localStorage.getItem(key)||'[]');}
-    catch(e){_smCache[key]=[];}
+    try{
+      const d=JSON.parse(localStorage.getItem(key)||'[]');
+      _smCache[key]=d;
+      if(d.length)anyLS=true;
+    }catch(e){_smCache[key]=[];}
   });
-  console.log('[SM] Loaded from localStorage instantly');
 
-  // Step 2: Try Supabase in background — overwrite cache only if DB has data
-  const status=msg=>{let el=document.getElementById('sm-db-status');if(!el){el=document.createElement('div');el.id='sm-db-status';el.style.cssText='position:fixed;bottom:14px;right:14px;background:#1565C0;color:#fff;padding:8px 14px;border-radius:8px;font-size:12.5px;font-weight:700;z-index:9999;';document.body.appendChild(el);}el.textContent=msg;};
-  const clearStatus=()=>{const el=document.getElementById('sm-db-status');if(el)setTimeout(()=>el.remove(),2000);};
-  try{
-    status('☁️ Syncing with Supabase…');
-    let anyFromDB=false;
-    for(const [key,table] of Object.entries(SM_TABLE)){
-      try{
-        const rows=await smSB(table,'GET',null,'limit=5000');
-        if(rows&&rows.length>0){
-          _smCache[key]=rows;
-          anyFromDB=true;
-          console.log('[SM] Updated from Supabase:',table,rows.length,'records');
-        }
-      }catch(e){
-        console.warn('[SM]',table,'not available:',e.message);
-        // Keep localStorage data already in cache
+  // Only try Supabase if localStorage is empty (post-migration device, fresh browser, etc.)
+  if(!anyLS){
+    const status=msg=>{let el=document.getElementById('sm-db-status');if(!el){el=document.createElement('div');el.id='sm-db-status';el.style.cssText='position:fixed;bottom:14px;right:14px;background:#1565C0;color:#fff;padding:8px 14px;border-radius:8px;font-size:12.5px;font-weight:700;z-index:9999;';document.body.appendChild(el);}el.textContent=msg;};
+    const clearStatus=()=>{const el=document.getElementById('sm-db-status');if(el)setTimeout(()=>el.remove(),2000);};
+    try{
+      status('☁️ Loading from Supabase…');
+      for(const [key,table] of Object.entries(SM_TABLE)){
+        try{
+          const rows=await smSB(table,'GET',null,'limit=5000');
+          if(rows&&rows.length){
+            _smCache[key]=rows;
+            // Also write to localStorage so it works offline next time
+            localStorage.setItem(key,JSON.stringify(rows));
+          }
+        }catch(e){console.warn('[SM]',table,':',e.message);}
       }
-    }
-    if(anyFromDB){
-      // Re-render active tab with fresh data
-      const active=document.querySelector('#sm-tab-bar .tab-btn.active');
-      const name=active?.getAttribute('onclick')?.match(/smTab\('([^']+)'/)?.[1];
-      if(name)smRefreshCurrentTab(name);
-    }
-    clearStatus();
-  }catch(e){
-    console.warn('[SM] Supabase sync failed:',e.message);
-    clearStatus();
+      clearStatus();
+    }catch(e){clearStatus();}
   }
 }
 
