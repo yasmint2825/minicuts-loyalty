@@ -951,8 +951,28 @@ async function loadHist(){
   const sumEl=document.getElementById('hist-summary');if(sumEl)sumEl.style.display='none';
   try{
     const rows=await sb('queue','GET',null,'select=*&checkin_date=eq.'+date+'&order=token_number.asc&limit=500');
-    _histData=rows||[];renderHist();
+    _histData=rows||[];
+    await enrichHistCustomerData();
+    renderHist();
   }catch(e){if(body)body.innerHTML='<tr><td colspan="11" style="color:var(--err);padding:16px;">Error: '+e.message+'</td></tr>';}
+}
+async function enrichHistCustomerData(){
+  const custIds=_histData.map(r=>r.customer_id).filter(Boolean);
+  if(!custIds.length)return;
+  try{
+    const idFilter=custIds.map(id=>'id.eq.'+id).join(',');
+    const custs=await sb('customers','GET',null,'select=id,location,heard_via&or=('+idFilter+')&limit=500');
+    (custs||[]).forEach(c=>{_custMap[c.id]=Object.assign(_custMap[c.id]||{},c);});
+  }catch(e){console.warn('enrichHistCustomerData error:',e.message);}
+}
+function buildSrcLocLine(custId){
+  if(!custId)return'';
+  const c=_custMap[custId];if(!c)return'';
+  const bits=[];
+  if(c.heard_via)bits.push('<span title="'+escQ(c.heard_via)+'" style="background:#F3E8FF;color:#7C3AED;padding:1px 6px;border-radius:99px;font-size:10px;font-weight:700;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;vertical-align:middle;">📣 '+c.heard_via+'</span>');
+  if(c.location)bits.push('<span title="'+escQ(c.location)+'" style="background:#EEF6FF;color:var(--b);padding:1px 6px;border-radius:99px;font-size:10px;font-weight:700;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;vertical-align:middle;">📍 '+c.location+'</span>');
+  if(!bits.length)return'';
+  return'<div style="display:flex;flex-direction:column;align-items:flex-start;gap:3px;margin-top:3px;width:100%;min-width:0;">'+bits.join('')+'</div>';
 }
 function renderHist(){
   const body=document.getElementById('hist-body');if(!body)return;
@@ -996,6 +1016,7 @@ function renderHist(){
       +'<td>'
         +'<div style="font-weight:700;">'+(r.customer_name||'')+'</div>'
         +(hasMob?'<div style="font-size:11px;color:var(--muted);margin-top:1px;">📱 '+displayMob(r.mobile)+'</div>':guest?'<div style="font-size:11px;color:var(--muted);">👤 Guest</div>':'')
+        +buildSrcLocLine(r.customer_id)
       +'</td>'
       +'<td>'+(r.service||'—')+'</td>'
       +'<td>'+(styStr||'<span style="color:var(--muted);">—</span>')+'</td>'
