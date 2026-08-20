@@ -195,6 +195,20 @@ tbody td{padding:10px 12px;font-size:13px;vertical-align:middle;}
 
   <!-- LEAVE TYPES SETTINGS -->
   <div id="smtab-settings" class="tab-pane">
+
+    <!-- Supabase Migration Card -->
+    <div class="card" style="max-width:600px;margin-bottom:16px;border-color:var(--b);">
+      <div style="font-family:var(--fh);font-size:16px;font-weight:800;margin-bottom:4px;">☁️ Supabase Sync</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:14px;">
+        All data now reads and writes to Supabase automatically. If you have existing data saved locally on this device from before, migrate it here — <strong>run this once from the salon machine</strong>.
+      </div>
+      <div id="sm-sync-status" style="margin-bottom:12px;font-size:12.5px;color:var(--muted);">Checking Supabase connection…</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button id="sm-migrate-btn" class="btn bp" onclick="smMigrateFromLocalStorage()">📤 Migrate localStorage → Supabase</button>
+        <button class="btn bg2 bsm" onclick="smCheckSyncStatus()">↻ Check Status</button>
+      </div>
+    </div>
+
     <div class="card" style="max-width:600px;">
       <div style="font-family:var(--fh);font-size:16px;font-weight:800;margin-bottom:4px;">🌴 Leave Types</div>
       <div style="font-size:13px;color:var(--muted);margin-bottom:16px;">Configure leave types used when logging staff leaves. Changes apply immediately.</div>
@@ -541,8 +555,126 @@ const SM_ROSTER_KEY ='mc_sm_roster';
 const SM_DOC_KEY    ='mc_sm_docs';
 const SM_LEAVE_TYPES_KEY='mc_sm_leave_types';
 
-function smLS(key){try{return JSON.parse(localStorage.getItem(key)||'[]');}catch(e){return[];}}
-function smLSSet(key,data){localStorage.setItem(key,JSON.stringify(data));}
+// ── Supabase ──
+const SM_SB_URL='https://wtapyfgtwkjyjrjdnhkb.supabase.co';
+const SM_SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind0YXB5Zmd0d2tqeWpyamRuaGtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0NDc3ODEsImV4cCI6MjA5NTAyMzc4MX0.y_-iPfb8Pcg9zh42h6RGVBsUVZm80LcA9sPlz_Gl_fA';
+
+async function smSB(table,method='GET',body=null,params=''){
+  const url=SM_SB_URL+'/rest/v1/'+table+(params?'?'+params:'');
+  const h={'Content-Type':'application/json','apikey':SM_SB_KEY,'Authorization':'Bearer '+SM_SB_KEY,'Prefer':'return=representation'};
+  if(method==='PATCH'||method==='DELETE') h['Prefer']='return=minimal';
+  const o={method,headers:h};
+  if(body) o.body=JSON.stringify(body);
+  const r=await fetch(url,o);
+  if(!r.ok){const e=await r.text();throw new Error(e);}
+  const t=await r.text();return t?JSON.parse(t):[];
+}
+
+const SM_TABLE={
+  [SM_STAFF_KEY]:      'staff',
+  [SM_ATT_KEY]:        'staff_attendance',
+  [SM_LEAVE_KEY]:      'staff_leaves',
+  [SM_OT_KEY]:         'staff_overtime',
+  [SM_ROSTER_KEY]:     'staff_roster',
+  [SM_DOC_KEY]:        'staff_documents',
+  [SM_LEAVE_TYPES_KEY]:'staff_leave_types',
+};
+
+// In-memory cache — loaded from DB on init, kept in sync on every write
+const _smCache={
+  [SM_STAFF_KEY]:[],[SM_ATT_KEY]:[],[SM_LEAVE_KEY]:[],
+  [SM_OT_KEY]:[],[SM_ROSTER_KEY]:[],[SM_DOC_KEY]:[],[SM_LEAVE_TYPES_KEY]:[],
+};
+
+// smLS: synchronous read from cache (same API as before — no code changes needed)
+function smLS(key){return _smCache[key]||[];}
+
+// smLSSet: write to cache + async sync to Supabase
+function smLSSet(key,data){
+  _smCache[key]=data;
+  _smSyncToDB(key,data);
+}
+
+async function _smSyncToDB(key,data){
+  const table=SM_TABLE[key];if(!table)return;
+  try{
+    await smSB(table,'DELETE',null,'id=neq.00000000-dead-beef-0000-000000000000');
+    if(data&&data.length){
+      for(let i=0;i<data.length;i+=100)
+        await smSB(table,'POST',data.slice(i,i+100));
+    }
+  }catch(e){console.warn('[SM] DB sync failed for',table,':',e.message);}
+}
+
+// Load all data from Supabase into cache on startup
+async function smLoadAllFromDB(){
+  const status=msg=>{let el=document.getElementById('sm-db-status');if(!el){el=document.createElement('div');el.id='sm-db-status';el.style.cssText='position:fixed;bottom:14px;right:14px;background:#1565C0;color:#fff;padding:8px 14px;border-radius:8px;font-size:12.5px;font-weight:700;z-index:9999;';document.body.appendChild(el);}el.textContent=msg;};
+  const clearStatus=()=>{const el=document.getElementById('sm-db-status');if(el)setTimeout(()=>el.remove(),1500);};
+  try{
+    status('⏳ Loading from Supabase…');
+    for(const [key,table] of Object.entries(SM_TABLE)){
+      try{
+        const rows=await smSB(table,'GET',null,'order=created_at.asc&limit=5000');
+        _smCache[key]=rows||[];
+      }catch(e){
+        // Table may not exist yet — fall back to localStorage
+        console.warn('[SM] Could not load',table,':',e.message);
+        try{_smCache[key]=JSON.parse(localStorage.getItem(key)||'[]');}catch(e2){_smCache[key]=[];}
+      }
+    }
+    clearStatus();
+    return true;
+  }catch(e){
+    console.warn('[SM] DB load failed, using localStorage');
+    Object.keys(SM_TABLE).forEach(key=>{
+      try{_smCache[key]=JSON.parse(localStorage.getItem(key)||'[]');}catch(e2){_smCache[key]=[];}
+    });
+    clearStatus();
+    return false;
+  }
+}
+
+async function smCheckSyncStatus(){
+  const el=document.getElementById('sm-sync-status');if(!el)return;
+  el.textContent='⏳ Checking…';
+  try{
+    const counts=[];
+    for(const [key,table] of Object.entries(SM_TABLE)){
+      const rows=await smSB(table,'GET',null,'select=id&limit=5000');
+      counts.push(table+': '+rows.length);
+    }
+    el.innerHTML='<span style="color:var(--ok);font-weight:700;">✅ Supabase connected · </span>'+counts.join(' · ');
+  }catch(e){
+    el.innerHTML='<span style="color:var(--err);font-weight:700;">❌ Cannot reach Supabase: '+e.message+'</span>';
+  }
+}
+
+// ONE-CLICK MIGRATION: localStorage → Supabase
+async function smMigrateFromLocalStorage(){
+  const keys=Object.keys(SM_TABLE);
+  let hasData=false;
+  const totals={};
+  keys.forEach(key=>{try{const d=JSON.parse(localStorage.getItem(key)||'[]');totals[key]=d.length;if(d.length)hasData=true;}catch(e){}});
+  if(!hasData){toast('No data found in localStorage to migrate.','info');return;}
+  const summary=keys.filter(k=>totals[k]>0).map(k=>SM_TABLE[k]+': '+totals[k]+' records').join('\n');
+  if(!confirm('Migrate to Supabase?\n\n'+summary+'\n\nExisting Supabase data will be replaced.'))return;
+  const btn=document.getElementById('sm-migrate-btn');
+  if(btn){btn.disabled=true;btn.textContent='⏳ Migrating…';}
+  let ok=0,fail=0;
+  for(const key of keys){
+    try{
+      const data=JSON.parse(localStorage.getItem(key)||'[]');if(!data.length)continue;
+      const table=SM_TABLE[key];
+      await smSB(table,'DELETE',null,'id=neq.00000000-dead-beef-0000-000000000000');
+      for(let i=0;i<data.length;i+=100)await smSB(table,'POST',data.slice(i,i+100));
+      _smCache[key]=data;ok++;
+      console.log('[SM] Migrated',table,':',data.length,'records');
+    }catch(e){fail++;console.error('[SM] Failed:',SM_TABLE[key],e.message);}
+  }
+  if(btn){btn.disabled=false;btn.textContent=fail===0?'✅ Done':'⚠️ Partial';}
+  if(fail===0){toast('✅ All data migrated to Supabase');smInit();}
+  else toast('⚠️ '+fail+' tables failed — check console','info');
+}
 function smUID(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
 function smFmtDate(iso){if(!iso)return'—';return new Date(iso).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});}
 function smDaysBetween(a,b){if(!a||!b)return 0;return Math.max(0,Math.round((new Date(b)-new Date(a))/(864e5))+1);}
@@ -1174,20 +1306,23 @@ function ltMove(idx,dir){
   smLSSet(SM_LEAVE_TYPES_KEY,types);ltRender();
 }
 
-// ── Auto-seed staff ──
-(function(){
-  if(smGetStaff().length)return;
-  const seed=[
-    {id:smUID(),name:'Lester',role:'Stylist',mobile:'',join_date:'',off_days:[1],notes:'',created_at:new Date().toISOString()},
-    {id:smUID(),name:'Heyden',role:'Stylist',mobile:'',join_date:'',off_days:[2],notes:'',created_at:new Date().toISOString()},
-    {id:smUID(),name:'George',role:'Stylist',mobile:'',join_date:'',off_days:[3],notes:'',created_at:new Date().toISOString()},
-    {id:smUID(),name:'Chuuby',role:'Stylist',mobile:'',join_date:'',off_days:[4],notes:'',created_at:new Date().toISOString()},
-  ];
-  smLSSet(SM_STAFF_KEY,seed);
-})();
+// ── Initialise: load from DB, then render ──
+async function smInit(){
+  await smLoadAllFromDB();
+  // Seed staff only if DB returned empty
+  if(smGetStaff().length===0){
+    const seed=[
+      {id:smUID(),name:'Lester',role:'Stylist',mobile:'',join_date:'',off_days:[1],notes:'',created_at:new Date().toISOString()},
+      {id:smUID(),name:'Heyden',role:'Stylist',mobile:'',join_date:'',off_days:[2],notes:'',created_at:new Date().toISOString()},
+      {id:smUID(),name:'George',role:'Stylist',mobile:'',join_date:'',off_days:[3],notes:'',created_at:new Date().toISOString()},
+      {id:smUID(),name:'Chuuby',role:'Stylist',mobile:'',join_date:'',off_days:[4],notes:'',created_at:new Date().toISOString()},
+    ];
+    smLSSet(SM_STAFF_KEY,seed);
+  }
+  smRenderRoster();
+}
 
-// ── Init ──
-smRenderRoster();
+smInit().then(()=>smCheckSyncStatus());
 </script>
 </body>
 </html>
