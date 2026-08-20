@@ -94,6 +94,7 @@ tbody td{padding:10px 12px;font-size:13px;vertical-align:middle;}
 <div class="top">
   <div class="top-brand">🐼 MiniCuts <span style="opacity:.6;font-size:13px;font-weight:700;">Staff Management</span></div>
   <div class="top-right">
+    <span id="sm-sync-badge" style="background:rgba(255,255,255,.15);color:#fff;padding:5px 11px;border-radius:8px;font-size:12px;font-weight:700;">☁️ Synced</span>
     <a class="top-link" href="./minicuts-staff.html">← Back to Queue</a>
   </div>
 </div>
@@ -200,15 +201,14 @@ tbody td{padding:10px 12px;font-size:13px;vertical-align:middle;}
     <div class="card" style="max-width:600px;margin-bottom:16px;border-color:var(--b);">
       <div style="font-family:var(--fh);font-size:16px;font-weight:800;margin-bottom:4px;">☁️ Supabase Sync</div>
       <div style="font-size:13px;color:var(--muted);margin-bottom:14px;">
-        All data now reads and writes to Supabase automatically. If you have existing data saved locally on this device from before, migrate it here — <strong>run this once from the salon machine</strong>.
+        Supabase is the source of truth. Every time this page loads, it pulls the latest data from the cloud and overwrites what's on this device. Every save is pushed to Supabase immediately and auto-retried if the connection drops — watch the ☁️ status badge (top right) to confirm everything's synced. If you have old data that was only ever saved locally and never made it to the cloud, push it up once below.
       </div>
       <div id="sm-sync-status" style="margin-bottom:12px;font-size:12.5px;color:var(--muted);">Checking Supabase connection…</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        <button id="sm-migrate-btn" class="btn bp" onclick="smMigrateFromLocalStorage()">📤 Migrate localStorage → Supabase</button>
-        <button id="sm-pull-btn" class="btn bg2" onclick="smPullFromSupabase()">📥 Pull latest from Supabase</button>
+        <button id="sm-migrate-btn" class="btn bp" onclick="smMigrateFromLocalStorage()">📤 Push local-only data to Supabase</button>
+        <button id="sm-pull-btn" class="btn bg2" onclick="smPullFromSupabase()">📥 Refresh from Cloud</button>
         <button class="btn bg2 bsm" onclick="smCheckSyncStatus()">↻ Check Status</button>
       </div>
-      <div style="font-size:11.5px;color:var(--muted);margin-top:8px;">"Pull" overwrites this device's local data with whatever is in Supabase — use on any machine that isn't showing data another device already migrated.</div>
     </div>
 
     <!-- Duplicate Staff Cleanup Card -->
@@ -221,6 +221,19 @@ tbody td{padding:10px 12px;font-size:13px;vertical-align:middle;}
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <button class="btn bg2" onclick="smCheckDuplicateStaff()">🔍 Check for Duplicate Staff</button>
         <button id="sm-merge-btn" class="btn bd2" style="display:none;" onclick="smMergeDuplicateStaff()">🧹 Merge Duplicates</button>
+      </div>
+    </div>
+
+    <!-- Document Storage Migration Card -->
+    <div class="card" style="max-width:600px;margin-bottom:16px;border-color:var(--pink);">
+      <div style="font-family:var(--fh);font-size:16px;font-weight:800;margin-bottom:4px;">📁 Document Storage</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:14px;">
+        Staff documents (visas, Emirates IDs, passports etc) now upload straight to a private Supabase Storage bucket instead of being embedded as text in the database. Older documents saved before this change are still stored as base64 text — this moves them over, then clears the old bloated data from the table. Requires the <code>staff-documents</code> bucket to already exist (see setup instructions).
+      </div>
+      <div id="sm-docstorage-report" style="margin-bottom:12px;font-size:12.5px;color:var(--muted);">Click "Check" to see how many documents still need migrating.</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn bg2" onclick="smCheckLegacyDocs()">🔍 Check Legacy Documents</button>
+        <button id="sm-docmigrate-btn" class="btn bp" style="display:none;" onclick="smMigrateDocsToStorage()">📁 Migrate to Storage</button>
       </div>
     </div>
 
@@ -537,7 +550,7 @@ tbody td{padding:10px 12px;font-size:13px;vertical-align:middle;}
     <div class="fg"><label class="fl">Upload Document (PDF / Image)</label>
       <div class="uz" onclick="document.getElementById('sm-doc-file').click()">
         <div style="font-size:26px;margin-bottom:6px;">📎</div>
-        <div style="font-size:13px;font-weight:700;color:var(--muted);" id="sm-doc-file-label">Click to upload — PDF, JPG, PNG (max 5MB)</div>
+        <div style="font-size:13px;font-weight:700;color:var(--muted);" id="sm-doc-file-label">Click to upload — PDF, JPG, PNG (max 10MB)</div>
       </div>
       <input type="file" id="sm-doc-file" accept=".pdf,.jpg,.jpeg,.png" style="display:none;" onchange="smDocFileSelected(this)">
     </div>
@@ -586,6 +599,41 @@ async function smSB(table,method='GET',body=null,params=''){
   const t=await r.text();return t?JSON.parse(t):[];
 }
 
+// ── Supabase Storage (private bucket for staff documents — visas, Emirates IDs, passports etc) ──
+// Bucket is PRIVATE: files aren't reachable by a plain URL, every view generates a short-lived
+// signed link. Requires the bucket + RLS policies to already exist in Supabase (see setup SQL).
+const SM_DOC_BUCKET='staff-documents';
+
+async function smStorageUpload(path,file){
+  const url=SM_SB_URL+'/storage/v1/object/'+SM_DOC_BUCKET+'/'+path;
+  const h={'apikey':SM_SB_KEY,'Authorization':'Bearer '+SM_SB_KEY,'Content-Type':file.type||'application/octet-stream','x-upsert':'true'};
+  const r=await fetch(url,{method:'POST',headers:h,body:file});
+  if(!r.ok){const e=await r.text();throw new Error(e);}
+  return path;
+}
+async function smStorageSignedUrl(path,expiresIn=3600){
+  const url=SM_SB_URL+'/storage/v1/object/sign/'+SM_DOC_BUCKET+'/'+path;
+  const h={'apikey':SM_SB_KEY,'Authorization':'Bearer '+SM_SB_KEY,'Content-Type':'application/json'};
+  const r=await fetch(url,{method:'POST',headers:h,body:JSON.stringify({expiresIn})});
+  if(!r.ok){const e=await r.text();throw new Error(e);}
+  const j=await r.json();
+  return SM_SB_URL+'/storage/v1'+j.signedURL;
+}
+async function smStorageDelete(path){
+  const url=SM_SB_URL+'/storage/v1/object/'+SM_DOC_BUCKET+'/'+path;
+  const h={'apikey':SM_SB_KEY,'Authorization':'Bearer '+SM_SB_KEY};
+  const r=await fetch(url,{method:'DELETE',headers:h});
+  if(!r.ok){const e=await r.text();throw new Error(e);}
+}
+function smFileExt(filename,mime){
+  const m=(filename||'').match(/\.([a-zA-Z0-9]+)$/);
+  if(m)return m[1].toLowerCase();
+  if(mime==='application/pdf')return'pdf';
+  if(mime==='image/jpeg')return'jpg';
+  if(mime==='image/png')return'png';
+  return'bin';
+}
+
 const SM_TABLE={
   [SM_STAFF_KEY]:      'staff',
   [SM_LEAVE_TYPES_KEY]:'staff_leave_types', // must migrate before staff_leaves (leaves reference a leave type)
@@ -611,63 +659,86 @@ const _smCache={
 // smLS: synchronous read from cache (same API as before — no code changes needed)
 function smLS(key){return _smCache[key]||[];}
 
-// smLSSet: write to cache + localStorage (immediate) + async Supabase sync
+// ── Sync status: which local writes have NOT yet been confirmed saved to Supabase ──
+const _smPendingSync=new Set();
+function smUpdateSyncBadge(){
+  const el=document.getElementById('sm-sync-badge');if(!el)return;
+  if(_smPendingSync.size===0){
+    el.textContent='☁️ Synced';el.style.background='rgba(255,255,255,.15)';
+  }else{
+    el.textContent='⚠️ '+_smPendingSync.size+' unsynced';el.style.background='rgba(217,119,6,.55)';
+  }
+}
+
+// smLSSet: write to cache + localStorage immediately (instant UI, offline-safe),
+// then push to Supabase. Cloud is the source of truth — this write is retried
+// automatically until it's confirmed saved, so staff data always ends up in the DB.
 function smLSSet(key,data){
   _smCache[key]=data;
-  // Always keep localStorage in sync — this is what the page reads on reload
   try{localStorage.setItem(key,JSON.stringify(data));}catch(e){console.warn('[SM] localStorage write failed:',e);}
   _smSyncToDB(key,data);
 }
 
 async function _smSyncToDB(key,data){
   const table=SM_TABLE[key];if(!table||!data)return;
+  if(!data.length){_smPendingSync.delete(key);smUpdateSyncBadge();return;}
   try{
-    if(!data.length)return; // nothing to sync
     const url=SM_SB_URL+'/rest/v1/'+table+'?on_conflict=id';
     const h={'Content-Type':'application/json','apikey':SM_SB_KEY,'Authorization':'Bearer '+SM_SB_KEY,'Prefer':'resolution=merge-duplicates,return=minimal'};
     for(let i=0;i<data.length;i+=100){
       const r=await fetch(url,{method:'POST',headers:h,body:JSON.stringify(data.slice(i,i+100))});
       if(!r.ok){const e=await r.text();throw new Error(e);}
     }
-  }catch(e){console.warn('[SM] DB sync failed for',table,':',e.message);}
+    _smPendingSync.delete(key);
+  }catch(e){
+    console.warn('[SM] DB sync failed for',table,'— will retry:',e.message);
+    _smPendingSync.add(key);
+  }
+  smUpdateSyncBadge();
 }
 
-// Load data into cache
-// Rule: localStorage ALWAYS wins until user explicitly runs migration.
-// After migration, Supabase is the source of truth.
-// We detect "post-migration" by checking if Supabase has data that matches localStorage.
+// Retry any writes that haven't reached Supabase yet (offline moment, brief network drop, etc.)
+// Always retries with the LATEST cache value for that key, not a stale snapshot.
+async function smRetryPendingSync(){
+  if(!_smPendingSync.size)return;
+  for(const key of [..._smPendingSync]) await _smSyncToDB(key,smLS(key));
+}
+setInterval(smRetryPendingSync,20000);
+window.addEventListener('online',smRetryPendingSync);
+
+
+// Load data into cache.
+// Cloud-first: every load pulls fresh from Supabase and OVERWRITES local cache + localStorage,
+// per table. If a specific table can't be reached (offline / network blip), that table falls
+// back to whatever's already cached in localStorage so the salon machine keeps working —
+// everything else that did load still reflects the latest cloud data.
 async function smLoadAllFromDB(){
-  // Always load localStorage first — instant, no network, preserves all existing data
-  let anyLS=false;
+  // Read localStorage first as the offline-fallback baseline
   Object.keys(SM_TABLE).forEach(key=>{
     try{
       const d=JSON.parse(localStorage.getItem(key)||'[]');
-      const fixed=(key===SM_LEAVE_TYPES_KEY)?smEnsureLeaveTypeIds(d):d;
-      _smCache[key]=fixed;
-      if(key===SM_LEAVE_TYPES_KEY&&fixed.length)try{localStorage.setItem(key,JSON.stringify(fixed));}catch(e){}
-      if(d.length)anyLS=true;
+      _smCache[key]=(key===SM_LEAVE_TYPES_KEY)?smEnsureLeaveTypeIds(d):d;
     }catch(e){_smCache[key]=[];}
   });
 
-  // Only try Supabase if localStorage is empty (post-migration device, fresh browser, etc.)
-  if(!anyLS){
-    const status=msg=>{let el=document.getElementById('sm-db-status');if(!el){el=document.createElement('div');el.id='sm-db-status';el.style.cssText='position:fixed;bottom:14px;right:14px;background:#1565C0;color:#fff;padding:8px 14px;border-radius:8px;font-size:12.5px;font-weight:700;z-index:9999;';document.body.appendChild(el);}el.textContent=msg;};
-    const clearStatus=()=>{const el=document.getElementById('sm-db-status');if(el)setTimeout(()=>el.remove(),2000);};
+  const status=msg=>{let el=document.getElementById('sm-db-status');if(!el){el=document.createElement('div');el.id='sm-db-status';el.style.cssText='position:fixed;bottom:14px;right:14px;background:#1565C0;color:#fff;padding:8px 14px;border-radius:8px;font-size:12.5px;font-weight:700;z-index:9999;';document.body.appendChild(el);}el.textContent=msg;};
+  const clearStatus=()=>{const el=document.getElementById('sm-db-status');if(el)setTimeout(()=>el.remove(),1200);};
+
+  status('☁️ Loading latest from Supabase…');
+  let anyOffline=false;
+  for(const [key,table] of Object.entries(SM_TABLE)){
     try{
-      status('☁️ Loading from Supabase…');
-      for(const [key,table] of Object.entries(SM_TABLE)){
-        try{
-          const rows=await smSB(table,'GET',null,'limit=5000');
-          if(rows&&rows.length){
-            _smCache[key]=rows;
-            // Also write to localStorage so it works offline next time
-            localStorage.setItem(key,JSON.stringify(rows));
-          }
-        }catch(e){console.warn('[SM]',table,':',e.message);}
-      }
-      clearStatus();
-    }catch(e){clearStatus();}
+      const rows=await smSB(table,'GET',null,'limit=5000');
+      const fixed=(key===SM_LEAVE_TYPES_KEY)?smEnsureLeaveTypeIds(rows||[]):(rows||[]);
+      _smCache[key]=fixed; // overwrite local, cloud wins
+      try{localStorage.setItem(key,JSON.stringify(fixed));}catch(e){}
+    }catch(e){
+      anyOffline=true;
+      console.warn('[SM] Could not reach Supabase for',table,'— using last saved local copy:',e.message);
+    }
   }
+  if(anyOffline)status('⚠️ Offline — showing last saved data on this device');
+  clearStatus();
 }
 
 async function smCheckSyncStatus(){
@@ -733,33 +804,18 @@ async function smMigrateFromLocalStorage(){
 }
 // FORCE PULL: Supabase → this device's localStorage (overwrites local, regardless of what's already here)
 async function smPullFromSupabase(){
-  if(!confirm('Pull latest data from Supabase?\n\nThis will REPLACE all local data on this device (staff, leaves, attendance, overtime, roster, documents, leave types) with whatever is currently in Supabase.\n\nUse this on any device that should be showing data another device already migrated.'))return;
+  if(!confirm('Refresh from Supabase now?\n\nThis pulls the latest staff, leaves, attendance, overtime, roster, documents and leave types from the cloud and overwrites what\'s shown on this device right now (cloud already does this automatically every time the page loads — this is just a manual refresh without reloading).'))return;
   const btn=document.getElementById('sm-pull-btn');
-  if(btn){btn.disabled=true;btn.textContent='⏳ Pulling…';}
-  let ok=0,fail=0;
-  for(const [key,table] of Object.entries(SM_TABLE)){
-    try{
-      const rows=await smSB(table,'GET',null,'limit=5000');
-      _smCache[key]=rows||[];
-      localStorage.setItem(key,JSON.stringify(rows||[]));
-      ok++;
-      if(btn)btn.textContent='⏳ '+ok+'/'+Object.keys(SM_TABLE).length+' done…';
-    }catch(e){
-      fail++;
-      console.error('[SM] Pull failed:',table,e.message);
-    }
-  }
-  if(btn){btn.disabled=false;btn.textContent=fail===0?'✅ Done':'⚠️ Partial ('+fail+' failed)';}
-  if(fail===0){
-    toast('✅ Pulled latest data from Supabase');
-  } else {
-    toast('⚠️ '+fail+' tables failed to pull — check F12 console','info');
-  }
+  if(btn){btn.disabled=true;btn.textContent='⏳ Refreshing…';}
+  await smLoadAllFromDB();
+  if(btn){btn.disabled=false;btn.textContent='📥 Refresh from Cloud';}
+  toast(_smPendingSync.size?'⚠️ Refreshed, but some local changes are still unsynced':'✅ Up to date with Supabase');
   // Re-render whichever tab is open so the new data shows immediately
   const active=document.querySelector('.tab-btn.active');
   const tabName=active?active.getAttribute('onclick').match(/smTab\('([^']+)'/)?.[1]:'roster';
   smRefreshCurrentTab(tabName||'roster');
 }
+
 function smUID(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
 
 // ══ DUPLICATE STAFF CLEANUP ══
@@ -834,6 +890,55 @@ async function smMergeDuplicateStaff(){
   // Refresh everything from the now-clean Supabase data on this device
   await smPullFromSupabase();
   smCheckDuplicateStaff();
+}
+
+// ══ LEGACY DOCUMENT MIGRATION (base64-in-DB → Supabase Storage) ══
+function smFindLegacyDocs(){
+  return smLS(SM_DOC_KEY).filter(d=>d.file_url&&d.file_url.startsWith('data:')&&!d.file_path);
+}
+function smCheckLegacyDocs(){
+  const el=document.getElementById('sm-docstorage-report');if(!el)return;
+  const legacy=smFindLegacyDocs();
+  const btn=document.getElementById('sm-docmigrate-btn');
+  if(!legacy.length){
+    el.innerHTML='<span style="color:var(--ok);font-weight:700;">✅ No legacy documents — everything is already in Storage.</span>';
+    if(btn)btn.style.display='none';
+    return;
+  }
+  const totalBytes=legacy.reduce((a,d)=>a+(d.file_url.length*0.75),0); // base64 → approx original bytes
+  el.innerHTML='<div style="color:var(--warn);font-weight:700;">⚠️ '+legacy.length+' document(s) still stored as base64 text ('+(totalBytes/1024/1024).toFixed(1)+'MB) — will be moved to Storage.</div>';
+  if(btn)btn.style.display='inline-flex';
+  window._smLegacyDocs=legacy;
+}
+async function smMigrateDocsToStorage(){
+  const legacy=window._smLegacyDocs||smFindLegacyDocs();
+  if(!legacy.length){toast('No legacy documents to migrate','info');return;}
+  if(!confirm('Migrate '+legacy.length+' document(s) to Supabase Storage?\n\nEach file will be uploaded to the staff-documents bucket, then the bloated base64 copy will be cleared from the database row. Requires the staff-documents bucket to already exist.'))return;
+  const btn=document.getElementById('sm-docmigrate-btn');
+  if(btn){btn.disabled=true;btn.textContent='⏳ Migrating…';}
+  let ok=0,fail=0;
+  const list=smLS(SM_DOC_KEY);
+  for(const d of legacy){
+    try{
+      const blob=await(await fetch(d.file_url)).blob(); // decode the data: URI back into a Blob
+      const mime=d.file_url.slice(5,d.file_url.indexOf(';'));
+      const ext=smFileExt('',mime);
+      const path=d.staff_id+'/'+d.id+'-'+Date.now()+'.'+ext;
+      await smStorageUpload(path,blob);
+      const idx=list.findIndex(x=>x.id===d.id);
+      if(idx>=0){list[idx]={...list[idx],file_path:path,file_url:null};}
+      ok++;
+      if(btn)btn.textContent='⏳ '+ok+'/'+legacy.length+' done…';
+    }catch(e){
+      fail++;
+      console.error('[SM] Doc migration failed for',d.id,':',e.message);
+    }
+  }
+  smLSSet(SM_DOC_KEY,list);
+  if(btn){btn.disabled=false;btn.textContent='📁 Migrate to Storage';}
+  toast(fail===0?'✅ Migrated '+ok+' document(s) to Storage':'⚠️ '+fail+' failed — check F12 console','info');
+  smCheckLegacyDocs();
+  smLoadDocs();
 }
 
 function smFmtDate(iso){if(!iso)return'—';return new Date(iso).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});}
@@ -1360,13 +1465,17 @@ function smLoadDocs(){
   let docs=smLS(SM_DOC_KEY);if(filterStaffId)docs=docs.filter(d=>d.staff_id===filterStaffId);
   docs.sort((a,b)=>(a.expiry_date||'9999').localeCompare(b.expiry_date||'9999'));
   const today=new Date();
-  const expiring=docs.filter(d=>{if(!d.expiry_date)return false;const diff=Math.ceil((new Date(d.expiry_date)-today)/864e5);return diff<=30&&diff>0;});
-  const expired=docs.filter(d=>d.expiry_date&&new Date(d.expiry_date)<today);
+  // A dismissed alert only stays dismissed for the expiry_date it was dismissed at — if the
+  // document is later renewed (new expiry_date) or someone changes it again, the alert
+  // naturally reappears since alert_dismissed_expiry won't match anymore.
+  const notDismissed=d=>d.alert_dismissed_expiry!==d.expiry_date;
+  const expiring=docs.filter(d=>{if(!d.expiry_date||!notDismissed(d))return false;const diff=Math.ceil((new Date(d.expiry_date)-today)/864e5);return diff<=30&&diff>0;});
+  const expired=docs.filter(d=>d.expiry_date&&notDismissed(d)&&new Date(d.expiry_date)<today);
   let alertHtml='';
   if(expired.length||expiring.length){
     const alerts=[
-      ...expired.map(d=>{const s=smFindStaff(d.staff_id);return`<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #FDC78A;"><span>❌</span><div><strong style="color:var(--err);">${s?s.name:'?'} — ${SM_DOC_TYPES[d.type]||d.type}</strong><span style="font-size:11.5px;color:var(--err);margin-left:6px;">EXPIRED ${smFmtDate(d.expiry_date)}</span></div></div>`;}),
-      ...expiring.map(d=>{const s=smFindStaff(d.staff_id);const diff=Math.ceil((new Date(d.expiry_date)-today)/864e5);return`<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #FDC78A;"><span>⚠️</span><div><strong>${s?s.name:'?'} — ${SM_DOC_TYPES[d.type]||d.type}</strong><span style="font-size:11.5px;color:var(--warn);margin-left:6px;">Expires in ${diff} days (${smFmtDate(d.expiry_date)})</span></div></div>`;})
+      ...expired.map(d=>{const s=smFindStaff(d.staff_id);return`<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid #FDC78A;"><div style="display:flex;align-items:center;gap:8px;"><span>❌</span><div><strong style="color:var(--err);">${s?s.name:'?'} — ${SM_DOC_TYPES[d.type]||d.type}</strong><span style="font-size:11.5px;color:var(--err);margin-left:6px;">EXPIRED ${smFmtDate(d.expiry_date)}</span></div></div><button class="btn bg2 bsm" onclick="smDismissAlert('${d.id}')" style="font-size:11px;flex-shrink:0;">✓ Attended</button></div>`;}),
+      ...expiring.map(d=>{const s=smFindStaff(d.staff_id);const diff=Math.ceil((new Date(d.expiry_date)-today)/864e5);return`<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid #FDC78A;"><div style="display:flex;align-items:center;gap:8px;"><span>⚠️</span><div><strong>${s?s.name:'?'} — ${SM_DOC_TYPES[d.type]||d.type}</strong><span style="font-size:11.5px;color:var(--warn);margin-left:6px;">Expires in ${diff} days (${smFmtDate(d.expiry_date)})</span></div></div><button class="btn bg2 bsm" onclick="smDismissAlert('${d.id}')" style="font-size:11px;flex-shrink:0;">✓ Attended</button></div>`;})
     ].join('');
     alertHtml=`<div style="background:#FFF7ED;border:1.5px solid #FDC78A;border-radius:12px;padding:14px 16px;margin-bottom:16px;"><div style="font-family:var(--fh);font-size:14px;font-weight:800;color:var(--warn);margin-bottom:8px;">🔔 Renewal Alerts</div>${alerts}</div>`;
   }
@@ -1379,19 +1488,31 @@ function smLoadDocs(){
       const d=sDocs.find(doc=>doc.type===type);
       let badge='<span class="badge" style="background:#F1F5F9;color:#64748B;">Missing</span>';
       if(d&&d.expiry_date){const diff=Math.ceil((new Date(d.expiry_date)-today)/864e5);if(diff<0)badge='<span class="badge bg-err">Expired</span>';else if(diff<=30)badge=`<span class="badge bg-warn">Expires in ${diff}d</span>`;else badge='<span class="badge bg-ok">Valid</span>';}
-      return`<tr><td style="font-weight:700;">${SM_DOC_TYPES[type]||type}</td><td style="font-size:12px;">${d?d.doc_ref||'—':'—'}</td><td>${d?smFmtDate(d.issue_date):'—'}</td><td style="font-weight:700;">${d?smFmtDate(d.expiry_date):'—'}</td><td>${badge}</td><td style="color:var(--muted);font-size:12px;">${d?d.notes||'—':'—'}</td><td><div style="display:flex;gap:4px;flex-wrap:nowrap;">${d&&d.file_url?`<a href="${d.file_url}" target="_blank" class="btn bg2 bsm" style="text-decoration:none;font-size:11px;">👁 View</a>`:''} ${d?`<button class="btn bg2 bsm" onclick="smOpenEditDoc('${d.id}')" style="font-size:11px;">✏️</button> <button class="btn bd2 bsm" onclick="smDeleteRecord(SM_DOC_KEY,'${d.id}',smLoadDocs)" style="font-size:11px;">🗑</button>`:`<button class="btn bp bsm" onclick="smOpenAddDoc('${s.id}','${type}')" style="font-size:11px;">+ Upload</button>`}</div></td></tr>`;
+      return`<tr><td style="font-weight:700;">${SM_DOC_TYPES[type]||type}</td><td style="font-size:12px;">${d?d.doc_ref||'—':'—'}</td><td>${d?smFmtDate(d.issue_date):'—'}</td><td style="font-weight:700;">${d?smFmtDate(d.expiry_date):'—'}</td><td>${badge}</td><td style="color:var(--muted);font-size:12px;">${d?d.notes||'—':'—'}</td><td><div style="display:flex;gap:4px;flex-wrap:nowrap;">${d&&(d.file_path||d.file_url)?`<button class="btn bg2 bsm" onclick="smViewDoc('${d.id}')" style="font-size:11px;">👁 View</button>`:''} ${d?`<button class="btn bg2 bsm" onclick="smOpenEditDoc('${d.id}')" style="font-size:11px;">✏️</button> <button class="btn bd2 bsm" onclick="smDeleteDoc('${d.id}')" style="font-size:11px;">🗑</button>`:`<button class="btn bp bsm" onclick="smOpenAddDoc('${s.id}','${type}')" style="font-size:11px;">+ Upload</button>`}</div></td></tr>`;
     }).join('');
     html+=`<div class="card" style="margin-bottom:14px;"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;"><div style="font-family:var(--fh);font-size:15px;font-weight:800;">${s.name} <span class="badge bg-b" style="font-size:11px;">${s.role}</span></div><button class="btn bp bsm" onclick="smOpenAddDoc('${s.id}')">+ Add Document</button></div><div class="tw"><table><thead><tr><th>Type</th><th>Reference No.</th><th>Issue Date</th><th>Expiry Date</th><th>Status</th><th>Notes</th><th>Actions</th></tr></thead><tbody>${docRows}</tbody></table></div></div>`;
   });
   el.innerHTML=html||'<div style="text-align:center;padding:40px;color:var(--muted);">No documents found.</div>';
 }
 
+// Mark a renewal alert as attended — removes it from the 🔔 Renewal Alerts banner without
+// touching the document's actual expiry_date, so the row's real status badge (Expired/Expiring)
+// still shows correctly. Reappears automatically if the expiry_date ever changes again.
+function smDismissAlert(id){
+  const list=smLS(SM_DOC_KEY);const idx=list.findIndex(d=>d.id===id);
+  if(idx<0)return;
+  list[idx]={...list[idx],alert_dismissed_expiry:list[idx].expiry_date};
+  smLSSet(SM_DOC_KEY,list);
+  toast('Marked as attended ✅');
+  smLoadDocs();
+}
+
 function smDocFileSelected(input){
   const label=document.getElementById('sm-doc-file-label');
   if(input.files&&input.files[0]){
-    const f=input.files[0];if(f.size>5*1024*1024){toast('File too large — max 5MB','error');input.value='';return;}
-    if(label)label.textContent='📎 '+f.name+' ('+Math.round(f.size/1024)+'KB)';
-    const reader=new FileReader();reader.onload=e=>{window._smDocFileData=e.target.result;};reader.readAsDataURL(f);
+    const f=input.files[0];if(f.size>10*1024*1024){toast('File too large — max 10MB','error');input.value='';window._smDocFileObj=null;return;}
+    if(label)label.textContent='📎 '+f.name+' ('+Math.round(f.size/1024)+'KB) — will upload on save';
+    window._smDocFileObj=f;
   }
 }
 function smOpenAddDoc(staffId,type){
@@ -1399,25 +1520,77 @@ function smOpenAddDoc(staffId,type){
   document.getElementById('sm-doc-modal-title').textContent='Add Document';document.getElementById('sm-doc-id').value='';
   if(type)document.getElementById('sm-doc-type').value=type;
   ['sm-doc-issue','sm-doc-expiry','sm-doc-ref','sm-doc-notes'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
-  document.getElementById('sm-doc-file-label').textContent='Click to upload — PDF, JPG, PNG (max 5MB)';document.getElementById('sm-doc-file').value='';window._smDocFileData=null;
+  document.getElementById('sm-doc-file-label').textContent='Click to upload — PDF, JPG, PNG (max 10MB)';document.getElementById('sm-doc-file').value='';window._smDocFileObj=null;
   openM('sm-doc-modal');
 }
 function smOpenEditDoc(id){
   const d=smLS(SM_DOC_KEY).find(doc=>doc.id===id);if(!d)return;
   smPopulateDropdowns(['sm-doc-staff'],d.staff_id);
   document.getElementById('sm-doc-modal-title').textContent='Edit Document';document.getElementById('sm-doc-id').value=id;document.getElementById('sm-doc-type').value=d.type||'visa';document.getElementById('sm-doc-issue').value=d.issue_date||'';document.getElementById('sm-doc-expiry').value=d.expiry_date||'';document.getElementById('sm-doc-ref').value=d.doc_ref||'';document.getElementById('sm-doc-notes').value=d.notes||'';
-  document.getElementById('sm-doc-file-label').textContent=d.file_url?'📎 File attached (upload to replace)':'Click to upload — PDF, JPG, PNG (max 5MB)';document.getElementById('sm-doc-file').value='';window._smDocFileData=null;
+  document.getElementById('sm-doc-file-label').textContent=(d.file_path||d.file_url)?'📎 File attached (upload to replace)':'Click to upload — PDF, JPG, PNG (max 10MB)';document.getElementById('sm-doc-file').value='';window._smDocFileObj=null;
   openM('sm-doc-modal');
 }
-function smSaveDoc(){
+async function smSaveDoc(){
   const staff_id=document.getElementById('sm-doc-staff').value,expiry=document.getElementById('sm-doc-expiry').value;
   if(!staff_id||!expiry){toast('Staff and expiry date are required','error');return;}
   const existingId=document.getElementById('sm-doc-id').value;const existing=existingId?smLS(SM_DOC_KEY).find(d=>d.id===existingId):null;
-  const data={id:existingId||smUID(),staff_id,type:document.getElementById('sm-doc-type').value,issue_date:document.getElementById('sm-doc-issue').value||null,expiry_date:expiry,doc_ref:document.getElementById('sm-doc-ref').value.trim(),notes:document.getElementById('sm-doc-notes').value.trim(),file_url:window._smDocFileData||(existing?existing.file_url:null),created_at:existing?existing.created_at:new Date().toISOString(),updated_at:new Date().toISOString()};
+  const id=existingId||smUID();
+  const saveBtn=document.querySelector('#sm-doc-modal .btn.bp');
+  let file_path=existing?existing.file_path:null;
+  const file_url=existing?existing.file_url:null; // legacy base64, kept read-only until migrated
+  if(window._smDocFileObj){
+    if(saveBtn){saveBtn.disabled=true;saveBtn.textContent='⏳ Uploading…';}
+    try{
+      const ext=smFileExt(window._smDocFileObj.name,window._smDocFileObj.type);
+      const path=staff_id+'/'+id+'-'+Date.now()+'.'+ext;
+      await smStorageUpload(path,window._smDocFileObj);
+      // Clean up the previous file in storage if we're replacing one
+      if(existing&&existing.file_path&&existing.file_path!==path){smStorageDelete(existing.file_path).catch(()=>{});}
+      file_path=path;
+    }catch(e){
+      if(saveBtn){saveBtn.disabled=false;saveBtn.textContent='Save Document';}
+      toast('❌ File upload failed: '+e.message,'error');
+      return;
+    }
+  }
+  const data={id,staff_id,type:document.getElementById('sm-doc-type').value,issue_date:document.getElementById('sm-doc-issue').value||null,expiry_date:expiry,doc_ref:document.getElementById('sm-doc-ref').value.trim(),notes:document.getElementById('sm-doc-notes').value.trim(),file_path,file_url,created_at:existing?existing.created_at:new Date().toISOString(),updated_at:new Date().toISOString()};
   const list=smLS(SM_DOC_KEY);const idx=list.findIndex(d=>d.id===data.id);
   if(idx>=0)list[idx]=data;else list.push(data);
-  smLSSet(SM_DOC_KEY,list);closeM('sm-doc-modal');window._smDocFileData=null;toast('Document saved ✅');smLoadDocs();
+  smLSSet(SM_DOC_KEY,list);closeM('sm-doc-modal');window._smDocFileObj=null;
+  if(saveBtn){saveBtn.disabled=false;saveBtn.textContent='Save Document';}
+  toast('Document saved ✅');smLoadDocs();
 }
+
+// Open a document's file — private bucket, so generate a short-lived signed URL just-in-time.
+// Falls back to the legacy base64 file_url for documents not yet migrated to Storage.
+async function smViewDoc(id){
+  const d=smLS(SM_DOC_KEY).find(doc=>doc.id===id);if(!d)return;
+  if(d.file_path){
+    // Open the tab SYNCHRONOUSLY, inside the click handler, before any await —
+    // otherwise most browsers silently block it as a popup once the network
+    // round-trip for the signed URL finishes (it no longer counts as a direct
+    // result of the user's click). We redirect this already-open tab once ready.
+    const win=window.open('','_blank');
+    try{
+      const url=await smStorageSignedUrl(d.file_path);
+      if(win)win.location.href=url;else window.open(url,'_blank');
+    }catch(e){
+      if(win)win.close();
+      toast('❌ Could not open file: '+e.message,'error');
+    }
+  }else if(d.file_url){
+    window.open(d.file_url,'_blank');
+  }
+}
+
+async function smDeleteDoc(id){
+  const d=smLS(SM_DOC_KEY).find(doc=>doc.id===id);if(!d)return;
+  if(!confirm('Delete this document?'))return;
+  if(d.file_path){try{await smStorageDelete(d.file_path);}catch(e){console.warn('[SM] Storage delete failed (continuing):',e.message);}}
+  smLSSet(SM_DOC_KEY,smLS(SM_DOC_KEY).filter(r=>r.id!==id));
+  toast('Deleted','info');smLoadDocs();
+}
+
 
 function smDeleteRecord(key,id,reloadFn){
   if(!confirm('Delete this record?'))return;
