@@ -112,6 +112,45 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
 @keyframes ti{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
 .toast.ok{border-left:4px solid var(--ok);}.toast.err{border-left:4px solid var(--err);}.toast.info{border-left:4px solid var(--b);}
 #clk{font-family:var(--fh);font-size:11px;font-weight:700;color:rgba(255,255,255,.7);}
+
+/* ─── MOBILE RESPONSIVE ─── */
+@media (max-width:760px){
+  .top{padding:8px 12px;flex-wrap:wrap;gap:6px;}
+  .top-brand{font-size:14px;}
+  .top-right{gap:6px;}
+  #clk{display:none;}
+
+  .tabs{padding:0 6px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+  .tabs::-webkit-scrollbar{display:none;}
+  .tab{padding:9px 11px;font-size:12px;}
+
+  .stats-strip{padding:8px 12px;gap:12px;justify-content:space-between;}
+  .sstat-n{font-size:18px;}
+  .sstat-div{display:none;}
+
+  .page{padding:10px;}
+
+  .filters{padding:10px;gap:8px;}
+  .filters .fg{min-width:0!important;flex:1 1 100%!important;}
+  .filters > div[style*="display:flex"]{flex:1 1 100%;}
+
+  /* Settings & two-column cards collapse to single column */
+  #t-config > div[style*="grid-template-columns:1fr 1fr"],
+  div[style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr!important;}
+
+  /* Tables: switch to horizontal scroll, allow shrinking columns */
+  .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  .qt{table-layout:auto;min-width:640px;}
+  .qt th,.qt td{padding:6px 6px;font-size:11.5px;}
+  .qt th:nth-child(6),.qt td:nth-child(6){width:auto;min-width:160px;}
+
+  /* Modals: full width with margins */
+  div[style*="max-width:420px"]{max-width:94vw!important;padding:18px!important;}
+
+  .tc{left:10px;right:10px;bottom:10px;}
+  .toast{min-width:0;width:100%;}
+}
+
 </style>
 </head>
 <body>
@@ -132,6 +171,9 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
   <button class="tab" onclick="showTab('t-history',this);histSetDate(today());loadHist();">🕐 History</button>
   <button class="tab" onclick="showTab('t-prizes',this);loadPrizes();">🎁 Game Prizes</button>
   <button class="tab" onclick="showTab('t-freewash',this);loadFreeWash();">🚿 Free Wash</button>
+  <button class="tab" onclick="showTab('t-vouchers',this);loadVouchers();">🎁 Gift Vouchers</button>
+  <button class="tab" onclick="showTab('t-kod',this);loadKod();">💜 KoD</button>
+  <button class="tab" onclick="window.open('./minicuts-staff-mgmt.html','_blank')">👥 Staff Mgmt ↗</button>
   <button class="tab" onclick="showTab('t-config',this);loadCfgScreen();">⚙️ Settings</button>
 </div>
 
@@ -337,6 +379,183 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
         </div>
       </div>
     </div>
+
+    <!-- GIFT VOUCHER SETUP — full width below -->
+    <div style="grid-column:1/-1;">
+      <div class="card">
+        <div class="card-title">🎁 Gift Voucher Setup</div>
+        <p style="font-size:12.5px;color:var(--muted);margin:6px 0 16px;">
+          Define voucher types, the packages available under each, the price, and the discount % applied on redemption.
+          Staff will see these packages in the Generate form. Changes apply immediately.
+        </p>
+
+        <div id="gv-setup-types"></div>
+
+        <div style="display:flex;gap:8px;margin-top:4px;">
+          <button class="btn btn-ghost" style="flex:1;" onclick="gvSetupAddType()">+ Add Voucher Type</button>
+          <button class="btn btn-y" style="flex:2;" onclick="saveGvSetup()">Save Gift Voucher Setup ✅</button>
+        </div>
+        <div id="gv-setup-msg" class="sm" style="margin-top:10px;"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══ TAB: GIFT VOUCHERS ══ -->
+<div class="page" id="t-vouchers">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;">
+
+    <!-- LEFT: Generate -->
+    <div>
+      <div class="card">
+        <div class="card-title">🎁 Generate Gift Voucher</div>
+        <p style="font-size:12.5px;color:var(--muted);margin:6px 0 14px;">Fill details and generate. Then send via WhatsApp.</p>
+        <div class="fg" style="margin-bottom:10px;"><label class="fl">Voucher Type</label>
+          <select class="fi" id="gv-type" onchange="updateGvPackages()">
+            <option>Loading…</option>
+          </select>
+        </div>
+        <div class="fg" style="margin-bottom:10px;"><label class="fl">Package</label>
+          <select class="fi" id="gv-package">
+            <option>Loading…</option>
+          </select>
+          <div id="gv-discount-info" style="font-size:11px;margin-top:4px;"></div>
+        </div>
+        <div class="fg" style="margin-bottom:10px;"><label class="fl">Recipient Name (child)</label>
+          <input class="fi" type="text" id="gv-child" placeholder="e.g. Sofia"/>
+        </div>
+        <div class="fg" style="margin-bottom:10px;"><label class="fl">Buyer WhatsApp Number</label>
+          <input class="fi" type="tel" id="gv-phone" placeholder="e.g. 971501234567"/>
+        </div>
+        <div class="fg" style="margin-bottom:10px;"><label class="fl">Valid Until</label>
+          <input class="fi" type="date" id="gv-expiry"/>
+        </div>
+        <div id="gv-msg" class="sm"></div>
+        <button class="btn btn-y btn-full" onclick="generateVoucher()">⚡ Generate Voucher</button>
+      </div>
+
+      <!-- Voucher Preview -->
+      <div id="gv-preview" style="display:none;">
+        <div id="gv-card" style="background:linear-gradient(135deg,#1565C0,#0D47A1);border-radius:16px;padding:24px;color:#fff;margin-bottom:14px;position:relative;overflow:hidden;">
+          <div style="position:absolute;top:-20px;right:-20px;width:100px;height:100px;background:rgba(255,214,0,.1);border-radius:50%;"></div>
+          <div style="position:absolute;bottom:-30px;left:-10px;width:80px;height:80px;background:rgba(255,255,255,.05);border-radius:50%;"></div>
+          <div style="font-family:'Baloo 2',cursive;font-size:11px;font-weight:700;letter-spacing:2px;opacity:.7;margin-bottom:6px;">MINICUTS · DUBAI SILICON OASIS</div>
+          <div style="font-family:'Baloo 2',cursive;font-size:22px;font-weight:900;color:#FFD600;margin-bottom:2px;" id="gv-preview-type"></div>
+          <div style="font-size:13px;opacity:.8;margin-bottom:16px;">Gift Experience</div>
+          <div style="background:rgba(255,255,255,.12);border-radius:10px;padding:12px 16px;margin-bottom:14px;">
+            <div style="font-size:10px;opacity:.6;letter-spacing:1px;margin-bottom:4px;">VOUCHER CODE</div>
+            <div style="font-family:'Baloo 2',cursive;font-size:24px;font-weight:900;letter-spacing:4px;color:#FFD600;" id="gv-preview-code"></div>
+          </div>
+          <div style="font-size:12px;opacity:.8;margin-bottom:10px;font-weight:700;" id="gv-preview-pkg" style="display:none;"></div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;">
+            <div><div style="opacity:.6;font-size:10px;letter-spacing:1px;">FOR</div><div style="font-weight:700;" id="gv-preview-child"></div></div>
+            <div style="text-align:right;"><div style="opacity:.6;font-size:10px;letter-spacing:1px;">VALID UNTIL</div><div style="font-weight:700;" id="gv-preview-expiry"></div></div>
+          </div>
+        </div>
+        <button class="btn btn-g btn-full" onclick="sendVoucherWA()" style="margin-bottom:8px;">📲 Send via WhatsApp</button>
+        <button class="btn btn-ghost btn-full" onclick="resetGV()">↺ New Voucher</button>
+      </div>
+    </div>
+
+    <!-- RIGHT: Redeem -->
+    <div>
+      <div class="card">
+        <div class="card-title">✅ Redeem Voucher</div>
+        <p style="font-size:12.5px;color:var(--muted);margin:6px 0 14px;">Enter the code from the customer's voucher. Code match only — no phone needed.</p>
+        <div class="fg" style="margin-bottom:10px;"><label class="fl">Voucher Code</label>
+          <input class="fi" type="text" id="rv-code" placeholder="e.g. MNC-2847-KQXJ" style="text-transform:uppercase;font-weight:700;letter-spacing:2px;" oninput="this.value=this.value.toUpperCase()"/>
+        </div>
+        <div id="rv-msg" class="sm"></div>
+        <button class="btn btn-b btn-full" onclick="lookupVoucher()">🔍 Look Up Code</button>
+
+        <div id="rv-result" style="display:none;margin-top:16px;">
+          <div style="background:#F0FDF4;border:1.5px solid #86EFAC;border-radius:10px;padding:14px;margin-bottom:12px;">
+            <div style="font-size:11px;font-weight:700;color:var(--ok);letter-spacing:1px;margin-bottom:8px;">✅ VALID VOUCHER</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:13px;">
+              <div><span style="color:var(--muted);font-size:11px;">TYPE</span><br/><strong id="rv-type"></strong></div>
+              <div><span style="color:var(--muted);font-size:11px;">FOR</span><br/><strong id="rv-child"></strong></div>
+              <div><span style="color:var(--muted);font-size:11px;">ISSUED</span><br/><strong id="rv-issued"></strong></div>
+              <div><span style="color:var(--muted);font-size:11px;">EXPIRES</span><br/><strong id="rv-expires"></strong></div>
+            </div>
+          </div>
+          <button class="btn btn-g btn-full" onclick="redeemVoucher()">🎉 Mark as Redeemed</button>
+        </div>
+      </div>
+
+      <!-- Voucher Log -->
+      <div class="card" style="margin-top:0;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+          <div class="card-title" style="margin-bottom:0;">📋 Voucher Log</div>
+          <button class="btn btn-ghost btn-sm" onclick="loadVouchers()">↻</button>
+        </div>
+        <div id="vlog" style="font-size:12.5px;color:var(--muted);">Loading...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ TAB: KIDS OF DETERMINATION ══ -->
+<div class="page" id="t-kod">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;">
+
+    <!-- LEFT: Register / Lookup -->
+    <div>
+      <div class="card">
+        <div class="card-title">💜 KoD First Visit — Register</div>
+        <p style="font-size:12.5px;color:var(--muted);margin:6px 0 14px;">Family shows CDC paper voucher. Enter their details to register and apply 50% discount.</p>
+        <div class="fg" style="margin-bottom:10px;"><label class="fl">CDC Voucher Code (from paper)</label>
+          <input class="fi" type="text" id="kod-code" placeholder="e.g. KOD2025" style="text-transform:uppercase;font-weight:700;" oninput="this.value=this.value.toUpperCase()"/>
+        </div>
+        <div class="fg" style="margin-bottom:10px;"><label class="fl">Parent WhatsApp Number</label>
+          <input class="fi" type="tel" id="kod-phone" placeholder="e.g. 971501234567"/>
+        </div>
+        <div class="fg" style="margin-bottom:10px;"><label class="fl">Child's Name</label>
+          <input class="fi" type="text" id="kod-child" placeholder="e.g. Adam"/>
+        </div>
+        <div class="fg" style="margin-bottom:10px;"><label class="fl">Notes (optional)</label>
+          <input class="fi" type="text" id="kod-notes" placeholder="e.g. sensory sensitivity"/>
+        </div>
+        <div id="kod-reg-msg" class="sm"></div>
+        <button class="btn btn-y btn-full" onclick="registerKod()">💜 Register &amp; Apply 50%</button>
+      </div>
+
+      <div class="card">
+        <div class="card-title">🔍 Returning Family — Look Up</div>
+        <p style="font-size:12.5px;color:var(--muted);margin:6px 0 14px;">Family returns — just enter their phone number. No voucher needed.</p>
+        <div class="fg" style="margin-bottom:10px;"><label class="fl">Parent WhatsApp Number</label>
+          <input class="fi" type="tel" id="kod-lookup-phone" placeholder="e.g. 971501234567"/>
+        </div>
+        <div id="kod-lookup-msg" class="sm"></div>
+        <button class="btn btn-b btn-full" onclick="lookupKod()">🔍 Look Up Family</button>
+        <div id="kod-result" style="display:none;margin-top:14px;">
+          <div style="background:#F5F3FF;border:1.5px solid #C4B5FD;border-radius:10px;padding:14px;margin-bottom:12px;">
+            <div style="font-size:11px;font-weight:700;color:#7C3AED;letter-spacing:1px;margin-bottom:8px;">💜 KOD MEMBER</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:13px;">
+              <div><span style="color:var(--muted);font-size:11px;">CHILD</span><br/><strong id="kod-r-child"></strong></div>
+              <div><span style="color:var(--muted);font-size:11px;">VISITS</span><br/><strong id="kod-r-visits"></strong></div>
+              <div><span style="color:var(--muted);font-size:11px;">FIRST VISIT 50%</span><br/><strong id="kod-r-first"></strong></div>
+              <div><span style="color:var(--muted);font-size:11px;">ONGOING</span><br/><strong style="color:#7C3AED;">25% always</strong></div>
+            </div>
+            <div id="kod-r-notes" style="margin-top:8px;font-size:12px;color:var(--muted);"></div>
+          </div>
+          <button class="btn btn-full" style="background:#7C3AED;color:#fff;" onclick="logKodVisit()">💜 Log Visit (25% applied)</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: KoD Member List -->
+    <div>
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+          <div class="card-title" style="margin-bottom:0;">💜 KoD Members</div>
+          <button class="btn btn-ghost btn-sm" onclick="loadKod()">↻</button>
+        </div>
+        <input class="fi" type="text" id="kod-search" placeholder="Search name or phone..." oninput="filterKodList()" style="margin-bottom:12px;"/>
+        <div id="kod-list" style="font-size:12.5px;color:var(--muted);">Loading...</div>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -618,21 +837,6 @@ function buildRow(r){
   const c=cid?_custMap[cid]:null;
   const loyaltyCell=buildLoyaltyInCell(r);
 
-  // Time + wait metrics
-  const now=Date.now();
-  const ciMs=r.checkin_time?new Date(r.checkin_time).getTime():null;
-  const caMs=r.called_at?new Date(r.called_at).getTime():null;
-  const daMs=r.done_at?new Date(r.done_at).getTime():null;
-  const waitMins=caMs&&ciMs?Math.round((caMs-ciMs)/60000):null;
-  const svcMins=daMs&&caMs?Math.round((daMs-caMs)/60000):null;
-  const liveMins=!daMs&&ciMs?Math.round((now-ciMs)/60000):null;
-  const waitLabel=waitMins!==null
-    ?`<span style="color:${waitMins>20?'var(--err)':waitMins>10?'var(--warn)':'var(--ok)'};font-weight:800;">⏱ ${waitMins}m wait</span>`
-    :called&&ciMs?`<span style="color:var(--b);font-weight:700;">⏱ ${liveMins}m so far</span>`
-    :!called&&!done&&ciMs?`<span style="color:var(--muted);font-size:10px;">${liveMins}m ago</span>`
-    :'';  const svcLabel=svcMins!==null
-    ?`<span style="color:var(--muted);font-size:10px;">✂️ ${svcMins}m svc</span>`:'';
-
   return'<tr class="'+(done?'done':called?'called':cancelled?'done':'')+'" id="qr-'+r.id+'">'
     +'<td><div class="tok-b '+(guest?'guest':'')+'">'+String(r.token_number).padStart(2,'0')+'</div></td>'
     // Name + pills on mobile line
@@ -645,12 +849,8 @@ function buildRow(r){
     +'</td>'
     // Service
     +'<td><select class="isel" onchange="updF(\''+r.id+'\',\'service\',this.value)"'+(locked?' disabled':'')+'>'+svcOpts+'</select></td>'
-    // Time + wait
-    +'<td style="font-size:11px;color:var(--muted);">'
-      +fmtT(r.checkin_time)
-      +(waitLabel?'<div style="margin-top:2px;">'+waitLabel+'</div>':'')
-      +(svcLabel?'<div>'+svcLabel+'</div>':'')
-    +'</td>'
+    // Time
+    +'<td style="font-size:11px;color:var(--muted);">'+fmtT(r.checkin_time)+'</td>'
     // Stylists side by side
     +'<td><div style="display:flex;gap:3px;">'
       +'<select class="isel" style="flex:1;min-width:0;" onchange="updF(\''+r.id+'\',\'stylist\',this.value)"'+(locked?' disabled':'')+'>'+sty1Opts+'</select>'
@@ -759,13 +959,14 @@ function renderHist(){
   const date=histGetDate();const isToday=date===today();
   const data=_histData;
   if(!data.length){body.innerHTML='<tr><td colspan="11" style="text-align:center;padding:40px;color:var(--muted);">No records for '+date+' 🐼</td></tr>';return;}
-  const totalTips=data.filter(r=>r.tip>0).reduce((s,r)=>s+(Number(r.tip)||0),0);
-  const totalRev=data.filter(r=>r.service_value>0).reduce((s,r)=>s+(Number(r.service_value)||0),0);
-  const cashRev=data.filter(r=>r.payment_type==='Cash').reduce((s,r)=>s+(Number(r.service_value)||0),0);
-  const creditRev=data.filter(r=>r.payment_type==='Credit').reduce((s,r)=>s+(Number(r.service_value)||0),0);
-  const cashTip=data.filter(r=>r.payment_type==='Cash').reduce((s,r)=>s+(Number(r.tip)||0),0);
-  const creditTip=data.filter(r=>r.payment_type==='Credit').reduce((s,r)=>s+(Number(r.tip)||0),0);
-  const done=data.filter(r=>r.status==='done').length;
+  const stamped=data.filter(r=>r.status==='done');
+  const totalTips=stamped.filter(r=>r.tip>0).reduce((s,r)=>s+(Number(r.tip)||0),0);
+  const totalRev=stamped.filter(r=>r.service_value>0).reduce((s,r)=>s+(Number(r.service_value)||0),0);
+  const cashRev=stamped.filter(r=>r.payment_type==='Cash').reduce((s,r)=>s+(Number(r.service_value)||0),0);
+  const creditRev=stamped.filter(r=>r.payment_type==='Credit').reduce((s,r)=>s+(Number(r.service_value)||0),0);
+  const cashTip=stamped.filter(r=>r.payment_type==='Cash').reduce((s,r)=>s+(Number(r.tip)||0),0);
+  const creditTip=stamped.filter(r=>r.payment_type==='Credit').reduce((s,r)=>s+(Number(r.tip)||0),0);
+  const done=stamped.length;
   const sumEl=document.getElementById('hist-summary');
   if(sumEl){sumEl.style.display='block';
     sumEl.innerHTML=
@@ -1085,7 +1286,7 @@ function showWAPrompt(name,stamps,mobile,parent,gender,stylist,stylist2,remark,t
 }
 
 // CONFIG
-function loadCfgScreen(){
+function loadCfgScreen(){loadGvSetup();
   const ta=document.getElementById('cfg-sty');
   if(ta)ta.value=STYLISTS.join('\n');
   const tmpl=document.getElementById('cfg-wa-tmpl');
@@ -1102,62 +1303,19 @@ function loadCfgScreen(){
     const done=_qdata.filter(r=>r.status==='done');
     const totalTips=_qdata.filter(r=>r.tip>0).reduce((s,r)=>s+(Number(r.tip)||0),0);
     const totalRev=_qdata.filter(r=>r.service_value>0).reduce((s,r)=>s+(Number(r.service_value)||0),0);
-
-    // Wait time: checkin_time → called_at
-    const waits=done.filter(r=>r.checkin_time&&r.called_at).map(r=>{
-      const w=(new Date(r.called_at)-new Date(r.checkin_time))/60000;
-      return w>=0&&w<300?w:null;
-    }).filter(x=>x!==null);
-    const avgWait=waits.length?Math.round(waits.reduce((a,b)=>a+b,0)/waits.length):null;
-
-    // Service time: called_at → done_at
-    const svcs=done.filter(r=>r.called_at&&r.done_at).map(r=>{
-      const s=(new Date(r.done_at)-new Date(r.called_at))/60000;
-      return s>=0&&s<300?s:null;
-    }).filter(x=>x!==null);
-    const avgSvc=svcs.length?Math.round(svcs.reduce((a,b)=>a+b,0)/svcs.length):null;
-
-    // By stylist: count, revenue, avg service time
     const byS={};
     done.forEach(r=>{
       [r.stylist,r.stylist2].filter(Boolean).forEach(s=>{
-        if(!byS[s])byS[s]={count:0,tips:0,rev:0,svcTimes:[]};
+        if(!byS[s])byS[s]={count:0,tips:0,rev:0};
         byS[s].count++;
         byS[s].tips+=Number(r.tip)||0;
       });
       const pri=r.stylist||'Unassigned';
-      if(!byS[pri])byS[pri]={count:0,tips:0,rev:0,svcTimes:[]};
+      if(!byS[pri])byS[pri]={count:0,tips:0,rev:0};
       byS[pri].rev+=Number(r.service_value)||0;
-      if(r.called_at&&r.done_at){
-        const t=(new Date(r.done_at)-new Date(r.called_at))/60000;
-        if(t>=0&&t<300)byS[pri].svcTimes.push(t);
-      }
     });
-
-    const waitColor=avgWait>20?'var(--err)':avgWait>10?'var(--warn)':'var(--ok)';
-    sumEl.innerHTML=
-      // Top summary row
-      '<div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px;">'
-        +'<span style="background:#EFF6FF;color:var(--b);padding:6px 12px;border-radius:8px;font-size:12.5px;font-weight:700;">👥 Served: '+done.length+'</span>'
-        +'<span style="background:#EFF6FF;color:var(--b);padding:6px 12px;border-radius:8px;font-size:12.5px;font-weight:700;">💰 Rev: AED '+totalRev+'</span>'
-        +(totalTips?'<span style="background:#F0FDF4;color:var(--ok);padding:6px 12px;border-radius:8px;font-size:12.5px;font-weight:700;">🎁 Tips: AED '+totalTips+'</span>':'')
-        +(avgWait!==null?'<span style="background:'+(avgWait>20?'#FEF2F2':avgWait>10?'#FFFBEB':'#F0FDF4')+';color:'+waitColor+';padding:6px 12px;border-radius:8px;font-size:12.5px;font-weight:700;">⏱ Avg Wait: '+avgWait+'m'+(waits.length<done.length?' ('+waits.length+'/'+done.length+' with data)':'')+'</span>':'<span style="background:#F3F4F6;color:var(--muted);padding:6px 12px;border-radius:8px;font-size:12.5px;font-weight:700;">⏱ Wait: n/a — tap 📢 Call to track</span>')
-        +(avgSvc!==null?'<span style="background:#F5F3FF;color:#7C3AED;padding:6px 12px;border-radius:8px;font-size:12.5px;font-weight:700;">✂️ Avg Service: '+avgSvc+'m</span>':'')
-      +'</div>'
-      // Stylist breakdown
-      +'<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">By Stylist</div>'
-      +Object.entries(byS).map(([s,v])=>{
-        const avgT=v.svcTimes.length?Math.round(v.svcTimes.reduce((a,b)=>a+b,0)/v.svcTimes.length):null;
-        return'<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:12.5px;">'
-          +'<span>✂️ <strong>'+s+'</strong></span>'
-          +'<span style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">'
-            +'<span>'+v.count+' served</span>'
-            +(v.rev?'<span style="color:var(--b);font-weight:700;">AED '+v.rev+'</span>':'')
-            +(v.tips?'<span style="color:var(--ok);">Tip '+v.tips+'</span>':'')
-            +(avgT!==null?'<span style="color:#7C3AED;font-weight:700;">✂️ avg '+avgT+'m</span>':'<span style="color:var(--muted);font-size:11px;">no timing data</span>')
-          +'</span>'
-        +'</div>';
-      }).join('');
+    sumEl.innerHTML='<div style="font-size:13px;font-weight:700;margin-bottom:10px;color:var(--bd);">Served: <strong>'+done.length+'</strong> · Revenue: <span style="color:var(--b);">AED '+totalRev+'</span> · Tips: <span style="color:var(--ok);">AED '+totalTips+'</span></div>'
+      +Object.entries(byS).map(([s,v])=>'<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;"><span>✂️ <strong>'+s+'</strong></span><span style="display:flex;gap:12px;"><span>'+v.count+' served</span>'+(v.rev?'<span style="color:var(--b);">AED '+v.rev+'</span>':'')+(v.tips?'<span style="color:var(--ok);">Tip '+v.tips+'</span>':'')+'</span></div>').join('');
   } else if(sumEl){sumEl.innerHTML='<div style="color:var(--muted);font-size:13px;">Load the queue first to see today\'s summary.</div>';}
 }
 
@@ -1452,7 +1610,606 @@ async function markFreeWashGiven(id,name,btn){
 setInterval(()=>{if(document.getElementById('t-queue').classList.contains('active'))loadQ();},120000);
 
 // INIT — load config from DB first, then load queue
-loadAllConfig().then(()=>{loadQ();populateStyFilter();});
+loadAllConfig().then(()=>{loadQ();populateStyFilter();loadGvSetup();});
+
+// ═══════════════════════════════════════════════
+// GIFT VOUCHER SETUP CONFIG
+// ═══════════════════════════════════════════════
+
+const GV_DEFAULT_CONFIG = [
+  {
+    type: 'Birthday Makeover',
+    icon: '🎂',
+    discount: 0,
+    packages: [
+      { name: 'Birthday Hair Styling', price: 120 },
+      { name: 'Birthday Makeover + Tiara', price: 150 }
+    ]
+  },
+  {
+    type: 'Princess Makeover',
+    icon: '👑',
+    discount: 0,
+    packages: [
+      { name: 'Princess Hair Styling', price: 100 },
+      { name: 'Full Princess Makeover', price: 130 }
+    ]
+  },
+  {
+    type: 'First Haircut',
+    icon: '✂️',
+    discount: 0,
+    packages: [
+      { name: 'First Haircut + Certificate', price: 80 },
+      { name: 'First Haircut Deluxe', price: 100 }
+    ]
+  }
+];
+
+let GV_CONFIG = JSON.parse(JSON.stringify(GV_DEFAULT_CONFIG));
+
+async function loadGvSetup() {
+  try {
+    const rows = await sbRaw('staff_config', 'GET', null, 'key=eq.gv_config&select=value&limit=1');
+    if (rows && rows.length && rows[0].value) {
+      const parsed = typeof rows[0].value === 'string' ? JSON.parse(rows[0].value) : rows[0].value;
+      if (Array.isArray(parsed) && parsed.length) GV_CONFIG = parsed;
+    }
+  } catch(e) { /* use defaults */ }
+  renderGvSetup();
+  populateGvTypeDropdown();
+}
+
+function renderGvSetup() {
+  const el = document.getElementById('gv-setup-types');
+  if (!el) return;
+  el.innerHTML = GV_CONFIG.map((t, ti) => `
+    <div style="border:1.5px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px;background:var(--bg);">
+      <div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:12px;flex-wrap:wrap;">
+        <div style="flex:0 0 44px;">
+          <label class="fl">Icon</label>
+          <input class="fi" type="text" value="${t.icon}" oninput="GV_CONFIG[${ti}].icon=this.value"
+            style="text-align:center;font-size:18px;padding:6px 4px;"/>
+        </div>
+        <div style="flex:1;min-width:140px;">
+          <label class="fl">Voucher Type Name</label>
+          <input class="fi" type="text" value="${t.type}" oninput="GV_CONFIG[${ti}].type=this.value"/>
+        </div>
+        <div style="flex:0 0 100px;">
+          <label class="fl">Discount % on redeem</label>
+          <input class="fi" type="number" min="0" max="100" value="${t.discount||0}"
+            oninput="GV_CONFIG[${ti}].discount=Number(this.value)"
+            style="text-align:center;" placeholder="0"/>
+        </div>
+        <div style="flex:0 0 auto;padding-top:18px;">
+          <button class="btn btn-ghost btn-sm" style="border-color:var(--err);color:var(--err);"
+            onclick="gvSetupRemoveType(${ti})">✕ Remove</button>
+        </div>
+      </div>
+
+      <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">
+        Packages under this type
+      </div>
+      <div id="gv-pkgs-${ti}">
+        ${(t.packages||[]).map((p, pi) => `
+          <div style="display:flex;gap:8px;margin-bottom:6px;align-items:center;">
+            <input class="fi" type="text" value="${p.name}" placeholder="Package name"
+              style="flex:2;" oninput="GV_CONFIG[${ti}].packages[${pi}].name=this.value"/>
+            <div style="display:flex;align-items:center;gap:4px;flex:0 0 110px;">
+              <span style="font-size:12px;font-weight:700;color:var(--muted);">AED</span>
+              <input class="fi" type="number" min="0" value="${p.price}" placeholder="Price"
+                style="text-align:right;" oninput="GV_CONFIG[${ti}].packages[${pi}].price=Number(this.value)"/>
+            </div>
+            <button class="btn btn-ghost btn-sm" style="flex:0;padding:5px 8px;border-color:var(--err);color:var(--err);"
+              onclick="gvSetupRemovePkg(${ti},${pi})">✕</button>
+          </div>`).join('')}
+      </div>
+      <button class="btn btn-ghost btn-sm" style="margin-top:4px;width:100%;"
+        onclick="gvSetupAddPkg(${ti})">+ Add Package</button>
+    </div>`).join('');
+}
+
+function gvSetupAddType() {
+  GV_CONFIG.push({ type: 'New Voucher Type', icon: '🎁', discount: 0, packages: [] });
+  renderGvSetup();
+}
+
+function gvSetupRemoveType(ti) {
+  if (!confirm('Remove this voucher type?')) return;
+  GV_CONFIG.splice(ti, 1);
+  renderGvSetup();
+}
+
+function gvSetupAddPkg(ti) {
+  if (!GV_CONFIG[ti].packages) GV_CONFIG[ti].packages = [];
+  GV_CONFIG[ti].packages.push({ name: '', price: 0 });
+  renderGvSetup();
+}
+
+function gvSetupRemovePkg(ti, pi) {
+  GV_CONFIG[ti].packages.splice(pi, 1);
+  renderGvSetup();
+}
+
+async function saveGvSetup() {
+  const msg = document.getElementById('gv-setup-msg');
+  msg.textContent = 'Saving…'; msg.className = 'sm info';
+  try {
+    // upsert into staff_config
+    await sbRaw('staff_config', 'POST',
+      { key: 'gv_config', value: JSON.stringify(GV_CONFIG), updated_at: new Date().toISOString() },
+      'on_conflict=key'
+    ).catch(() =>
+      sbRaw('staff_config', 'PATCH',
+        { value: JSON.stringify(GV_CONFIG), updated_at: new Date().toISOString() },
+        'key=eq.gv_config'
+      )
+    );
+    msg.textContent = 'Gift Voucher setup saved ✅'; msg.className = 'sm ok';
+    populateGvTypeDropdown();
+    toast('Gift Voucher setup saved ✅');
+  } catch(e) {
+    msg.textContent = 'Error: ' + e.message; msg.className = 'sm err';
+  }
+}
+
+// Populate the type dropdown + package dropdown in the Generate form
+function populateGvTypeDropdown() {
+  const sel = document.getElementById('gv-type');
+  if (!sel) return;
+  sel.innerHTML = GV_CONFIG.map(t =>
+    `<option value="${t.type}">${t.icon} ${t.type}</option>`
+  ).join('');
+  updateGvPackages();
+}
+
+function updateGvPackages() {
+  const typeVal = document.getElementById('gv-type')?.value;
+  const cfg = GV_CONFIG.find(t => t.type === typeVal);
+  const pkgSel = document.getElementById('gv-package');
+  const discEl = document.getElementById('gv-discount-info');
+  if (!pkgSel || !cfg) return;
+
+  pkgSel.innerHTML = (cfg.packages||[]).map(p =>
+    `<option value="${p.price}">${p.name} — AED ${p.price}</option>`
+  ).join('') || '<option value="0">No packages configured</option>';
+
+  if (discEl) {
+    discEl.textContent = cfg.discount > 0
+      ? cfg.discount + '% discount applied on redemption'
+      : 'No discount on redemption';
+    discEl.style.color = cfg.discount > 0 ? 'var(--ok)' : 'var(--muted)';
+  }
+}
+
+// ═══════════════════════════════════════════════
+// GIFT VOUCHERS
+// ═══════════════════════════════════════════════
+
+let currentVoucher = null;
+
+function gvMsg(msg, type='') {
+  const el = document.getElementById('gv-msg');
+  el.textContent = msg; el.className = 'sm ' + type;
+}
+function rvMsg(msg, type='') {
+  const el = document.getElementById('rv-msg');
+  el.textContent = msg; el.className = 'sm ' + type;
+}
+
+function genCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const seg = () => Array.from({length:4}, () => chars[Math.floor(Math.random()*chars.length)]).join('');
+  return 'MNC-' + seg() + '-' + seg();
+}
+
+async function generateVoucher() {
+  const type    = document.getElementById('gv-type').value;
+  const pkgSel  = document.getElementById('gv-package');
+  const pkg     = pkgSel ? pkgSel.options[pkgSel.selectedIndex]?.text : '';
+  const pkgPrice= pkgSel ? Number(pkgSel.value) : 0;
+  const typeCfg = GV_CONFIG.find(t => t.type === type) || {};
+  const discount= typeCfg.discount || 0;
+  const child   = document.getElementById('gv-child').value.trim();
+  const phone   = document.getElementById('gv-phone').value.trim().replace(/[^0-9]/g,'');
+  const expiry  = document.getElementById('gv-expiry').value;
+
+  if (!child)                    { gvMsg('Please enter the child name.', 'err'); return; }
+  if (!phone || phone.length < 9){ gvMsg('Please enter a valid WhatsApp number.', 'err'); return; }
+  if (!expiry)                   { gvMsg('Please select an expiry date.', 'err'); return; }
+
+  gvMsg('Saving voucher…', 'info');
+  const code = genCode();
+  try {
+    await sbRaw('gift_vouchers', 'POST', {
+      code, type, package_name: pkg, package_price: pkgPrice,
+      discount_pct: discount, child_name: child, buyer_phone: phone,
+      expires_at: expiry, status: 'issued'
+    });
+  } catch(e) {
+    gvMsg('Error saving voucher: ' + e.message, 'err'); return;
+  }
+
+  currentVoucher = { code, type, pkg, pkgPrice, discount, child, phone, expiry };
+  document.getElementById('gv-preview-type').textContent   = (typeCfg.icon||'🎁') + ' ' + type;
+  document.getElementById('gv-preview-code').textContent   = code;
+  document.getElementById('gv-preview-child').textContent  = child;
+  document.getElementById('gv-preview-expiry').textContent = fmtDate(expiry);
+  // Show package + discount on preview if set
+  const previewPkg = document.getElementById('gv-preview-pkg');
+  if (previewPkg) {
+    previewPkg.textContent = pkg ? pkg + (pkgPrice ? ' — AED ' + pkgPrice : '') : '';
+    previewPkg.style.display = pkg ? 'block' : 'none';
+  }
+  document.getElementById('gv-preview').style.display = 'block';
+  gvMsg('Voucher generated! Send via WhatsApp below.', 'ok');
+  loadVouchers();
+}
+
+function sendVoucherWA() {
+  if (!currentVoucher) return;
+  const { code, type, child, phone, expiry } = currentVoucher;
+  const p = '%0A';
+  const link = 'https://yasmint2825.github.io/minicuts-loyalty/voucher.html?code=' + code;
+  const msg = encodeURIComponent('🎁 *MiNiCUTS Gift Voucher*') + p+p
+    + encodeURIComponent('✨ *' + type + '*') + p+p
+    + encodeURIComponent('👶 For: *' + child + '*') + p
+    + encodeURIComponent('🎫 Code: *' + code + '*') + p
+    + encodeURIComponent('📅 Valid until: *' + fmtDate(expiry) + '*') + p+p
+    + encodeURIComponent('🔗 View your voucher:') + p
+    + link + p+p
+    + encodeURIComponent('📍 MiNiCUTS · Dubai Silicon Oasis') + p
+    + encodeURIComponent('_Tap the link above to see your gift voucher._');
+  window.open('https://wa.me/' + toWANum(phone) + '?text=' + msg, '_blank');
+}
+
+function resetGV() {
+  currentVoucher = null;
+  ['gv-child','gv-phone'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('gv-preview').style.display = 'none';
+  gvMsg('', '');
+  setDefaultExpiry();
+}
+
+async function lookupVoucher() {
+  const code = document.getElementById('rv-code').value.trim().toUpperCase();
+  if (!code) { rvMsg('Enter a voucher code.', 'err'); return; }
+  rvMsg('Looking up…', 'info');
+  document.getElementById('rv-result').style.display = 'none';
+  window._rvId = null;
+
+  let data;
+  try { data = await sbRaw('gift_vouchers', 'GET', null, 'code=eq.' + code + '&select=*'); }
+  catch(e) { rvMsg('Lookup error: ' + e.message, 'err'); return; }
+
+  if (!data || !data.length) { rvMsg('Code not found. Check and try again.', 'err'); return; }
+
+  const v = data[0];
+  if (v.status === 'redeemed') {
+    rvMsg('Already redeemed on ' + fmtDate(v.redeemed_at) + '. Cannot redeem again.', 'err'); return;
+  }
+  if (v.status === 'cancelled') {
+    rvMsg('This voucher has been cancelled and cannot be redeemed.', 'err'); return;
+  }
+  const today = new Date().toISOString().slice(0,10);
+  if (v.expires_at && v.expires_at < today) {
+    rvMsg('Voucher expired on ' + fmtDate(v.expires_at) + '.', 'err'); return;
+  }
+
+  window._rvId = v.id;
+  document.getElementById('rv-type').textContent    = v.type || '—';
+  document.getElementById('rv-child').textContent   = v.child_name || '—';
+  document.getElementById('rv-issued').textContent  = fmtDate(v.created_at);
+  document.getElementById('rv-expires').textContent = fmtDate(v.expires_at);
+  document.getElementById('rv-result').style.display = 'block';
+  rvMsg('Valid voucher found!', 'ok');
+}
+
+async function redeemVoucher() {
+  if (!window._rvId) return;
+  rvMsg('Redeeming…', 'info');
+  try {
+    await sbRaw('gift_vouchers', 'PATCH',
+      { status: 'redeemed', redeemed_at: new Date().toISOString() },
+      'id=eq.' + window._rvId
+    );
+    rvMsg('Redeemed successfully! Service can now proceed.', 'ok');
+    document.getElementById('rv-result').style.display = 'none';
+    document.getElementById('rv-code').value = '';
+    window._rvId = null;
+    loadVouchers();
+    toast('Voucher redeemed ✅', 'ok');
+  } catch(e) {
+    rvMsg('Error redeeming: ' + e.message, 'err');
+  }
+}
+
+async function loadVouchers() {
+  const el = document.getElementById('vlog');
+  if (!el) return;
+  el.textContent = 'Loading…';
+  let data;
+  try { data = await sbRaw('gift_vouchers', 'GET', null, 'select=*&order=created_at.desc&limit=20'); }
+  catch(e) { el.textContent = 'Error: ' + e.message; return; }
+
+  if (!data || !data.length) { el.innerHTML = '<div style="color:var(--muted);padding:12px 0;">No vouchers yet.</div>'; return; }
+  const today = new Date().toISOString().slice(0,10);
+  // Store voucher map for resend lookups — avoids JSON in onclick attributes
+  window._voucherMap = {};
+  data.forEach(v => { window._voucherMap[v.id] = v; });
+
+  el.innerHTML = data.map(v => {
+    const isActive = v.status !== 'redeemed' && (!v.expires_at || v.expires_at >= today);
+    const badge = v.status === 'redeemed'
+      ? '<span class="sp sp-d">Redeemed</span>'
+      : v.status === 'cancelled'
+        ? '<span class="sp sp-g" style="background:#FEE2E2;color:var(--err);">Cancelled</span>'
+        : (v.expires_at && v.expires_at < today)
+          ? '<span class="sp sp-g">Expired</span>'
+          : '<span class="sp sp-w">Active</span>';
+    const resendBtn = isActive && v.buyer_phone
+      ? '<button class="btn btn-ghost btn-sm" style="font-size:11px;padding:3px 8px;" onclick="resendVoucherWA(\'' + v.id + '\')">📲 Resend</button>'
+      : '';
+    const editBtn = isActive
+      ? '<button class="btn btn-ghost btn-sm" style="font-size:11px;padding:3px 8px;" onclick="editVoucher(\'' + v.id + '\')">✏️ Edit</button>'
+      : '';
+    const cancelBtn = v.status !== 'redeemed'
+      ? '<button class="btn btn-ghost btn-sm" style="font-size:11px;padding:3px 8px;border-color:var(--err);color:var(--err);" onclick="cancelVoucher(\'' + v.id + '\')">✕ Cancel</button>'
+      : '';
+    return '<div style="border-bottom:1px solid var(--border);padding:8px 0;display:grid;grid-template-columns:1fr auto;gap:6px;align-items:start;">'
+      + '<div>'
+      + '<div style="font-weight:700;font-size:13px;">' + v.code + '</div>'
+      + '<div style="color:var(--muted);font-size:11.5px;">' + (v.type||'') + ' · ' + (v.child_name||'—') + '</div>'
+      + '<div style="color:var(--muted);font-size:11px;">' + (v.package_name ? v.package_name + (v.discount_pct ? ' · <span style="color:var(--ok);font-weight:700;">'+v.discount_pct+'% off</span>' : '') + '<br/>' : '') + '📱 ' + (v.buyer_phone||'—') + ' · Exp: ' + fmtDate(v.expires_at) + '</div>'
+      + '</div>'
+      + '<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;">' + badge + resendBtn + editBtn + cancelBtn + '</div>'
+      + '</div>';
+  }).join('');
+}
+
+function resendVoucherWA(id) {
+  const v = window._voucherMap && window._voucherMap[id];
+  if (!v) { alert('Voucher not found. Please refresh the list.'); return; }
+  const p = '%0A';
+  const link = 'https://yasmint2825.github.io/minicuts-loyalty/voucher.html?code=' + v.code;
+  const msg = encodeURIComponent('🎁 *MiNiCUTS Gift Voucher*') + p+p
+    + encodeURIComponent('✨ *' + v.type + '*') + p+p
+    + encodeURIComponent('👶 For: *' + (v.child_name||'') + '*') + p
+    + encodeURIComponent('🎫 Code: *' + v.code + '*') + p
+    + encodeURIComponent('📅 Valid until: *' + fmtDate(v.expires_at) + '*') + p+p
+    + encodeURIComponent('🔗 View your voucher:') + p
+    + link + p+p
+    + encodeURIComponent('📍 MiNiCUTS · Dubai Silicon Oasis') + p
+    + encodeURIComponent('_Tap the link above to see your gift voucher._');
+  window.open('https://wa.me/' + toWANum(v.buyer_phone) + '?text=' + msg, '_blank');
+}
+
+// ═══════════════════════════════════════════════
+// KIDS OF DETERMINATION
+// ═══════════════════════════════════════════════
+
+let _allKodMembers = [];
+let _kodCurrentId  = null;
+let _kodCurrentVisits = 0;
+let _kodCurrentChild  = '';
+
+function kodRegMsg(msg, type='') {
+  const el = document.getElementById('kod-reg-msg');
+  el.textContent = msg; el.className = 'sm ' + type;
+}
+function kodLookMsg(msg, type='') {
+  const el = document.getElementById('kod-lookup-msg');
+  el.textContent = msg; el.className = 'sm ' + type;
+}
+
+const KOD_VALID_CODES = ['KOD2025','KOD2026'];
+
+async function registerKod() {
+  const code  = document.getElementById('kod-code').value.trim().toUpperCase();
+  const phone = document.getElementById('kod-phone').value.trim().replace(/[^0-9]/g,'');
+  const child = document.getElementById('kod-child').value.trim();
+  const notes = document.getElementById('kod-notes').value.trim();
+
+  if (!KOD_VALID_CODES.includes(code)) { kodRegMsg('Invalid CDC code. Must be KOD2025 or KOD2026.', 'err'); return; }
+  if (!phone || phone.length < 9)      { kodRegMsg('Enter a valid WhatsApp number.', 'err'); return; }
+  if (!child)                          { kodRegMsg('Enter the child\'s name.', 'err'); return; }
+
+  kodRegMsg('Checking existing record…', 'info');
+  let existing;
+  try { existing = await sbRaw('kod_members', 'GET', null, 'phone=eq.' + phone + '&select=id'); }
+  catch(e) { kodRegMsg('Lookup error: ' + e.message, 'err'); return; }
+
+  if (existing && existing.length) {
+    kodRegMsg('This phone is already a KoD member. Use Look Up below.', 'err'); return;
+  }
+
+  kodRegMsg('Registering…', 'info');
+  try {
+    await sbRaw('kod_members', 'POST', {
+      phone, child_name: child, cdc_code: code,
+      first_visit_used: true, visit_count: 1, notes,
+      last_visit_at: new Date().toISOString()
+    });
+    kodRegMsg('Registered! 50% discount applied for ' + child + '. Future visits: 25%.', 'ok');
+    ['kod-code','kod-phone','kod-child','kod-notes'].forEach(id => document.getElementById(id).value = '');
+    loadKod();
+    toast('KoD registered: ' + child + ' ✅', 'ok');
+  } catch(e) {
+    kodRegMsg('Save error: ' + e.message, 'err');
+  }
+}
+
+async function lookupKod() {
+  const phone = document.getElementById('kod-lookup-phone').value.trim().replace(/[^0-9]/g,'');
+  if (!phone || phone.length < 9) { kodLookMsg('Enter a valid phone number.', 'err'); return; }
+  kodLookMsg('Looking up…', 'info');
+  document.getElementById('kod-result').style.display = 'none';
+  _kodCurrentId = null;
+
+  let data;
+  try { data = await sbRaw('kod_members', 'GET', null, 'phone=eq.' + phone + '&select=*'); }
+  catch(e) { kodLookMsg('Error: ' + e.message, 'err'); return; }
+
+  if (!data || !data.length) { kodLookMsg('Not found. If first visit, register above.', 'err'); return; }
+
+  const m = data[0];
+  _kodCurrentId     = m.id;
+  _kodCurrentVisits = m.visit_count || 0;
+  _kodCurrentChild  = m.child_name || 'member';
+
+  document.getElementById('kod-r-child').textContent  = m.child_name || '—';
+  document.getElementById('kod-r-visits').textContent = (m.visit_count || 0) + ' visits';
+  document.getElementById('kod-r-first').textContent  = m.first_visit_used ? '✅ Used' : '⚡ Not yet';
+  const notesEl = document.getElementById('kod-r-notes');
+  notesEl.textContent = m.notes ? '📝 ' + m.notes : '';
+  document.getElementById('kod-result').style.display = 'block';
+  kodLookMsg('KoD member found! 25% discount applies.', 'ok');
+}
+
+async function logKodVisit() {
+  if (!_kodCurrentId) return;
+  const newCount = _kodCurrentVisits + 1;
+  try {
+    await sbRaw('kod_members', 'PATCH',
+      { visit_count: newCount, last_visit_at: new Date().toISOString() },
+      'id=eq.' + _kodCurrentId
+    );
+    kodLookMsg('Visit logged. Total: ' + newCount + '. 25% discount applied.', 'ok');
+    document.getElementById('kod-result').style.display = 'none';
+    document.getElementById('kod-lookup-phone').value = '';
+    _kodCurrentId = null;
+    loadKod();
+    toast('KoD visit logged: ' + _kodCurrentChild + ' ✅', 'ok');
+  } catch(e) {
+    kodLookMsg('Error: ' + e.message, 'err');
+  }
+}
+
+async function loadKod() {
+  const el = document.getElementById('kod-list');
+  if (!el) return;
+  el.textContent = 'Loading…';
+  try {
+    _allKodMembers = await sbRaw('kod_members', 'GET', null, 'select=*&order=created_at.desc');
+    renderKodList(_allKodMembers);
+  } catch(e) {
+    el.textContent = 'Error: ' + e.message;
+  }
+}
+
+function filterKodList() {
+  const q = (document.getElementById('kod-search')?.value || '').toLowerCase().trim();
+  renderKodList(q ? _allKodMembers.filter(m =>
+    (m.child_name||'').toLowerCase().includes(q) || (m.phone||'').includes(q)
+  ) : _allKodMembers);
+}
+
+function renderKodList(members) {
+  const el = document.getElementById('kod-list');
+  if (!el) return;
+  if (!members || !members.length) {
+    el.innerHTML = '<div style="color:var(--muted);padding:12px 0;">No KoD members yet.</div>'; return;
+  }
+  // Store KoD map for edit/delete
+  window._kodMap = {};
+  members.forEach(m => { window._kodMap[m.id] = m; });
+
+  el.innerHTML = members.map(m =>
+    '<div style="border-bottom:1px solid var(--border);padding:10px 0;display:grid;grid-template-columns:1fr auto;gap:6px;align-items:start;">'
+    + '<div>'
+    + '<div style="font-weight:700;font-size:13px;">💜 ' + (m.child_name||'—') + '</div>'
+    + '<div style="color:var(--muted);font-size:11.5px;">📱 ' + m.phone + '</div>'
+    + '<div style="color:var(--muted);font-size:11px;">Visits: ' + (m.visit_count||0) + ' · ' + fmtDate(m.created_at) + '</div>'
+    + (m.notes ? '<div style="color:var(--muted);font-size:11px;font-style:italic;">📝 ' + m.notes + '</div>' : '')
+    + '</div>'
+    + '<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;">'
+    + '<span class="sp" style="background:#F5F3FF;color:#7C3AED;">25% always</span>'
+    + (m.first_visit_used ? '<span class="sp sp-d" style="font-size:10px;">50% used</span>' : '<span class="sp sp-w" style="font-size:10px;">50% pending</span>')
+    + '<button class="btn btn-ghost btn-sm" style="font-size:11px;padding:3px 8px;" onclick="editKod(\'' + m.id + '\')">✏️ Edit</button>'
+    + '<button class="btn btn-ghost btn-sm" style="font-size:11px;padding:3px 8px;border-color:var(--err);color:var(--err);" onclick="deleteKod(\'' + m.id + '\')">✕ Delete</button>'
+    + '</div>'
+    + '</div>'
+  ).join('');
+}
+
+// ── Voucher: Edit (child name, phone, expiry) ──
+function editVoucher(id) {
+  const v = window._voucherMap && window._voucherMap[id];
+  if (!v) { toast('Refresh the list first', 'err'); return; }
+  const newChild  = prompt('Child name:', v.child_name || '');
+  if (newChild === null) return;
+  const newPhone  = prompt('Buyer phone:', v.buyer_phone || '');
+  if (newPhone === null) return;
+  const newExpiry = prompt('Expiry (YYYY-MM-DD):', v.expires_at || '');
+  if (newExpiry === null) return;
+  if (!newChild.trim()) { toast('Child name cannot be empty', 'err'); return; }
+  sbRaw('gift_vouchers', 'PATCH', {
+    child_name:  newChild.trim(),
+    buyer_phone: newPhone.trim().replace(/[^0-9]/g,''),
+    expires_at:  newExpiry.trim() || v.expires_at
+  }, 'id=eq.' + id)
+  .then(() => { toast('Voucher updated ✅'); loadVouchers(); })
+  .catch(e => toast('Error: ' + e.message, 'err'));
+}
+
+// ── Voucher: Cancel (mark cancelled, not deleted — keeps audit trail) ──
+async function cancelVoucher(id) {
+  const v = window._voucherMap && window._voucherMap[id];
+  if (!v) { toast('Refresh the list first', 'err'); return; }
+  if (!confirm('Cancel voucher ' + v.code + '? It will be marked cancelled and cannot be redeemed.')) return;
+  try {
+    await sbRaw('gift_vouchers', 'PATCH', { status: 'cancelled' }, 'id=eq.' + id);
+    toast('Voucher cancelled ✅');
+    loadVouchers();
+  } catch(e) { toast('Error: ' + e.message, 'err'); }
+}
+
+// ── KoD: Edit (child name, phone, notes, visit count, first visit flag) ──
+function editKod(id) {
+  const m = window._kodMap && window._kodMap[id];
+  if (!m) { toast('Refresh the list first', 'err'); return; }
+  const newChild  = prompt('Child name:', m.child_name || '');
+  if (newChild === null) return;
+  const newPhone  = prompt('Phone number:', m.phone || '');
+  if (newPhone === null) return;
+  const newVisits = prompt('Visit count:', m.visit_count || 0);
+  if (newVisits === null) return;
+  const newNotes  = prompt('Notes:', m.notes || '');
+  if (newNotes === null) return;
+  const firstUsed = confirm('Has the 50% first-visit discount been used? OK=Yes (used) / Cancel=No (not yet)');
+  if (!newChild.trim()) { toast('Child name cannot be empty', 'err'); return; }
+  sbRaw('kod_members', 'PATCH', {
+    child_name:       newChild.trim(),
+    phone:            newPhone.trim().replace(/[^0-9]/g,''),
+    visit_count:      Math.max(0, parseInt(newVisits) || 0),
+    notes:            newNotes.trim(),
+    first_visit_used: firstUsed
+  }, 'id=eq.' + id)
+  .then(() => { toast('KoD member updated ✅'); loadKod(); })
+  .catch(e => toast('Error: ' + e.message, 'err'));
+}
+
+// ── KoD: Delete single record ──
+async function deleteKod(id) {
+  const m = window._kodMap && window._kodMap[id];
+  if (!m) { toast('Refresh the list first', 'err'); return; }
+  if (!confirm('Delete KoD record for ' + (m.child_name||m.phone) + '? This cannot be undone.')) return;
+  try {
+    await sbRaw('kod_members', 'DELETE', null, 'id=eq.' + id);
+    toast('KoD record deleted');
+    loadKod();
+  } catch(e) { toast('Error: ' + e.message, 'err'); }
+}
+
+function setDefaultExpiry() {
+  const el = document.getElementById('gv-expiry');
+  if (el) {
+    const d = new Date(); d.setMonth(d.getMonth() + 6);
+    el.value = d.toISOString().slice(0,10);
+  }
+}
+setDefaultExpiry();
+
 </script>
 </body>
 </html>
