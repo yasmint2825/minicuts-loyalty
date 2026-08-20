@@ -563,6 +563,7 @@ async function smSB(table,method='GET',body=null,params=''){
   const url=SM_SB_URL+'/rest/v1/'+table+(params?'?'+params:'');
   const h={'Content-Type':'application/json','apikey':SM_SB_KEY,'Authorization':'Bearer '+SM_SB_KEY,'Prefer':'return=representation'};
   if(method==='PATCH'||method==='DELETE') h['Prefer']='return=minimal';
+  if(method==='POST'&&params&&params.includes('on_conflict')) h['Prefer']='resolution=merge-duplicates,return=minimal';
   const o={method,headers:h};
   if(body) o.body=JSON.stringify(body);
   const r=await fetch(url,o);
@@ -598,39 +599,55 @@ function smLSSet(key,data){
 async function _smSyncToDB(key,data){
   const table=SM_TABLE[key];if(!table)return;
   try{
-    await smSB(table,'DELETE',null,'id=neq.00000000-dead-beef-0000-000000000000');
+    // Upsert all records (insert or update by id)
     if(data&&data.length){
-      for(let i=0;i<data.length;i+=100)
-        await smSB(table,'POST',data.slice(i,i+100));
+      for(let i=0;i<data.length;i+=100){
+        await smSB(table,'POST',data.slice(i,i+100),'on_conflict=id');
+      }
     }
   }catch(e){console.warn('[SM] DB sync failed for',table,':',e.message);}
 }
 
 // Load all data from Supabase into cache on startup
+// Strategy: load localStorage IMMEDIATELY (sync, instant render), then
+// fetch from Supabase in background and update cache if DB has more/newer data.
 async function smLoadAllFromDB(){
+  // Step 1: Load localStorage RIGHT NOW — cache is populated before any await
+  Object.keys(SM_TABLE).forEach(key=>{
+    try{_smCache[key]=JSON.parse(localStorage.getItem(key)||'[]');}
+    catch(e){_smCache[key]=[];}
+  });
+  console.log('[SM] Loaded from localStorage instantly');
+
+  // Step 2: Try Supabase in background — overwrite cache only if DB has data
   const status=msg=>{let el=document.getElementById('sm-db-status');if(!el){el=document.createElement('div');el.id='sm-db-status';el.style.cssText='position:fixed;bottom:14px;right:14px;background:#1565C0;color:#fff;padding:8px 14px;border-radius:8px;font-size:12.5px;font-weight:700;z-index:9999;';document.body.appendChild(el);}el.textContent=msg;};
-  const clearStatus=()=>{const el=document.getElementById('sm-db-status');if(el)setTimeout(()=>el.remove(),1500);};
+  const clearStatus=()=>{const el=document.getElementById('sm-db-status');if(el)setTimeout(()=>el.remove(),2000);};
   try{
-    status('⏳ Loading from Supabase…');
+    status('☁️ Syncing with Supabase…');
+    let anyFromDB=false;
     for(const [key,table] of Object.entries(SM_TABLE)){
       try{
-        const rows=await smSB(table,'GET',null,'order=created_at.asc&limit=5000');
-        _smCache[key]=rows||[];
+        const rows=await smSB(table,'GET',null,'limit=5000');
+        if(rows&&rows.length>0){
+          _smCache[key]=rows;
+          anyFromDB=true;
+          console.log('[SM] Updated from Supabase:',table,rows.length,'records');
+        }
       }catch(e){
-        // Table may not exist yet — fall back to localStorage
-        console.warn('[SM] Could not load',table,':',e.message);
-        try{_smCache[key]=JSON.parse(localStorage.getItem(key)||'[]');}catch(e2){_smCache[key]=[];}
+        console.warn('[SM]',table,'not available:',e.message);
+        // Keep localStorage data already in cache
       }
     }
+    if(anyFromDB){
+      // Re-render active tab with fresh data
+      const active=document.querySelector('#sm-tab-bar .tab-btn.active');
+      const name=active?.getAttribute('onclick')?.match(/smTab\('([^']+)'/)?.[1];
+      if(name)smRefreshCurrentTab(name);
+    }
     clearStatus();
-    return true;
   }catch(e){
-    console.warn('[SM] DB load failed, using localStorage');
-    Object.keys(SM_TABLE).forEach(key=>{
-      try{_smCache[key]=JSON.parse(localStorage.getItem(key)||'[]');}catch(e2){_smCache[key]=[];}
-    });
+    console.warn('[SM] Supabase sync failed:',e.message);
     clearStatus();
-    return false;
   }
 }
 
@@ -1306,10 +1323,10 @@ function ltMove(idx,dir){
   smLSSet(SM_LEAVE_TYPES_KEY,types);ltRender();
 }
 
-// ── Initialise: load from DB, then render ──
+// ── Initialise: load from DB/localStorage, then render active tab ──
 async function smInit(){
   await smLoadAllFromDB();
-  // Seed staff only if DB returned empty
+  // Seed staff only if completely empty everywhere
   if(smGetStaff().length===0){
     const seed=[
       {id:smUID(),name:'Lester',role:'Stylist',mobile:'',join_date:'',off_days:[1],notes:'',created_at:new Date().toISOString()},
@@ -1319,7 +1336,21 @@ async function smInit(){
     ];
     smLSSet(SM_STAFF_KEY,seed);
   }
-  smRenderRoster();
+  // Render whichever tab is currently active
+  const active=document.querySelector('.tab-btn.active');
+  const tabName=active?active.getAttribute('onclick').match(/smTab\('([^']+)'/)?.[1]:'roster';
+  smRefreshCurrentTab(tabName||'roster');
+}
+
+function smRefreshCurrentTab(name){
+  if(name==='roster')smRenderRoster();
+  else if(name==='attendance')smLoadAttendance();
+  else if(name==='leaves')smLoadLeaves();
+  else if(name==='overtime')smLoadOT();
+  else if(name==='docs')smLoadDocs();
+  else if(name==='team')smRenderTeam();
+  else if(name==='settings')ltRender();
+  else smRenderRoster(); // default
 }
 
 smInit().then(()=>smCheckSyncStatus());
