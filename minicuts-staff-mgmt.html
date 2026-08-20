@@ -599,13 +599,14 @@ function smLSSet(key,data){
 }
 
 async function _smSyncToDB(key,data){
-  const table=SM_TABLE[key];if(!table)return;
+  const table=SM_TABLE[key];if(!table||!data)return;
   try{
-    // Upsert all records (insert or update by id)
-    if(data&&data.length){
-      for(let i=0;i<data.length;i+=100){
-        await smSB(table,'POST',data.slice(i,i+100),'on_conflict=id');
-      }
+    if(!data.length)return; // nothing to sync
+    const url=SM_SB_URL+'/rest/v1/'+table+'?on_conflict=id';
+    const h={'Content-Type':'application/json','apikey':SM_SB_KEY,'Authorization':'Bearer '+SM_SB_KEY,'Prefer':'resolution=merge-duplicates,return=minimal'};
+    for(let i=0;i<data.length;i+=100){
+      const r=await fetch(url,{method:'POST',headers:h,body:JSON.stringify(data.slice(i,i+100))});
+      if(!r.ok){const e=await r.text();throw new Error(e);}
     }
   }catch(e){console.warn('[SM] DB sync failed for',table,':',e.message);}
 }
@@ -675,17 +676,36 @@ async function smMigrateFromLocalStorage(){
   let ok=0,fail=0;
   for(const key of keys){
     try{
-      const data=JSON.parse(localStorage.getItem(key)||'[]');if(!data.length)continue;
+      const data=JSON.parse(localStorage.getItem(key)||'[]');
+      if(!data.length)continue;
       const table=SM_TABLE[key];
-      await smSB(table,'DELETE',null,'id=neq.00000000-dead-beef-0000-000000000000');
-      for(let i=0;i<data.length;i+=100)await smSB(table,'POST',data.slice(i,i+100));
-      _smCache[key]=data;ok++;
+      // Delete existing rows one by one using their real IDs (avoids fake UUID filter hack)
+      // Then upsert — safe to re-run, handles duplicates
+      for(let i=0;i<data.length;i+=100){
+        const batch=data.slice(i,i+100);
+        // Upsert: insert or update by id
+        const url=SM_SB_URL+'/rest/v1/'+table+'?on_conflict=id';
+        const h={'Content-Type':'application/json','apikey':SM_SB_KEY,'Authorization':'Bearer '+SM_SB_KEY,'Prefer':'resolution=merge-duplicates,return=minimal'};
+        const r=await fetch(url,{method:'POST',headers:h,body:JSON.stringify(batch)});
+        if(!r.ok){const e=await r.text();throw new Error(e);}
+      }
+      _smCache[key]=data;
+      ok++;
       console.log('[SM] Migrated',table,':',data.length,'records');
-    }catch(e){fail++;console.error('[SM] Failed:',SM_TABLE[key],e.message);}
+      if(btn)btn.textContent='⏳ '+ok+'/'+keys.length+' done…';
+    }catch(e){
+      fail++;
+      console.error('[SM] Failed:',SM_TABLE[key],e.message);
+    }
   }
-  if(btn){btn.disabled=false;btn.textContent=fail===0?'✅ Done':'⚠️ Partial';}
-  if(fail===0){toast('✅ All data migrated to Supabase');smInit();}
-  else toast('⚠️ '+fail+' tables failed — check console','info');
+  if(btn){btn.disabled=false;btn.textContent=fail===0?'✅ Done':'⚠️ Partial ('+fail+' failed)';}
+  if(fail===0){
+    toast('✅ All data migrated to Supabase');
+    // Update sync status
+    smCheckSyncStatus();
+  } else {
+    toast('⚠️ '+fail+' tables failed — open F12 console for details','info');
+  }
 }
 function smUID(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
 function smFmtDate(iso){if(!iso)return'—';return new Date(iso).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});}
