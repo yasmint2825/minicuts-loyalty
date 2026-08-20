@@ -205,7 +205,22 @@ tbody td{padding:10px 12px;font-size:13px;vertical-align:middle;}
       <div id="sm-sync-status" style="margin-bottom:12px;font-size:12.5px;color:var(--muted);">Checking Supabase connection…</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <button id="sm-migrate-btn" class="btn bp" onclick="smMigrateFromLocalStorage()">📤 Migrate localStorage → Supabase</button>
+        <button id="sm-pull-btn" class="btn bg2" onclick="smPullFromSupabase()">📥 Pull latest from Supabase</button>
         <button class="btn bg2 bsm" onclick="smCheckSyncStatus()">↻ Check Status</button>
+      </div>
+      <div style="font-size:11.5px;color:var(--muted);margin-top:8px;">"Pull" overwrites this device's local data with whatever is in Supabase — use on any machine that isn't showing data another device already migrated.</div>
+    </div>
+
+    <!-- Duplicate Staff Cleanup Card -->
+    <div class="card" style="max-width:600px;margin-bottom:16px;border-color:var(--warn);">
+      <div style="font-family:var(--fh);font-size:16px;font-weight:800;margin-bottom:4px;">🧹 Duplicate Staff Cleanup</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:14px;">
+        If the same staff member got seeded independently on two devices before they ever synced, Supabase can end up with two rows for one person. This checks for that and, if found, safely reassigns every attendance/leave/overtime/roster/document record to the older copy before deleting the duplicate — nothing gets orphaned.
+      </div>
+      <div id="sm-dup-report" style="margin-bottom:12px;font-size:12.5px;color:var(--muted);">Click "Check" to scan for duplicate staff.</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn bg2" onclick="smCheckDuplicateStaff()">🔍 Check for Duplicate Staff</button>
+        <button id="sm-merge-btn" class="btn bd2" style="display:none;" onclick="smMergeDuplicateStaff()">🧹 Merge Duplicates</button>
       </div>
     </div>
 
@@ -573,14 +588,20 @@ async function smSB(table,method='GET',body=null,params=''){
 
 const SM_TABLE={
   [SM_STAFF_KEY]:      'staff',
+  [SM_LEAVE_TYPES_KEY]:'staff_leave_types', // must migrate before staff_leaves (leaves reference a leave type)
   [SM_ATT_KEY]:        'staff_attendance',
   [SM_LEAVE_KEY]:      'staff_leaves',
   [SM_OT_KEY]:         'staff_overtime',
   [SM_ROSTER_KEY]:     'staff_roster',
   [SM_DOC_KEY]:        'staff_documents',
-  [SM_LEAVE_TYPES_KEY]:'staff_leave_types',
 };
 
+// Leave type records historically had no 'id' field (just key/label/code/color/bg),
+// which breaks the on_conflict=id upsert used everywhere else. Backfill a stable,
+// deterministic id from the key so migration/sync works and re-running is safe.
+function smEnsureLeaveTypeIds(list){
+  return (list||[]).map(t=>t.id?t:Object.assign({id:'lt-'+t.key},t));
+}
 // In-memory cache — loaded from DB on init, kept in sync on every write
 const _smCache={
   [SM_STAFF_KEY]:[],[SM_ATT_KEY]:[],[SM_LEAVE_KEY]:[],
@@ -621,7 +642,9 @@ async function smLoadAllFromDB(){
   Object.keys(SM_TABLE).forEach(key=>{
     try{
       const d=JSON.parse(localStorage.getItem(key)||'[]');
-      _smCache[key]=d;
+      const fixed=(key===SM_LEAVE_TYPES_KEY)?smEnsureLeaveTypeIds(d):d;
+      _smCache[key]=fixed;
+      if(key===SM_LEAVE_TYPES_KEY&&fixed.length)try{localStorage.setItem(key,JSON.stringify(fixed));}catch(e){}
       if(d.length)anyLS=true;
     }catch(e){_smCache[key]=[];}
   });
@@ -676,7 +699,8 @@ async function smMigrateFromLocalStorage(){
   let ok=0,fail=0;
   for(const key of keys){
     try{
-      const data=JSON.parse(localStorage.getItem(key)||'[]');
+      let data=JSON.parse(localStorage.getItem(key)||'[]');
+      if(key===SM_LEAVE_TYPES_KEY){data=smEnsureLeaveTypeIds(data);try{localStorage.setItem(key,JSON.stringify(data));}catch(e){}}
       if(!data.length)continue;
       const table=SM_TABLE[key];
       // Delete existing rows one by one using their real IDs (avoids fake UUID filter hack)
@@ -707,7 +731,111 @@ async function smMigrateFromLocalStorage(){
     toast('⚠️ '+fail+' tables failed — open F12 console for details','info');
   }
 }
+// FORCE PULL: Supabase → this device's localStorage (overwrites local, regardless of what's already here)
+async function smPullFromSupabase(){
+  if(!confirm('Pull latest data from Supabase?\n\nThis will REPLACE all local data on this device (staff, leaves, attendance, overtime, roster, documents, leave types) with whatever is currently in Supabase.\n\nUse this on any device that should be showing data another device already migrated.'))return;
+  const btn=document.getElementById('sm-pull-btn');
+  if(btn){btn.disabled=true;btn.textContent='⏳ Pulling…';}
+  let ok=0,fail=0;
+  for(const [key,table] of Object.entries(SM_TABLE)){
+    try{
+      const rows=await smSB(table,'GET',null,'limit=5000');
+      _smCache[key]=rows||[];
+      localStorage.setItem(key,JSON.stringify(rows||[]));
+      ok++;
+      if(btn)btn.textContent='⏳ '+ok+'/'+Object.keys(SM_TABLE).length+' done…';
+    }catch(e){
+      fail++;
+      console.error('[SM] Pull failed:',table,e.message);
+    }
+  }
+  if(btn){btn.disabled=false;btn.textContent=fail===0?'✅ Done':'⚠️ Partial ('+fail+' failed)';}
+  if(fail===0){
+    toast('✅ Pulled latest data from Supabase');
+  } else {
+    toast('⚠️ '+fail+' tables failed to pull — check F12 console','info');
+  }
+  // Re-render whichever tab is open so the new data shows immediately
+  const active=document.querySelector('.tab-btn.active');
+  const tabName=active?active.getAttribute('onclick').match(/smTab\('([^']+)'/)?.[1]:'roster';
+  smRefreshCurrentTab(tabName||'roster');
+}
 function smUID(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
+
+// ══ DUPLICATE STAFF CLEANUP ══
+// Every table below has a staff_id field referencing the staff table.
+const SM_DEPENDENT_TABLES=[SM_ATT_KEY,SM_LEAVE_KEY,SM_OT_KEY,SM_ROSTER_KEY,SM_DOC_KEY];
+
+function smFindDuplicateStaffGroups(){
+  const groups={};
+  smGetStaff().forEach(s=>{
+    const norm=(s.name||'').trim().toLowerCase()+'|'+(s.role||'').trim().toLowerCase();
+    (groups[norm]=groups[norm]||[]).push(s);
+  });
+  return Object.values(groups).filter(g=>g.length>1)
+    .map(g=>g.slice().sort((a,b)=>(a.created_at||'').localeCompare(b.created_at||'')));
+}
+
+function smCheckDuplicateStaff(){
+  const el=document.getElementById('sm-dup-report');if(!el)return;
+  const groups=smFindDuplicateStaffGroups();
+  window._smDupGroups=groups;
+  const mergeBtn=document.getElementById('sm-merge-btn');
+  if(!groups.length){
+    el.innerHTML='<span style="color:var(--ok);font-weight:700;">✅ No duplicate staff found.</span>';
+    if(mergeBtn)mergeBtn.style.display='none';
+    return;
+  }
+  let html='<div style="font-weight:700;color:var(--warn);margin-bottom:6px;">⚠️ Found '+groups.length+' name(s) with duplicates:</div>';
+  groups.forEach(g=>{
+    const canonical=g[0];
+    html+='<div style="margin-bottom:8px;padding:8px 10px;background:#FFF7ED;border-radius:8px;">'
+      +'<strong>'+canonical.name+'</strong> ('+canonical.role+') — '+g.length+' copies. Will keep oldest: <code>'+canonical.id+'</code>';
+    for(let i=1;i<g.length;i++)html+='<br>&nbsp;&nbsp;↳ merge &amp; remove: <code>'+g[i].id+'</code>';
+    html+='</div>';
+  });
+  el.innerHTML=html;
+  if(mergeBtn)mergeBtn.style.display='inline-flex';
+}
+
+async function smMergeDuplicateStaff(){
+  const groups=window._smDupGroups||smFindDuplicateStaffGroups();
+  if(!groups.length){toast('No duplicates to merge','info');return;}
+  const dupCount=groups.reduce((a,g)=>a+g.length-1,0);
+  if(!confirm('Merge '+dupCount+' duplicate staff record(s)?\n\nEvery attendance, leave, overtime, roster and document record pointing to a duplicate will be reassigned to the older kept record, then the duplicate staff row will be deleted from Supabase.\n\nThis cannot be undone.'))return;
+  const btn=document.getElementById('sm-merge-btn');
+  if(btn){btn.disabled=true;btn.textContent='⏳ Merging…';}
+  let merged=0,reassigned=0,failed=0;
+  for(const g of groups){
+    const canonical=g[0];
+    for(let i=1;i<g.length;i++){
+      const dupId=g[i].id;
+      try{
+        for(const key of SM_DEPENDENT_TABLES){
+          const table=SM_TABLE[key];
+          const rows=await smSB(table,'GET',null,'staff_id=eq.'+encodeURIComponent(dupId)+'&select=id');
+          if(rows&&rows.length){
+            await smSB(table,'PATCH',{staff_id:canonical.id},'staff_id=eq.'+encodeURIComponent(dupId));
+            reassigned+=rows.length;
+          }
+        }
+        await smSB('staff','DELETE',null,'id=eq.'+encodeURIComponent(dupId));
+        merged++;
+      }catch(e){
+        failed++;
+        console.error('[SM] Merge failed for',dupId,':',e.message);
+      }
+    }
+  }
+  if(btn){btn.disabled=false;btn.textContent='🧹 Merge Duplicates';}
+  toast(failed===0
+    ?'✅ Merged '+merged+' duplicate(s), reassigned '+reassigned+' record(s)'
+    :'⚠️ '+failed+' merge(s) failed — check F12 console','info');
+  // Refresh everything from the now-clean Supabase data on this device
+  await smPullFromSupabase();
+  smCheckDuplicateStaff();
+}
+
 function smFmtDate(iso){if(!iso)return'—';return new Date(iso).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});}
 function smDaysBetween(a,b){if(!a||!b)return 0;return Math.max(0,Math.round((new Date(b)-new Date(a))/(864e5))+1);}
 function smTimeToMins(t){if(!t)return 0;const[h,m]=t.split(':').map(Number);return h*60+(m||0);}
@@ -730,10 +858,10 @@ function smPopulateDocsFilter(){
 
 // ── Leave Types ──
 const SM_LEAVE_DEFAULTS=[
-  {key:'annual', label:'Annual Leave',code:'AL',color:'warn',bg:'#FEF9C3'},
-  {key:'sick',   label:'Sick Leave',  code:'SL',color:'err', bg:'#FEE2E2'},
-  {key:'compoff',label:'Comp Off',    code:'CO',color:'b',   bg:'#F3E8FF'},
-  {key:'unpaid', label:'Unpaid Leave',code:'UL',color:'b',   bg:'#F9FAFB'},
+  {id:'lt-annual', key:'annual', label:'Annual Leave',code:'AL',color:'warn',bg:'#FEF9C3'},
+  {id:'lt-sick',   key:'sick',   label:'Sick Leave',  code:'SL',color:'err', bg:'#FEE2E2'},
+  {id:'lt-compoff',key:'compoff',label:'Comp Off',    code:'CO',color:'b',   bg:'#F3E8FF'},
+  {id:'lt-unpaid', key:'unpaid', label:'Unpaid Leave',code:'UL',color:'b',   bg:'#F9FAFB'},
 ];
 const SM_COLOR_MAP={warn:'#FEF9C3',err:'#FEE2E2',b:'#EFF6FF',ok:'#DCFCE7',pink:'#FCE7F3',purple:'#F5F3FF'};
 const SM_BADGE_MAP={warn:'bg-warn',err:'bg-err',b:'bg-b',ok:'bg-ok',pink:'bg-p',purple:'bg-b'};
@@ -1320,7 +1448,7 @@ function ltAddType(){
   if(!key||!label){toast('Key and label are required','error');return;}
   const types=smGetLeaveTypes();
   if(types.find(t=>t.key===key)){toast('Key already exists','error');return;}
-  types.push({key,label,code,color,bg:SM_COLOR_MAP[color]||'#F0F4FF'});
+  types.push({id:'lt-'+key,key,label,code,color,bg:SM_COLOR_MAP[color]||'#F0F4FF'});
   smLSSet(SM_LEAVE_TYPES_KEY,types);
   ['lt-new-key','lt-new-label','lt-new-code'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('lt-new-color').value='warn';
@@ -1343,11 +1471,14 @@ async function smInit(){
   await smLoadAllFromDB();
   // Seed staff only if completely empty everywhere
   if(smGetStaff().length===0){
+    // Fixed, deterministic IDs (not smUID()) — if this seed ever runs independently on
+    // two different empty devices, both produce the SAME ids, so migrating/syncing
+    // upserts them into one row instead of creating duplicate staff.
     const seed=[
-      {id:smUID(),name:'Lester',role:'Stylist',mobile:'',join_date:'',off_days:[1],notes:'',created_at:new Date().toISOString()},
-      {id:smUID(),name:'Heyden',role:'Stylist',mobile:'',join_date:'',off_days:[2],notes:'',created_at:new Date().toISOString()},
-      {id:smUID(),name:'George',role:'Stylist',mobile:'',join_date:'',off_days:[3],notes:'',created_at:new Date().toISOString()},
-      {id:smUID(),name:'Chuuby',role:'Stylist',mobile:'',join_date:'',off_days:[4],notes:'',created_at:new Date().toISOString()},
+      {id:'seed-lester',name:'Lester',role:'Stylist',mobile:'',join_date:'',off_days:[1],notes:'',created_at:new Date().toISOString()},
+      {id:'seed-heyden',name:'Heyden',role:'Stylist',mobile:'',join_date:'',off_days:[2],notes:'',created_at:new Date().toISOString()},
+      {id:'seed-george',name:'George',role:'Stylist',mobile:'',join_date:'',off_days:[3],notes:'',created_at:new Date().toISOString()},
+      {id:'seed-chuuby',name:'Chuuby',role:'Stylist',mobile:'',join_date:'',off_days:[4],notes:'',created_at:new Date().toISOString()},
     ];
     smLSSet(SM_STAFF_KEY,seed);
   }
