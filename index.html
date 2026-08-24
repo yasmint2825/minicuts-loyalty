@@ -1339,16 +1339,14 @@ async function archiveCycle(customerId,stamps,firstStampDate,expiryDate,endedBy)
   <!-- ══ TAB: OPERATIONS ══ -->
   <div id="acqpane-operations" style="display:none;">
 
-    <!-- Date range picker -->
-    <div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-      <span style="font-size:13px;font-weight:700;color:var(--muted);">📅 Period:</span>
-      <input type="date" id="ops-from" class="fi" style="width:145px;padding:6px 10px;font-size:13px;">
-      <span style="font-size:12px;color:var(--muted);">to</span>
-      <input type="date" id="ops-to" class="fi" style="width:145px;padding:6px 10px;font-size:13px;">
-      <button class="btn bp bsm" onclick="opsLoad()">Apply</button>
-      <button class="btn bg2 bsm" onclick="opsPreset(7)">Last 7d</button>
-      <button class="btn bg2 bsm" onclick="opsPreset(30)">Last 30d</button>
-      <button class="btn bg2 bsm" onclick="opsPreset(90)">Last 90d</button>
+    <!-- Month navigator (locked to calendar month) -->
+    <div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+      <button class="btn bg2 bsm" onclick="opsMonthShift(-1)">← Prev</button>
+      <div style="font-family:var(--fh);font-size:15px;font-weight:800;min-width:160px;text-align:center;" id="ops-month-label">—</div>
+      <button class="btn bg2 bsm" onclick="opsMonthShift(1)">Next →</button>
+      <button class="btn bp bsm" onclick="opsGoCurrentMonth()">This Month</button>
+      <!-- Hidden inputs kept for opsLoad compatibility -->
+      <input type="hidden" id="ops-from"><input type="hidden" id="ops-to">
     </div>
 
     <!-- Ops KPIs -->
@@ -1356,9 +1354,16 @@ async function archiveCycle(customerId,stamps,firstStampDate,expiryDate,endedBy)
 
     <!-- Customer load by day -->
     <div class="acq-card">
-      <div style="font-family:var(--fh);font-size:15px;font-weight:800;margin-bottom:4px;">📈 Customer Load by Day</div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">Total customers served per day. Hover for details. Red = high wait days.</div>
+      <div style="font-family:var(--fh);font-size:15px;font-weight:800;margin-bottom:4px;">📊 Customer Load by Day — by Source</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">Stacked bars show how many customers came from each source per day. Click any bar to see that day's queue.</div>
       <div id="ops-load-chart" style="overflow-x:auto;"></div>
+    </div>
+
+    <!-- Weekly summary by source -->
+    <div class="acq-card">
+      <div style="font-family:var(--fh);font-size:15px;font-weight:800;margin-bottom:4px;">📅 Weekly Summary by Source</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">Mon–Sun weeks. Each row = one week, broken down by acquisition source.</div>
+      <div id="ops-weekly-table" style="overflow-x:auto;"></div>
     </div>
 
     <!-- Daily detail table -->
@@ -5354,7 +5359,7 @@ function acqTab(name,btn){
   document.querySelectorAll('.acq-tab-btn').forEach(b=>b.classList.remove('active'));
   if(btn)btn.classList.add('active');
   if(name==='acquisition')acqRender();
-  else if(name==='operations')opsLoad();
+  else if(name==='operations')opsSetMonth();
   else if(name==='revenue')revLoad();
   else if(name==='upload')acqShowHistStatus();
 }
@@ -5449,74 +5454,44 @@ async function acqRender(){
     }
     console.log('[ACQ] customers:',customers.length);
 
-    // 2. Revenue — fetch from visits table (service_value written here on every paid visit,
-    //    created_at is timestamptz so range filters work reliably)
-    const DB_CUTOFF = '2026-06-08'; // Excel covers up to Jun 8 incl; queue covers Jun 9+
+    // 2. Fetch ALL queue rows for the month — this is the real unit of analysis
+    //    Each row = one service rendered. We classify each service as new or returning.
+    const DB_CUTOFF = '2026-06-08';
     const qFromDate = `${acqYear}-${String(acqMonth+1).padStart(2,'0')}-01`;
     const qToDate   = `${acqYear}-${String(acqMonth+1).padStart(2,'0')}-${new Date(acqYear,acqMonth+1,0).getDate().toString().padStart(2,'0')}`;
-    let qRev = [];
+    let queueRows = []; // ALL queue rows this month (not just paid)
 
-    if(qToDate > DB_CUTOFF){
-      try{
-        let off=0,g=0;
-        while(true){
-          const b = await sb('visits','GET',null,
-            `select=customer_id,service_value,created_at`
-            +`&created_at=gte.${qFromDate}`
-            +`&created_at=lt.${acqYear}-${String(acqMonth+1).padStart(2,'0')}-${String(new Date(acqYear,acqMonth+1,0).getDate()+1).padStart(2,'0')}`
-            +`&type=eq.paid`
-            +`&order=created_at.asc&limit=1000&offset=${off}`);
-          if(!b||!b.length) break;
-          qRev=[...qRev,...b];
-          if(b.length<1000) break;
-          off+=1000; if(++g>50) break;
-        }
-        console.log('[ACQ] visits fetched:',qRev.length,'rows');
-      }catch(e){
-        console.warn('[ACQ] visits fetch failed:',e.message);
-        // Fallback: try queue table with checkin_date
-        try{
-          let off=0,g=0;
-          while(true){
-            const b = await sb('queue','GET',null,
-              `select=customer_id,mobile,service_value,checkin_date`
-              +`&checkin_date=gte.${qFromDate}&checkin_date=lte.${qToDate}`
-              +`&service_value=gt.0`
-              +`&order=checkin_date.asc&limit=1000&offset=${off}`);
-            if(!b||!b.length) break;
-            qRev=[...qRev,...b.map(q=>({
-              customer_id:q.customer_id,
-              service_value:q.service_value,
-              created_at:q.checkin_date
-            }))];
-            if(b.length<1000) break;
-            off+=1000; if(++g>50) break;
-          }
-          console.log('[ACQ] queue fallback fetched:',qRev.length,'rows');
-        }catch(e2){console.warn('[ACQ] queue fallback also failed:',e2.message);}
+    try{
+      let off=0,g=0;
+      while(true){
+        const b = await sb('queue','GET',null,
+          `select=id,customer_id,mobile,service_value,tip,checkin_date,status,called_at,checkin_time,is_guest`
+          +`&checkin_date=gte.${qFromDate}&checkin_date=lte.${qToDate}`
+          +`&status=eq.done`
+          +`&order=checkin_date.asc&limit=1000&offset=${off}`);
+        if(!b||!b.length) break;
+        queueRows=[...queueRows,...b];
+        if(b.length<1000) break;
+        off+=1000; if(++g>50) break;
       }
-    }
+      console.log('[ACQ] queue rows (done) this month:',queueRows.length);
+    }catch(e){console.warn('[ACQ] queue fetch failed:',e.message);}
 
-    console.log('[ACQ] revenue rows total:',qRev.length,
-      '· service_value>0:',qRev.filter(q=>(parseFloat(q.service_value)||0)>0).length,
-      '· AED:',qRev.reduce((a,q)=>a+(parseFloat(q.service_value)||0),0));
-
-    // Filter: service_value > 0, date after cutoff, within this month
-    const qRevFiltered = qRev.filter(q=>{
+    // Revenue rows = queue rows with service_value > 0, after cutoff
+    const qRevFiltered = queueRows.filter(q=>{
       if((parseFloat(q.service_value)||0)<=0) return false;
-      const dateStr = (q.created_at||q.checkin_date||'').toString().slice(0,10);
-      return dateStr > DB_CUTOFF && dateStr >= qFromDate && dateStr <= qToDate;
+      const d=(q.checkin_date||'').toString().slice(0,10);
+      return d > DB_CUTOFF;
     });
-    const mRevFromDB = qRevFiltered.reduce((a,q)=>a+(parseFloat(q.service_value)||0), 0);
-    console.log(`[ACQ] qRevFiltered: ${qRevFiltered.length} rows · mRevFromDB: AED ${mRevFromDB}`);
+    const mRevFromDB = qRevFiltered.reduce((a,q)=>a+(parseFloat(q.service_value)||0),0);
+    console.log(`[ACQ] revenue rows: ${qRevFiltered.length} · AED ${mRevFromDB}`);
 
-    // 3. Historical data — localStorage first, fall back to Supabase DB
+    // 3. Historical data
     let hist=JSON.parse(localStorage.getItem(ACQ_HIST_KEY)||'[]');
     if(!hist.length){
       try{
         hist=await sbAll('historical_transactions','select=mobile,name,date,amount,description,segment,stylist_phone,external_id&order=date.asc');
         if(hist.length){
-          // Cache in localStorage for speed
           localStorage.setItem(ACQ_HIST_KEY,JSON.stringify(hist));
           console.log('[ACQ] loaded',hist.length,'historical records from Supabase DB');
         }
@@ -5524,81 +5499,85 @@ async function acqRender(){
     }
     const histHasData=hist.length>0;
 
-    // 4. Lookups
+    // 4. Build lookup tables
     const custById={};
     customers.forEach(c=>custById[c.id]=c);
 
-    // Phone → earliest registration date across ALL DB records (phone level)
-    const phoneFirstRegDate={};
+    // Phone → earliest date in DB (any customer with that phone)
+    // Used for Excel-level family matching
+    const phoneFirstInDB={};
     customers.forEach(c=>{
       const ph=acqNormalizePhone(c.mobile); if(!ph) return;
       const d=new Date(c.created_at);
-      if(!phoneFirstRegDate[ph]||d<phoneFirstRegDate[ph]) phoneFirstRegDate[ph]=d;
+      if(!phoneFirstInDB[ph]||d<phoneFirstInDB[ph]) phoneFirstInDB[ph]=d;
     });
 
-    // Phone+name → earliest registration date in DB (sibling-aware)
-    // Used for DB cross-check: same phone + same name = same person returning
-    // Same phone + different name = different sibling, treated independently
-    const phoneNameFirstDate={};
+    // Phone+name → earliest date in DB (sibling-aware)
+    const phoneNameFirstInDB={};
     customers.forEach(c=>{
       const ph=acqNormalizePhone(c.mobile); if(!ph) return;
       const key=ph+'|'+(c.name||'').toLowerCase().trim();
       const d=new Date(c.created_at);
-      if(!phoneNameFirstDate[key]||d<phoneNameFirstDate[key]) phoneNameFirstDate[key]=d;
+      if(!phoneNameFirstInDB[key]||d<phoneNameFirstInDB[key]) phoneNameFirstInDB[key]=d;
     });
 
-    // Historical Excel: phone only (old system didn't separate siblings)
-    // Any phone in Excel = that family visited before → any new DB registration
-    // for that phone is a returning family, regardless of child name
-    const histFirstDate={};
+    // Phone → earliest date in Excel (phone-only, old system)
+    const phoneFirstInExcel={};
     hist.forEach(r=>{
       const ph=acqNormalizePhone(r.mobile||r.phone);
       if(!ph||!r.date) return;
-      const d=new Date(r.date); if(isNaN(d)) return;
-      if(!histFirstDate[ph]||d<histFirstDate[ph]) histFirstDate[ph]=d;
+      const d=new Date(String(r.date).replace(' ','T')); if(isNaN(d)) return;
+      if(!phoneFirstInExcel[ph]||d<phoneFirstInExcel[ph]) phoneFirstInExcel[ph]=d;
     });
 
-    // 5. Each customer's absolute first-ever date
-    const custFirstDate={};
-    customers.forEach(c=>{
-      const ph=acqNormalizePhone(c.mobile);
-      let first=new Date(c.created_at);
-      // DB: use phone+name key (sibling-aware)
-      const pnKey=ph+'|'+(c.name||'').toLowerCase().trim();
-      const dbFirst=ph&&phoneNameFirstDate[pnKey]; if(dbFirst&&dbFirst<first) first=dbFirst;
-      // Excel: phone only
-      const exFirst=ph&&histFirstDate[ph]; if(exFirst&&exFirst<first) first=exFirst;
-      custFirstDate[c.id]=first;
+    // 5. Classify each QUEUE ROW (service) as new or returning
+    // New service = this customer's phone+name has NO prior record anywhere before this visit date
+    // Returning service = phone+name seen in DB before visit date, OR phone seen in Excel before visit date
+    let newVisits=0, retVisits=0, unknownVisits=0, guestVisits=0, noPhoneVisits=0;
+    const newVisitIds=new Set(); // queue row IDs classified as new
+    const retVisitIds=new Set();
+
+    queueRows.forEach(q=>{
+      const c=q.customer_id?custById[q.customer_id]:null;
+      const ph=acqNormalizePhone(c?.mobile||q.mobile||'');
+      const visitDate=new Date((q.checkin_date||'').toString().slice(0,10));
+
+      if(!ph){unknownVisits++;if(q.is_guest)guestVisits++;else noPhoneVisits++;return;}
+
+      const pnKey=ph+'|'+(c?.name||'').toLowerCase().trim();
+
+      // Check DB: same child (phone+name) registered strictly before this visit?
+      const dbFirst=phoneNameFirstInDB[pnKey];
+      const priorInDB = dbFirst && dbFirst < visitDate;
+
+      // Check Excel: this phone existed in pre-system data before this visit?
+      const exFirst=phoneFirstInExcel[ph];
+      const priorInExcel = exFirst && exFirst < visitDate;
+
+      if(priorInDB||priorInExcel){
+        retVisits++;
+        retVisitIds.add(q.id);
+      } else {
+        newVisits++;
+        newVisitIds.add(q.id);
+      }
     });
 
-    // 6. Month window
+    console.log(`[ACQ] Services: ${queueRows.length} total · ${newVisits} new · ${retVisits} returning · ${guestVisits} guests · ${noPhoneVisits} no-phone`);
+
+    // 6. Also keep registration-based counts for the "Registered this month" KPI
     const mStart = new Date(acqYear, acqMonth, 1);
     const mEnd   = new Date(acqYear, acqMonth+1, 0, 23, 59, 59, 999);
-
-    // Customers registered this month
     const mCusts = customers.filter(c=>{const d=new Date(c.created_at);return d>=mStart&&d<=mEnd;});
-    console.log('[ACQ] registered this month:',mCusts.length);
 
-    // Classify new vs returning
-    // DB check: phone+name must appear before this month (same child returning)
-    // Excel check: phone only before this month (family returning, old system)
-    let newCount=0, retCount=0, unknownCount=0;
+    // For source bars: use customer heard_via, but count by VISITS not registrations
+    // newIds = customer IDs whose FIRST visit this month was a new visit
     const newIds=new Set();
-    mCusts.forEach(c=>{
-      const ph=acqNormalizePhone(c.mobile);
-      if(!ph){unknownCount++;return;}
-      const pnKey=ph+'|'+(c.name||'').toLowerCase().trim();
-      // Same child (phone+name) seen in DB before this month?
-      const priorDB = phoneNameFirstDate[pnKey] && phoneNameFirstDate[pnKey]<mStart;
-      // Family phone seen in Excel (pre-system, phone-level match)?
-      const priorExcel = histFirstDate[ph] && histFirstDate[ph]<mStart;
-      if(priorDB||priorExcel){retCount++;}
-      else{newCount++; newIds.add(c.id);}
+    queueRows.forEach(q=>{
+      if(newVisitIds.has(q.id)&&q.customer_id) newIds.add(q.customer_id);
     });
-    console.log('[ACQ] new:',newCount,'ret:',retCount,'unknown:',unknownCount,
-      '(DB check: phone+name; Excel check: phone only)');
 
-    const returnRate = mCusts.length ? Math.round(retCount/mCusts.length*100) : 0;
+    const returnRate = queueRows.length ? Math.round(retVisits/queueRows.length*100) : 0;
 
     // 7. Revenue — two buckets, no overlap:
     //    DB queue   → checkin_date after June 7 2026  (mRevFromDB, computed above)
@@ -5635,46 +5614,53 @@ async function acqRender(){
 
     // 8. KPIs
     document.getElementById('acq-kpis').innerHTML=[
-      acqKpiHtml('🆕','New Customers',newCount,acqIsCurrentMonth()?'🟢 running':'first visit ever','var(--ok)'),
-      acqKpiHtml('🔄','Returning',retCount,histHasData?'cross-ref vs Excel':'upload Excel to improve','var(--b)'),
-      acqKpiHtml('👥','Registered This Month',mCusts.length,'total registrations'),
-      acqKpiHtml('👤','All Customers (DB)',customers.length,'in system since June 2025'),
-      acqKpiHtml('📊','Return Rate',returnRate+'%',histHasData?'incl. Excel cross-ref':'DB only',returnRate>=40?'var(--ok)':returnRate>=20?'var(--warn)':'var(--err)'),
+      acqKpiHtml('✂️','Services Done',queueRows.length,qFromDate+' → '+qToDate,'var(--text)'),
+      acqKpiHtml('🆕','New Services',newVisits,Math.round(newVisits/Math.max(queueRows.length,1)*100)+'% of services — first ever visit','var(--ok)'),
+      acqKpiHtml('🔄','Returning Services',retVisits,Math.round(retVisits/Math.max(queueRows.length,1)*100)+'% of services — visited before','var(--b)'),
+      acqKpiHtml('👤','Guests',guestVisits,Math.round(guestVisits/Math.max(queueRows.length,1)*100)+'% — walked in without registering','#9CA3AF'),
+      acqKpiHtml('❓','No Phone',noPhoneVisits,noPhoneVisits?'registered but phone missing — chase these':'','var(--warn)'),
+      acqKpiHtml('📋','Registered This Month',mCusts.length,'new check-ins (first-timers + returners)'),
+      acqKpiHtml('👤','All Customers (DB)',customers.length,'total in system'),
       acqKpiHtml('💰','Revenue (DB, excl. tips)','AED '+(mRevFromDB||0).toFixed(0),
-        mRevDBrows+' visits · service_value only','var(--ok)'),
-      acqKpiHtml('📂','Revenue (Excel ≤7 Jun)','AED '+(mRevFromExcel||0).toFixed(0),
-        mRevExcelRows+' Excel rows on/before Jun 7','var(--muted)'),
-      acqKpiHtml('💵','Revenue (Total)','AED '+(mRevTotal||0).toFixed(0),
-        'DB svc + Excel — tips excluded'),
+        mRevDBrows+' paid visits · service_value only','var(--ok)'),
+      acqKpiHtml('📂','Revenue (Excel ≤8 Jun)','AED '+(mRevFromExcel||0).toFixed(0),
+        mRevExcelRows+' Excel rows on/before Jun 8','var(--muted)'),
+      acqKpiHtml('💵','Revenue (Total)','AED '+(mRevTotal||0).toFixed(0),'DB svc + Excel — tips excluded'),
       acqKpiHtml('⏱','Avg Wait',avgWait!==null?acqFmtMins(avgWait):'—',
         waits.length?waits.length+' records':'no called_at yet',
         avgWait>20?'var(--err)':avgWait>10?'var(--warn)':'var(--ok)'),
     ].join('');
 
-    // 9. Source breakdown — ALL customers registered this month (new + returning)
-    // heard_via is set at registration time regardless of new/returning status
-    // so we count ALL mCusts for source, then break down new vs returning within each source
+    // 9. Source breakdown — by VISITS (not registrations)
+    // For each queue row, look up the customer's heard_via
+    // Count how many new visits vs returning visits came from each source
     const allSrc=[...SRC_CONFIG,{key:'Unknown',label:'Unknown',color:'#9CA3AF',emoji:'❓'}];
     const srcAll={},srcNewBySource={},srcRetBySource={};
     allSrc.forEach(s=>{srcAll[s.key]=0;srcNewBySource[s.key]=0;srcRetBySource[s.key]=0;});
 
-    mCusts.forEach(c=>{
-      const src=acqMapSource(c.heard_via);
+    // Count visits by source (look up customer's heard_via for each queue row)
+    queueRows.forEach(q=>{
+      const c=q.customer_id?custById[q.customer_id]:null;
+      const src=acqMapSource(c?.heard_via);
       srcAll[src]=(srcAll[src]||0)+1;
-      if(newIds.has(c.id)) srcNewBySource[src]=(srcNewBySource[src]||0)+1;
+      if(newVisitIds.has(q.id)) srcNewBySource[src]=(srcNewBySource[src]||0)+1;
       else srcRetBySource[src]=(srcRetBySource[src]||0)+1;
     });
 
-    // Raw heard_via values — ALL registered this month, verbatim
+    // Raw heard_via from customers whose visits this month
     const rawSrc={};
-    mCusts.forEach(c=>{const v=c.heard_via||'(blank/null)';rawSrc[v]=(rawSrc[v]||0)+1;});
+    queueRows.forEach(q=>{
+      const c=q.customer_id?custById[q.customer_id]:null;
+      const v=(c?.heard_via)||'(blank/null)';
+      rawSrc[v]=(rawSrc[v]||0)+1;
+    });
     const rawDebug=Object.entries(rawSrc).sort((a,b)=>b[1]-a[1])
       .map(([k,v])=>`<span style="background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:2px 8px;font-size:11.5px;font-weight:700;font-family:monospace;">"${k}":${v}</span>`).join(' ');
 
     const maxAll=Math.max(1,...Object.values(srcAll));
-    const totalAll=mCusts.length||1;
-    const totalNew=newCount||1;
-    const totalRet=retCount||1;
+    const totalAll=queueRows.length||1;
+    const totalNew=newVisits||1;
+    const totalRet=retVisits||1;
     const srcEl=document.getElementById('acq-src-bars');
 
     const srcBars=allSrc.map(s=>{
@@ -5688,8 +5674,8 @@ async function acqRender(){
         <div style="min-width:200px;"></div>
       </div>`;
       const pctOfAll=Math.round(total/totalAll*100);
-      const pctNew=newCount>0?Math.round(nw/totalNew*100):0;   // % of ALL new customers
-      const pctRet=retCount>0?Math.round(rt/totalRet*100):0;   // % of ALL returning customers
+      const pctNew=newVisits>0?Math.round(nw/totalNew*100):0;   // % of ALL new customers
+      const pctRet=retVisits>0?Math.round(rt/totalRet*100):0;   // % of ALL returning customers
       return`<div class="src-bar-wrap" style="margin-bottom:12px;">
         <div class="src-bar-label">${s.emoji} ${s.label}</div>
         <div style="flex:1;">
@@ -5713,12 +5699,12 @@ async function acqRender(){
 
     srcEl.innerHTML=`
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;">
-        <div class="acq-kpi"><div class="acq-kpi-n" style="color:var(--text);">${mCusts.length}</div><div class="acq-kpi-l">Total Registered</div></div>
-        <div class="acq-kpi"><div class="acq-kpi-n" style="color:var(--ok);">${newCount}</div><div class="acq-kpi-l">New (${Math.round(newCount/totalAll*100)}%)</div></div>
-        <div class="acq-kpi"><div class="acq-kpi-n" style="color:var(--b);">${retCount}</div><div class="acq-kpi-l">Returning (${Math.round(retCount/totalAll*100)}%)</div></div>
+        <div class="acq-kpi"><div class="acq-kpi-n" style="color:var(--text);">${queueRows.length}</div><div class="acq-kpi-l">Total Services</div></div>
+        <div class="acq-kpi"><div class="acq-kpi-n" style="color:var(--ok);">${newVisits}</div><div class="acq-kpi-l">New (${Math.round(newVisits/totalAll*100)}%)</div></div>
+        <div class="acq-kpi"><div class="acq-kpi-n" style="color:var(--b);">${retVisits}</div><div class="acq-kpi-l">Returning (${Math.round(retVisits/totalAll*100)}%)</div></div>
       </div>
       <div style="font-size:11.5px;color:var(--muted);margin-bottom:12px;">
-        Bar = total by source · solid = 🆕 new · faded = 🔄 returning · percentages show each source's share of new and returning pools
+        Each bar = services done this month by source · solid = 🆕 first-ever visit · faded = 🔄 returning visit
       </div>
       ${srcBars}
       <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);">
@@ -5731,13 +5717,10 @@ async function acqRender(){
     const sRN={},sRR={};allSrc.forEach(s=>{sRN[s.key]=0;sRR[s.key]=0;});
     const mQRevForSource = qRevFiltered;
     mQRevForSource.forEach(q=>{
-      const amt=parseFloat(q.service_value)||0;
-      if(!amt)return;
+      const amt=parseFloat(q.service_value)||0; if(!amt)return;
       const c=q.customer_id?custById[q.customer_id]:null;
-      // If customer not found (guest or missing) → Unknown source
-      const src=c?acqMapSource(c.heard_via):'Unknown';
-      // New/returning: if no customer record found, treat as returning (conservative)
-      if(c&&newIds.has(c.id))sRN[src]=(sRN[src]||0)+amt;
+      const src=acqMapSource(c?.heard_via);
+      if(newVisitIds.has(q.id)) sRN[src]=(sRN[src]||0)+amt;
       else sRR[src]=(sRR[src]||0)+amt;
     });
     const tRN=Object.values(sRN).reduce((a,b)=>a+b,0);
@@ -5788,29 +5771,33 @@ async function acqRender(){
     }
 
     // 11. Monthly table
-    acqBuildMonthlyTable(customers,custFirstDate,hist);
+    acqBuildMonthlyTable(customers,{},hist);
 
     // 11b. Location × Source breakdown
-    acqBuildLocSrc(mCusts,newIds);
+    acqBuildLocSrc(queueRows,newVisitIds,custById);
 
     // 12. New vs Returning bar
     const nrEl=document.getElementById('acq-newret');
-    const tot=mCusts.length||1;
+    const tot=queueRows.length||1;
     nrEl.innerHTML=`
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">Based on <strong>${queueRows.length}</strong> services done this month — classified by whether the customer had visited before that service date.</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:14px;">
-        ${acqKpiHtml('🆕','New',newCount,'first visit ever','var(--ok)')}
-        ${acqKpiHtml('🔄','Returning',retCount,returnRate+'% of registrations','var(--b)')}
-        ${acqKpiHtml('❓','No Phone',unknownCount,'can\'t classify','var(--muted)')}
+        ${acqKpiHtml('🆕','New Services',newVisits,'first-ever visit','var(--ok)')}
+        ${acqKpiHtml('🔄','Returning',retVisits,returnRate+'% of services','var(--b)')}
+        ${acqKpiHtml('👤','Guests',guestVisits,Math.round(guestVisits/tot*100)+'% — no registration','#9CA3AF')}
+        ${noPhoneVisits?acqKpiHtml('❓','No Phone',noPhoneVisits,'registered, phone missing','var(--warn)'):''}
       </div>
       <div style="display:flex;height:16px;border-radius:99px;overflow:hidden;margin-bottom:8px;">
-        <div style="width:${Math.round(newCount/tot*100)}%;background:var(--ok);"></div>
-        <div style="width:${Math.round(retCount/tot*100)}%;background:var(--b);"></div>
-        <div style="width:${Math.round(unknownCount/tot*100)}%;background:#E5E7EB;"></div>
+        <div style="width:${Math.round(newVisits/tot*100)}%;background:var(--ok);"></div>
+        <div style="width:${Math.round(retVisits/tot*100)}%;background:var(--b);"></div>
+        <div style="width:${Math.round(guestVisits/tot*100)}%;background:#9CA3AF;"></div>
+        <div style="width:${Math.round(noPhoneVisits/tot*100)}%;background:var(--warn);"></div>
       </div>
-      <div style="display:flex;gap:16px;font-size:12px;font-weight:700;flex-wrap:wrap;color:var(--muted);">
-        <span style="color:var(--ok);">🟢 New ${Math.round(newCount/tot*100)}%</span>
-        <span style="color:var(--b);">🔵 Returning ${Math.round(retCount/tot*100)}%</span>
-        ${unknownCount?'<span>❓ No phone '+Math.round(unknownCount/tot*100)+'%</span>':''}
+      <div style="display:flex;gap:16px;font-size:12px;font-weight:700;flex-wrap:wrap;">
+        <span style="color:var(--ok);">🟢 New ${Math.round(newVisits/tot*100)}%</span>
+        <span style="color:var(--b);">🔵 Returning ${Math.round(retVisits/tot*100)}%</span>
+        <span style="color:#9CA3AF;">⚪ Guests ${Math.round(guestVisits/tot*100)}%</span>
+        ${noPhoneVisits?`<span style="color:var(--warn);">🟡 No phone ${Math.round(noPhoneVisits/tot*100)}%</span>`:''}
       </div>
       ${!histHasData?'<div style="font-size:12px;color:var(--warn);font-weight:700;margin-top:10px;">⚠️ Upload pre-June Excel in the Historical Data tab to classify returning customers accurately.</div>':''}`;
 
@@ -5829,7 +5816,7 @@ async function acqValidate(){
   if(!el)return;
   el.innerHTML='<div class="load"><div class="spin"></div> Querying database…</div>';
 
-  // Resolve which month to validate
+  // Resolve month
   const sel=document.getElementById('acq-val-month')?.value||'current';
   const now=new Date();
   let vYear=now.getFullYear(),vMonth=now.getMonth();
@@ -5841,125 +5828,139 @@ async function acqValidate(){
   const mStart=new Date(vYear,vMonth,1);
   const mEnd=new Date(vYear,vMonth+1,0,23,59,59,999);
   const mLabel=mStart.toLocaleDateString('en-GB',{month:'long',year:'numeric'});
+  const vFromDate=`${vYear}-${String(vMonth+1).padStart(2,'0')}-01`;
+  const vToDate=`${vYear}-${String(vMonth+1).padStart(2,'0')}-${new Date(vYear,vMonth+1,0).getDate().toString().padStart(2,'0')}`;
 
   try{
-    // Fetch ALL customers (need full history for cross-check)
+    // 1. Fetch all customers for lookup
     let allCusts=[];
     {let off=0,g=0;
       while(true){
-        const b=await sb('customers','GET',null,'select=id,name,mobile,created_at,heard_via,gender&order=created_at.asc&limit=1000&offset='+off);
+        const b=await sb('customers','GET',null,'select=id,name,mobile,created_at,heard_via&order=created_at.asc&limit=1000&offset='+off);
         if(!b||!b.length)break;allCusts=[...allCusts,...b];if(b.length<1000)break;off+=1000;if(++g>50)break;
       }
     }
+    const custById={};allCusts.forEach(c=>custById[c.id]=c);
 
-    // Customers registered in target month
-    const mCusts=allCusts.filter(c=>{const d=new Date(c.created_at);return d>=mStart&&d<=mEnd;});
-    if(!mCusts.length){
-      el.innerHTML=`<div style="color:var(--muted);font-size:13px;padding:12px;">No customers registered in ${mLabel}.</div>`;return;
+    // 2. Fetch done queue rows for this month
+    let qRows=[];
+    {let off=0,g=0;
+      while(true){
+        const b=await sb('queue','GET',null,
+          `select=id,customer_id,mobile,checkin_date,is_guest,service_value&status=eq.done&checkin_date=gte.${vFromDate}&checkin_date=lte.${vToDate}&order=checkin_date.asc&limit=1000&offset=${off}`);
+        if(!b||!b.length)break;qRows=[...qRows,...b];if(b.length<1000)break;off+=1000;if(++g>50)break;
+      }
+    }
+    if(!qRows.length){
+      el.innerHTML=`<div style="color:var(--muted);font-size:13px;padding:12px;">No services done in ${mLabel}.</div>`;return;
     }
 
-    // Historical Excel phones — phone only (old system, siblings shared one record)
+    // 3. Historical Excel — phone only
     const hist=JSON.parse(localStorage.getItem(ACQ_HIST_KEY)||'[]');
     const histPhoneMap={};
     hist.forEach(r=>{
       const ph=acqNormalizePhone(r.mobile||r.phone);if(!ph||!r.date)return;
-      const d=new Date(r.date);if(isNaN(d))return;
-      if(!histPhoneMap[ph]||d<histPhoneMap[ph].date)
-        histPhoneMap[ph]={date:d,description:r.description||'',amount:r.amount||0};
+      const d=new Date(String(r.date).replace(' ','T'));if(isNaN(d))return;
+      if(!histPhoneMap[ph]||d<histPhoneMap[ph].date) histPhoneMap[ph]={date:d,description:r.description||''};
     });
 
-    // DB prior records — keyed by phone+name (sibling-aware, new system)
-    // Same phone + same name before this month = same child returning
-    // Same phone + different name = different sibling, independent
-    const priorPhoneNameMap={};   // phone|name → earliest customer record
-    const priorPhoneMap={};       // phone → all prior customers (for evidence display)
-    allCusts.filter(c=>new Date(c.created_at)<mStart).forEach(c=>{
+    // 4. DB lookups — phone+name earliest (sibling-aware)
+    const phoneNameMap={};  // phone|name → earliest record
+    const phoneMap={};      // phone → all records (for sibling evidence)
+    allCusts.forEach(c=>{
       const ph=acqNormalizePhone(c.mobile);if(!ph)return;
       const key=ph+'|'+(c.name||'').toLowerCase().trim();
-      if(!priorPhoneNameMap[key]) priorPhoneNameMap[key]=c;
-      if(!priorPhoneMap[ph]) priorPhoneMap[ph]=[];
-      priorPhoneMap[ph].push(c);
+      if(!phoneNameMap[key]||new Date(c.created_at)<new Date(phoneNameMap[key].created_at)) phoneNameMap[key]=c;
+      if(!phoneMap[ph])phoneMap[ph]=[];
+      phoneMap[ph].push(c);
     });
 
-    // Build verdict for each customer registered this month
-    const rows=mCusts.map(c=>{
-      const ph=acqNormalizePhone(c.mobile);
-      const pnKey=ph+'|'+(c.name||'').toLowerCase().trim();
-
-      // Check 1: same child (phone+name) in DB before this month?
-      const priorDBsame=ph?priorPhoneNameMap[pnKey]:null;
-      // Check 2: same phone in Excel (pre-system, phone-level only)?
-      const excelRec=ph?histPhoneMap[ph]:null;
-      // Also get other siblings on same phone for evidence
-      const priorSiblings=ph?priorPhoneMap[ph]:null;
+    // 5. Classify each queue row (service)
+    const rows=qRows.map(q=>{
+      const c=q.customer_id?custById[q.customer_id]:null;
+      const ph=acqNormalizePhone(c?.mobile||q.mobile||'');
+      const visitDate=new Date((q.checkin_date||'').toString().slice(0,10));
 
       let verdict,verdictColor,reason;
-      if(!ph){
-        verdict='⚠️ NO PHONE';verdictColor='#D97706';
-        reason='No mobile number — cannot verify.';
-      } else if(priorDBsame){
-        verdict='🔄 RETURNING (same child in DB)';verdictColor='var(--b)';
-        reason=`Phone+name "${ph} / ${c.name}" seen in DB — first registered ${new Date(priorDBsame.created_at).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}.`;
-      } else if(excelRec){
-        verdict='🔄 RETURNING (family in Excel)';verdictColor='var(--b)';
-        reason=`Phone ${ph} in pre-system Excel (earliest: ${excelRec.date.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})})${excelRec.description?' · '+excelRec.description:''}. Old system stored siblings under one phone — family is returning even if child name differs.`;
-      } else if(priorSiblings&&priorSiblings.length){
-        // Phone exists in DB but under a different name = sibling, not a returning match
-        verdict='✅ NEW (sibling)';verdictColor='#16A34A';
-        const sib=priorSiblings[0];
-        reason=`Phone ${ph} exists in DB as "${sib.name}" (registered ${new Date(sib.created_at).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}) but "${c.name}" is a different child — counted as new.`;
-      } else {
-        verdict='✅ CONFIRMED NEW';verdictColor='var(--ok)';
-        reason=`Phone ${ph} not found in any prior DB record (same name) or Excel upload. Genuinely first-time.`;
-      }
 
-      return{c,ph,verdict,verdictColor,reason};
+      if(q.is_guest){
+        verdict='👤 GUEST';verdictColor='#9CA3AF';
+        reason='Walked in without registering — unclassifiable.';
+      } else if(!ph){
+        verdict='⚠️ NO PHONE';verdictColor='#D97706';
+        reason='Registered but no mobile number captured — cannot verify.';
+      } else {
+        const pnKey=ph+'|'+(c?.name||'').toLowerCase().trim();
+        // DB check: same phone+name registered BEFORE this visit date
+        const dbRec=phoneNameMap[pnKey];
+        const priorInDB=dbRec&&new Date(dbRec.created_at)<visitDate;
+        // Excel check: phone seen before this visit date
+        const exRec=histPhoneMap[ph];
+        const priorInExcel=exRec&&exRec.date<visitDate;
+        // Sibling check: same phone, different name
+        const siblings=(phoneMap[ph]||[]).filter(s=>(s.name||'').toLowerCase().trim()!==(c?.name||'').toLowerCase().trim()&&new Date(s.created_at)<visitDate);
+
+        if(priorInDB){
+          verdict='🔄 RETURNING (DB)';verdictColor='var(--b)';
+          reason=`Phone+name "${ph}/${c?.name}" first registered ${new Date(dbRec.created_at).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})} — before this visit.`;
+        } else if(priorInExcel){
+          verdict='🔄 RETURNING (Excel)';verdictColor='var(--b)';
+          reason=`Phone ${ph} in pre-system Excel from ${exRec.date.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}${exRec.description?' · '+exRec.description:''}.`;
+        } else if(siblings.length){
+          verdict='✅ NEW (sibling)';verdictColor='#16A34A';
+          reason=`Phone ${ph} exists for "${siblings[0].name}" but "${c?.name||'—'}" is a different child — new visit.`;
+        } else {
+          verdict='✅ CONFIRMED NEW';verdictColor='var(--ok)';
+          reason=`Phone ${ph} not found in any prior DB record or Excel before ${visitDate.toLocaleDateString('en-GB',{day:'2-digit',month:'short'})}.`;
+        }
+      }
+      return{q,c,ph,verdict,verdictColor,reason};
     });
 
-    // Summary counts
+    // Summary
     const confirmed=rows.filter(r=>r.verdict.startsWith('✅')).length;
     const siblings=rows.filter(r=>r.verdict.includes('sibling')).length;
-    const flagged=rows.filter(r=>r.verdict.startsWith('🔄')).length;
+    const returning=rows.filter(r=>r.verdict.startsWith('🔄')).length;
+    const guests=rows.filter(r=>r.verdict.startsWith('👤')).length;
     const noPhone=rows.filter(r=>r.verdict.startsWith('⚠️')).length;
     const hasExcel=hist.length>0;
 
-    // Build table
     const thS='padding:8px 10px;text-align:left;font-size:11px;font-weight:700;color:#fff;white-space:nowrap;';
     const tdS='padding:9px 10px;font-size:12.5px;border-bottom:1px solid var(--border);vertical-align:top;';
     let html=`
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:14px;">
-        <div class="acq-kpi"><div class="acq-kpi-n" style="color:var(--ok);">${confirmed}</div><div class="acq-kpi-l">Confirmed New</div><div class="acq-kpi-sub" style="color:var(--muted);">incl. ${siblings} new siblings</div></div>
-        <div class="acq-kpi"><div class="acq-kpi-n" style="color:var(--b);">${flagged}</div><div class="acq-kpi-l">Actually Returning</div><div class="acq-kpi-sub" style="color:var(--muted);">same child or family phone</div></div>
-        <div class="acq-kpi"><div class="acq-kpi-n" style="color:var(--warn);">${noPhone}</div><div class="acq-kpi-l">No Phone</div><div class="acq-kpi-sub" style="color:var(--muted);">can't verify</div></div>
-        <div class="acq-kpi"><div class="acq-kpi-n">${rows.length}</div><div class="acq-kpi-l">Total Registered</div><div class="acq-kpi-sub" style="color:var(--muted);">${mLabel}</div></div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:14px;">
+        <div class="acq-kpi"><div class="acq-kpi-n" style="color:var(--ok);">${confirmed}</div><div class="acq-kpi-l">Confirmed New</div><div class="acq-kpi-sub">${siblings} new siblings</div></div>
+        <div class="acq-kpi"><div class="acq-kpi-n" style="color:var(--b);">${returning}</div><div class="acq-kpi-l">Returning</div><div class="acq-kpi-sub">DB or Excel match</div></div>
+        <div class="acq-kpi"><div class="acq-kpi-n" style="color:#9CA3AF;">${guests}</div><div class="acq-kpi-l">Guests</div><div class="acq-kpi-sub">no registration</div></div>
+        <div class="acq-kpi"><div class="acq-kpi-n" style="color:var(--warn);">${noPhone}</div><div class="acq-kpi-l">No Phone</div><div class="acq-kpi-sub">can't verify</div></div>
+        <div class="acq-kpi"><div class="acq-kpi-n">${rows.length}</div><div class="acq-kpi-l">Total Services</div><div class="acq-kpi-sub">${mLabel}</div></div>
       </div>
-      ${!hasExcel?'<div style="background:var(--warnl);color:var(--warn);border-radius:8px;padding:9px 12px;font-size:12px;font-weight:700;margin-bottom:12px;">⚠️ No historical Excel uploaded — returning customers from before June 2025 cannot be detected. Upload in the Historical Data tab.</div>':''}
+      ${!hasExcel?'<div style="background:var(--warnl);color:var(--warn);border-radius:8px;padding:9px 12px;font-size:12px;font-weight:700;margin-bottom:12px;">⚠️ No historical Excel uploaded — cannot detect customers from before June 2025.</div>':''}
       <div style="overflow-x:auto;">
       <table style="width:100%;border-collapse:collapse;background:#fff;border-radius:10px;overflow:hidden;box-shadow:var(--sh);">
         <thead style="background:var(--bd);"><tr>
           <th style="${thS}">Customer</th>
-          <th style="${thS}">Phone (normalised)</th>
-          <th style="${thS}">Registered</th>
+          <th style="${thS}">Phone</th>
+          <th style="${thS}">Visit Date</th>
           <th style="${thS}">Source</th>
           <th style="${thS}">Verdict</th>
           <th style="${thS}">Evidence</th>
         </tr></thead>
         <tbody>
         ${rows.map((r,i)=>`<tr style="${i%2===0?'background:#F8FAFF':''}">
-          <td style="${tdS}font-weight:700;">${r.c.name||'—'}</td>
+          <td style="${tdS}font-weight:700;">${r.c?.name||'(Guest)'}</td>
           <td style="${tdS}font-family:monospace;font-size:12px;color:var(--muted);">${r.ph||'—'}</td>
-          <td style="${tdS}white-space:nowrap;">${new Date(r.c.created_at).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}</td>
-          <td style="${tdS}"><span style="background:var(--bl);color:var(--b);padding:2px 7px;border-radius:5px;font-size:11.5px;font-weight:700;">${r.c.heard_via||'—'}</span></td>
+          <td style="${tdS}white-space:nowrap;">${new Date((r.q.checkin_date||'').slice(0,10)).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}</td>
+          <td style="${tdS}"><span style="background:var(--bl);color:var(--b);padding:2px 7px;border-radius:5px;font-size:11.5px;font-weight:700;">${r.c?.heard_via||'—'}</span></td>
           <td style="${tdS}white-space:nowrap;"><strong style="color:${r.verdictColor};">${r.verdict}</strong></td>
           <td style="${tdS}font-size:12px;color:var(--muted);">${r.reason}</td>
         </tr>`).join('')}
         </tbody>
       </table></div>
       <div style="margin-top:10px;font-size:11.5px;color:var(--muted);">
-        <strong>Rules applied:</strong>
-        DB cross-check uses <strong>phone + name</strong> — a sibling on the same phone is counted as a new customer.
-        Excel cross-check uses <strong>phone only</strong> — old system stored siblings under one record, so any phone match = family is returning.
-        ${!hasExcel?'<strong style="color:var(--warn);"> Upload the Excel file to complete the pre-June check.</strong>':''}
+        Classifying <strong>services done</strong> (queue rows with status=done), not registrations.
+        DB check: phone+name before visit date. Excel check: phone before visit date (phone-only, old system).
+        ${!hasExcel?'<strong style="color:var(--warn);"> Upload Excel for pre-June 2025 history.</strong>':''}
       </div>`;
 
     el.innerHTML=html;
@@ -5968,18 +5969,18 @@ async function acqValidate(){
   }
 }
 
-function acqBuildLocSrc(mCusts,newIds){
+function acqBuildLocSrc(qRows,newVIds,cById){
   const el=document.getElementById('acq-loc-src');if(!el)return;
-  if(!mCusts.length){el.innerHTML='<div style="color:var(--muted);font-size:13px;">No registrations this month.</div>';return;}
+  if(!qRows.length){el.innerHTML='<div style="color:var(--muted);font-size:13px;">No services done this month.</div>';return;}
 
-  // Build location × source matrix
-  // location → {src → {new:0, ret:0}}
+  // Build location × source matrix by VISIT
   const matrix={};
   const NO_LOC='(No location)';
-  mCusts.forEach(c=>{
-    const loc=(c.location||'').trim()||NO_LOC;
-    const src=acqMapSource(c.heard_via);
-    const isNew=newIds.has(c.id);
+  qRows.forEach(q=>{
+    const c=q.customer_id?cById[q.customer_id]:null;
+    const loc=(c?.location||'').trim()||NO_LOC;
+    const src=acqMapSource(c?.heard_via);
+    const isNew=newVIds.has(q.id);
     if(!matrix[loc])matrix[loc]={};
     if(!matrix[loc][src])matrix[loc][src]={new:0,ret:0,total:0};
     matrix[loc][src].total++;
@@ -5991,16 +5992,14 @@ function acqBuildLocSrc(mCusts,newIds){
     .map(([loc,srcs])=>({loc,srcs,total:Object.values(srcs).reduce((a,s)=>a+s.total,0)}))
     .sort((a,b)=>b.total-a.total);
 
-  const allSrcs=[...SRC_CONFIG,{key:'Unknown',label:'Unknown',color:'#9CA3AF',emoji:'❓'}];
-  const SRC_COLORS={};allSrcs.forEach(s=>SRC_COLORS[s.key]=s.color);
-  const SRC_EMOJI={};allSrcs.forEach(s=>SRC_EMOJI[s.key]=s.emoji);
-  const totalAll=mCusts.length||1;
+  const allSrcsL=[...SRC_CONFIG,{key:'Unknown',label:'Unknown',color:'#9CA3AF',emoji:'❓'}];
+  const totalAllVisits=qRows.length||1;
 
   el.innerHTML=locs.map(({loc,srcs,total})=>{
     const newTotal=Object.values(srcs).reduce((a,s)=>a+s.new,0);
     const retTotal=Object.values(srcs).reduce((a,s)=>a+s.ret,0);
     const srcRows=Object.entries(srcs).sort((a,b)=>b[1].total-a[1].total).map(([src,counts])=>{
-      const cfg=allSrcs.find(s=>s.key===src)||{color:'#9CA3AF',emoji:'❓'};
+      const cfg=allSrcsL.find(s=>s.key===src)||{color:'#9CA3AF',emoji:'❓'};
       return`<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;padding-left:12px;">
         <div style="font-size:12px;font-weight:700;min-width:160px;color:${cfg.color};">${cfg.emoji} ${src}</div>
         <div style="font-size:12px;color:var(--ok);font-weight:700;min-width:60px;">🆕 ${counts.new}</div>
@@ -6009,7 +6008,7 @@ function acqBuildLocSrc(mCusts,newIds){
       </div>`;
     }).join('');
 
-    const pct=Math.round(total/totalAll*100);
+    const pct=Math.round(total/totalAllVisits*100);
     const retRate=total>0?Math.round(retTotal/total*100):0;
     return`<div style="background:var(--bg);border-radius:10px;padding:12px 14px;margin-bottom:10px;border:1px solid var(--border);">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
@@ -6106,7 +6105,30 @@ function acqRenderHistInsights(hist){
 }
 
 // ══ OPERATIONS TAB ══
+let _opsYear=new Date().getFullYear(), _opsMonth=new Date().getMonth();
+
+function opsGoCurrentMonth(){
+  _opsYear=new Date().getFullYear(); _opsMonth=new Date().getMonth();
+  opsSetMonth();
+}
+function opsMonthShift(delta){
+  _opsMonth+=delta;
+  if(_opsMonth>11){_opsMonth=0;_opsYear++;}
+  if(_opsMonth<0){_opsMonth=11;_opsYear--;}
+  opsSetMonth();
+}
+function opsSetMonth(){
+  const from=new Date(_opsYear,_opsMonth,1);
+  const to=new Date(_opsYear,_opsMonth+1,0);
+  document.getElementById('ops-from').value=from.toISOString().split('T')[0];
+  document.getElementById('ops-to').value=to.toISOString().split('T')[0];
+  const label=from.toLocaleDateString('en-GB',{month:'long',year:'numeric'});
+  const lEl=document.getElementById('ops-month-label');
+  if(lEl)lEl.textContent=label;
+  opsLoad();
+}
 function opsPreset(days){
+  // kept for backward compat but now unused in UI
   const to=new Date();const from=new Date();from.setDate(from.getDate()-days);
   document.getElementById('ops-from').value=from.toISOString().split('T')[0];
   document.getElementById('ops-to').value=to.toISOString().split('T')[0];
@@ -6117,13 +6139,12 @@ async function opsLoad(){
   let from=document.getElementById('ops-from')?.value;
   let to=document.getElementById('ops-to')?.value;
   if(!from||!to){
-    // Default: last 30 days
-    const td=new Date();const fd=new Date();fd.setDate(fd.getDate()-30);
-    from=fd.toISOString().split('T')[0];to=td.toISOString().split('T')[0];
-    if(document.getElementById('ops-from'))document.getElementById('ops-from').value=from;
-    if(document.getElementById('ops-to'))document.getElementById('ops-to').value=to;
+    // Default: current month
+    const n=new Date();
+    _opsYear=n.getFullYear();_opsMonth=n.getMonth();
+    opsSetMonth();return; // opsSetMonth calls opsLoad again with values set
   }
-  ['ops-kpis','ops-load-chart','ops-daily-table','ops-stylist-table','ops-wait-impact'].forEach(id=>{
+  ['ops-kpis','ops-load-chart','ops-weekly-table','ops-daily-table','ops-stylist-table','ops-wait-impact'].forEach(id=>{
     const el=document.getElementById(id);if(el)el.innerHTML='<div class="load"><div class="spin"></div></div>';
   });
   try{
@@ -6134,6 +6155,19 @@ async function opsLoad(){
       queue=[...queue,...(batch||[])];if(!batch||batch.length<PAGE)break;offset+=PAGE;
     }
     const done=queue.filter(q=>q.status==='done');
+
+    // Build customer source lookup for source-stacked bar
+    // Use customers already fetched — or fetch if needed
+    let custSrcMap={};
+    try{
+      let allC=[];let off2=0,g2=0;
+      while(true){
+        const b=await sb('customers','GET',null,'select=id,heard_via&limit=1000&offset='+off2);
+        if(!b||!b.length)break;allC=[...allC,...b];if(b.length<1000)break;off2+=1000;if(++g2>50)break;
+      }
+      allC.forEach(c=>{if(c.id)custSrcMap[c.id]=acqMapSource(c.heard_via);});
+    }catch(e){console.warn('[OPS] customer source fetch failed:',e.message);}
+
     // Compute per-record metrics
     const records=done.map(q=>{
       const ci=q.checkin_time?new Date(q.checkin_time):null;
@@ -6148,7 +6182,7 @@ async function opsLoad(){
     const dayMap={};
     records.forEach(r=>{
       const d=r.checkin_date;if(!d)return;
-      if(!dayMap[d])dayMap[d]={date:d,count:0,revenue:0,waitMins:[],serveMins:[],totalMins:[],guests:0,stylists:{}};
+      if(!dayMap[d])dayMap[d]={date:d,count:0,revenue:0,waitMins:[],serveMins:[],totalMins:[],guests:0,stylists:{},sources:{}};
       dayMap[d].count++;
       dayMap[d].revenue+=(parseFloat(r.service_value)||0);
       if(r.waitMins!==null&&r.waitMins>=0&&r.waitMins<300)dayMap[d].waitMins.push(r.waitMins);
@@ -6156,6 +6190,8 @@ async function opsLoad(){
       if(r.totalMins!==null&&r.totalMins>0&&r.totalMins<300)dayMap[d].totalMins.push(r.totalMins);
       if(r.is_guest)dayMap[d].guests++;
       if(r.stylist){dayMap[d].stylists[r.stylist]=(dayMap[d].stylists[r.stylist]||0)+1;}
+      const src=r.customer_id?custSrcMap[r.customer_id]||'Unknown':'Guest';
+      dayMap[d].sources[src]=(dayMap[d].sources[src]||0)+1;
     });
     const days=Object.values(dayMap).sort((a,b)=>a.date.localeCompare(b.date));
     const avg=arr=>arr.length?arr.reduce((a,b)=>a+b,0)/arr.length:null;
@@ -6177,28 +6213,126 @@ async function opsLoad(){
       acqKpiHtml('⚠️','High Wait Days',highWaitDays,'days where avg wait >20min',highWaitDays>0?'var(--err)':'var(--ok)'),
     ].join('');
 
-    // Load chart — bar per day
+    // Stacked load chart — each bar split by source
+    const srcCfg=[...SRC_CONFIG,{key:'Guest',label:'Guest',color:'#9CA3AF',emoji:'👤'},{key:'Unknown',label:'Unknown',color:'#D1D5DB',emoji:'❓'}];
+    const srcColorMap={};srcCfg.forEach(s=>srcColorMap[s.key]=s.color);
     const maxCount=Math.max(1,...days.map(d=>d.count));
     const loadEl=document.getElementById('ops-load-chart');
     if(loadEl){
       if(!days.length){loadEl.innerHTML='<div style="color:var(--muted);font-size:13px;padding:20px 0;">No completed queue records in this period.</div>';}
       else{
-        const BAR_W=Math.max(24,Math.min(48,Math.floor(600/days.length)));
-        loadEl.innerHTML=`<div style="display:flex;align-items:flex-end;gap:2px;padding-bottom:20px;position:relative;min-height:120px;overflow-x:auto;">
-          ${days.map(d=>{
-            const avgW=avg(d.waitMins);const highWait=avgW>20;
-            const h=Math.round((d.count/maxCount)*100);
-            const col=highWait?'var(--err)':'var(--b)';
-            const dow=new Date(d.date).toLocaleDateString('en-GB',{weekday:'short'});
-            const label=new Date(d.date).toLocaleDateString('en-GB',{day:'2-digit',month:'short'});
-            return`<div style="display:flex;flex-direction:column;align-items:center;gap:3px;min-width:${BAR_W}px;" title="${label}: ${d.count} served${avgW?', avg wait '+Math.round(avgW)+'m':''}">
-              <div style="font-size:10px;font-weight:800;color:${col};">${d.count}</div>
-              <div style="width:${BAR_W-4}px;height:${h}px;min-height:4px;background:${col};border-radius:4px 4px 0 0;opacity:${highWait?1:.7};cursor:pointer;" onclick="opsDrillDay('${d.date}')"></div>
-              <div style="font-size:9px;color:var(--muted);font-weight:700;transform:rotate(-45deg);transform-origin:center;white-space:nowrap;">${dow}</div>
-            </div>`;
+        const BAR_W=Math.max(28,Math.min(52,Math.floor(700/days.length)));
+        const CHART_H=160;
+        const bars=days.map(d=>{
+          const avgW=avg(d.waitMins);
+          const dow=new Date(d.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short'});
+          const label=new Date(d.date+'T12:00:00').toLocaleDateString('en-GB',{day:'2-digit',month:'short'});
+          // Build stacked segments bottom-up
+          const srcOrder=srcCfg.map(s=>s.key).filter(k=>d.sources[k]>0);
+          let segments='';let accumulated=0;
+          srcOrder.forEach(key=>{
+            const cnt=d.sources[key]||0;
+            const segH=Math.round((cnt/maxCount)*CHART_H);
+            const col=srcColorMap[key]||'#9CA3AF';
+            segments+=`<div style="width:100%;height:${segH}px;background:${col};${accumulated===0?'border-radius:3px 3px 0 0':''};" title="${key}: ${cnt}"></div>`;
+            accumulated+=cnt;
+          });
+          const totalH=Math.round((d.count/maxCount)*CHART_H);
+          const tooltip=`${label}: ${d.count} served\n${Object.entries(d.sources).map(([k,v])=>k+': '+v).join(', ')}${avgW?'\nAvg wait: '+Math.round(avgW)+'m':''}`;
+          return`<div style="display:flex;flex-direction:column;align-items:center;gap:2px;min-width:${BAR_W}px;cursor:pointer;" title="${tooltip}" onclick="opsDrillDay('${d.date}')">
+            <div style="font-size:9.5px;font-weight:800;color:${avgW>20?'var(--err)':'var(--text)'};">${d.count}</div>
+            <div style="width:${BAR_W-4}px;height:${CHART_H}px;display:flex;flex-direction:column;justify-content:flex-end;overflow:hidden;">${segments}</div>
+            <div style="font-size:8.5px;color:var(--muted);font-weight:700;white-space:nowrap;transform:rotate(-45deg);transform-origin:top center;margin-top:4px;">${dow}<br>${label.split(' ')[0]}</div>
+          </div>`;
+        }).join('');
+
+        // Legend
+        const legend=srcCfg.filter(s=>days.some(d=>d.sources[s.key]>0))
+          .map(s=>`<span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;">
+            <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${s.color};"></span>${s.emoji} ${s.label}
+          </span>`).join('');
+
+        loadEl.innerHTML=`
+          <div style="display:flex;align-items:flex-end;gap:2px;padding-bottom:32px;min-height:${CHART_H+50}px;overflow-x:auto;">${bars}</div>
+          <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:8px;padding-top:8px;border-top:1px solid var(--border);">${legend}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:6px;">Click any bar to drill into that day's queue. 🔴 count = avg wait >20 min.</div>`;
+      }
+    }
+
+    // Weekly summary by source (Mon–Sun)
+    const weeklyEl=document.getElementById('ops-weekly-table');
+    if(weeklyEl){
+      // Group days into Mon–Sun weeks
+      // Find Monday of each day's week
+      const weekMap={};
+      days.forEach(d=>{
+        const dt=new Date(d.date+'T12:00:00');
+        const dow=dt.getDay(); // 0=Sun, 1=Mon...
+        const mondayOffset=(dow===0?-6:1-dow);
+        const monday=new Date(dt);monday.setDate(dt.getDate()+mondayOffset);
+        const wKey=monday.toISOString().split('T')[0]; // 'YYYY-MM-DD' of Monday
+        if(!weekMap[wKey]){
+          const sunday=new Date(monday);sunday.setDate(monday.getDate()+6);
+          weekMap[wKey]={
+            monday:wKey,
+            sunday:sunday.toISOString().split('T')[0],
+            total:0,revenue:0,waitMins:[],sources:{}
+          };
+        }
+        weekMap[wKey].total+=d.count;
+        weekMap[wKey].revenue+=d.revenue;
+        weekMap[wKey].waitMins=[...weekMap[wKey].waitMins,...d.waitMins];
+        Object.entries(d.sources).forEach(([src,cnt])=>{
+          weekMap[wKey].sources[src]=(weekMap[wKey].sources[src]||0)+cnt;
+        });
+      });
+
+      const weeks=Object.values(weekMap).sort((a,b)=>a.monday.localeCompare(b.monday));
+      if(!weeks.length){weeklyEl.innerHTML='<div style="color:var(--muted);font-size:13px;">No data.</div>';}
+      else{
+        // All sources that appear across all weeks
+        const allSrcKeys=[...new Set(weeks.flatMap(w=>Object.keys(w.sources)))];
+        const orderedSrcs=[...srcCfg.map(s=>s.key).filter(k=>allSrcKeys.includes(k))];
+
+        const thS='padding:8px 10px;text-align:right;font-size:11px;font-weight:700;color:#fff;white-space:nowrap;';
+        const tdS='padding:8px 10px;font-size:12.5px;border-bottom:1px solid var(--border);text-align:right;';
+        const fmtDate=d=>new Date(d+'T12:00:00').toLocaleDateString('en-GB',{day:'2-digit',month:'short'});
+
+        weeklyEl.innerHTML=`<table style="width:100%;border-collapse:collapse;background:#fff;border-radius:10px;overflow:hidden;box-shadow:var(--sh);">
+          <thead style="background:var(--bd);"><tr>
+            <th style="${thS}text-align:left;">Week</th>
+            <th style="${thS}">Total</th>
+            ${orderedSrcs.map(k=>{const s=srcCfg.find(x=>x.key===k);return`<th style="${thS}color:${s?.color||'#fff'};">${s?.emoji||''} ${k}</th>`;}).join('')}
+            <th style="${thS}">Revenue</th>
+            <th style="${thS}">Avg Wait</th>
+          </tr></thead>
+          <tbody>
+          ${weeks.map((w,i)=>{
+            const avgW=w.waitMins.length?Math.round(w.waitMins.reduce((a,b)=>a+b,0)/w.waitMins.length):null;
+            const waitCol=avgW>20?'var(--err)':avgW>10?'var(--warn)':'var(--ok)';
+            return`<tr style="${i%2===0?'background:#F8FAFF':''}">
+              <td style="${tdS}text-align:left;font-weight:700;">${fmtDate(w.monday)} – ${fmtDate(w.sunday)}</td>
+              <td style="${tdS}font-weight:800;">${w.total}</td>
+              ${orderedSrcs.map(k=>{
+                const cnt=w.sources[k]||0;
+                const s=srcCfg.find(x=>x.key===k);
+                const pct=w.total?Math.round(cnt/w.total*100):0;
+                return`<td style="${tdS}"><span style="color:${s?.color||'var(--text)'};font-weight:700;">${cnt}</span>${cnt?`<span style="color:var(--muted);font-size:10px;"> ${pct}%</span>`:''}`;
+              }).join('')}
+              <td style="${tdS}">AED ${w.revenue.toFixed(0)}</td>
+              <td style="${tdS}font-weight:700;color:${waitCol};">${avgW!==null?avgW+'m':'—'}</td>
+            </tr>`;
           }).join('')}
-        </div>
-        <div style="font-size:11px;color:var(--muted);margin-top:4px;">🔵 Normal day &nbsp; 🔴 High wait (avg >20 min) &nbsp; Click bar to drill into that day</div>`;
+          <!-- Total row -->
+          <tr style="background:var(--bd);font-weight:800;">
+            <td style="${tdS}text-align:left;color:#fff;">Total</td>
+            <td style="${tdS}color:#fff;">${weeks.reduce((a,w)=>a+w.total,0)}</td>
+            ${orderedSrcs.map(k=>`<td style="${tdS}color:#fff;">${weeks.reduce((a,w)=>a+(w.sources[k]||0),0)}</td>`).join('')}
+            <td style="${tdS}color:#fff;">AED ${weeks.reduce((a,w)=>a+w.revenue,0).toFixed(0)}</td>
+            <td style="${tdS}color:#fff;">—</td>
+          </tr>
+          </tbody>
+        </table>`;
       }
     }
 
