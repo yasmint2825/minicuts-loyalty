@@ -325,14 +325,24 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
 
 </div><!-- end wrap -->
 
-<!-- T&C full text (opens in new tab via link) - kept as anchor target -->
+<!-- T&C full text — loaded from DB (staff_config key=tc_text), fallback to inline -->
 <div id="tc-fulltext" style="display:none;position:fixed;inset:0;z-index:9999;background:#fff;overflow-y:auto;padding:20px;">
   <div style="max-width:520px;margin:0 auto;">
     <button onclick="document.getElementById('tc-fulltext').style.display='none'" style="background:var(--b);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-weight:700;cursor:pointer;margin-bottom:16px;">← Back</button>
-    <div style="font-family:var(--fh);font-size:18px;font-weight:900;color:var(--bd);margin-bottom:16px;">🐼 MiNiCUTS — Privacy & Terms</div>
-    <p style="font-size:13px;line-height:1.8;color:var(--text);">MiNiCUTS (operated by MiNiCUTS FZCO, Dubai Silicon Oasis, UAE) collects your mobile number, child's name, date of birth, and visit history <strong>only to run our loyalty programme, games, and to send you haircut reminders via WhatsApp</strong>. We never sell your data. You can request deletion at the salon counter at any time. By ticking the consent box you confirm you are the parent or guardian and agree to this use.</p>
-    <p style="font-size:12px;color:var(--muted);line-height:1.7;">Data is stored securely on a GDPR-compliant cloud database. WhatsApp messages are sent only for service-related purposes (reminders, loyalty updates, promotions).</p>
-    <p style="font-size:12px;color:var(--muted);">Contact: MiNiCUTS FZCO · Dubai Silicon Oasis Free Zone · Dubai, UAE</p>
+    <div id="tc-content">
+      <!-- Fallback — overwritten at runtime by loadTCText() if DB has content -->
+      <div style="font-family:var(--fh);font-size:18px;font-weight:900;color:var(--bd);margin-bottom:16px;">🐼 MiNiCUTS — Privacy & Terms</div>
+      <p style="font-size:13px;line-height:1.8;color:var(--text);">MiNiCUTS (operated by MiNiCUTS FZCO, Dubai Silicon Oasis, UAE) collects your mobile number, child's name, date of birth, and visit history for the following purposes:</p>
+      <ul style="font-size:13px;line-height:1.9;color:var(--text);padding-left:18px;margin:10px 0 14px;">
+        <li><strong>Queue management</strong> — to issue your token, track your position, and manage today's queue</li>
+        <li><strong>Loyalty programme</strong> — to track stamps, free wash rewards, and tier benefits</li>
+        <li><strong>In-salon games</strong> — to record game activity, badges, and prizes</li>
+        <li><strong>WhatsApp reminders</strong> — to send appointment reminders and visit follow-ups</li>
+        <li><strong>Promotions</strong> — to share MiNiCUTS offers, seasonal deals, and new services</li>
+      </ul>
+      <p style="font-size:12.5px;line-height:1.7;color:var(--muted);">Your data is used exclusively for MiNiCUTS services and is never sold or shared with third parties. It is stored securely on a GDPR-compliant cloud database. You may request deletion at the salon counter at any time.</p>
+      <p style="font-size:12px;color:var(--muted);margin-top:10px;">MiNiCUTS FZCO · Dubai Silicon Oasis Free Zone · Dubai, UAE</p>
+    </div>
   </div>
 </div>
 
@@ -354,6 +364,23 @@ function openTC(){
   document.getElementById('tc-fulltext').style.display='block';
   window.scrollTo({top:0,behavior:'smooth'});
 }
+
+// Load T&C text from DB — stored in staff_config as key='tc_text', value=HTML string
+// Update anytime via SQL: UPDATE staff_config SET value='<new html>' WHERE key='tc_text'
+async function loadTCText(){
+  try{
+    const r=await fetch(SB_URL+'/rest/v1/staff_config?key=eq.tc_text&select=value&limit=1',
+      {headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY}});
+    const rows=await r.json();
+    if(rows&&rows.length&&rows[0].value){
+      const el=document.getElementById('tc-content');
+      if(el) el.innerHTML=typeof rows[0].value==='string'
+        ? rows[0].value
+        : JSON.stringify(rows[0].value); // handle if stored as JSON
+    }
+  }catch(e){/* keep fallback content */}
+}
+loadTCText();
 
 // Check if the inline consent checkbox is ticked (used by both reg and returning flows)
 function isTCchecked(checkboxId){
