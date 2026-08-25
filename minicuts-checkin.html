@@ -156,6 +156,7 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
         <div id="lu-hear-err" style="display:none;margin-top:7px;font-size:12px;font-weight:700;color:var(--err);">Please tap one option above ☝️</div>
       </div>
 
+      <div id="lu-tc-wrap"></div>
       <button class="btn btn-y btn-full" id="lu-btn" onclick="proceedCheckin()" style="margin-bottom:8px;">✅ Check In & Get Tokens</button>
     </div>
     <div id="lu-nf" style="display:none;margin-top:6px;">
@@ -195,11 +196,12 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
       </div>
     </div>
     <div class="fg"><label class="fl">Parent Name <span style="color:var(--muted);font-weight:600;">(Optional)</span></label><input class="fi" type="text" id="rg-par" placeholder="e.g. Ahmed Al Rashid"/></div>
-    <div class="fg"><label class="fl">Location / Area in Dubai</label>
+    <div class="fg"><label class="fl">Location / Area in Dubai *</label>
       <select class="fi" id="rg-loc">
-        <option value="">Select area...</option>
-        <option>Dubai Silicon Oasis (DSO)</option><option>Academic City</option><option>Al Barsha</option><option>Al Furjan</option><option>Al Karama</option><option>Al Khail Gate</option><option>Al Nahda</option><option>Al Qusais</option><option>Al Warqa</option><option>Arabian Ranches</option><option>Arjan / Dubailand</option><option>Bur Dubai</option><option>Business Bay</option><option>Damac Hills</option><option>Deira</option><option>Discovery Gardens</option><option>Downtown Dubai</option><option>Dubai Creek Harbour</option><option>Dubai Hills Estate</option><option>Dubai Investments Park (DIP)</option><option>Dubai Marina</option><option>Dubai Production City (IMPZ)</option><option>Dubai South / Expo City</option><option>Emirates Hills</option><option>Falcon City</option><option>Green Community</option><option>Greens / Views</option><option>International City</option><option>JBR / JLT</option><option>JVC / JVT</option><option>Jumeirah</option><option>Jumeirah Islands / Park</option><option>Liwan / Dubailand</option><option>Meydan</option><option>Mirdif</option><option>Motor City</option><option>Muhaisnah</option><option>Nad Al Sheba</option><option>Palm Jumeirah</option><option>Rashidiya</option><option>Remraam</option><option>Ras Al Khor</option><option>Sports City</option><option>Springs / Meadows</option><option>Town Square</option><option>Umm Suqeim</option><option>Umm Ramool</option><option>Wadi Al Safa / Liwan</option><option>Other / Outside Dubai</option>
+        <option value="">Select area... *</option>
+        <option>Dubai Silicon Oasis (DSO)</option><option>Academic City</option><option>Al Barsha</option><option>Al Furjan</option><option>Al Karama</option><option>Al Khail Gate</option><option>Al Nahda</option><option>Al Qusais</option><option>Al Warqa</option><option>Arabian Ranches</option><option>Arjan</option><option>Bur Dubai</option><option>Business Bay</option><option>Damac Hills</option><option>Deira</option><option>Discovery Gardens</option><option>Downtown Dubai</option><option>Dubai Creek Harbour</option><option>Dubai Hills Estate</option><option>Dubai Investments Park (DIP)</option><option>Dubai Marina</option><option>Dubai Production City (IMPZ)</option><option>Dubai South / Expo City</option><option>Emirates Hills</option><option>Falcon City</option><option>Green Community</option><option>Greens / Views</option><option>International City</option><option>JBR / JLT</option><option>JVC / JVT</option><option>Jumeirah</option><option>Jumeirah Islands / Park</option><option>Liwan</option><option>Dubailand</option><option>Meydan</option><option>Mirdif</option><option>Motor City</option><option>Muhaisnah</option><option>Nad Al Sheba</option><option>Oud Metha</option><option>Palm Jumeirah</option><option>Rashidiya</option><option>Remraam</option><option>Ras Al Khor</option><option>Sports City</option><option>Springs / Meadows</option><option>Town Square</option><option>Umm Suqeim</option><option>Umm Ramool</option><option>Other / Outside Dubai</option>
       </select>
+      <div id="rg-loc-err" style="display:none;margin-top:5px;font-size:12px;font-weight:700;color:var(--err);">Please select your area ☝️</div>
     </div>
     <div style="margin:14px 0 6px;">
       <span style="font-family:var(--fh);font-size:14px;font-weight:800;color:var(--bd);display:block;margin-bottom:10px;">Children 👧👦</span>
@@ -222,6 +224,7 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
       <div id="rg-hear-err" style="display:none;margin-top:7px;font-size:12px;font-weight:700;color:var(--err);">Please tap one option above ☝️</div>
     </div>
     <div id="rg-msg" class="sm" style="margin-top:6px;"></div>
+    <div id="rg-tc-wrap"></div>
     <div style="display:flex;gap:9px;margin-top:4px;">
       <button class="btn btn-ghost" onclick="showScr('s-lookup')" style="padding:11px 14px;">← Back</button>
       <button class="btn btn-y" style="flex:1;" id="rg-btn" onclick="doRegAll()">Register &amp; Check In ✅</button>
@@ -294,6 +297,17 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
     <div class="fg" id="g-svc-wrap" style="display:none;"><label class="fl">Service</label>
       <select class="fi" id="g-svc"><option>Haircut</option><option>Haircut + Wash</option><option>Wash Only</option><option>Styling</option><option>Other</option></select>
     </div>
+    <!-- Heard via for guests -->
+    <div id="g-hear-wrap" style="display:none;background:#FFFDF0;border:1.5px solid rgba(255,214,0,.4);border-radius:14px;padding:13px;margin-bottom:12px;">
+      <div style="font-family:var(--fh);font-size:13px;font-weight:800;color:var(--bd);margin-bottom:4px;">🙏 Quick question — how did you hear about MiniCuts?</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;">
+        <button type="button" class="guest-hear-btn" onclick="setGuestHear(this,'Ad Board')" style="padding:11px 8px;border-radius:10px;border:2px solid var(--border);background:#fff;font-family:var(--fh);font-size:13px;font-weight:800;color:var(--text);cursor:pointer;transition:all .15s;">📋 Ad Board</button>
+        <button type="button" class="guest-hear-btn" onclick="setGuestHear(this,'Instagram')" style="padding:11px 8px;border-radius:10px;border:2px solid var(--border);background:#fff;font-family:var(--fh);font-size:13px;font-weight:800;color:var(--text);cursor:pointer;transition:all .15s;">📸 Instagram</button>
+        <button type="button" class="guest-hear-btn" onclick="setGuestHear(this,'Friends / Family')" style="padding:11px 8px;border-radius:10px;border:2px solid var(--border);background:#fff;font-family:var(--fh);font-size:13px;font-weight:800;color:var(--text);cursor:pointer;transition:all .15s;">👥 Friends</button>
+        <button type="button" class="guest-hear-btn" onclick="setGuestHear(this,'Google')" style="padding:11px 8px;border-radius:10px;border:2px solid var(--border);background:#fff;font-family:var(--fh);font-size:13px;font-weight:800;color:var(--text);cursor:pointer;transition:all .15s;">🔍 Google</button>
+        <button type="button" class="guest-hear-btn" onclick="setGuestHear(this,'Walk-in')" style="padding:11px 8px;border-radius:10px;border:2px solid var(--border);background:#fff;font-family:var(--fh);font-size:13px;font-weight:800;color:var(--text);cursor:pointer;transition:all .15s;">🚶 Walk-in</button>
+      </div>
+    </div>
     <div id="g-msg" class="sm"></div>
     <div style="display:flex;gap:9px;margin-top:4px;">
       <button class="btn btn-ghost" onclick="showScr('s-lookup')">← Back</button>
@@ -311,6 +325,17 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
 
 </div><!-- end wrap -->
 
+<!-- T&C full text (opens in new tab via link) - kept as anchor target -->
+<div id="tc-fulltext" style="display:none;position:fixed;inset:0;z-index:9999;background:#fff;overflow-y:auto;padding:20px;">
+  <div style="max-width:520px;margin:0 auto;">
+    <button onclick="document.getElementById('tc-fulltext').style.display='none'" style="background:var(--b);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-weight:700;cursor:pointer;margin-bottom:16px;">← Back</button>
+    <div style="font-family:var(--fh);font-size:18px;font-weight:900;color:var(--bd);margin-bottom:16px;">🐼 MiNiCUTS — Privacy & Terms</div>
+    <p style="font-size:13px;line-height:1.8;color:var(--text);">MiNiCUTS (operated by MiNiCUTS FZCO, Dubai Silicon Oasis, UAE) collects your mobile number, child's name, date of birth, and visit history <strong>only to run our loyalty programme, games, and to send you haircut reminders via WhatsApp</strong>. We never sell your data. You can request deletion at the salon counter at any time. By ticking the consent box you confirm you are the parent or guardian and agree to this use.</p>
+    <p style="font-size:12px;color:var(--muted);line-height:1.7;">Data is stored securely on a GDPR-compliant cloud database. WhatsApp messages are sent only for service-related purposes (reminders, loyalty updates, promotions).</p>
+    <p style="font-size:12px;color:var(--muted);">Contact: MiNiCUTS FZCO · Dubai Silicon Oasis Free Zone · Dubai, UAE</p>
+  </div>
+</div>
+
 <div class="bnav">
   <button class="bb active" id="bn-ci" onclick="navTo('s-lookup','bn-ci')">✅ Check In</button>
   <button class="bb" id="bn-q" onclick="navTo('s-queue','bn-q');loadQ();">📋 Queue</button>
@@ -324,7 +349,48 @@ function loadCfg(){try{return JSON.parse(localStorage.getItem('mc_ci_cfg')||'{}'
 let CFG=loadCfg();
 let STYLISTS=CFG.stylists||['Shakeeb','Farhan','Rizwan','Usman','Hamza','Bilal','Staff'];
 const SVCS=['Haircut','Haircut + Wash','Wash Only','Styling','Trim','Other'];
-let _qdata=[],_sel=[],_luTimer=null,_genders={},_kcount=0,_hearAbout=null,_regHearAbout=null;
+// ── T&C Consent — inline checkbox, no modal ──
+function openTC(){
+  document.getElementById('tc-fulltext').style.display='block';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// Check if the inline consent checkbox is ticked (used by both reg and returning flows)
+function isTCchecked(checkboxId){
+  return document.getElementById(checkboxId)?.checked===true;
+}
+
+// After consent: patch DB records and proceed
+function tcGrantConsent(customerIds){
+  if(customerIds&&customerIds.length){
+    customerIds.forEach(id=>{
+      sb('customers','PATCH',{tc_accepted:true,tc_accepted_at:new Date().toISOString()},'id=eq.'+id).catch(()=>{});
+    });
+  }
+}
+
+// Inline consent HTML snippet — used in both registration and returning customer panels
+function tcConsentHTML(checkboxId, forReturning=false){
+  return`<div style="background:linear-gradient(135deg,#F0F9FF,#E0F2FE);border:1.5px solid #BAE6FD;border-radius:12px;padding:12px 14px;margin-bottom:14px;">
+    <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;">
+      <input type="checkbox" id="${checkboxId}" style="width:18px;height:18px;margin-top:2px;accent-color:var(--b);flex-shrink:0;">
+      <span style="font-size:12.5px;font-weight:700;color:var(--bd);line-height:1.6;">
+        <button type="button" onclick="openTC()" style="background:none;border:none;color:var(--b);font-size:13px;font-weight:800;cursor:pointer;padding:0;text-decoration:underline;display:inline;">T&amp;C</button>
+      </span>
+    </label>
+    <div id="${checkboxId}-err" style="display:none;margin-top:6px;font-size:12px;font-weight:700;color:var(--err);">Please tick the box above to continue ☝️</div>
+  </div>`;
+}
+let _qdata=[],_sel=[],_luTimer=null,_genders={},_kcount=0,_hearAbout=null,_regHearAbout=null,_guestHear=null;
+
+function setGuestHear(btn,val){
+  _guestHear=val;
+  document.querySelectorAll('.guest-hear-btn').forEach(b=>{
+    b.style.background='#fff';b.style.borderColor='var(--border)';b.style.color='var(--text)';
+  });
+  btn.style.background='linear-gradient(135deg,var(--y),#FFB300)';
+  btn.style.borderColor='var(--yd)';btn.style.color='var(--bd)';
+}
 
 // Load stylists from DB on startup
 (async function loadStylists(){
@@ -369,7 +435,11 @@ async function sb(path,method='GET',body=null,params=''){
   return t?JSON.parse(t):[];
 }
 
-setInterval(()=>{const e=document.getElementById('clk');if(e)e.textContent=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'});},1000);
+// Inject consent checkboxes early so they're visible before submit
+document.addEventListener('DOMContentLoaded',()=>{
+  const rgWrap=document.getElementById('rg-tc-wrap');
+  if(rgWrap&&!rgWrap.innerHTML) rgWrap.innerHTML=tcConsentHTML('rg-tc-check',false);
+});
 
 function showScr(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));const e=document.getElementById(id);if(e){e.classList.add('active');window.scrollTo({top:0,behavior:'smooth'});}}
 function navTo(sid,bid){showScr(sid);document.querySelectorAll('.bb').forEach(b=>b.classList.remove('active'));const b=document.getElementById(bid);if(b)b.classList.add('active');}
@@ -548,8 +618,8 @@ async function doLookup(){
   const mob=getM(); const mAlt='0'+mob.slice(3); const st=document.getElementById('lu-st');
   try{
     const [rA,rB,queueRows]=await Promise.all([
-      sb('customers','GET',null,'select=id,name,mobile,gender,stamps,game_points,heard_via&mobile=eq.'+encodeURIComponent(mob)+'&limit=20'),
-      sb('customers','GET',null,'select=id,name,mobile,gender,stamps,game_points,heard_via&mobile=eq.'+encodeURIComponent(mAlt)+'&limit=20'),
+      sb('customers','GET',null,'select=id,name,mobile,gender,stamps,game_points,heard_via,tc_accepted&mobile=eq.'+encodeURIComponent(mob)+'&limit=20'),
+      sb('customers','GET',null,'select=id,name,mobile,gender,stamps,game_points,heard_via,tc_accepted&mobile=eq.'+encodeURIComponent(mAlt)+'&limit=20'),
       sb('queue','GET',null,'select=customer_id,status&checkin_date=eq.'+today()+'&status=in.(waiting,called)&limit=50')
     ]);
     const seen=new Set();
@@ -565,6 +635,12 @@ async function doLookup(){
 
     _alreadyQueued = new Set((queueRows||[]).map(r=>r.customer_id).filter(Boolean));
     _foundKids = kids;
+
+    // Inject consent checkbox for returning customers who haven't consented yet
+    const tcWrap=document.getElementById('lu-tc-wrap');
+    if(tcWrap&&kids.some(k=>!k.tc_accepted)){
+      tcWrap.innerHTML=tcConsentHTML('lu-tc-check',true);
+    }else if(tcWrap){tcWrap.innerHTML='';}
 
     const eligible = kids.filter(k=>!_alreadyQueued.has(k.id));
 
@@ -653,17 +729,34 @@ function updBtn(){
 async function proceedCheckin(){
   if(!_kidsCount){ document.getElementById('kids-count-err').style.display='block'; return; }
   const eligible = _foundKids.filter(k=>!_alreadyQueued.has(k.id));
-  const regKids  = eligible.filter(k=>_selectedKidIds.has(k.id)); // exactly the kids the parent tapped
+  const regKids  = eligible.filter(k=>_selectedKidIds.has(k.id));
   const newCount = (regKids.length >= eligible.length) ? Math.max(0, _kidsCount - eligible.length) : 0;
 
-  // Safety check: parent must have tapped specific kids matching the chosen count
   if(regKids.length + newCount < _kidsCount){
     document.getElementById('kids-count-err').textContent='Please select which child'+(_kidsCount>1?'ren':'')+' is here today 👆';
     document.getElementById('kids-count-err').style.display='block';
     return;
   }
 
-  // Validate hear-about
+  // T&C gate: returning kids without consent get an inline checkbox shown in the panel
+  const unconsented = regKids.filter(k=>!k.tc_accepted);
+  if(unconsented.length > 0){
+    // Show inline consent in the action panel if not already shown
+    const wrap=document.getElementById('lu-tc-wrap');
+    if(wrap&&!wrap.innerHTML){
+      wrap.innerHTML=tcConsentHTML('lu-tc-check', true);
+    }
+    if(!isTCchecked('lu-tc-check')){
+      const err=document.getElementById('lu-tc-check-err');
+      if(err){err.style.display='block';err.scrollIntoView({behavior:'smooth',block:'nearest'});}
+      return;
+    }
+    tcGrantConsent(unconsented.map(k=>k.id));
+  }
+  _proceedCheckinCore(eligible, regKids, newCount);
+}
+
+async function _proceedCheckinCore(eligible, regKids, newCount){
   const needsHear = newCount>0 || regKids.some(c=>!c.heard_via && (Number(c.stamps)||0)===0);
   if(needsHear && !_hearAbout){ document.getElementById('lu-hear-err').style.display='block'; return; }
 
@@ -790,6 +883,7 @@ function setGuestCount(n, btn){
   namesEl.innerHTML = html;
   namesEl.style.display='block';
   document.getElementById('g-svc-wrap').style.display='block';
+  document.getElementById('g-hear-wrap').style.display='block';
   const gb=document.querySelector('#s-guest .btn-y'); if(gb)gb.style.display='block';
 }
 
@@ -810,7 +904,7 @@ async function doGuest(){
 
   try{
     // Reserve tokens only now (at button click)
-    const kidRows = names.map(n=>({customer_id:null, customer_name:n, mobile:null, service:svc, is_guest:true, heard_via:null}));
+    const kidRows = names.map(n=>({customer_id:null, customer_name:n, mobile:null, service:svc, is_guest:true, heard_via:_guestHear||null}));
     const inserted = await reserveTokenBlock(_guestCount, null, kidRows);
     _sel=[];
     refreshStats();
@@ -850,6 +944,10 @@ async function doRegAll(){
   const loc=document.getElementById('rg-loc')?.value||'';
   const msg=document.getElementById('rg-msg');const btn=document.getElementById('rg-btn');
   if(mnum.length!==7){showM(msg,'Valid 7-digit mobile required 📱','err');return;}
+  if(!loc){
+    const e=document.getElementById('rg-loc-err');if(e){e.style.display='block';e.scrollIntoView({behavior:'smooth',block:'nearest'});}
+    return;
+  }
   if(!_regHearAbout){
     const e=document.getElementById('rg-hear-err');if(e){e.style.display='block';e.scrollIntoView({behavior:'smooth',block:'nearest'});}
     return;
@@ -866,6 +964,20 @@ async function doRegAll(){
     kids.push({name,gender:_genders[id]||'boy',dob,svc});
   });
   if(!ok||!kids.length)return;
+
+  // T&C inline checkbox — must be ticked before registration
+  const tcWrap=document.getElementById('rg-tc-wrap');
+  if(tcWrap&&!tcWrap.innerHTML) tcWrap.innerHTML=tcConsentHTML('rg-tc-check', false);
+  if(!isTCchecked('rg-tc-check')){
+    const err=document.getElementById('rg-tc-check-err');
+    if(err){err.style.display='block';err.scrollIntoView({behavior:'smooth',block:'nearest'});}
+    return;
+  }
+
+  _doRegAllCore(mob, par, loc, kids, btn, msg);
+}
+
+async function _doRegAllCore(mob, par, loc, kids, btn, msg){
   if(btn){btn.disabled=true;btn.textContent='Registering...';}
   showM(msg,'Registering...','info');
   try{
@@ -879,7 +991,7 @@ async function doRegAll(){
         if(btn){btn.disabled=false;btn.textContent='Register & Check In ✅';}
         return;
       }
-      const res=await sb('customers','POST',{name:k.name,mobile:mob,parent:par||null,gender:k.gender,dob:k.dob,location:loc||null,stamps:0,redemptions:0,game_points:0,game_spins:0,heard_via:_regHearAbout});
+      const res=await sb('customers','POST',{name:k.name,mobile:mob,parent:par||null,gender:k.gender,dob:k.dob,location:loc||null,stamps:0,redemptions:0,game_points:0,game_spins:0,heard_via:_regHearAbout,tc_accepted:true,tc_accepted_at:new Date().toISOString()});
       const nc=Array.isArray(res)?res[0]:res;if(!nc?.id)throw new Error('Registration failed for '+k.name);
       results.push({customer:nc,svc:k.svc});
     }
