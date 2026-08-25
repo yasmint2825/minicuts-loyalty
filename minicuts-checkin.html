@@ -925,6 +925,14 @@ async function doGuest(){
     if(!v){ showM(msg,'Name required for Child '+(i+1)+' ❌','err'); return; }
     names.push(v);
   }
+
+  // Heard via is mandatory for guests too
+  if(!_guestHear){
+    showM(msg,'Please tell us how you heard about MiNiCUTS 👆','err');
+    document.getElementById('g-hear-wrap')?.scrollIntoView({behavior:'smooth',block:'nearest'});
+    return;
+  }
+
   const svc=document.getElementById('g-svc').value||'Haircut';
   const btn=document.querySelector('#s-guest .btn-y');
   if(btn){btn.disabled=true; btn.textContent='Issuing...';}
