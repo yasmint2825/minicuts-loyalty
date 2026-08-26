@@ -645,8 +645,8 @@ async function doLookup(){
   const mob=getM(); const mAlt='0'+mob.slice(3); const st=document.getElementById('lu-st');
   try{
     const [rA,rB,queueRows]=await Promise.all([
-      sb('customers','GET',null,'select=id,name,mobile,gender,stamps,game_points,heard_via,tc_accepted&mobile=eq.'+encodeURIComponent(mob)+'&limit=20'),
-      sb('customers','GET',null,'select=id,name,mobile,gender,stamps,game_points,heard_via,tc_accepted&mobile=eq.'+encodeURIComponent(mAlt)+'&limit=20'),
+      sb('customers','GET',null,'select=id,name,mobile,gender,stamps,game_points,heard_via,tc_accepted,location&mobile=eq.'+encodeURIComponent(mob)+'&limit=20'),
+      sb('customers','GET',null,'select=id,name,mobile,gender,stamps,game_points,heard_via,tc_accepted,location&mobile=eq.'+encodeURIComponent(mAlt)+'&limit=20'),
       sb('queue','GET',null,'select=customer_id,status&checkin_date=eq.'+today()+'&status=in.(waiting,called)&limit=50')
     ]);
     const seen=new Set();
@@ -830,18 +830,22 @@ async function _proceedCheckinCore(eligible, regKids, newCount){
       if(active&&active.length) throw new Error(c.name+' is already in the queue (Token #'+String(active[0].token_number).padStart(2,'0')+').');
     }
 
-    // Register new kids
+    // Register new kids — inherit location from existing registered sibling
     const newlyRegistered = [];
     if(newKidData.length){
+      // Get location from existing sibling (same phone = same family area)
+      const siblingLoc = regKids.find(c=>c.location)?.location || null;
       // Check for name duplicates under this mobile
-      const existCheck=await sb('customers','GET',null,'select=name&mobile=eq.'+encodeURIComponent(mob)+'&limit=50');
+      const existCheck=await sb('customers','GET',null,'select=name,location&mobile=eq.'+encodeURIComponent(mob)+'&limit=50');
       const existNames=new Set((existCheck||[]).map(c=>c.name.trim().toLowerCase()));
+      // Also try to get location from any existing customer on this phone
+      const locFromDB = siblingLoc || (existCheck||[]).find(c=>c.location)?.location || null;
       for(const k of newKidData){
         if(existNames.has(k.name.trim().toLowerCase())) throw new Error(k.name+' is already registered under this number ❌');
-        const res=await sb('customers','POST',{name:k.name,mobile:mob,parent:null,gender:k.gender,dob:k.dob,stamps:0,redemptions:0,game_points:0,game_spins:0,heard_via:heardVia});
+        const res=await sb('customers','POST',{name:k.name,mobile:mob,parent:null,gender:k.gender,dob:k.dob,location:locFromDB||null,stamps:0,redemptions:0,game_points:0,game_spins:0,heard_via:heardVia,tc_accepted:true,tc_accepted_at:new Date().toISOString()});
         const nc=Array.isArray(res)?res[0]:res;
         if(!nc?.id) throw new Error('Registration failed for '+k.name);
-        newlyRegistered.push({id:nc.id,name:k.name,mobile:mob,stamps:0,game_points:0,heard_via:heardVia});
+        newlyRegistered.push({id:nc.id,name:k.name,mobile:mob,stamps:0,game_points:0,heard_via:heardVia,location:locFromDB});
       }
     }
 
