@@ -307,8 +307,18 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
         <button type="button" class="guest-hear-btn" onclick="setGuestHear(this,'Google')" style="padding:11px 8px;border-radius:10px;border:2px solid var(--border);background:#fff;font-family:var(--fh);font-size:13px;font-weight:800;color:var(--text);cursor:pointer;transition:all .15s;">🔍 Google</button>
         <button type="button" class="guest-hear-btn" onclick="setGuestHear(this,'Walk-in')" style="padding:11px 8px;border-radius:10px;border:2px solid var(--border);background:#fff;font-family:var(--fh);font-size:13px;font-weight:800;color:var(--text);cursor:pointer;transition:all .15s;">🚶 Walk-in</button>
       </div>
+      <div id="g-hear-err" style="display:none;margin-top:6px;font-size:12px;font-weight:700;color:var(--err);">Please select how you heard about us ☝️</div>
     </div>
-    <div id="g-msg" class="sm"></div>
+
+    <!-- Guest location — mandatory -->
+    <div id="g-loc-wrap" style="display:none;" class="fg">
+      <label class="fl">📍 Your area in Dubai *</label>
+      <select class="fi" id="g-loc">
+        <option value="">Select area... *</option>
+        <option>Dubai Silicon Oasis (DSO)</option><option>Academic City</option><option>Al Barsha</option><option>Al Furjan</option><option>Al Karama</option><option>Al Khail Gate</option><option>Al Nahda</option><option>Al Qusais</option><option>Al Warqa</option><option>Arabian Ranches</option><option>Arjan</option><option>Bur Dubai</option><option>Business Bay</option><option>Damac Hills</option><option>Deira</option><option>Discovery Gardens</option><option>Downtown Dubai</option><option>Dubai Creek Harbour</option><option>Dubai Hills Estate</option><option>Dubai Investments Park (DIP)</option><option>Dubai Marina</option><option>Dubai Production City (IMPZ)</option><option>Dubai South / Expo City</option><option>Emirates Hills</option><option>Falcon City</option><option>Green Community</option><option>Greens / Views</option><option>International City</option><option>JBR / JLT</option><option>JVC / JVT</option><option>Jumeirah</option><option>Jumeirah Islands / Park</option><option>Liwan</option><option>Dubailand</option><option>Meydan</option><option>Mirdif</option><option>Motor City</option><option>Muhaisnah</option><option>Nad Al Sheba</option><option>Oud Metha</option><option>Palm Jumeirah</option><option>Rashidiya</option><option>Remraam</option><option>Ras Al Khor</option><option>Sports City</option><option>Springs / Meadows</option><option>Town Square</option><option>Umm Suqeim</option><option>Umm Ramool</option><option>Other / Outside Dubai</option>
+      </select>
+      <div id="g-loc-err" style="display:none;margin-top:5px;font-size:12px;font-weight:700;color:var(--err);">Please select your area ☝️</div>
+    </div>
     <div style="display:flex;gap:9px;margin-top:4px;">
       <button class="btn btn-ghost" onclick="showScr('s-lookup')">← Back</button>
       <button class="btn btn-y" style="flex:1;" onclick="doGuest()">Get Token 🎫</button>
@@ -885,11 +895,17 @@ async function _proceedCheckinCore(eligible, regKids, newCount){
 let _guestCount = 0;
 
 function showGuest(){
-  _guestCount=0;
+  _guestCount=0;_guestHear=null;
   document.querySelectorAll('.g-count-btn').forEach(b=>{b.style.background='#fff';b.style.borderColor='var(--border)';b.style.color='var(--bd)';});
+  document.querySelectorAll('.guest-hear-btn').forEach(b=>{b.style.background='#fff';b.style.borderColor='var(--border)';b.style.color='var(--text)';});
   document.getElementById('g-names').innerHTML='';
   document.getElementById('g-names').style.display='none';
   document.getElementById('g-svc-wrap').style.display='none';
+  document.getElementById('g-hear-wrap').style.display='none';
+  document.getElementById('g-loc-wrap').style.display='none';
+  if(document.getElementById('g-loc'))document.getElementById('g-loc').value='';
+  if(document.getElementById('g-loc-err'))document.getElementById('g-loc-err').style.display='none';
+  if(document.getElementById('g-hear-err'))document.getElementById('g-hear-err').style.display='none';
   document.getElementById('g-count-err').style.display='none';
   const msg=document.getElementById('g-msg'); if(msg)msg.style.display='none';
   const gb=document.querySelector('#s-guest .btn-y'); if(gb)gb.style.display='none';
@@ -915,6 +931,7 @@ function setGuestCount(n, btn){
   namesEl.style.display='block';
   document.getElementById('g-svc-wrap').style.display='block';
   document.getElementById('g-hear-wrap').style.display='block';
+  document.getElementById('g-loc-wrap').style.display='block';
   const gb=document.querySelector('#s-guest .btn-y'); if(gb)gb.style.display='block';
 }
 
@@ -930,12 +947,23 @@ async function doGuest(){
     names.push(v);
   }
 
-  // Heard via is mandatory for guests too
+  // Heard via mandatory
   if(!_guestHear){
     showM(msg,'Please tell us how you heard about MiNiCUTS 👆','err');
+    document.getElementById('g-hear-err').style.display='block';
     document.getElementById('g-hear-wrap')?.scrollIntoView({behavior:'smooth',block:'nearest'});
     return;
   }
+  document.getElementById('g-hear-err').style.display='none';
+
+  // Location mandatory
+  const gLoc=document.getElementById('g-loc')?.value||'';
+  if(!gLoc){
+    document.getElementById('g-loc-err').style.display='block';
+    document.getElementById('g-loc-wrap')?.scrollIntoView({behavior:'smooth',block:'nearest'});
+    return;
+  }
+  document.getElementById('g-loc-err').style.display='none';
 
   const svc=document.getElementById('g-svc').value||'Haircut';
   const btn=document.querySelector('#s-guest .btn-y');
@@ -943,7 +971,7 @@ async function doGuest(){
 
   try{
     // Reserve tokens only now (at button click)
-    const kidRows = names.map(n=>({customer_id:null, customer_name:n, mobile:null, service:svc, is_guest:true, heard_via:_guestHear||null}));
+    const kidRows = names.map(n=>({customer_id:null, customer_name:n, mobile:null, service:svc, is_guest:true, heard_via:_guestHear||null, location:gLoc}));
     const inserted = await reserveTokenBlock(_guestCount, null, kidRows);
     _sel=[];
     refreshStats();
