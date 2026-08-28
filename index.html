@@ -462,15 +462,36 @@ async function archiveCycle(customerId,stamps,firstStampDate,expiryDate,endedBy)
 </script>
 
 <!-- CUSTOMER PAGE -->
-<div id="CP" style="display:none;">
-  <div class="cp"><div class="cw">
-    <div style="text-align:center;margin-bottom:22px;">
-      <div style="font-size:50px;">🐼</div>
-      <div style="font-family:'Baloo 2',cursive;font-size:25px;font-weight:800;color:#0D47A1;">MiniCuts</div>
-      <div style="color:#6B7280;font-size:13px;">Kids &amp; Teens Salon · Dubai Silicon Oasis</div>
+<div id="CP" style="display:none;min-height:100svh;background:#0A0F1E;font-family:'Baloo 2',cursive;position:relative;overflow-x:hidden;">
+  <!-- Background glow effects -->
+  <div style="position:fixed;top:-120px;left:-80px;width:320px;height:320px;background:radial-gradient(circle,rgba(255,214,0,.12) 0%,transparent 70%);pointer-events:none;"></div>
+  <div style="position:fixed;top:40%;right:-100px;width:260px;height:260px;background:radial-gradient(circle,rgba(21,101,192,.25) 0%,transparent 70%);pointer-events:none;"></div>
+  <!-- Scrollable content -->
+  <div style="padding:32px 16px 120px;max-width:440px;margin:0 auto;">
+    <!-- Header -->
+    <div style="text-align:center;padding:0 0 24px;">
+      <div style="display:inline-flex;align-items:center;justify-content:center;width:64px;height:64px;background:linear-gradient(135deg,#FFD600,#FF8C00);border-radius:18px;font-size:32px;margin-bottom:12px;box-shadow:0 8px 32px rgba(255,214,0,.3);">🐼</div>
+      <div style="font-size:26px;font-weight:900;color:#fff;letter-spacing:-.5px;line-height:1;">MiNiCUTS</div>
+      <div style="font-size:11px;font-weight:700;color:rgba(255,255,255,.4);letter-spacing:.2em;text-transform:uppercase;margin-top:4px;">Loyalty Passport · Dubai Silicon Oasis</div>
     </div>
     <div id="CPA"></div>
-  </div></div>
+  </div>
+  <!-- Sticky mobile input at bottom -->
+  <div style="position:fixed;bottom:0;left:0;right:0;z-index:100;background:rgba(10,15,30,.95);backdrop-filter:blur(20px);border-top:1px solid rgba(255,255,255,.08);padding:14px 16px;padding-bottom:max(14px,env(safe-area-inset-bottom));">
+    <div style="max-width:440px;margin:0 auto;">
+      <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.15em;margin-bottom:8px;">Enter mobile to check stamps</div>
+      <div style="display:flex;gap:8px;">
+        <div style="display:flex;align-items:center;background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.12);border-radius:12px;padding:0 12px;flex:1;transition:border-color .2s;" onfocus="this.style.borderColor='rgba(255,214,0,.5)'" onblur="this.style.borderColor='rgba(255,255,255,.12)'">
+          <span style="color:rgba(255,255,255,.4);font-size:13px;font-weight:700;white-space:nowrap;margin-right:6px;">+971</span>
+          <input id="CML" type="tel" inputmode="numeric" maxlength="9" placeholder="55 123 4567"
+            style="background:none;border:none;outline:none;color:#fff;font-size:17px;font-weight:700;padding:13px 0;width:100%;font-family:'Baloo 2',cursive;letter-spacing:.03em;"
+            onkeydown="if(event.key==='Enter')custLookup()"
+            oninput="this.value=this.value.replace(/\D/g,'')">
+        </div>
+        <button onclick="custLookup()" style="background:linear-gradient(135deg,#FFD600,#FFB300);color:#0A0F1E;font-weight:900;font-size:14px;border:none;border-radius:12px;padding:13px 20px;cursor:pointer;white-space:nowrap;font-family:'Baloo 2',cursive;letter-spacing:.03em;box-shadow:0 4px 20px rgba(255,214,0,.3);">Check ✦</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- LOGIN -->
@@ -1856,17 +1877,27 @@ async function archiveCycle(customerId,stamps,firstStampDate,expiryDate,endedBy)
     document.getElementById('CP').style.display='block';
     const lookupMobile=p.get('lookup')||'';
     if(lookupMobile){
-      // Came via personalised link (from WhatsApp/staff) — remember it
       localStorage.setItem('mc_cust_mobile',lookupMobile);
-      renderCP(lookupMobile);
+      // Pre-fill the CML input and auto-click Check — exactly like a human tapping "Check stamps →"
+      buildLookup('');
+      const digits=lookupMobile.replace(/\D/g,'');
+      const nine=digits.startsWith('971')?digits.slice(3):digits.startsWith('0')?digits.slice(1):digits;
+      setTimeout(()=>{
+        const inp=document.getElementById('CML');
+        if(inp){inp.value=nine;custLookup();}
+      },200);
     } else {
-      // ?customer=1 only — check if previously logged in
       const savedMobile=localStorage.getItem('mc_cust_mobile')||'';
       if(savedMobile){
-        // Auto-restore — no need to re-enter number
-        renderCP(savedMobile);
+        buildLookup('');
+        const digits=savedMobile.replace(/\D/g,'');
+        const nine=digits.startsWith('971')?digits.slice(3):digits.startsWith('0')?digits.slice(1):digits;
+        setTimeout(()=>{
+          const inp=document.getElementById('CML');
+          if(inp){inp.value=nine;custLookup();}
+        },200);
       } else {
-        renderCP('');
+        buildLookup('');
       }
     }
     return;
@@ -3241,15 +3272,21 @@ async function loadGameRanks(customers){
 
 async function renderCP(prefMobile){
   const area=document.getElementById('CPA');
+  // Normalise mobile — handle 0551234567 and +971551234567 and 971551234567
   if(prefMobile){
-    area.innerHTML='<div class="load"><div class="spin"></div></div>';
+    // Strip non-digits
+    const digits=prefMobile.replace(/\D/g,'');
+    // Build both formats to try
+    let m971=digits, m0=digits;
+    if(digits.startsWith('971'))  { m971=digits; m0='0'+digits.slice(3); }
+    else if(digits.startsWith('0')){ m0=digits;   m971='971'+digits.slice(1); }
+    else                           { m0='0'+digits; m971='971'+digits; }
+
+    area.innerHTML='<div style="display:flex;justify-content:center;padding:40px;"><div class="spin" style="width:32px;height:32px;border:3px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin 1s linear infinite;"></div></div>';
     try{
-      // Always fetch ALL children under this mobile — ignore gender filter
-      // This ensures families with multiple kids all see their passports
-      const prefMobileAlt='0'+prefMobile.slice(3);
       const [rA,rB]=await Promise.all([
-        sb('customers','GET',null,'select=*&mobile=eq.'+encodeURIComponent(prefMobile)+'&order=name.asc'),
-        sb('customers','GET',null,'select=*&mobile=eq.'+encodeURIComponent(prefMobileAlt)+'&order=name.asc')
+        sb('customers','GET',null,'select=*&mobile=eq.'+encodeURIComponent(m971)+'&order=name.asc'),
+        sb('customers','GET',null,'select=*&mobile=eq.'+encodeURIComponent(m0)+'&order=name.asc')
       ]);
       const seenIds=new Set();
       const res=[...(rA||[]),...(rB||[])].filter(c=>{if(seenIds.has(c.id))return false;seenIds.add(c.id);return true;});
@@ -3258,12 +3295,10 @@ async function renderCP(prefMobile){
           const visits=await sb('visits','GET',null,'select=*&customer_id=eq.'+c.id+'&order=created_at.desc');
           return buildCard(c)+buildCustomerHistory(visits,c);
         }));
-        // Build lookup HTML without auto-writing (pass skipWrite=true via temp override)
         const lookupHtml=buildLookupHtml('');
         area.innerHTML=parts.join('<div style="height:14px;"></div>')+lookupHtml+buildFooter();
-        // Attach enter key listener
         setTimeout(()=>{const cml=document.getElementById('CML');if(cml){cml.addEventListener('keydown',function(e){if(e.key==='Enter')custLookup();});}},50);
-        loadGameRanks(res); // load game rankings
+        loadGameRanks(res);
       } else{area.innerHTML=buildRegister(prefMobile)+buildFooter();}
     }catch(e){area.innerHTML='<div style="color:red;padding:20px;">Error: '+e.message+'</div>';}
     return;
@@ -3275,50 +3310,66 @@ function buildCard(c){
   const st=c.stamps||0;const exp=isExp(c);const d=dLeft(c);
   const pN=paidNeeded();
   const pct=Math.min(Math.round((st/pN)*100),100);
-  let circles='';
-  for(let i=0;i<pN;i++) circles+=`<div class="cs3 ${i<st?'on':''}">${i<st?'🐼':'✦'}</div>`;
-  const rem=pN-st;
-  const cta=exp?'Passport expired — visit us to renew!':st===0?'Start collecting! Every haircut = 1 stamp 🐼':st>=pN?'🎉 Your free hair wash is ready! Show this to your stylist.':rem===1?'Just 1 more stamp → your Free Hair Wash 🚿 is almost ready!':rem+' more stamps → Free Hair Wash 🚿!';
-  return`<div class="ccard">
-    <div style="display:flex;align-items:center;gap:11px;margin-bottom:16px;">
-      <div style="width:44px;height:44px;background:var(--y);border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:22px;">🐼</div>
-      <div><div style="font-family:'Baloo 2',cursive;font-size:18px;font-weight:800;">${c.name}</div><div style="font-size:12px;opacity:.7;">MiniCuts Loyalty Passport · ${c.gender==='girl'?'👧 Girl':'👦 Boy'}</div></div>
-    </div>
-    <div style="display:flex;justify-content:center;gap:9px;margin:18px 0;flex-wrap:wrap;align-items:center;">${circles}
-      <div style="color:rgba(255,255,255,.4);font-size:14px;margin:0 2px;">→</div>
-      <div class="cs3 free" style="${st>=pN?'box-shadow:0 0 24px rgba(255,214,0,.9);transform:scale(1.1);':'opacity:.55;border-style:dashed;'}">${st>=CFG.stampsNeeded?'🎁':'🎁'}</div>
-    </div>
-    <div style="display:flex;justify-content:center;gap:0;margin:-8px 0 10px;">
-      ${Array.from({length:pN},(_,i)=>`<div style="font-size:9px;width:54px;text-align:center;color:rgba(255,255,255,${i<st?'.9':'.35'});">${i<st?'✓':''}</div>`).join('')}
-      <div style="width:8px;"></div>
-      <div style="font-size:9px;width:62px;text-align:center;color:rgba(255,255,255,${st>=pN?'.9':'.45'});font-weight:700;">FREE✂️</div>
-    </div>
-    <div style="height:7px;background:rgba(255,255,255,.15);border-radius:99px;overflow:hidden;margin-bottom:9px;"><div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#FFD600,#FF8C00);border-radius:99px;"></div></div>
-    <div style="text-align:center;font-size:14.5px;font-weight:800;margin-bottom:4px;">${cta}</div>
-    ${c.expiry_date&&!exp?`<div style="text-align:center;font-size:11.5px;opacity:.65;">Valid until ${fmtDate(c.expiry_date)}${d!==null&&d<=60?' · '+d+' days left':''}</div>`:''}
-    <div style="background:rgba(255,255,255,.12);border-radius:10px;padding:11px;text-align:center;font-size:12px;opacity:.85;margin-top:14px;">✂️ Every paid haircut = 1 stamp &nbsp;·&nbsp; 🎁 After ${pN} stamps your <strong>visit ${CFG.stampsNeeded} = <strong>Free Hair Wash 🚿</strong>!</div>
-    ${(c.game_points||0)>0?`
-    <div style="background:rgba(255,255,255,.15);border-radius:10px;padding:12px;margin-top:10px;">
-      <div style="font-size:12px;font-weight:800;color:rgba(255,255,255,.8);margin-bottom:8px;text-align:center;">🎮 Game Zone Points</div>
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-        <span style="font-family:'Baloo 2',cursive;font-size:28px;font-weight:900;color:#FFD600;">${c.game_points} pts</span>
-        <span id="rank_${c.id}" style="font-size:13px;color:rgba(255,255,255,.7);">loading rank...</span>
+  const free=st>=pN;
+  const rem=Math.max(0,pN-st);
+  const cta=exp?'Passport expired — visit us to renew!':free?'🎉 Free Hair Wash ready — show this to your stylist!':rem===1?'Just 1 more stamp → Free Hair Wash 🚿':rem+' more haircut'+(rem>1?'s':'')+' → Free Hair Wash 🚿';
+  const genderIcon=c.gender==='girl'?'👧':'👦';
+  // Stamp dots
+  const dots=Array.from({length:pN},(_,i)=>{
+    const filled=i<st;
+    return`<div style="width:42px;height:42px;border-radius:50%;background:${filled?'linear-gradient(135deg,#FFD600,#FF8C00)':'rgba(255,255,255,.08)'};border:${filled?'none':'1.5px solid rgba(255,255,255,.15)'};display:flex;align-items:center;justify-content:center;font-size:${filled?'18':'13'}px;color:${filled?'#0A0F1E':'rgba(255,255,255,.25)'};transition:all .3s;box-shadow:${filled?'0 4px 16px rgba(255,214,0,.35)':'none'};">${filled?'🐼':'✦'}</div>`;
+  }).join('');
+
+  return`<div style="background:linear-gradient(145deg,#141C35,#1A2540);border:1px solid rgba(255,255,255,.08);border-radius:24px;overflow:hidden;margin-bottom:12px;box-shadow:0 24px 60px rgba(0,0,0,.5);">
+    <!-- Card top strip -->
+    <div style="background:linear-gradient(135deg,#FFD600 0%,#FF8C00 100%);padding:3px 0;"></div>
+    <!-- Card header -->
+    <div style="padding:20px 20px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.07);">
+      <div>
+        <div style="font-size:20px;font-weight:900;color:#fff;letter-spacing:-.3px;">${c.name}</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.4);font-weight:700;letter-spacing:.08em;margin-top:2px;">${genderIcon} LOYALTY PASSPORT</div>
       </div>
-      <div style="position:relative;height:32px;margin:4px 0 6px;">
-        <div style="position:absolute;top:14px;left:0;right:0;height:6px;background:rgba(255,255,255,.15);border-radius:99px;"></div>
-        <div style="position:absolute;top:14px;left:0;width:${Math.min(((c.game_points||0)/150)*100,100)}%;height:6px;background:linear-gradient(90deg,#FFD600,#FF8C00);border-radius:99px;box-shadow:0 0 8px rgba(255,214,0,.5);"></div>
+      <div style="text-align:right;">
+        <div style="font-size:28px;font-weight:900;color:#FFD600;line-height:1;">${st}<span style="font-size:14px;color:rgba(255,255,255,.3);font-weight:700;">/${pN}</span></div>
+        <div style="font-size:9px;color:rgba(255,255,255,.35);letter-spacing:.1em;text-transform:uppercase;">STAMPS</div>
+      </div>
+    </div>
+    <!-- Stamp dots -->
+    <div style="padding:20px 20px 16px;">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:16px;">${dots}
+        <div style="width:42px;height:42px;border-radius:50%;background:${free?'linear-gradient(135deg,#FFD600,#FF8C00)':'rgba(255,255,255,.05)'};border:${free?'none':'2px dashed rgba(255,255,255,.15)'};display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:${free?'0 4px 24px rgba(255,214,0,.5)':'none'};transform:${free?'scale(1.1)':'scale(1)'};">🎁</div>
+      </div>
+      <!-- Progress bar -->
+      <div style="background:rgba(255,255,255,.07);border-radius:99px;height:6px;overflow:hidden;margin-bottom:10px;">
+        <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#FFD600,#FF8C00);border-radius:99px;box-shadow:0 0 12px rgba(255,214,0,.4);transition:width .6s ease;"></div>
+      </div>
+      <!-- CTA -->
+      <div style="text-align:center;font-size:${free?'15':'13.5'}px;font-weight:800;color:${free?'#FFD600':'rgba(255,255,255,.85)'};line-height:1.4;">${cta}</div>
+      ${c.expiry_date&&!exp?`<div style="text-align:center;font-size:11px;color:rgba(255,255,255,.3);margin-top:6px;letter-spacing:.03em;">Valid until ${fmtDate(c.expiry_date)}${d!==null&&d<=60?' · <span style="color:#FF8C00;">'+d+' days left</span>':''}</div>`:''}
+    </div>
+    <!-- Footer strip -->
+    <div style="background:rgba(255,255,255,.04);border-top:1px solid rgba(255,255,255,.06);padding:12px 20px;display:flex;align-items:center;justify-content:space-between;">
+      <div style="font-size:11px;color:rgba(255,255,255,.3);letter-spacing:.05em;">✂️ 1 HAIRCUT = 1 STAMP</div>
+      <div style="font-size:11px;color:rgba(255,255,255,.3);">🚿 AFTER ${pN} = FREE WASH</div>
+    </div>
+    ${(c.game_points||0)>0?`
+    <!-- Game points -->
+    <div style="padding:16px 20px;border-top:1px solid rgba(255,255,255,.06);">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <div style="font-size:12px;font-weight:800;color:rgba(255,255,255,.5);letter-spacing:.1em;text-transform:uppercase;">🎮 Game Points</div>
+        <div style="font-family:'Baloo 2',cursive;font-size:22px;font-weight:900;color:#FFD600;">${c.game_points}<span style="font-size:11px;color:rgba(255,255,255,.3);font-weight:700;"> pts</span></div>
+      </div>
+      <div style="position:relative;height:28px;">
+        <div style="position:absolute;top:12px;left:0;right:0;height:4px;background:rgba(255,255,255,.08);border-radius:99px;"></div>
+        <div style="position:absolute;top:12px;left:0;width:${Math.min(((c.game_points||0)/150)*100,100)}%;height:4px;background:linear-gradient(90deg,#FFD600,#FF8C00);border-radius:99px;"></div>
         ${[{pts:50,icon:'🍭'},{pts:100,icon:'🎁'},{pts:150,icon:'🚿'}].map(t=>{
           const left=(t.pts/150)*100;
           const done=(c.game_points||0)>=t.pts;
-          return`<div style="position:absolute;top:2px;left:calc(${left}% - 10px);font-size:16px;filter:${done?'none':'grayscale(1) opacity(.3)'};">${t.icon}</div>`;
+          return`<div style="position:absolute;top:0;left:calc(${left}% - 10px);font-size:16px;opacity:${done?1:.25};">${t.icon}</div>`;
         }).join('')}
-        <div style="position:absolute;top:2px;left:calc(${Math.min(((c.game_points||0)/150)*100,93)}% - 10px);font-size:16px;">🐼</div>
       </div>
-      <div style="font-size:11px;color:rgba(255,255,255,.6);text-align:center;">
-        ${(c.game_points||0)>=150?'🎉 All rewards unlocked!':
-          (c.game_points||0)>=100?`${150-(c.game_points||0)} more pts → 🚿 Free Hair Wash`:
-          (c.game_points||0)>=50?`${100-(c.game_points||0)} more pts → 🎁 Surprise Gift`:
-          `${50-(c.game_points||0)} more pts → 🍭 Lollipop`}
+      <div style="font-size:11px;color:rgba(255,255,255,.3);text-align:center;margin-top:4px;">
+        ${(c.game_points||0)>=150?'🎉 All rewards unlocked!':(c.game_points||0)>=100?`${150-(c.game_points||0)} pts → 🚿 Free Wash`:(c.game_points||0)>=50?`${100-(c.game_points||0)} pts → 🎁 Surprise Gift`:`${50-(c.game_points||0)} pts → 🍭 Lollipop`}
       </div>
     </div>`:''}
   </div>`;
@@ -3335,31 +3386,28 @@ function buildCustomerHistory(visits,c){
   const histRows=visits.map(v=>{
     const isPaid=v.type==='paid';const isFree=v.type==='free';
     if(!isPaid&&!isFree) return '';
-    const icon=isFree?'🎁':'✂️';
-    const label=isFree?'Free Hair Wash Redeemed 🚿':'Paid Haircut';
-    const bg=isFree?'#FFF9D6':'#E3F0FF';
-    const col=isFree?'#92400E':'#1565C0';
-    const badge=isFree?'🎁 Free':'✂️ Paid';
-    return `<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #F3F4F6;">
-      <div style="width:32px;height:32px;border-radius:50%;background:${bg};display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;">${icon}</div>
-      <div style="flex:1;"><div style="font-size:13.5px;font-weight:700;color:#1A1A2E;">${label}</div>
-      <div style="font-size:11.5px;color:#6B7280;">${fmtDateTime(v.created_at)}</div></div>
-      <span style="font-size:11px;font-weight:700;padding:3px 9px;border-radius:99px;background:${bg};color:${col};">${badge}</span>
+    return `<div style="display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid rgba(255,255,255,.05);">
+      <div style="width:36px;height:36px;border-radius:10px;background:${isFree?'rgba(255,214,0,.15)':'rgba(255,255,255,.07)'};display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">${isFree?'🎁':'✂️'}</div>
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:700;color:${isFree?'#FFD600':'rgba(255,255,255,.85)'};">${isFree?'Free Hair Wash Redeemed':'Paid Haircut'}</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.3);margin-top:2px;">${fmtDateTime(v.created_at)}</div>
+      </div>
+      <span style="font-size:10px;font-weight:800;padding:3px 9px;border-radius:99px;background:${isFree?'rgba(255,214,0,.15)':'rgba(255,255,255,.08)'};color:${isFree?'#FFD600':'rgba(255,255,255,.5)'};letter-spacing:.05em;">${isFree?'FREE':'STAMP'}</span>
     </div>`;
   }).filter(Boolean).join('');
 
-  return `<div class="cbox" style="margin-top:0;border-radius:0 0 18px 18px;padding-top:0;">
-    <div onclick="toggleCustHist('${uid}')" style="padding:14px 0 12px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;">
+  return `<div style="background:linear-gradient(145deg,#141C35,#1A2540);border:1px solid rgba(255,255,255,.08);border-radius:24px;overflow:hidden;margin-bottom:12px;">
+    <div onclick="toggleCustHist('${uid}')" style="padding:16px 20px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;">
       <div>
-        <div style="font-family:'Baloo 2',cursive;font-size:15px;font-weight:800;color:#1A1A2E;">Your Visit History</div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;">
-          <div style="background:#E3F0FF;border-radius:99px;padding:4px 10px;font-size:11px;font-weight:700;color:#1565C0;">✂️ ${totalStamps} paid</div>
-          <div style="background:#FFF9D6;border-radius:99px;padding:4px 10px;font-size:11px;font-weight:700;color:#92400E;">🎁 ${totalFree} free</div>
+        <div style="font-size:13px;font-weight:800;color:rgba(255,255,255,.7);letter-spacing:.05em;text-transform:uppercase;">Visit History</div>
+        <div style="display:flex;gap:8px;margin-top:6px;">
+          <span style="background:rgba(255,255,255,.07);border-radius:99px;padding:3px 10px;font-size:11px;font-weight:700;color:rgba(255,255,255,.5);">✂️ ${totalStamps} paid</span>
+          ${totalFree?`<span style="background:rgba(255,214,0,.12);border-radius:99px;padding:3px 10px;font-size:11px;font-weight:700;color:#FFD600;">🎁 ${totalFree} free</span>`:''}
         </div>
       </div>
-      <div id="${uid}_arrow" style="font-size:18px;color:#6B7280;transition:transform .3s;">▾</div>
+      <div id="${uid}_arrow" style="font-size:16px;color:rgba(255,255,255,.25);transition:transform .3s;">▾</div>
     </div>
-    <div id="${uid}" style="display:none;border-top:1px solid #F3F4F6;padding-top:6px;">
+    <div id="${uid}" style="display:none;border-top:1px solid rgba(255,255,255,.06);padding:4px 20px 12px;">
       ${histRows}
     </div>
   </div>`;
@@ -3425,11 +3473,21 @@ function buildLookupHtml(msg){
 }
 
 function buildLookup(msg){
-  const html=buildLookupHtml(msg);
-  const cp=document.getElementById('CPA')||document.getElementById('CP');
-  if(cp) cp.innerHTML=html;
-  setTimeout(()=>{const cml=document.getElementById('CML');if(cml){cml.focus();cml.addEventListener('keydown',function(e){if(e.key==='Enter')custLookup();});}},50);
-  return html;
+  // With new layout, input is always visible at bottom — just focus it
+  const area=document.getElementById('CPA');
+  if(area&&!area.innerHTML.trim()){
+    area.innerHTML=`<div style="text-align:center;padding:60px 20px;">
+      <div style="font-size:56px;margin-bottom:16px;opacity:.6;">🎖️</div>
+      <div style="font-size:20px;font-weight:900;color:#fff;margin-bottom:8px;letter-spacing:-.3px;">Your Loyalty Passport</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.35);line-height:1.6;">Enter your mobile number below<br>to view your stamps and rewards</div>
+    </div>`;
+  }
+  setTimeout(()=>{const cml=document.getElementById('CML');if(cml)cml.focus();},100);
+  return '';
+}
+
+function buildFooter(){
+  return`<div style="text-align:center;padding:20px 0 8px;font-size:11px;color:rgba(255,255,255,.2);letter-spacing:.05em;">📍 Dubai Silicon Oasis &nbsp;·&nbsp; ⭐ Highly Rated<br><a href="https://www.instagram.com/minicutsdso/" target="_blank" style="color:rgba(255,255,255,.3);font-weight:700;text-decoration:none;margin-top:4px;display:inline-block;">@minicutsdso ↗</a></div>`;
 }
 
 function buildRegister(pf=''){
@@ -3457,13 +3515,6 @@ function buildRegister(pf=''){
   </div>`;
 }
 
-function buildFooter(){
-  return`<div style="text-align:center;padding:18px 0;font-size:12px;color:#6B7280;">
-    📍 Dubai Silicon Oasis &nbsp;·&nbsp; ⭐ 4.9 Google Rating · Highly Rated<br>
-    <a href="https://www.instagram.com/minicutsdso/" target="_blank" style="color:#1565C0;font-weight:700;text-decoration:none;margin-top:4px;display:inline-block;">@minicutsdso ↗</a>
-  </div>`;
-}
-
 let crG='boy';
 function setCRG(g){crG=g;document.getElementById('CRB').classList.toggle('active',g==='boy');document.getElementById('CRG2').classList.toggle('active',g==='girl');}
 function showReg(){
@@ -3478,18 +3529,23 @@ function showLookup(){
 }
 
 async function custLookup(){
-  const rawNum=((document.getElementById('CML'))?.value||'').trim().replace(/\D/g,'');
-  if(!rawNum||rawNum.length<7) return;
-  const phone=getPhone('CML_PFX','CML');
+  const rawNum=(document.getElementById('CML')?.value||'').trim().replace(/\D/g,'');
+  if(!rawNum||rawNum.length<7){
+    const inp=document.getElementById('CML');
+    if(inp){inp.style.borderColor='#FF5252';setTimeout(()=>inp.style.borderColor='',1500);}
+    return;
+  }
+  // Normalise to both formats
+  const digits=rawNum.replace(/^0+/,'');
+  const m971='971'+digits;
+  const m0='0'+digits;
   const area=document.getElementById('CPA');
-  area.innerHTML='<div class="load"><div class="spin"></div></div>';
+  area.innerHTML='<div style="display:flex;justify-content:center;padding:40px;"><div style="width:32px;height:32px;border:3px solid rgba(255,255,255,.3);border-top-color:#FFD600;border-radius:50%;animation:spin 1s linear infinite;"></div></div>';
   try{
-    localStorage.setItem('mc_cust_mobile',phone);
-    // Fetch ALL children under this mobile number, sorted by name
-    const phoneAlt2='0'+phone.slice(3);
+    localStorage.setItem('mc_cust_mobile',m971);
     const [sA,sB]=await Promise.all([
-      sb('customers','GET',null,'select=*&mobile=eq.'+encodeURIComponent(phone)+'&order=name.asc'),
-      sb('customers','GET',null,'select=*&mobile=eq.'+encodeURIComponent(phoneAlt2)+'&order=name.asc')
+      sb('customers','GET',null,'select=*&mobile=eq.'+encodeURIComponent(m971)+'&order=name.asc'),
+      sb('customers','GET',null,'select=*&mobile=eq.'+encodeURIComponent(m0)+'&order=name.asc')
     ]);
     const seenS=new Set();
     const res=[...(sA||[]),...(sB||[])].filter(c=>{if(seenS.has(c.id))return false;seenS.add(c.id);return true;});
@@ -3498,12 +3554,16 @@ async function custLookup(){
         const visits=await sb('visits','GET',null,'select=*&customer_id=eq.'+c.id+'&order=created_at.desc');
         return buildCard(c)+buildCustomerHistory(visits,c);
       }));
-      const lookupHtml=buildLookupHtml('');
-      area.innerHTML=parts.join('<div style="height:14px;"></div>')+lookupHtml+buildFooter();
-      setTimeout(()=>{const cml=document.getElementById('CML');if(cml) cml.addEventListener('keydown',function(e){if(e.key==='Enter')custLookup();});},50);
-      loadGameRanks(res); // load game rankings
-    } else{area.innerHTML=buildLookupHtml('No passport found for this number.')+buildRegister(phone)+buildFooter();}
-  }catch(e){area.innerHTML=buildLookupHtml('Error: '+e.message)+buildFooter();}
+      area.innerHTML=parts.join('<div style="height:14px;"></div>')+buildFooter();
+      loadGameRanks(res);
+    } else{
+      area.innerHTML=`<div style="text-align:center;padding:40px 20px;">
+        <div style="font-size:44px;margin-bottom:14px;opacity:.5;">🐼</div>
+        <div style="font-size:16px;font-weight:800;color:#fff;margin-bottom:8px;">No passport found</div>
+        <div style="font-size:13px;color:rgba(255,255,255,.35);">Check your number or register at the salon counter.</div>
+      </div>`+buildFooter();
+    }
+  }catch(e){area.innerHTML='<div style="color:#FF5252;padding:20px;text-align:center;">Error: '+e.message+'</div>';}
 }
 
 async function custRegister(){
