@@ -689,20 +689,21 @@ async function loadQ(){
   const body=document.getElementById('qt-body');
   if(body) body.innerHTML='<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--muted);">Loading...</td></tr>';
   try{
-    const rows=await sb('queue','GET',null,'select=*&checkin_date=eq.'+today()+'&order=token_number.asc&limit=200');
+    const needsCusts=Object.keys(_custMap).length===0;
+    const needsPrizes=Object.keys(_prizesMap).length===0;
+    const [rows,custs,prizes]=await Promise.all([
+      sb('queue','GET',null,'select=*&checkin_date=eq.'+today()+'&order=token_number.asc&limit=200'),
+      needsCusts?sb('customers','GET',null,'select=id,name,stamps,game_points,expiry_date,gender,parent,mobile,heard_via,location&limit=2000'):Promise.resolve(null),
+      needsPrizes?sb('prizes_given','GET',null,'select=*&limit=1000').catch(()=>[]):Promise.resolve(null)
+    ]);
     _qdata=rows||[];
-    // Enrich with customer loyalty data
-    await enrichCustomerData();
-    populateStyFilter();
-    renderQ();
-    renderHist();
-    updateStats();
-    if(!_qdata.length && body){
-      body.innerHTML='<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--muted);">No check-ins yet today 🐼<br><span style="font-size:12px;">Customers will appear here when they check in</span></td></tr>';
-    }
+    if(custs){_custMap={};(custs||[]).forEach(c=>{_custMap[c.id]=c;});}
+    if(prizes){_prizesMap={};(prizes||[]).forEach(p=>{if(!_prizesMap[p.customer_id])_prizesMap[p.customer_id]=[];_prizesMap[p.customer_id].push(p);});}
+    populateStyFilter();renderQ();renderHist();updateStats();
+    if(!_qdata.length&&body)body.innerHTML='<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--muted);">No check-ins yet today 🐼<br><span style="font-size:12px;">Customers will appear here when they check in</span></td></tr>';
   }catch(e){
     toast('Error: '+e.message,'err');
-    if(body) body.innerHTML='<tr><td colspan="8" style="text-align:center;padding:30px;"><div style="color:var(--err);font-weight:700;margin-bottom:8px;">❌ Failed to load queue</div><div style="color:var(--muted);font-size:12px;margin-bottom:12px;">'+e.message+'</div></td></tr>';
+    if(body)body.innerHTML='<tr><td colspan="8" style="text-align:center;padding:30px;"><div style="color:var(--err);font-weight:700;margin-bottom:8px;">❌ Failed to load queue</div><div style="color:var(--muted);font-size:12px;">'+e.message+'</div></td></tr>';
     console.error('loadQ error:',e);
   }
 }
@@ -1170,15 +1171,22 @@ async function updF(id,field,value){
   catch(e){toast('Update error: '+e.message,'err');}
 }
 async function updS(id,status){
+  // Update local state + re-render IMMEDIATELY — no waiting for DB
+  const r=_qdata.find(x=>x.id===id);
+  const prevStatus=r?.status;
+  if(r){r.status=status;if(status==='called')r.called_at=new Date().toISOString();}
+  renderQ();renderHist();updateStats();
+  // Fire DB in background
   try{
     const patch={status};
-    if(status==='called') patch.called_at=new Date().toISOString();
+    if(status==='called')patch.called_at=new Date().toISOString();
     await sb('queue','PATCH',patch,'id=eq.'+id);
-    const r=_qdata.find(x=>x.id===id);
-    if(r){r.status=status;if(patch.called_at)r.called_at=patch.called_at;}
-    renderQ();renderHist();updateStats();
+  }catch(e){
+    toast('Sync error: '+e.message,'err');
+    // Revert local on failure
+    if(r)r.status=prevStatus;
+    renderQ();updateStats();
   }
-  catch(e){toast('Error: '+e.message,'err');}
 }
 async function cancelToken(id,name){
   if(!confirm('Remove '+name+' from the queue? (They left before haircut)')) return;
@@ -1200,7 +1208,6 @@ async function markDone(qid,cid,name,mob){
   const tip=tipInput?.value?Number(tipInput.value):null;
   const service_value=svcValInput?.value?Number(svcValInput.value):null;
   const payment_type=pmtSelect?.value||null;
-  // Validation: AED and payment type are required
   if(!service_value){
     if(svcValInput){svcValInput.style.borderColor='var(--err)';svcValInput.focus();}
     toast('Enter AED value before stamping ❌','err');return;
@@ -1213,35 +1220,49 @@ async function markDone(qid,cid,name,mob){
   const stylist=qRow?.stylist||null;
   const stylist2=qRow?.stylist2||null;
   const doneBtn=row?.querySelector('.btn-g');if(doneBtn){doneBtn.disabled=true;doneBtn.textContent='...';}
+
+  // Update local state immediately so UI feels instant
+  if(qRow){qRow.status='done';qRow.remark=remark;qRow.tip=tip;qRow.service_value=service_value;qRow.payment_type=payment_type;}
+  renderQ();renderHist();updateStats();
+
   try{
-    await sb('queue','PATCH',{status:'done',done_at:new Date().toISOString(),remark,tip,service_value,payment_type},'id=eq.'+qid);
-    if(cid&&cid!=='null'&&cid){
-      const rows=await sb('customers','GET',null,'select=*&id=eq.'+cid);
-      if(rows?.length){
-        const c=rows[0];
-        // Same-day stamp guard — check visits table for a stamp already today
-        const todayStr=new Date().toISOString().split('T')[0];
-        const todayVisits=await sb('visits','GET',null,'select=id&customer_id=eq.'+cid+'&type=eq.paid&created_at=gte.'+todayStr+'T00:00:00&limit=1');
-        if(todayVisits&&todayVisits.length){
-          toast(name+' already stamped today — cannot add a second stamp on the same day ⚠️','err');
-          if(doneBtn){doneBtn.disabled=false;doneBtn.textContent='✅ Done+Stamp';}
-          return;
-        }
-        const ns=(c.stamps||0)+1;const now=new Date().toISOString();
-        const months=c.gender==='girl'?girlMonths():boyMonths();
-        const fs=c.first_stamp_date||now;
-        const exp=c.expiry_date||(()=>{const d=new Date(fs);d.setMonth(d.getMonth()+months);return d.toISOString();})();
-        await sb('customers','PATCH',{stamps:ns,first_stamp_date:fs,expiry_date:exp,last_visit_date:now},'id=eq.'+cid);
-        await sb('visits','POST',{customer_id:cid,type:'paid',stamp_count_after:ns,cycle_expiry:exp,stylist,stylist2,remark,tip,service_value});
-        const paid=5;const free=ns>=paid;
-        const styStr=[stylist,stylist2].filter(Boolean).join(' & ');
-        toast(name+' — Stamp '+ns+'/'+paid+(free?' 🎁':'')+(styStr?' · '+styStr:'')+(service_value?' · AED '+service_value:'')+(tip?' · Tip '+tip:''));
-        showWAPrompt(name,ns,mob,c.parent,c.gender,stylist,stylist2,remark,tip,service_value);
+    // Fire queue PATCH + customer GET in parallel
+    const hasCust=cid&&cid!=='null';
+    const [,custRows]=await Promise.all([
+      sb('queue','PATCH',{status:'done',done_at:new Date().toISOString(),remark,tip,service_value,payment_type},'id=eq.'+qid),
+      hasCust?sb('customers','GET',null,'select=*&id=eq.'+cid):Promise.resolve(null)
+    ]);
+
+    if(hasCust&&custRows?.length){
+      const c=custRows[0];
+      // Same-day stamp guard
+      const todayStr=new Date().toISOString().split('T')[0];
+      const todayVisits=await sb('visits','GET',null,'select=id&customer_id=eq.'+cid+'&type=eq.paid&created_at=gte.'+todayStr+'T00:00:00&limit=1');
+      if(todayVisits&&todayVisits.length){
+        toast(name+' already stamped today ⚠️','err');
+        if(doneBtn){doneBtn.disabled=false;doneBtn.textContent='✅ Stamp';}
+        return;
       }
-    } else { toast(name+' done (guest)'+(service_value?' · AED '+service_value:'')+(tip?' · Tip AED '+tip:''),'info'); }
-    if(qRow){qRow.status='done';qRow.remark=remark;qRow.tip=tip;qRow.service_value=service_value;qRow.payment_type=payment_type;}
-    renderQ();renderHist();updateStats();
-  }catch(e){toast('Error: '+e.message,'err');if(doneBtn){doneBtn.disabled=false;doneBtn.textContent='✅ Done+Stamp';}}
+      const ns=(c.stamps||0)+1;const now=new Date().toISOString();
+      const months=c.gender==='girl'?girlMonths():boyMonths();
+      const fs=c.first_stamp_date||now;
+      const exp=c.expiry_date||(()=>{const d=new Date(fs);d.setMonth(d.getMonth()+months);return d.toISOString();})();
+      // Fire customer PATCH + visits POST in parallel
+      await Promise.all([
+        sb('customers','PATCH',{stamps:ns,first_stamp_date:fs,expiry_date:exp,last_visit_date:now},'id=eq.'+cid),
+        sb('visits','POST',{customer_id:cid,type:'paid',stamp_count_after:ns,cycle_expiry:exp,stylist,stylist2,remark,tip,service_value})
+      ]);
+      if(_custMap[cid]){_custMap[cid].stamps=ns;_custMap[cid].expiry_date=exp;}
+      const paid=paidNeeded();const styStr=[stylist,stylist2].filter(Boolean).join(' & ');
+      toast(name+' — Stamp '+ns+'/'+(paid+1)+(ns>paid?' 🎁':'')+(styStr?' · '+styStr:'')+(service_value?' · AED '+service_value:'')+(tip?' · Tip '+tip:''));
+      showWAPrompt(name,ns,mob,c.parent,c.gender,stylist,stylist2,remark,tip,service_value);
+    }else{
+      toast(name+' done (guest)'+(service_value?' · AED '+service_value:'')+(tip?' · Tip AED '+tip:''),'info');
+    }
+  }catch(e){
+    toast('Error: '+e.message,'err');
+    if(doneBtn){doneBtn.disabled=false;doneBtn.textContent='✅ Stamp';}
+  }
 }
 
 function toWANum(mobile){
