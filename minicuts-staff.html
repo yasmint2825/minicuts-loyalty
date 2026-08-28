@@ -968,9 +968,12 @@ async function enrichHistCustomerData(){
 function buildSrcLocLine(custId){
   if(!custId)return'';
   const c=_custMap[custId];if(!c)return'';
+  return buildSrcLocDirect(c.heard_via, c.location);
+}
+function buildSrcLocDirect(heard_via, location){
   const bits=[];
-  if(c.heard_via)bits.push('<span title="'+escQ(c.heard_via)+'" style="background:#F3E8FF;color:#7C3AED;padding:1px 6px;border-radius:99px;font-size:10px;font-weight:700;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;vertical-align:middle;">📣 '+c.heard_via+'</span>');
-  if(c.location)bits.push('<span title="'+escQ(c.location)+'" style="background:#EEF6FF;color:var(--b);padding:1px 6px;border-radius:99px;font-size:10px;font-weight:700;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;vertical-align:middle;">📍 '+c.location+'</span>');
+  if(heard_via)bits.push('<span title="'+escQ(heard_via)+'" style="background:#F3E8FF;color:#7C3AED;padding:1px 6px;border-radius:99px;font-size:10px;font-weight:700;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;vertical-align:middle;">📣 '+heard_via+'</span>');
+  if(location)bits.push('<span title="'+escQ(location)+'" style="background:#EEF6FF;color:var(--b);padding:1px 6px;border-radius:99px;font-size:10px;font-weight:700;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;vertical-align:middle;">📍 '+location+'</span>');
   if(!bits.length)return'';
   return'<div style="display:flex;flex-direction:column;align-items:flex-start;gap:3px;margin-top:3px;width:100%;min-width:0;">'+bits.join('')+'</div>';
 }
@@ -1016,7 +1019,7 @@ function renderHist(){
       +'<td>'
         +'<div style="font-weight:700;">'+(r.customer_name||'')+'</div>'
         +(hasMob?'<div style="font-size:11px;color:var(--muted);margin-top:1px;">📱 '+displayMob(r.mobile)+'</div>':guest?'<div style="font-size:11px;color:var(--muted);">👤 Guest</div>':'')
-        +buildSrcLocLine(r.customer_id)
+        +(guest ? buildSrcLocDirect(r.heard_via, r.location) : buildSrcLocLine(r.customer_id))
       +'</td>'
       +'<td>'+(r.service||'—')+'</td>'
       +'<td>'+(styStr||'<span style="color:var(--muted);">—</span>')+'</td>'
