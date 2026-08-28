@@ -685,41 +685,36 @@ function showTab(id,btn){
 let _custMap={};   // customer_id -> customer data
 let _prizesMap={}; // customer_id -> array of prizes_given rows
 
-let _qGen=0;
-
 async function loadQ(){
-  const gen=++_qGen;
   const body=document.getElementById('qt-body');
-  if(body) body.innerHTML='<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--muted);">Loading...</td></tr>';
+  if(body)body.innerHTML='<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--muted);">Loading...</td></tr>';
   try{
     const rows=await sb('queue','GET',null,'select=*&checkin_date=eq.'+today()+'&order=token_number.asc&limit=200');
-    if(gen!==_qGen)return; // newer refresh started — abandon
     _qdata=rows||[];
-
     const custIds=_qdata.map(r=>r.customer_id).filter(Boolean);
     if(custIds.length){
-      const idList='('+custIds.join(',')+')';
+      const orFilter=custIds.map(id=>'id.eq.'+id).join(',');
+      const prizeFilter=custIds.map(id=>'customer_id.eq.'+id).join(',');
       const [custs,prizes]=await Promise.all([
-        sb('customers','GET',null,'select=id,name,stamps,game_points,expiry_date,gender,parent,mobile,heard_via,location&id=in.'+idList),
-        sb('prizes_given','GET',null,'customer_id=in.'+idList+'&limit=500').catch(()=>[])
+        sb('customers','GET',null,'select=id,name,stamps,game_points,expiry_date,gender,parent,mobile,heard_via,location&or=('+orFilter+')&limit=500'),
+        sb('prizes_given','GET',null,'or=('+prizeFilter+')&limit=500').catch(()=>[])
       ]);
-      if(gen!==_qGen)return; // abandoned mid-fetch
+      // Update entries — never wipe the whole map (history tab shares this cache)
       (custs||[]).forEach(c=>{_custMap[c.id]=c;});
+      // For prizes: update only today's customers, leave others intact
       custIds.forEach(id=>{_prizesMap[id]=[];});
       (prizes||[]).forEach(p=>{
         if(!_prizesMap[p.customer_id])_prizesMap[p.customer_id]=[];
         _prizesMap[p.customer_id].push(p);
       });
+      // Mark as fetched so loadHist doesn't re-fetch these IDs
+      custIds.forEach(id=>_custFetched.add(id));
     }
-
-    if(gen!==_qGen)return;
-    populateStyFilter();renderQ();renderHist();updateStats();
-    if(!_qdata.length&&body) body.innerHTML='<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--muted);">No check-ins yet today 🐼<br><span style="font-size:12px;">Customers will appear here when they check in</span></td></tr>';
+    populateStyFilter();renderQ();updateStats();
+    if(!_qdata.length&&body)body.innerHTML='<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--muted);">No check-ins yet today 🐼</td></tr>';
   }catch(e){
-    if(gen!==_qGen)return;
     toast('Error: '+e.message,'err');
-    if(body)body.innerHTML='<tr><td colspan="8" style="text-align:center;padding:30px;"><div style="color:var(--err);font-weight:700;margin-bottom:8px;">❌ Failed to load queue</div><div style="color:var(--muted);font-size:12px;">'+e.message+'</div></td></tr>';
-    console.error('loadQ error:',e);
+    if(body)body.innerHTML='<tr><td colspan="8" style="color:var(--err);padding:20px;text-align:center;">❌ '+e.message+'</td></tr>';
   }
 }
 
@@ -940,41 +935,28 @@ function histNav(dir){
   histSetDate(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'));
   loadHist();
 }
-// Track which customer IDs have been fetched for heard_via/location
 const _custFetched=new Set();
-// Generation counter — incremented on every loadHist call
-// Stale responses (from earlier clicks) check this and abort
-let _histGen=0;
 
 async function loadHist(){
-  const gen=++_histGen; // this click's generation ID
   const date=histGetDate();
   const body=document.getElementById('hist-body');
   if(body)body.innerHTML='<tr><td colspan="11" style="text-align:center;padding:30px;color:var(--muted);">Loading '+date+'...</td></tr>';
   const sumEl=document.getElementById('hist-summary');if(sumEl)sumEl.style.display='none';
   try{
     const rows=await sb('queue','GET',null,'select=*&checkin_date=eq.'+date+'&order=token_number.asc&limit=500');
-    if(gen!==_histGen)return; // a newer click started — abandon this response
     _histData=rows||[];
-    // Fetch customer source/location only for IDs not yet fetched
     const custIds=_histData.map(r=>r.customer_id).filter(Boolean);
-    const missingIds=custIds.filter(id=>!_custFetched.has(id));
-    if(missingIds.length){
-      for(let i=0;i<missingIds.length;i+=50){
-        if(gen!==_histGen)return; // abandoned mid-fetch
-        const batch=missingIds.slice(i,i+50);
-        const idList='('+batch.join(',')+')';
-        const custs=await sb('customers','GET',null,'select=id,location,heard_via&id=in.'+idList);
-        (custs||[]).forEach(c=>{_custMap[c.id]=Object.assign(_custMap[c.id]||{},c);});
-        batch.forEach(id=>_custFetched.add(id));
-      }
+    const missing=custIds.filter(id=>!_custFetched.has(id));
+    if(missing.length){
+      const orFilter=missing.map(id=>'id.eq.'+id).join(',');
+      const custs=await sb('customers','GET',null,'select=id,location,heard_via&or=('+orFilter+')&limit=500');
+      (custs||[]).forEach(c=>{_custMap[c.id]=Object.assign(_custMap[c.id]||{},c);});
+      missing.forEach(id=>_custFetched.add(id));
     }
-    if(gen!==_histGen)return; // abandoned
     renderHist();
   }catch(e){
-    if(gen!==_histGen)return; // don't show error for abandoned requests
-    console.error('loadHist error:',e);
-    if(body)body.innerHTML='<tr><td colspan="11" style="color:var(--err);padding:16px;font-weight:700;">Error: '+e.message+'</td></tr>';
+    console.error('loadHist:',e);
+    if(body)body.innerHTML='<tr><td colspan="11" style="color:var(--err);padding:16px;">Error: '+e.message+'</td></tr>';
   }
 }
 function buildSrcLocLine(custId){
@@ -1186,7 +1168,7 @@ async function updS(id,status){
   const r=_qdata.find(x=>x.id===id);
   const prevStatus=r?.status;
   if(r){r.status=status;if(status==='called')r.called_at=new Date().toISOString();}
-  renderQ();renderHist();updateStats();
+  renderQ();updateStats();
   // Fire DB in background
   try{
     const patch={status};
@@ -1205,7 +1187,7 @@ async function cancelToken(id,name){
     await sb('queue','PATCH',{status:'cancelled'},'id=eq.'+id);
     const r=_qdata.find(x=>x.id===id);if(r)r.status='cancelled';
     _qdata=_qdata.filter(x=>x.id!==id);
-    renderQ();renderHist();updateStats();
+    renderQ();updateStats();
     toast(name+' removed from queue','info');
   }catch(e){toast('Error: '+e.message,'err');}
 }
@@ -1234,7 +1216,7 @@ async function markDone(qid,cid,name,mob){
 
   // Update local state immediately so UI feels instant
   if(qRow){qRow.status='done';qRow.remark=remark;qRow.tip=tip;qRow.service_value=service_value;qRow.payment_type=payment_type;}
-  renderQ();renderHist();updateStats();
+  renderQ();updateStats();
 
   try{
     // Fire queue PATCH + customer GET in parallel
