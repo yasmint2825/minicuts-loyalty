@@ -360,7 +360,7 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
   <button class="bb active" id="bn-ci" onclick="navTo('s-lookup','bn-ci')">✅ Check In</button>
   <button class="bb" id="bn-q" onclick="navTo('s-queue','bn-q');loadQ();">📋 Queue</button>
   <button class="bb" id="bn-g" onclick="window.open('./minicuts-game.html','_blank')">🎮 Games</button>
-  <button class="bb" onclick="window.open('./index.html','_blank')">🎖️ Stamps</button>
+  <button class="bb" onclick="goPassport()">🎖️ Stamps</button>
 </div>
 
 <script>
@@ -1175,7 +1175,25 @@ function showFamTok(tokens,mob){
   startAutoReset();
 }
 function goGames(){window.open('./minicuts-game.html'+(window._ciMob?'?mobile='+encodeURIComponent(window._ciMob):''),'_blank');}
-function goPassport(){window.open('./index.html?customer=1&lookup='+encodeURIComponent(window._ciMob||''),'_blank');}
+function goPassport(){
+  // Use mobile from check-in flow if available
+  let mob=window._ciMob||'';
+  // If no mobile yet, try reading from the lookup field
+  if(!mob){
+    const pfx=(document.getElementById('lu-pfx')?.value||'055').replace(/\D/g,'');
+    const num=(document.getElementById('lu-num')?.value||'').replace(/\D/g,'');
+    if(num.length===7) mob='971'+pfx.slice(-2)+num;
+  }
+  // If still no mobile, ask
+  if(!mob){
+    const entered=prompt('📱 Enter your mobile number to check your stamps:\n(e.g. 0551234567)');
+    if(!entered)return;
+    const digits=entered.replace(/\D/g,'');
+    if(digits.length<7){alert('Please enter a valid mobile number.');return;}
+    mob=digits.length>=10?digits:'971'+digits.replace(/^0/,'');
+  }
+  window.open('./index.html?customer=1&lookup='+encodeURIComponent(mob),'_blank');
+}
 function resetCI(){
   clearInterval(window._ciTimer);
   _reservedTokens=[];
