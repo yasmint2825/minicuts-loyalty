@@ -689,18 +689,31 @@ async function loadQ(){
   const body=document.getElementById('qt-body');
   if(body) body.innerHTML='<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--muted);">Loading...</td></tr>';
   try{
-    const needsCusts=Object.keys(_custMap).length===0;
-    const needsPrizes=Object.keys(_prizesMap).length===0;
-    const [rows,custs,prizes]=await Promise.all([
-      sb('queue','GET',null,'select=*&checkin_date=eq.'+today()+'&order=token_number.asc&limit=200'),
-      needsCusts?sb('customers','GET',null,'select=id,name,stamps,game_points,expiry_date,gender,parent,mobile,heard_via,location&limit=2000'):Promise.resolve(null),
-      needsPrizes?sb('prizes_given','GET',null,'select=*&limit=1000').catch(()=>[]):Promise.resolve(null)
-    ]);
+    // Step 1: fetch queue only (fast — small dataset, today only)
+    const rows=await sb('queue','GET',null,'select=*&checkin_date=eq.'+today()+'&order=token_number.asc&limit=200');
     _qdata=rows||[];
-    if(custs){_custMap={};(custs||[]).forEach(c=>{_custMap[c.id]=c;});}
-    if(prizes){_prizesMap={};(prizes||[]).forEach(p=>{if(!_prizesMap[p.customer_id])_prizesMap[p.customer_id]=[];_prizesMap[p.customer_id].push(p);});}
+
+    // Step 2: fetch only customers in today's queue (not all 1200+) + prizes in parallel
+    const custIds=_qdata.map(r=>r.customer_id).filter(Boolean);
+    if(custIds.length){
+      const idFilter=custIds.map(id=>'id.eq.'+id).join(',');
+      const prizeFilter=custIds.map(id=>'customer_id.eq.'+id).join(',');
+      const [custs,prizes]=await Promise.all([
+        sb('customers','GET',null,'select=id,name,stamps,game_points,expiry_date,gender,parent,mobile,heard_via,location&or=('+idFilter+')&limit=200'),
+        sb('prizes_given','GET',null,'or=('+prizeFilter+')&limit=500').catch(()=>[])
+      ]);
+      // Merge into custMap (don't wipe existing entries — other tabs may have loaded more)
+      (custs||[]).forEach(c=>{_custMap[c.id]=c;});
+      // Rebuild prizesMap for today's customers only
+      custIds.forEach(id=>{_prizesMap[id]=[];});
+      (prizes||[]).forEach(p=>{
+        if(!_prizesMap[p.customer_id])_prizesMap[p.customer_id]=[];
+        _prizesMap[p.customer_id].push(p);
+      });
+    }
+
     populateStyFilter();renderQ();renderHist();updateStats();
-    if(!_qdata.length&&body)body.innerHTML='<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--muted);">No check-ins yet today 🐼<br><span style="font-size:12px;">Customers will appear here when they check in</span></td></tr>';
+    if(!_qdata.length&&body) body.innerHTML='<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--muted);">No check-ins yet today 🐼<br><span style="font-size:12px;">Customers will appear here when they check in</span></td></tr>';
   }catch(e){
     toast('Error: '+e.message,'err');
     if(body)body.innerHTML='<tr><td colspan="8" style="text-align:center;padding:30px;"><div style="color:var(--err);font-weight:700;margin-bottom:8px;">❌ Failed to load queue</div><div style="color:var(--muted);font-size:12px;">'+e.message+'</div></td></tr>';
@@ -951,20 +964,19 @@ async function loadHist(){
   if(body)body.innerHTML='<tr><td colspan="11" style="text-align:center;padding:30px;color:var(--muted);">Loading '+date+'...</td></tr>';
   const sumEl=document.getElementById('hist-summary');if(sumEl)sumEl.style.display='none';
   try{
+    // Step 1: fetch queue for this date
     const rows=await sb('queue','GET',null,'select=*&checkin_date=eq.'+date+'&order=token_number.asc&limit=500');
     _histData=rows||[];
-    await enrichHistCustomerData();
+    // Step 2: fetch customer source/location for registered customers (skip if already in custMap)
+    const custIds=_histData.map(r=>r.customer_id).filter(Boolean);
+    const missingIds=custIds.filter(id=>!_custMap[id]||!_custMap[id].heard_via);
+    if(missingIds.length){
+      const idFilter=missingIds.map(id=>'id.eq.'+id).join(',');
+      const custs=await sb('customers','GET',null,'select=id,location,heard_via&or=('+idFilter+')&limit=500');
+      (custs||[]).forEach(c=>{_custMap[c.id]=Object.assign(_custMap[c.id]||{},c);});
+    }
     renderHist();
   }catch(e){if(body)body.innerHTML='<tr><td colspan="11" style="color:var(--err);padding:16px;">Error: '+e.message+'</td></tr>';}
-}
-async function enrichHistCustomerData(){
-  const custIds=_histData.map(r=>r.customer_id).filter(Boolean);
-  if(!custIds.length)return;
-  try{
-    const idFilter=custIds.map(id=>'id.eq.'+id).join(',');
-    const custs=await sb('customers','GET',null,'select=id,location,heard_via&or=('+idFilter+')&limit=500');
-    (custs||[]).forEach(c=>{_custMap[c.id]=Object.assign(_custMap[c.id]||{},c);});
-  }catch(e){console.warn('enrichHistCustomerData error:',e.message);}
 }
 function buildSrcLocLine(custId){
   if(!custId)return'';
