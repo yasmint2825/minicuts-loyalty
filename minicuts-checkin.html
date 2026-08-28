@@ -305,7 +305,6 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
         <button type="button" class="guest-hear-btn" onclick="setGuestHear(this,'Instagram')" style="padding:11px 8px;border-radius:10px;border:2px solid var(--border);background:#fff;font-family:var(--fh);font-size:13px;font-weight:800;color:var(--text);cursor:pointer;transition:all .15s;">📸 Instagram</button>
         <button type="button" class="guest-hear-btn" onclick="setGuestHear(this,'Friends / Family')" style="padding:11px 8px;border-radius:10px;border:2px solid var(--border);background:#fff;font-family:var(--fh);font-size:13px;font-weight:800;color:var(--text);cursor:pointer;transition:all .15s;">👥 Friends</button>
         <button type="button" class="guest-hear-btn" onclick="setGuestHear(this,'Google')" style="padding:11px 8px;border-radius:10px;border:2px solid var(--border);background:#fff;font-family:var(--fh);font-size:13px;font-weight:800;color:var(--text);cursor:pointer;transition:all .15s;">🔍 Google</button>
-        <button type="button" class="guest-hear-btn" onclick="setGuestHear(this,'Walk-in')" style="padding:11px 8px;border-radius:10px;border:2px solid var(--border);background:#fff;font-family:var(--fh);font-size:13px;font-weight:800;color:var(--text);cursor:pointer;transition:all .15s;">🚶 Walk-in</button>
       </div>
       <div id="g-hear-err" style="display:none;margin-top:6px;font-size:12px;font-weight:700;color:var(--err);">Please select how you heard about us ☝️</div>
     </div>
@@ -1176,17 +1175,8 @@ function showFamTok(tokens,mob){
 }
 function goGames(){window.open('./minicuts-game.html'+(window._ciMob?'?mobile='+encodeURIComponent(window._ciMob):''),'_blank');}
 function goPassport(){
-  // Use mobile from completed check-in, or from the lookup field if typed
-  let mob=window._ciMob||'';
-  if(!mob){
-    const pfx=(document.getElementById('lu-pfx')?.value||'055').replace(/\D/g,'');
-    const num=(document.getElementById('lu-num')?.value||'').replace(/\D/g,'');
-    if(num.length===7) mob='971'+pfx.slice(-2)+num;
-  }
-  // If mobile known — open with lookup pre-filled so passport auto-loads
-  // If not known — open without lookup so customer enters their number
-  const url='https://yasmint2825.github.io/minicuts-loyalty/index.html?customer=1'+(mob?'&lookup='+encodeURIComponent(mob):'');
-  window.open(url,'_blank');
+  // Never pass a mobile number — the customer enters their own on the passport page
+  window.open('https://yasmint2825.github.io/minicuts-loyalty/index.html?customer=1','_blank');
 }
 function resetCI(){
   clearInterval(window._ciTimer);
