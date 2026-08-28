@@ -360,6 +360,7 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
   <button class="bb active" id="bn-ci" onclick="navTo('s-lookup','bn-ci')">✅ Check In</button>
   <button class="bb" id="bn-q" onclick="navTo('s-queue','bn-q');loadQ();">📋 Queue</button>
   <button class="bb" id="bn-g" onclick="window.open('./minicuts-game.html','_blank')">🎮 Games</button>
+  <button class="bb" onclick="window.open('./index.html','_blank')">🎖️ Stamps</button>
 </div>
 
 <script>
@@ -520,7 +521,8 @@ async function reserveTokenBlock(n, mob, kidRows){
     status:        'waiting',
     is_guest:      k.is_guest||false,
     stylist:       null,
-    heard_via:     k.heard_via||null
+    heard_via:     k.heard_via||null,
+    location:      k.location||null
   }));
   const inserted = await sb('queue','POST', rows.length===1?rows[0]:rows);
   const arr = Array.isArray(inserted)?inserted:[inserted];
