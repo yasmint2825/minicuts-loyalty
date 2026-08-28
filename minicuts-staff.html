@@ -696,11 +696,10 @@ async function loadQ(){
     // Step 2: fetch only customers in today's queue (not all 1200+) + prizes in parallel
     const custIds=_qdata.map(r=>r.customer_id).filter(Boolean);
     if(custIds.length){
-      const idFilter=custIds.map(id=>'id.eq.'+id).join(',');
-      const prizeFilter=custIds.map(id=>'customer_id.eq.'+id).join(',');
+      const idList='('+custIds.join(',')+')';
       const [custs,prizes]=await Promise.all([
-        sb('customers','GET',null,'select=id,name,stamps,game_points,expiry_date,gender,parent,mobile,heard_via,location&or=('+idFilter+')&limit=200'),
-        sb('prizes_given','GET',null,'or=('+prizeFilter+')&limit=500').catch(()=>[])
+        sb('customers','GET',null,'select=id,name,stamps,game_points,expiry_date,gender,parent,mobile,heard_via,location&id=in.'+idList),
+        sb('prizes_given','GET',null,'customer_id=in.'+idList+'&limit=500').catch(()=>[])
       ]);
       // Merge into custMap (don't wipe existing entries — other tabs may have loaded more)
       (custs||[]).forEach(c=>{_custMap[c.id]=c;});
@@ -721,26 +720,6 @@ async function loadQ(){
   }
 }
 
-async function enrichCustomerData(){
-  const custIds=_qdata.map(r=>r.customer_id).filter(Boolean);
-  if(!custIds.length){console.log('enrichCustomerData: no customer IDs in queue');return;}
-  console.log('enrichCustomerData: fetching',custIds.length,'customers',custIds);
-  try{
-    // Use individual OR queries to avoid id=in() formatting issues
-    const idFilter=custIds.map(id=>'id.eq.'+id).join(',');
-    const custs=await sb('customers','GET',null,'select=id,name,stamps,game_points,expiry_date,gender,parent,mobile&or=('+idFilter+')&limit=200');
-    console.log('enrichCustomerData: got',custs?.length,'customer records',custs);
-    _custMap={};(custs||[]).forEach(c=>{_custMap[c.id]=c;});
-    // Fetch prizes
-    const prizeFilter=custIds.map(id=>'customer_id.eq.'+id).join(',');
-    const prizes=await sb('prizes_given','GET',null,'or=('+prizeFilter+')&limit=500').catch(e=>{console.warn('prizes fetch failed:',e.message);return[];});
-    _prizesMap={};(prizes||[]).forEach(p=>{
-      if(!_prizesMap[p.customer_id]) _prizesMap[p.customer_id]=[];
-      _prizesMap[p.customer_id].push(p);
-    });
-    console.log('enrichCustomerData: _custMap keys=',Object.keys(_custMap));
-  }catch(e){console.error('enrichCustomerData error:',e.message);}
-}
 
 function populateStyFilter(){
   const sel=document.getElementById('f-sty');if(!sel)return;
@@ -958,25 +937,42 @@ function histNav(dir){
   histSetDate(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'));
   loadHist();
 }
+// Track which customer IDs have been fetched for heard_via/location
+const _custFetched=new Set();
+// Generation counter — incremented on every loadHist call
+// Stale responses (from earlier clicks) check this and abort
+let _histGen=0;
+
 async function loadHist(){
+  const gen=++_histGen; // this click's generation ID
   const date=histGetDate();
   const body=document.getElementById('hist-body');
   if(body)body.innerHTML='<tr><td colspan="11" style="text-align:center;padding:30px;color:var(--muted);">Loading '+date+'...</td></tr>';
   const sumEl=document.getElementById('hist-summary');if(sumEl)sumEl.style.display='none';
   try{
-    // Step 1: fetch queue for this date
     const rows=await sb('queue','GET',null,'select=*&checkin_date=eq.'+date+'&order=token_number.asc&limit=500');
+    if(gen!==_histGen)return; // a newer click started — abandon this response
     _histData=rows||[];
-    // Step 2: fetch customer source/location for registered customers (skip if already in custMap)
+    // Fetch customer source/location only for IDs not yet fetched
     const custIds=_histData.map(r=>r.customer_id).filter(Boolean);
-    const missingIds=custIds.filter(id=>!_custMap[id]||!_custMap[id].heard_via);
+    const missingIds=custIds.filter(id=>!_custFetched.has(id));
     if(missingIds.length){
-      const idFilter=missingIds.map(id=>'id.eq.'+id).join(',');
-      const custs=await sb('customers','GET',null,'select=id,location,heard_via&or=('+idFilter+')&limit=500');
-      (custs||[]).forEach(c=>{_custMap[c.id]=Object.assign(_custMap[c.id]||{},c);});
+      for(let i=0;i<missingIds.length;i+=50){
+        if(gen!==_histGen)return; // abandoned mid-fetch
+        const batch=missingIds.slice(i,i+50);
+        const idList='('+batch.join(',')+')';
+        const custs=await sb('customers','GET',null,'select=id,location,heard_via&id=in.'+idList);
+        (custs||[]).forEach(c=>{_custMap[c.id]=Object.assign(_custMap[c.id]||{},c);});
+        batch.forEach(id=>_custFetched.add(id));
+      }
     }
+    if(gen!==_histGen)return; // abandoned
     renderHist();
-  }catch(e){if(body)body.innerHTML='<tr><td colspan="11" style="color:var(--err);padding:16px;">Error: '+e.message+'</td></tr>';}
+  }catch(e){
+    if(gen!==_histGen)return; // don't show error for abandoned requests
+    console.error('loadHist error:',e);
+    if(body)body.innerHTML='<tr><td colspan="11" style="color:var(--err);padding:16px;font-weight:700;">Error: '+e.message+'</td></tr>';
+  }
 }
 function buildSrcLocLine(custId){
   if(!custId)return'';
@@ -1666,8 +1662,8 @@ async function markFreeWashGiven(id,name,btn){
 // AUTO REFRESH
 setInterval(()=>{if(document.getElementById('t-queue').classList.contains('active'))loadQ();},120000);
 
-// INIT — load config from DB first, then load queue
-loadAllConfig().then(()=>{loadQ();populateStyFilter();loadGvSetup();});
+// INIT — config first (sets STYLISTS/LCFG), then queue + gv in parallel
+loadAllConfig().then(()=>{ Promise.all([loadQ(), loadGvSetup()]); });
 
 // ═══════════════════════════════════════════════
 // GIFT VOUCHER SETUP CONFIG
