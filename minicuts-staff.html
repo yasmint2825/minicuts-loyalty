@@ -685,15 +685,17 @@ function showTab(id,btn){
 let _custMap={};   // customer_id -> customer data
 let _prizesMap={}; // customer_id -> array of prizes_given rows
 
+let _qGen=0;
+
 async function loadQ(){
+  const gen=++_qGen;
   const body=document.getElementById('qt-body');
   if(body) body.innerHTML='<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--muted);">Loading...</td></tr>';
   try{
-    // Step 1: fetch queue only (fast — small dataset, today only)
     const rows=await sb('queue','GET',null,'select=*&checkin_date=eq.'+today()+'&order=token_number.asc&limit=200');
+    if(gen!==_qGen)return; // newer refresh started — abandon
     _qdata=rows||[];
 
-    // Step 2: fetch only customers in today's queue (not all 1200+) + prizes in parallel
     const custIds=_qdata.map(r=>r.customer_id).filter(Boolean);
     if(custIds.length){
       const idList='('+custIds.join(',')+')';
@@ -701,9 +703,8 @@ async function loadQ(){
         sb('customers','GET',null,'select=id,name,stamps,game_points,expiry_date,gender,parent,mobile,heard_via,location&id=in.'+idList),
         sb('prizes_given','GET',null,'customer_id=in.'+idList+'&limit=500').catch(()=>[])
       ]);
-      // Merge into custMap (don't wipe existing entries — other tabs may have loaded more)
+      if(gen!==_qGen)return; // abandoned mid-fetch
       (custs||[]).forEach(c=>{_custMap[c.id]=c;});
-      // Rebuild prizesMap for today's customers only
       custIds.forEach(id=>{_prizesMap[id]=[];});
       (prizes||[]).forEach(p=>{
         if(!_prizesMap[p.customer_id])_prizesMap[p.customer_id]=[];
@@ -711,9 +712,11 @@ async function loadQ(){
       });
     }
 
+    if(gen!==_qGen)return;
     populateStyFilter();renderQ();renderHist();updateStats();
     if(!_qdata.length&&body) body.innerHTML='<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--muted);">No check-ins yet today 🐼<br><span style="font-size:12px;">Customers will appear here when they check in</span></td></tr>';
   }catch(e){
+    if(gen!==_qGen)return;
     toast('Error: '+e.message,'err');
     if(body)body.innerHTML='<tr><td colspan="8" style="text-align:center;padding:30px;"><div style="color:var(--err);font-weight:700;margin-bottom:8px;">❌ Failed to load queue</div><div style="color:var(--muted);font-size:12px;">'+e.message+'</div></td></tr>';
     console.error('loadQ error:',e);
