@@ -656,151 +656,72 @@ const _smCache={
   [SM_OT_KEY]:[],[SM_ROSTER_KEY]:[],[SM_DOC_KEY]:[],[SM_LEAVE_TYPES_KEY]:[],
 };
 
-// smLS: synchronous read from cache (same API as before — no code changes needed)
+// ── Pure Supabase data layer — no localStorage ──
+// _smCache is session-only in-memory store, populated from Supabase on page load.
+// All reads come from cache. All writes go directly to Supabase + update cache.
+
 function smLS(key){return _smCache[key]||[];}
 
-// ── Sync status: which local writes have NOT yet been confirmed saved to Supabase ──
-const _smPendingSync=new Set();
-function smUpdateSyncBadge(){
-  const el=document.getElementById('sm-sync-badge');if(!el)return;
-  if(_smPendingSync.size===0){
-    el.textContent='☁️ Synced';el.style.background='rgba(255,255,255,.15)';
-  }else{
-    el.textContent='⚠️ '+_smPendingSync.size+' unsynced';el.style.background='rgba(217,119,6,.55)';
-  }
-}
-
-// smLSSet: write to cache + localStorage immediately (instant UI, offline-safe),
-// then push to Supabase. Cloud is the source of truth — this write is retried
-// automatically until it's confirmed saved, so staff data always ends up in the DB.
-function smLSSet(key,data){
+// Write record(s) to Supabase and update in-memory cache
+function smLSSet(key,data,newRecord=null){
   _smCache[key]=data;
-  try{localStorage.setItem(key,JSON.stringify(data));}catch(e){console.warn('[SM] localStorage write failed:',e);}
-  _smSyncToDB(key,data);
+  const toSync=newRecord?(Array.isArray(newRecord)?newRecord:[newRecord]):data;
+  _smSyncToDB(key,toSync);
 }
 
-async function _smSyncToDB(key,data){
-  const table=SM_TABLE[key];if(!table||!data)return;
-  if(!data.length){_smPendingSync.delete(key);smUpdateSyncBadge();return;}
+async function _smSyncToDB(key,records){
+  const table=SM_TABLE[key];
+  if(!table||!records||!records.length)return;
   try{
-    const url=SM_SB_URL+'/rest/v1/'+table+'?on_conflict=id';
     const h={'Content-Type':'application/json','apikey':SM_SB_KEY,'Authorization':'Bearer '+SM_SB_KEY,'Prefer':'resolution=merge-duplicates,return=minimal'};
-    for(let i=0;i<data.length;i+=100){
-      const r=await fetch(url,{method:'POST',headers:h,body:JSON.stringify(data.slice(i,i+100))});
-      if(!r.ok){const e=await r.text();throw new Error(e);}
+    // Use upsert — insert new, update existing by id
+    const url=SM_SB_URL+'/rest/v1/'+table+'?on_conflict=id';
+    for(let i=0;i<records.length;i+=100){
+      const r=await fetch(url,{method:'POST',headers:h,body:JSON.stringify(records.slice(i,i+100))});
+      if(!r.ok){const e=await r.text();throw new Error(r.status+': '+e);}
     }
-    _smPendingSync.delete(key);
   }catch(e){
-    console.warn('[SM] DB sync failed for',table,'— will retry:',e.message);
-    _smPendingSync.add(key);
+    console.error('[SM] Write failed for',table,':',e.message);
+    toast('⚠️ '+table+' save failed: '+e.message.slice(0,100),'error');
   }
-  smUpdateSyncBadge();
 }
 
-// Retry any writes that haven't reached Supabase yet (offline moment, brief network drop, etc.)
-// Always retries with the LATEST cache value for that key, not a stale snapshot.
-async function smRetryPendingSync(){
-  if(!_smPendingSync.size)return;
-  for(const key of [..._smPendingSync]) await _smSyncToDB(key,smLS(key));
+async function smDeleteFromDB(key,id){
+  const table=SM_TABLE[key];if(!table)return;
+  // Remove from cache immediately
+  _smCache[key]=(_smCache[key]||[]).filter(r=>r.id!==id);
+  try{
+    const url=SM_SB_URL+'/rest/v1/'+table+'?id=eq.'+id;
+    const h={'apikey':SM_SB_KEY,'Authorization':'Bearer '+SM_SB_KEY};
+    const r=await fetch(url,{method:'DELETE',headers:h});
+    if(!r.ok){const e=await r.text();throw new Error(e);}
+  }catch(e){
+    console.error('[SM] Delete failed for',table,':',e.message);
+    toast('⚠️ Delete failed — check connection','error');
+  }
 }
-setInterval(smRetryPendingSync,20000);
-window.addEventListener('online',smRetryPendingSync);
 
-
-// Load data into cache.
-// Cloud-first: every load pulls fresh from Supabase and OVERWRITES local cache + localStorage,
-// per table. If a specific table can't be reached (offline / network blip), that table falls
-// back to whatever's already cached in localStorage so the salon machine keeps working —
-// everything else that did load still reflects the latest cloud data.
 async function smLoadAllFromDB(){
-  // Read localStorage first as the offline-fallback baseline
-  Object.keys(SM_TABLE).forEach(key=>{
-    try{
-      const d=JSON.parse(localStorage.getItem(key)||'[]');
-      _smCache[key]=(key===SM_LEAVE_TYPES_KEY)?smEnsureLeaveTypeIds(d):d;
-    }catch(e){_smCache[key]=[];}
-  });
-
-  const status=msg=>{let el=document.getElementById('sm-db-status');if(!el){el=document.createElement('div');el.id='sm-db-status';el.style.cssText='position:fixed;bottom:14px;right:14px;background:#1565C0;color:#fff;padding:8px 14px;border-radius:8px;font-size:12.5px;font-weight:700;z-index:9999;';document.body.appendChild(el);}el.textContent=msg;};
-  const clearStatus=()=>{const el=document.getElementById('sm-db-status');if(el)setTimeout(()=>el.remove(),1200);};
-
-  status('☁️ Loading latest from Supabase…');
-  let anyOffline=false;
+  const status=msg=>{
+    let el=document.getElementById('sm-db-status');
+    if(!el){el=document.createElement('div');el.id='sm-db-status';
+      el.style.cssText='position:fixed;bottom:14px;right:14px;background:#1565C0;color:#fff;padding:8px 14px;border-radius:8px;font-size:12.5px;font-weight:700;z-index:9999;';
+      document.body.appendChild(el);}
+    el.textContent=msg;
+  };
+  const clearStatus=()=>{const el=document.getElementById('sm-db-status');if(el)setTimeout(()=>el.remove(),1500);};
+  status('☁️ Loading from Supabase…');
   for(const [key,table] of Object.entries(SM_TABLE)){
     try{
       const rows=await smSB(table,'GET',null,'limit=5000');
       const fixed=(key===SM_LEAVE_TYPES_KEY)?smEnsureLeaveTypeIds(rows||[]):(rows||[]);
-      _smCache[key]=fixed; // overwrite local, cloud wins
-      try{localStorage.setItem(key,JSON.stringify(fixed));}catch(e){}
+      _smCache[key]=fixed;
     }catch(e){
-      anyOffline=true;
-      console.warn('[SM] Could not reach Supabase for',table,'— using last saved local copy:',e.message);
+      console.warn('[SM] Failed to load',table,':',e.message);
+      _smCache[key]=[];
     }
   }
-  if(anyOffline)status('⚠️ Offline — showing last saved data on this device');
   clearStatus();
-}
-
-async function smCheckSyncStatus(){
-  const el=document.getElementById('sm-sync-status');if(!el)return;
-  el.textContent='⏳ Checking…';
-  try{
-    const counts=[];
-    for(const [key,table] of Object.entries(SM_TABLE)){
-      const rows=await smSB(table,'GET',null,'select=id&limit=5000');
-      counts.push(table+': '+rows.length);
-    }
-    el.innerHTML='<span style="color:var(--ok);font-weight:700;">✅ Supabase connected · </span>'+counts.join(' · ');
-  }catch(e){
-    el.innerHTML='<span style="color:var(--err);font-weight:700;">❌ Cannot reach Supabase: '+e.message+'</span>';
-  }
-}
-
-// ONE-CLICK MIGRATION: localStorage → Supabase
-async function smMigrateFromLocalStorage(){
-  const keys=Object.keys(SM_TABLE);
-  let hasData=false;
-  const totals={};
-  keys.forEach(key=>{try{const d=JSON.parse(localStorage.getItem(key)||'[]');totals[key]=d.length;if(d.length)hasData=true;}catch(e){}});
-  if(!hasData){toast('No data found in localStorage to migrate.','info');return;}
-  const summary=keys.filter(k=>totals[k]>0).map(k=>SM_TABLE[k]+': '+totals[k]+' records').join('\n');
-  if(!confirm('Migrate to Supabase?\n\n'+summary+'\n\nExisting Supabase data will be replaced.'))return;
-  const btn=document.getElementById('sm-migrate-btn');
-  if(btn){btn.disabled=true;btn.textContent='⏳ Migrating…';}
-  let ok=0,fail=0;
-  for(const key of keys){
-    try{
-      let data=JSON.parse(localStorage.getItem(key)||'[]');
-      if(key===SM_LEAVE_TYPES_KEY){data=smEnsureLeaveTypeIds(data);try{localStorage.setItem(key,JSON.stringify(data));}catch(e){}}
-      if(!data.length)continue;
-      const table=SM_TABLE[key];
-      // Delete existing rows one by one using their real IDs (avoids fake UUID filter hack)
-      // Then upsert — safe to re-run, handles duplicates
-      for(let i=0;i<data.length;i+=100){
-        const batch=data.slice(i,i+100);
-        // Upsert: insert or update by id
-        const url=SM_SB_URL+'/rest/v1/'+table+'?on_conflict=id';
-        const h={'Content-Type':'application/json','apikey':SM_SB_KEY,'Authorization':'Bearer '+SM_SB_KEY,'Prefer':'resolution=merge-duplicates,return=minimal'};
-        const r=await fetch(url,{method:'POST',headers:h,body:JSON.stringify(batch)});
-        if(!r.ok){const e=await r.text();throw new Error(e);}
-      }
-      _smCache[key]=data;
-      ok++;
-      console.log('[SM] Migrated',table,':',data.length,'records');
-      if(btn)btn.textContent='⏳ '+ok+'/'+keys.length+' done…';
-    }catch(e){
-      fail++;
-      console.error('[SM] Failed:',SM_TABLE[key],e.message);
-    }
-  }
-  if(btn){btn.disabled=false;btn.textContent=fail===0?'✅ Done':'⚠️ Partial ('+fail+' failed)';}
-  if(fail===0){
-    toast('✅ All data migrated to Supabase');
-    // Update sync status
-    smCheckSyncStatus();
-  } else {
-    toast('⚠️ '+fail+' tables failed — open F12 console for details','info');
-  }
 }
 // FORCE PULL: Supabase → this device's localStorage (overwrites local, regardless of what's already here)
 async function smPullFromSupabase(){
@@ -816,7 +737,11 @@ async function smPullFromSupabase(){
   smRefreshCurrentTab(tabName||'roster');
 }
 
-function smUID(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
+function smUID(){
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{
+    const r=Math.random()*16|0;return(c==='x'?r:(r&0x3|0x8)).toString(16);
+  });
+}
 
 // ══ DUPLICATE STAFF CLEANUP ══
 // Every table below has a staff_id field referencing the staff table.
@@ -1073,13 +998,26 @@ function smSaveStaff(){
   smLSSet(SM_STAFF_KEY,list);closeM('sm-staff-modal');toast(eid?'Staff updated':'Staff added ✅');smRenderTeam();
 }
 
-function smDeleteStaff(id,name){
+async function smDeleteStaff(id,name){
   if(!confirm('Delete '+name+' and all their records? This cannot be undone.'))return;
+  // Delete from all tables: staff record + related records
   [SM_STAFF_KEY,SM_ATT_KEY,SM_LEAVE_KEY,SM_OT_KEY,SM_DOC_KEY].forEach(key=>{
-    if(key===SM_STAFF_KEY)smLSSet(key,smGetStaff().filter(s=>s.id!==id));
-    else smLSSet(key,smLS(key).filter(r=>r.staff_id!==id));
+    _smCache[key]=key===SM_STAFF_KEY
+      ? smGetStaff().filter(s=>s.id!==id)
+      : smLS(key).filter(r=>r.staff_id!==id);
   });
-  toast('Staff member deleted','info');smRenderTeam();
+  // Delete from Supabase — staff by id, related tables by staff_id
+  try{
+    const h={'apikey':SM_SB_KEY,'Authorization':'Bearer '+SM_SB_KEY};
+    await fetch(SM_SB_URL+'/rest/v1/'+SM_TABLE[SM_STAFF_KEY]+'?id=eq.'+id,{method:'DELETE',headers:h});
+    for(const key of [SM_ATT_KEY,SM_LEAVE_KEY,SM_OT_KEY,SM_DOC_KEY]){
+      await fetch(SM_SB_URL+'/rest/v1/'+SM_TABLE[key]+'?staff_id=eq.'+id,{method:'DELETE',headers:h});
+    }
+    toast('Staff member deleted','info');
+  }catch(e){
+    toast('⚠️ Delete error: '+e.message,'error');
+  }
+  smRenderTeam();
 }
 
 // ══ ROSTER ══
@@ -1409,7 +1347,10 @@ function smSaveLeave(){
   const data={id:document.getElementById('sm-leave-id').value||smUID(),staff_id,type:document.getElementById('sm-leave-type').value,from_date:from,to_date:to,days:document.getElementById('sm-leave-days').value||smDaysBetween(from,to),status:document.getElementById('sm-leave-status').value,notes:document.getElementById('sm-leave-notes').value.trim(),created_at:new Date().toISOString()};
   const list=smLS(SM_LEAVE_KEY);const idx=list.findIndex(l=>l.id===data.id);
   if(idx>=0)list[idx]=data;else list.push(data);
-  smLSSet(SM_LEAVE_KEY,list);closeM('sm-leave-modal');toast('Leave saved ✅');smLoadLeaves();
+  _smCache[SM_LEAVE_KEY]=list;
+  // Send ONLY this record to Supabase — not the whole array
+  _smSyncToDB(SM_LEAVE_KEY,[data]);
+  closeM('sm-leave-modal');toast('Leave saved ✅');smLoadLeaves();
 }
 
 // ══ OVERTIME ══
@@ -1453,7 +1394,9 @@ function smSaveOT(){
   const data={id:document.getElementById('sm-ot-id').value||smUID(),staff_id,date,hours:parseFloat(hours),type:document.getElementById('sm-ot-type').value,status:document.getElementById('sm-ot-status').value,notes:document.getElementById('sm-ot-notes').value.trim(),created_at:new Date().toISOString()};
   const list=smLS(SM_OT_KEY);const idx=list.findIndex(o=>o.id===data.id);
   if(idx>=0)list[idx]=data;else list.push(data);
-  smLSSet(SM_OT_KEY,list);closeM('sm-ot-modal');toast('Overtime saved ✅');smLoadOT();
+  _smCache[SM_OT_KEY]=list;
+  _smSyncToDB(SM_OT_KEY,[data]);
+  closeM('sm-ot-modal');toast('Overtime saved ✅');smLoadOT();
 }
 
 // ══ DOCUMENTS ══
@@ -1594,7 +1537,9 @@ async function smDeleteDoc(id){
 
 function smDeleteRecord(key,id,reloadFn){
   if(!confirm('Delete this record?'))return;
-  smLSSet(key,smLS(key).filter(r=>r.id!==id));toast('Deleted','info');if(reloadFn)reloadFn();
+  smDeleteFromDB(key,id);
+  toast('Deleted','info');
+  if(reloadFn)reloadFn();
 }
 
 // ══ LEAVE TYPE SETTINGS ══
