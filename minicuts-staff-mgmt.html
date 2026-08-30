@@ -669,15 +669,35 @@ function smLSSet(key,data,newRecord=null){
   _smSyncToDB(key,toSync);
 }
 
+// Column whitelist — string keys so no initialization order issues
+const SM_COLS={
+  'mc_sm_staff':        ['id','name','role','mobile','join_date','off_days','notes','created_at','updated_at'],
+  'mc_sm_attendance':   ['id','staff_id','date','check_in','check_out','status','notes','created_at'],
+  'mc_sm_leaves':       ['id','staff_id','type','leave_type','from_date','to_date','days','status','notes','created_at'],
+  'mc_sm_overtime':     ['id','staff_id','date','hours','type','status','notes','created_at'],
+  'mc_sm_roster':       ['id','staff_id','date','from_date','to_date','type','shift','notes','created_at'],
+  'mc_sm_documents':    ['id','staff_id','type','title','issue_date','expiry_date','doc_ref','file_url','file_path','notes','created_at','updated_at','alert_dismissed_expiry'],
+  'mc_sm_leave_types':  ['id','name','label','code','color','max_days','sort_order','created_at'],
+};
+
+function smStrip(key,rec){
+  const cols=SM_COLS[key];
+  if(!cols){console.warn('[SM] No column whitelist for key:',key);return rec;}
+  const out={};
+  cols.forEach(col=>{if(col in rec){out[col]=(rec[col]===''?null:rec[col]);}});
+  console.log('[SM] strip',key,'→',Object.keys(out));
+  return out;
+}
+
 async function _smSyncToDB(key,records){
   const table=SM_TABLE[key];
   if(!table||!records||!records.length)return;
   try{
     const h={'Content-Type':'application/json','apikey':SM_SB_KEY,'Authorization':'Bearer '+SM_SB_KEY,'Prefer':'resolution=merge-duplicates,return=minimal'};
-    // Use upsert — insert new, update existing by id
     const url=SM_SB_URL+'/rest/v1/'+table+'?on_conflict=id';
-    for(let i=0;i<records.length;i+=100){
-      const r=await fetch(url,{method:'POST',headers:h,body:JSON.stringify(records.slice(i,i+100))});
+    const stripped=records.map(r=>smStrip(key,r));
+    for(let i=0;i<stripped.length;i+=100){
+      const r=await fetch(url,{method:'POST',headers:h,body:JSON.stringify(stripped.slice(i,i+100))});
       if(!r.ok){const e=await r.text();throw new Error(r.status+': '+e);}
     }
   }catch(e){
@@ -859,7 +879,7 @@ async function smMigrateDocsToStorage(){
       console.error('[SM] Doc migration failed for',d.id,':',e.message);
     }
   }
-  smLSSet(SM_DOC_KEY,list);
+  _smCache[SM_DOC_KEY]=list;
   if(btn){btn.disabled=false;btn.textContent='📁 Migrate to Storage';}
   toast(fail===0?'✅ Migrated '+ok+' document(s) to Storage':'⚠️ '+fail+' failed — check F12 console','info');
   smCheckLegacyDocs();
@@ -995,7 +1015,8 @@ function smSaveStaff(){
   const list=smGetStaff();const eid=document.getElementById('sm-staff-id').value;
   if(eid){const idx=list.findIndex(s=>s.id===eid);if(idx>=0)list[idx]={...list[idx],...data};}
   else list.push({id:smUID(),created_at:new Date().toISOString(),...data});
-  smLSSet(SM_STAFF_KEY,list);closeM('sm-staff-modal');toast(eid?'Staff updated':'Staff added ✅');smRenderTeam();
+  const staffRec=list.find(s=>s.id===(eid||list[list.length-1]?.id));
+  _smCache[SM_STAFF_KEY]=list;if(staffRec)_smSyncToDB(SM_STAFF_KEY,[staffRec]);closeM('sm-staff-modal');toast(eid?'Staff updated':'Staff added ✅');smRenderTeam();
 }
 
 async function smDeleteStaff(id,name){
@@ -1075,7 +1096,7 @@ function smSaveRosterEvent(){
   const data={id:document.getElementById('sm-re-id').value||smUID(),staff_id:document.getElementById('sm-re-staff').value||null,type:document.getElementById('sm-re-type').value,from_date:from,to_date:to,notes:document.getElementById('sm-re-notes').value.trim(),created_at:new Date().toISOString()};
   const list=smLS(SM_ROSTER_KEY);const idx=list.findIndex(r=>r.id===data.id);
   if(idx>=0)list[idx]=data;else list.push(data);
-  smLSSet(SM_ROSTER_KEY,list);closeM('sm-roster-modal');toast('Roster event saved ✅');smRenderRoster();
+  _smCache[SM_ROSTER_KEY]=list;_smSyncToDB(SM_ROSTER_KEY,[data]);closeM('sm-roster-modal');toast('Roster event saved ✅');smRenderRoster();
 }
 
 // ══ ATTENDANCE ══
@@ -1163,10 +1184,10 @@ function smPreviewHours(){
 function smSaveAttendance(){
   const staff_id=document.getElementById('sm-att-staff').value,date=document.getElementById('sm-att-date2').value;
   if(!staff_id||!date){toast('Select staff and date','error');return;}
-  const data={id:document.getElementById('sm-att-id').value||smUID(),staff_id,date,check_in:document.getElementById('sm-att-in').value,check_out:document.getElementById('sm-att-out').value,notes:document.getElementById('sm-att-notes').value.trim(),created_at:new Date().toISOString()};
+  const data={id:document.getElementById('sm-att-id').value||smUID(),staff_id,date,check_in:document.getElementById('sm-att-in').value||null,check_out:document.getElementById('sm-att-out').value||null,status:document.getElementById('sm-att-status')?.value||null,notes:document.getElementById('sm-att-notes').value.trim()||null,created_at:new Date().toISOString()};
   const list=smLS(SM_ATT_KEY);const idx=list.findIndex(a=>a.id===data.id);
   if(idx>=0)list[idx]=data;else list.push(data);
-  smLSSet(SM_ATT_KEY,list);closeM('sm-checkin-modal');toast('Attendance saved ✅');smLoadAttendance();
+  _smCache[SM_ATT_KEY]=list;_smSyncToDB(SM_ATT_KEY,[data]);closeM('sm-checkin-modal');toast('Attendance saved ✅');smLoadAttendance();
 }
 
 // ── Quick Check-In ──
@@ -1209,9 +1230,11 @@ function smSaveQuickCheckin(){
     existing.check_in=time;
     if(document.getElementById('sm-qci-notes').value.trim()) existing.notes=document.getElementById('sm-qci-notes').value.trim();
   } else {
-    list.push({id:smUID(),staff_id,date,check_in:time,check_out:'',notes:document.getElementById('sm-qci-notes').value.trim(),created_at:new Date().toISOString()});
+    list.push({id:smUID(),staff_id,date,check_in:time,check_out:null,notes:document.getElementById('sm-qci-notes').value.trim()||null,created_at:new Date().toISOString()});
   }
-  smLSSet(SM_ATT_KEY,list);
+  _smCache[SM_ATT_KEY]=list;
+  const rec2=existing||list[list.length-1];
+  _smSyncToDB(SM_ATT_KEY,[rec2]);
   const s=smFindStaff(staff_id);
   closeM('sm-qci-modal');
   toast((s?s.name:'Staff')+' checked in at '+time+' ✅');
@@ -1260,7 +1283,8 @@ function smSaveQuickCheckout(){
   } else {
     list.push({id:smUID(),staff_id,date,check_in:'',check_out:time,notes:document.getElementById('sm-qco-notes').value.trim(),created_at:new Date().toISOString()});
   }
-  smLSSet(SM_ATT_KEY,list);
+  _smCache[SM_ATT_KEY]=list;
+  if(existing2) _smSyncToDB(SM_ATT_KEY,[existing2]);
   const s=smFindStaff(staff_id);
   closeM('sm-qco-modal');
   toast((s?s.name:'Staff')+' checked out at '+time+' ✅');
@@ -1281,7 +1305,7 @@ function smSaveEditIn(){
   const time=document.getElementById('sm-edit-in-time').value;
   if(!time){toast('Enter a check-in time','error');return;}
   const list=smLS(SM_ATT_KEY);const idx=list.findIndex(a=>a.id===id);
-  if(idx>=0){list[idx].check_in=time;smLSSet(SM_ATT_KEY,list);}
+  if(idx>=0){list[idx].check_in=time;_smCache[SM_ATT_KEY]=list;_smSyncToDB(SM_ATT_KEY,[list[idx]]);}
   closeM('sm-edit-in-modal');toast('Check-in time updated ✅');smLoadAttendance();
 }
 
@@ -1299,7 +1323,7 @@ function smSaveEditOut(){
   const time=document.getElementById('sm-edit-out-time').value;
   if(!time){toast('Enter a check-out time','error');return;}
   const list=smLS(SM_ATT_KEY);const idx=list.findIndex(a=>a.id===id);
-  if(idx>=0){list[idx].check_out=time;smLSSet(SM_ATT_KEY,list);}
+  if(idx>=0){list[idx].check_out=time;_smCache[SM_ATT_KEY]=list;_smSyncToDB(SM_ATT_KEY,[list[idx]]);}
   closeM('sm-edit-out-modal');toast('Check-out time updated ✅');smLoadAttendance();
 }
 
@@ -1408,10 +1432,9 @@ function smLoadDocs(){
   let docs=smLS(SM_DOC_KEY);if(filterStaffId)docs=docs.filter(d=>d.staff_id===filterStaffId);
   docs.sort((a,b)=>(a.expiry_date||'9999').localeCompare(b.expiry_date||'9999'));
   const today=new Date();
-  // A dismissed alert only stays dismissed for the expiry_date it was dismissed at — if the
-  // document is later renewed (new expiry_date) or someone changes it again, the alert
-  // naturally reappears since alert_dismissed_expiry won't match anymore.
-  const notDismissed=d=>d.alert_dismissed_expiry!==d.expiry_date;
+  // Check both DB field and sessionStorage (sessionStorage covers the gap before Supabase write arrives)
+  const dismissed=JSON.parse(sessionStorage.getItem('sm_dismissed')||'{}');
+  const notDismissed=d=>d.alert_dismissed_expiry!==d.expiry_date&&dismissed[d.id]!==d.expiry_date;
   const expiring=docs.filter(d=>{if(!d.expiry_date||!notDismissed(d))return false;const diff=Math.ceil((new Date(d.expiry_date)-today)/864e5);return diff<=30&&diff>0;});
   const expired=docs.filter(d=>d.expiry_date&&notDismissed(d)&&new Date(d.expiry_date)<today);
   let alertHtml='';
@@ -1438,14 +1461,18 @@ function smLoadDocs(){
   el.innerHTML=html||'<div style="text-align:center;padding:40px;color:var(--muted);">No documents found.</div>';
 }
 
-// Mark a renewal alert as attended — removes it from the 🔔 Renewal Alerts banner without
-// touching the document's actual expiry_date, so the row's real status badge (Expired/Expiring)
-// still shows correctly. Reappears automatically if the expiry_date ever changes again.
+// Mark a renewal alert as attended — stores dismissal in Supabase
+// and in sessionStorage so it doesn't flicker back on the same session
 function smDismissAlert(id){
   const list=smLS(SM_DOC_KEY);const idx=list.findIndex(d=>d.id===id);
   if(idx<0)return;
-  list[idx]={...list[idx],alert_dismissed_expiry:list[idx].expiry_date};
-  smLSSet(SM_DOC_KEY,list);
+  const expiry=list[idx].expiry_date;
+  list[idx]={...list[idx],alert_dismissed_expiry:expiry};
+  _smCache[SM_DOC_KEY]=list;
+  // Persist dismissal to Supabase
+  _smSyncToDB(SM_DOC_KEY,[list[idx]]);
+  // Also store in sessionStorage so it survives until Supabase write completes
+  try{const d=JSON.parse(sessionStorage.getItem('sm_dismissed')||'{}');d[id]=expiry;sessionStorage.setItem('sm_dismissed',JSON.stringify(d));}catch(e){}
   toast('Marked as attended ✅');
   smLoadDocs();
 }
@@ -1499,7 +1526,7 @@ async function smSaveDoc(){
   const data={id,staff_id,type:document.getElementById('sm-doc-type').value,issue_date:document.getElementById('sm-doc-issue').value||null,expiry_date:expiry,doc_ref:document.getElementById('sm-doc-ref').value.trim(),notes:document.getElementById('sm-doc-notes').value.trim(),file_path,file_url,created_at:existing?existing.created_at:new Date().toISOString(),updated_at:new Date().toISOString()};
   const list=smLS(SM_DOC_KEY);const idx=list.findIndex(d=>d.id===data.id);
   if(idx>=0)list[idx]=data;else list.push(data);
-  smLSSet(SM_DOC_KEY,list);closeM('sm-doc-modal');window._smDocFileObj=null;
+  _smCache[SM_DOC_KEY]=list;_smSyncToDB(SM_DOC_KEY,[data]);closeM('sm-doc-modal');window._smDocFileObj=null;
   if(saveBtn){saveBtn.disabled=false;saveBtn.textContent='Save Document';}
   toast('Document saved ✅');smLoadDocs();
 }
@@ -1530,7 +1557,7 @@ async function smDeleteDoc(id){
   const d=smLS(SM_DOC_KEY).find(doc=>doc.id===id);if(!d)return;
   if(!confirm('Delete this document?'))return;
   if(d.file_path){try{await smStorageDelete(d.file_path);}catch(e){console.warn('[SM] Storage delete failed (continuing):',e.message);}}
-  smLSSet(SM_DOC_KEY,smLS(SM_DOC_KEY).filter(r=>r.id!==id));
+  smDeleteFromDB(SM_DOC_KEY,id);
   toast('Deleted','info');smLoadDocs();
 }
 
@@ -1567,21 +1594,21 @@ function ltAddType(){
   const types=smGetLeaveTypes();
   if(types.find(t=>t.key===key)){toast('Key already exists','error');return;}
   types.push({id:'lt-'+key,key,label,code,color,bg:SM_COLOR_MAP[color]||'#F0F4FF'});
-  smLSSet(SM_LEAVE_TYPES_KEY,types);
+  _smCache[SM_LEAVE_TYPES_KEY]=types;_smSyncToDB(SM_LEAVE_TYPES_KEY,types);
   ['lt-new-key','lt-new-label','lt-new-code'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('lt-new-color').value='warn';
   toast(label+' added ✅');ltRender();
 }
 function ltDelete(key){
   if(!confirm('Remove this leave type?'))return;
-  smLSSet(SM_LEAVE_TYPES_KEY,smGetLeaveTypes().filter(t=>t.key!==key));
+  const newTypes=smGetLeaveTypes().filter(t=>t.key!==key);_smCache[SM_LEAVE_TYPES_KEY]=newTypes;_smSyncToDB(SM_LEAVE_TYPES_KEY,newTypes);
   toast('Removed','info');ltRender();
 }
 function ltMove(idx,dir){
   const types=smGetLeaveTypes();const ni=idx+dir;
   if(ni<0||ni>=types.length)return;
   [types[idx],types[ni]]=[types[ni],types[idx]];
-  smLSSet(SM_LEAVE_TYPES_KEY,types);ltRender();
+  _smCache[SM_LEAVE_TYPES_KEY]=types;_smSyncToDB(SM_LEAVE_TYPES_KEY,types);ltRender();
 }
 
 // ── Initialise: load from DB/localStorage, then render active tab ──
@@ -1598,7 +1625,7 @@ async function smInit(){
       {id:'seed-george',name:'George',role:'Stylist',mobile:'',join_date:'',off_days:[3],notes:'',created_at:new Date().toISOString()},
       {id:'seed-chuuby',name:'Chuuby',role:'Stylist',mobile:'',join_date:'',off_days:[4],notes:'',created_at:new Date().toISOString()},
     ];
-    smLSSet(SM_STAFF_KEY,seed);
+    _smCache[SM_STAFF_KEY]=seed;_smSyncToDB(SM_STAFF_KEY,seed);
   }
   // Render whichever tab is currently active
   const active=document.querySelector('.tab-btn.active');
