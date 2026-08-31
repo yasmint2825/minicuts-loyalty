@@ -5516,7 +5516,7 @@ async function acqRender(){
 
     // 2. Fetch ALL queue rows for the month — this is the real unit of analysis
     //    Each row = one service rendered. We classify each service as new or returning.
-    const DB_CUTOFF = '2026-06-08';
+    const DB_CUTOFF = '2026-06-09'; // DB starts Jun 9; Excel covers up to Jun 8
     const qFromDate = `${acqYear}-${String(acqMonth+1).padStart(2,'0')}-01`;
     const qToDate   = `${acqYear}-${String(acqMonth+1).padStart(2,'0')}-${new Date(acqYear,acqMonth+1,0).getDate().toString().padStart(2,'0')}`;
     let queueRows = []; // ALL queue rows this month (not just paid)
@@ -5537,11 +5537,11 @@ async function acqRender(){
       console.log('[ACQ] queue rows (done) this month:',queueRows.length);
     }catch(e){console.warn('[ACQ] queue fetch failed:',e.message);}
 
-    // Revenue rows = queue rows with service_value > 0, after cutoff
+    // Revenue rows = queue rows with service_value > 0, from Jun 8 onwards (DB starts Jun 8)
     const qRevFiltered = queueRows.filter(q=>{
       if((parseFloat(q.service_value)||0)<=0) return false;
       const d=(q.checkin_date||'').toString().slice(0,10);
-      return d > DB_CUTOFF;
+      return d >= DB_CUTOFF;  // Jun 9 inclusive — DB captures from Jun 9
     });
     const mRevFromDB = qRevFiltered.reduce((a,q)=>a+(parseFloat(q.service_value)||0),0);
     console.log(`[ACQ] revenue rows: ${qRevFiltered.length} · AED ${mRevFromDB}`);
@@ -5647,14 +5647,13 @@ async function acqRender(){
     // For May 2025 and earlier: Excel covers the whole month (all rows < cutoff)
     // For Aug 2026+: DB only (Excel has no rows in those months)
 
-    const cutoffDate = new Date('2026-06-08T23:59:59.999'); // Excel rows up to Jun 8 inclusive
+    const cutoffDate = new Date('2026-06-09T00:00:00'); // Excel covers up to Jun 8 — DB takes over from Jun 9
     const excelRowsThisMonth = hist.filter(r=>{
       if(!r.date) return false;
-      // Normalise date string — Excel stores '2025-05-23 21:00:00', parse carefully
       const raw = String(r.date).replace(' ','T');
       const d = new Date(raw);
       if(isNaN(d)) return false;
-      return d >= mStart && d <= mEnd && d <= cutoffDate;
+      return d >= mStart && d <= mEnd && d < cutoffDate;  // strictly before Jun 9 (i.e. Jun 8 and earlier)
     });
     const mRevFromExcel = excelRowsThisMonth.reduce((a,r)=>a+(parseFloat(r.amount)||0), 0);
     const mRevTotal     = mRevFromDB + mRevFromExcel;
@@ -5861,7 +5860,21 @@ async function acqRender(){
       </div>
       ${!histHasData?'<div style="font-size:12px;color:var(--warn);font-weight:700;margin-top:10px;">⚠️ Upload pre-June Excel in the Historical Data tab to classify returning customers accurately.</div>':''}`;
 
-    acqRenderHistInsights(hist);
+    // Fetch ALL done queue rows for monthly revenue chart (all time, not just this month)
+    let allDBRows=[];
+    try{
+      let off=0,g=0;
+      while(true){
+        const b=await sb('queue','GET',null,
+          `select=checkin_date,service_value,status&status=eq.done&service_value=gt.0&order=checkin_date.asc&limit=1000&offset=${off}`);
+        if(!b||!b.length)break;
+        allDBRows=[...allDBRows,...b];
+        if(b.length<1000)break;
+        off+=1000;if(++g>50)break;
+      }
+    }catch(e){console.warn('[ACQ] allDBRows fetch failed:',e.message);}
+
+    acqRenderHistInsights(hist, allDBRows);
   }catch(e){
     console.error('[ACQ] acqRender failed:',e);
     ['acq-kpis','acq-src-bars','acq-newret'].forEach(id=>{
@@ -6136,7 +6149,7 @@ function acqBuildMonthlyTable(customers,custFirstDate,hist){
   </tr></tbody></table>`;
   el.innerHTML=html;
 }
-function acqRenderHistInsights(hist){
+function acqRenderHistInsights(hist, dbRows){
   const card=document.getElementById('acq-hist-insights');if(!card)return;
   if(!hist||!hist.length){card.style.display='none';return;}
   card.style.display='block';const total=hist.length;
@@ -6149,17 +6162,44 @@ function acqRenderHistInsights(hist){
   const stylMap={};hist.forEach(r=>{const s=r.stylist_phone||(r.stylist)||'Unknown';const key=s?acqNormalizePhone(s)||s:'Unknown';stylMap[key]=(stylMap[key]||0)+1;});
   const stylEl=document.getElementById('acq-hist-stylist');const STYL_COLORS=['#1565C0','#7C3AED','#16A34A','#D97706','#DC2626'];
   if(stylEl)stylEl.innerHTML=Object.entries(stylMap).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([k,v],i)=>acqBar('💈 '+(STYLIST_PHONE_MAP[k]||k).slice(0,12),v,total,STYL_COLORS[i%5])).join('');
-  // Monthly revenue
+  // Monthly revenue — Excel data
   const mRevMap={};const mVolMap={};
-  hist.forEach(r=>{if(!r.date)return;const d=new Date(r.date);if(isNaN(d))return;const key=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');mRevMap[key]=(mRevMap[key]||0)+(parseFloat(r.amount)||0);mVolMap[key]=(mVolMap[key]||0)+1;});
+  hist.forEach(r=>{
+    if(!r.date)return;
+    const raw=String(r.date).replace(' ','T');
+    const d=new Date(raw);if(isNaN(d))return;
+    const key=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+    mRevMap[key]=(mRevMap[key]||0)+(parseFloat(r.amount)||0);
+    mVolMap[key]=(mVolMap[key]||0)+1;
+  });
+  // Merge DB queue revenue (from Jun 9 onwards)
+  if(dbRows&&dbRows.length){
+    dbRows.forEach(q=>{
+      const amt=parseFloat(q.service_value)||0;if(!amt)return;
+      if(q.status!=='done')return;
+      const d=(q.checkin_date||'').toString().slice(0,7); // YYYY-MM
+      if(!d)return;
+      mRevMap[d]=(mRevMap[d]||0)+amt;
+      mVolMap[d]=(mVolMap[d]||0)+1;
+    });
+  }
   const revEl=document.getElementById('acq-hist-rev-table');
   const revMonths=Object.keys(mRevMap).sort();
   if(revEl&&revMonths.length){
     const totalR=Object.values(mRevMap).reduce((a,b)=>a+b,0);const totalV=Object.values(mVolMap).reduce((a,b)=>a+b,0);
     revEl.innerHTML=`<table style="width:100%;border-collapse:collapse;background:#fff;border-radius:10px;overflow:hidden;box-shadow:var(--sh);">
-      <thead style="background:var(--bd);"><tr><th style="padding:7px 10px;color:#fff;font-size:11px;font-weight:700;text-align:left;">Month</th><th style="padding:7px 10px;color:#fff;font-size:11px;font-weight:700;text-align:right;">Txns</th><th style="padding:7px 10px;color:#fff;font-size:11px;font-weight:700;text-align:right;">Revenue</th><th style="padding:7px 10px;color:#fff;font-size:11px;font-weight:700;text-align:right;">Avg</th></tr></thead>
-      <tbody>${revMonths.map((m,i)=>`<tr style="${i%2===0?'background:#F8FAFF':''}"><td style="padding:7px 10px;font-weight:700;font-size:12.5px;">${new Date(m+'-01').toLocaleDateString('en-GB',{month:'short',year:'numeric'})}</td><td style="padding:7px 10px;text-align:right;font-size:12.5px;">${mVolMap[m]}</td><td style="padding:7px 10px;text-align:right;font-weight:800;color:var(--ok);font-size:12.5px;">AED ${mRevMap[m].toFixed(0)}</td><td style="padding:7px 10px;text-align:right;color:var(--muted);font-size:12px;">AED ${mVolMap[m]>0?(mRevMap[m]/mVolMap[m]).toFixed(0):0}</td></tr>`).join('')}
-      <tr style="border-top:2px solid var(--border);background:var(--bg);"><td style="padding:7px 10px;font-weight:900;font-size:12px;color:var(--muted);">TOTAL</td><td style="padding:7px 10px;text-align:right;font-weight:900;">${totalV}</td><td style="padding:7px 10px;text-align:right;font-weight:900;color:var(--ok);">AED ${totalR.toFixed(0)}</td><td style="padding:7px 10px;text-align:right;font-weight:800;color:var(--muted);">AED ${totalV>0?(totalR/totalV).toFixed(0):0}</td></tr>
+      <thead style="background:var(--bd);"><tr><th style="padding:7px 10px;color:#fff;font-size:11px;font-weight:700;text-align:left;">Month</th><th style="padding:7px 10px;color:#fff;font-size:11px;font-weight:700;text-align:right;">Txns</th><th style="padding:7px 10px;color:#fff;font-size:11px;font-weight:700;text-align:right;">Revenue</th><th style="padding:7px 10px;color:#fff;font-size:11px;font-weight:700;text-align:right;">Avg</th><th style="padding:7px 10px;color:#fff;font-size:11px;font-weight:700;text-align:center;">Source</th></tr></thead>
+      <tbody>${revMonths.map((m,i)=>{
+        const isDB=m>='2026-06';
+        return`<tr style="${i%2===0?'background:#F8FAFF':''}">
+          <td style="padding:7px 10px;font-weight:700;font-size:12.5px;">${new Date(m+'-02').toLocaleDateString('en-GB',{month:'short',year:'numeric'})}</td>
+          <td style="padding:7px 10px;text-align:right;font-size:12.5px;">${mVolMap[m]}</td>
+          <td style="padding:7px 10px;text-align:right;font-weight:800;color:var(--ok);font-size:12.5px;">AED ${mRevMap[m].toFixed(0)}</td>
+          <td style="padding:7px 10px;text-align:right;color:var(--muted);font-size:12px;">AED ${mVolMap[m]>0?(mRevMap[m]/mVolMap[m]).toFixed(0):0}</td>
+          <td style="padding:7px 10px;text-align:center;font-size:10px;"><span style="background:${isDB?'#DBEAFE':'#FEF9C3'};color:${isDB?'#1565C0':'#92400E'};padding:2px 6px;border-radius:99px;font-weight:700;">${isDB?'DB':'Excel'}</span></td>
+        </tr>`;
+      }).join('')}
+      <tr style="border-top:2px solid var(--border);background:var(--bg);"><td style="padding:7px 10px;font-weight:900;font-size:12px;color:var(--muted);">TOTAL</td><td style="padding:7px 10px;text-align:right;font-weight:900;">${totalV}</td><td style="padding:7px 10px;text-align:right;font-weight:900;color:var(--ok);">AED ${totalR.toFixed(0)}</td><td style="padding:7px 10px;text-align:right;font-weight:800;color:var(--muted);">AED ${totalV>0?(totalR/totalV).toFixed(0):0}</td><td></td></tr>
       </tbody></table>`;
   }
 }
@@ -6180,8 +6220,9 @@ function opsMonthShift(delta){
 function opsSetMonth(){
   const from=new Date(_opsYear,_opsMonth,1);
   const to=new Date(_opsYear,_opsMonth+1,0);
-  document.getElementById('ops-from').value=from.toISOString().split('T')[0];
-  document.getElementById('ops-to').value=to.toISOString().split('T')[0];
+  const fmtLocal=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  document.getElementById('ops-from').value=fmtLocal(from);
+  document.getElementById('ops-to').value=fmtLocal(to);
   const label=from.toLocaleDateString('en-GB',{month:'long',year:'numeric'});
   const lEl=document.getElementById('ops-month-label');
   if(lEl)lEl.textContent=label;
@@ -6410,10 +6451,10 @@ async function opsLoad(){
         </tr></thead><tbody>
         ${days.slice().reverse().map((d,i)=>{
           const avgW=avg(d.waitMins);const avgS=avg(d.serveMins);
-          const highW=avgW>20;const dow=new Date(d.date).toLocaleDateString('en-GB',{weekday:'short'});
+          const highW=avgW>20;const dow=new Date(d.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short'});
           const topSty=Object.entries(d.stylists).sort((a,b)=>b[1]-a[1])[0];
           return`<tr style="${i%2===0?'background:#F8FAFF':''}" onclick="opsDrillDay('${d.date}')" style="cursor:pointer;">
-            <td style="${tdS}font-weight:700;cursor:pointer;" onclick="opsDrillDay('${d.date}')">${new Date(d.date).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'2-digit'})}</td>
+            <td style="${tdS}font-weight:700;cursor:pointer;" onclick="opsDrillDay('${d.date}')">${new Date(d.date+'T12:00:00').toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'2-digit'})}</td>
             <td style="${tdS}color:var(--muted);">${dow}</td>
             <td style="${tdS}text-align:right;font-weight:800;">${d.count}</td>
             <td style="${tdS}text-align:right;font-weight:700;color:${highW?'var(--err)':avgW>10?'var(--warn)':'var(--ok)'};">${acqFmtMins(avgW)}${d.waitMins.length?'':' <span style="color:var(--muted);font-size:10px;">n/a</span>'}</td>
@@ -6501,7 +6542,7 @@ async function opsWaitImpact(days,avg){
       // We'd need customer_ids from queue for that day — approximation: 
       const retentionRisk=avgW>40?'🔴 High':avgW>30?'🟠 Medium':'🟡 Low';
       html+=`<tr style="${i%2===0?'background:#FFF5F5':''}">
-        <td style="${tdS}font-weight:700;">${new Date(d.date).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'2-digit'})}</td>
+        <td style="${tdS}font-weight:700;">${new Date(d.date+'T12:00:00').toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'2-digit'})}</td>
         <td style="${tdS}text-align:right;font-weight:700;">${d.count}</td>
         <td style="${tdS}text-align:right;font-weight:800;color:var(--err);">${acqFmtMins(avgW)}</td>
         <td style="${tdS}text-align:right;color:var(--muted);">— <span style="font-size:10px;">(match by phone coming)</span></td>
