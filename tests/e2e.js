@@ -45,11 +45,13 @@ const filt = (rows, qs) => { qs.forEach((v, k) => { if (['select', 'order', 'lim
     ok(/^✅ Stamp$/.test((await pg.innerText('#qr-q2 .btn-g')).trim()), 'before migration: plain Stamp button');
     ok(errs.length === 0, 'before migration: no errors ' + JSON.stringify(errs.slice(0, 2))); await b.close(); return;
   }
+  const pick = n => pg.evaluate(n => { const i = MC.billing.services.findIndex(x => x.name.trim() === n); document.querySelector('#mcc-list [data-i="' + i + '"]').dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true })); }, n);
+  const typeSvc = async n => { await pg.fill('#mcc-svcname', ''); await pg.fill('#mcc-svcname', n); await pg.waitForSelector('#mcc-list [data-i]'); };
   // History → checkout
   await pg.evaluate(() => { showTab('t-history', document.querySelectorAll('.tab')[1]); histSetDate(today()); }); await pg.evaluate(() => loadHist()); await pg.waitForTimeout(600);
   ok(await pg.locator('text=💳 Checkout').count() > 0, 'Checkout button shown in History');
   await pg.locator('text=💳 Checkout').first().click(); await pg.waitForSelector('#mcc-issue');
-  await pg.fill('#mcc-svcname', 'tattoo'); ok(await pg.locator('#mcc-list [data-i]').count() === 1, 'duplicates collapsed to one row'); if (process.env.SHOT2) { await pg.fill('#mcc-svcname', ''); await pg.fill('#mcc-svcname', 'colour'); await pg.waitForTimeout(200); await pg.screenshot({ path: process.env.SHOT2 }); await pg.fill('#mcc-svcname', 'tattoo'); } await pg.locator('#mcc-list [data-i]').first().dispatchEvent('mousedown'); ok(await pg.inputValue('#mcc-price') === '80', 'picking fills price'); await pg.fill('#mcc-price', '50'); await pg.click('.mc-chip[data-p="10"]'); await pg.click('.mc-pay[data-v="Cash"]'); await pg.fill('#mcc-tip', '5');
+  await pg.fill('#mcc-svcname', 'tattoo'); ok(await pg.locator('#mcc-list [data-i]').count() === 1, 'duplicates collapsed to one row'); if (process.env.SHOT2) { await pg.fill('#mcc-svcname', ''); await pg.fill('#mcc-svcname', 'colour'); await pg.waitForTimeout(200); await pg.screenshot({ path: process.env.SHOT2 }); await pg.fill('#mcc-svcname', 'tattoo'); } await pg.locator('#mcc-list [data-i]').first().dispatchEvent('mousedown'); ok(await pg.inputValue('#mcc-price') === '80', 'picking fills price'); ok(await pg.getAttribute('#mcc-price', 'readonly') !== null, 'price box is read-only'); ok(await pg.getAttribute('#mcc-disc', 'type') === 'hidden', 'discount only via chips (no typed box)'); await pg.fill('#mcc-svcname', 'zzz'); ok(await pg.inputValue('#mcc-price') === '', 'typing alone sets no price'); await pg.click('#mcc-issue'); ok(/Pick the service/.test(await pg.innerText('#mcc-msg')), 'cannot issue without a listed service'); await typeSvc('Haircut'); await pick('Haircut'); ok(await pg.inputValue('#mcc-price') === '50', 'Haircut price 50 from list'); await pg.click('.mc-chip[data-p="10"]'); await pg.click('.mc-pay[data-v="Cash"]'); await pg.fill('#mcc-tip', '5');
   const sum = await pg.innerText('#mcc-sum'); ok(/45\.00/.test(sum) && /50\.00/.test(sum), 'discount 10% on 50 → 45 shown'); ok(/Total to collect[\s\S]*50\.00/.test(sum), 'total incl tip 50.00');
   await pg.click('#mcc-issue'); await pg.waitForSelector('#mci-send', { timeout: 8000 });
   const inv = DB.invoices[0]; ok(inv && inv.invoice_number === 'MC/' + new Date().getFullYear() + '/00001', 'invoice number ' + (inv && inv.invoice_number));
@@ -60,9 +62,9 @@ const filt = (rows, qs) => { qs.forEach((v, k) => { if (['select', 'order', 'lim
   ok(waCall && waCall.template_name === 'mc_invoice_utility' && waCall.params.length === 5 && /^https/.test(waCall.params[4]) && DB.invoices[0].whatsapp_sent === true, 'WhatsApp utility call ' + JSON.stringify(waCall && waCall.params));
   await pg.click('#mci-close'); ok(await pg.locator('text=🧾 Invoice').count() > 0, 'row now shows Invoice button');
   // void → re-checkout allowed
-  await pg.locator('text=🧾 Invoice').first().click(); await pg.waitForSelector('#mci-void'); await pg.click('#mci-void'); await pg.click('#mcv-yes'); await pg.waitForTimeout(500);
+  await pg.locator('text=✕ Void').first().click(); await pg.waitForSelector('#mcv-yes'); await pg.click('#mcv-yes'); await pg.waitForTimeout(500);
   ok(DB.invoices[0].status === 'void' && !DB.queue[0].invoice_id, 'void releases the visit');
-  await pg.locator('text=💳 Checkout').first().click(); await pg.waitForSelector('#mcc-issue'); await pg.fill('#mcc-svcname', 'Haircut'); await pg.fill('#mcc-price', '50'); await pg.click('.mc-pay[data-v="Credit"]'); await pg.click('#mcc-issue'); await pg.waitForSelector('#mci-close');
+  await pg.locator('text=💳 Checkout').first().click(); await pg.waitForSelector('#mcc-issue'); await typeSvc('Haircut'); await pick('Haircut'); await pg.click('.mc-pay[data-v="Credit"]'); await pg.click('#mcc-issue'); await pg.waitForSelector('#mci-close');
   ok(DB.invoices[1].invoice_number.endsWith('/00002'), 'numbers never reused after void'); await pg.click('#mci-close');
   // Appointments
   await pg.evaluate(() => { showTab('t-appt', document.querySelectorAll('.tab')[2]); MC.appt.state.date = (() => { let d = MC.parseYmd(MC.today()); d.setDate(d.getDate() + 1); while ([0, 6].includes(d.getDay())) d.setDate(d.getDate() + 1); return MC.ymd(d); })(); MC.appt.init(); }); await pg.waitForTimeout(800);
@@ -91,12 +93,12 @@ const filt = (rows, qs) => { qs.forEach((v, k) => { if (['select', 'order', 'lim
   ok(await pg.getAttribute('#aed-q2', 'type') === 'hidden', 'grid amount is not typeable before checkout');
   ok(/Stamp &/.test(await pg.innerText('#qr-q2 .btn-g')), 'Stamp button becomes Stamp & Checkout');
   await pg.click('#qr-q2 .btn-g'); await pg.waitForSelector('#mcc-issue');
-  await pg.fill('#mcc-svcname', 'Haircut'); await pg.fill('#mcc-price', '60'); await pg.click('.mc-chip[data-p="10"]'); await pg.click('.mc-pay[data-v="Cash"]'); await pg.click('#mcc-issue');
+  await typeSvc('Haircut'); await pick('Haircut'); await pg.click('.mc-chip[data-p="10"]'); await pg.click('.mc-pay[data-v="Cash"]'); await pg.click('#mcc-issue');
   await pg.waitForSelector('#mci-close'); ok(/stamp visit/.test(await pg.innerText('#mci-close')), 'invoice screen offers Done — stamp visit');
   ok(DB.queue.find(q => q.id === 'q2').status === 'called', 'not stamped until invoice screen is confirmed');
   await pg.click('#mci-close'); await pg.waitForTimeout(900);
-  const q2 = DB.queue.find(q => q.id === 'q2'); ok(q2.status === 'done' && q2.service_value === 54 && q2.payment_type === 'Cash' && q2.discount_pct === 10, 'visit stamped with checkout values ' + JSON.stringify([q2.status, q2.service_value, q2.payment_type]));
-  ok((DB.visits || []).some(v => v.service_value === 54), 'visits row carries the amount');
+  const q2 = DB.queue.find(q => q.id === 'q2'); ok(q2.status === 'done' && q2.service_value === 45 && q2.payment_type === 'Cash' && q2.discount_pct === 10, 'visit stamped with checkout values ' + JSON.stringify([q2.status, q2.service_value, q2.payment_type]));
+  ok((DB.visits || []).some(v => v.service_value === 45), 'visits row carries the amount');
   await pg.screenshot({ path: process.env.SHOT || '/tmp/shot.png' });
   ok(errs.length === 0, 'no console/page errors ' + JSON.stringify(errs.slice(0, 3)));
   await b.close();

@@ -1032,7 +1032,7 @@ function renderHist(){
       +'</td>'
       +'<td>'+(r.service||'—')+'</td>'
       +'<td>'+(styStr||'<span style="color:var(--muted);">—</span>')+'</td>'
-      +'<td style="font-weight:800;color:var(--b);">'+(r.service_value?'AED '+r.service_value:'—')+(Number(r.discount_pct)>0?'<div style="font-size:11px;font-weight:600;color:var(--muted);">'+r.discount_pct+'% off'+(r.list_price?' (full '+r.list_price+')':'')+'</div>':'')+'</td>'
+      +'<td style="font-weight:800;color:var(--b);">'+(r.service_value?'AED '+r.service_value:'—')+(window.MC&&MC.billing&&MC.billing.cellNote?MC.billing.cellNote(r):'')+'</td>'
       +'<td style="font-weight:800;color:var(--ok);">'+(r.tip?'AED '+r.tip:'—')+'</td>'
       +'<td>'+payBadge+'</td>'
       +'<td style="font-size:12px;color:var(--muted);max-width:150px;">'+(r.remark||'—')+'</td>'
@@ -2265,9 +2265,9 @@ function setDefaultExpiry() {
 setDefaultExpiry();
 
 </script>
-<script src="mc-common.js?v=20261014e"></script>
-<script src="mc-billing.js?v=20261014e"></script>
-<script src="mc-appointments.js?v=20261014e"></script>
-<script src="mc-reports.js?v=20261014e"></script>
+<script src="mc-common.js?v=20261014f"></script>
+<script src="mc-billing.js?v=20261014f"></script>
+<script src="mc-appointments.js?v=20261014f"></script>
+<script src="mc-reports.js?v=20261014f"></script>
 </body>
 </html>

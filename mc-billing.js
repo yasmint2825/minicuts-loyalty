@@ -13,6 +13,12 @@
     IN: { name: 'India', taxLabel: 'GST', idLabel: 'GSTIN', currency: 'INR', rate: 5 }
   };
   B.COUNTRIES = COUNTRIES;
+  const DEFAULT_DISCOUNTS = [5, 10, 15, 20, 25, 50];
+  B.parseDiscounts = function (v) {
+    const a = (Array.isArray(v) ? v : String(v == null ? '' : v).split(/[,\s]+/)).map(Number).filter(n => n > 0 && n <= 100);
+    const u = [...new Set(a)].sort((x, y) => x - y);
+    return u.length ? u : DEFAULT_DISCOUNTS.slice();
+  };
   const DEFAULTS = { country: 'AE', bname: 'MiNiCUTS FZCO', addr: '', phone: '', taxId: '', rate: 5, basis: 'inclusive', prefix: 'MC',
     footer: 'Thank you for visiting MiNiCUTS!', sac: '999721', stateName: '', stateCode: '', currency: 'AED', waTemplateName: 'mc_invoice_utility' };
 
@@ -33,6 +39,7 @@
       currency: raw.currency || COUNTRIES[country].currency,
       waTemplateName: raw.waTemplateName || DEFAULTS.waTemplateName
     });
+    S.discounts = B.parseDiscounts(raw.discounts);
     S.taxLabel = COUNTRIES[country].taxLabel;
     S.taxRegistered = !!S.taxId;
     return S;
@@ -69,9 +76,27 @@
   B.rowButton = function (r) {
     if (!r || r.status === 'cancelled') return '';
     if (r.invoice_id) {
-      return '<button class="btn btn-sm" style="background:#EEF6FF;color:#1565C0;font-size:11px;white-space:nowrap;" title="' + MC.esc(r.invoice_number || '') + '" onclick="MC.billing.viewInvoiceForRow(\'' + r.id + '\')">🧾 Invoice</button>';
+      return '<button class="btn btn-sm" style="background:#EEF6FF;color:#1565C0;font-size:11px;white-space:nowrap;" title="' + MC.esc(r.invoice_number || '') + '" onclick="MC.billing.viewInvoiceForRow(\'' + r.id + '\')">🧾 Invoice</button>' +
+        '<button class="btn btn-sm" style="background:#FEF2F2;color:#DC2626;font-size:11px;white-space:nowrap;" onclick="MC.billing.voidForRow(\'' + r.id + '\')">✕ Void</button>';
     }
     return '<button class="btn btn-sm btn-y" style="font-size:11px;white-space:nowrap;" onclick="MC.billing.openCheckout(\'' + r.id + '\')">💳 Checkout</button>';
+  };
+
+  /* small lines under the amount in the grid: discount + tax note (the amount itself is always the full payable value incl. VAT) */
+  B.cellNote = function (r) {
+    if (!r) return '';
+    const parts = [];
+    if (Number(r.discount_pct) > 0) parts.push(r.discount_pct + '% off' + (r.list_price ? ' (full ' + r.list_price + ')' : ''));
+    if (r.invoice_id && B.S && B.S.taxRegistered) parts.push('incl. ' + (B.S.taxLabel || 'VAT'));
+    return parts.length ? '<div style="font-size:11px;font-weight:600;color:var(--muted);">' + MC.esc(parts.join(' · ')) + '</div>' : '';
+  };
+  B.voidForRow = async function (queueId) {
+    const r = rowById(queueId); if (!r || !r.invoice_id) return;
+    try {
+      const inv = (await MC.sb('invoices', 'GET', null, 'id=eq.' + r.invoice_id + '&limit=1'))[0];
+      if (!inv) return toast('Invoice not found', 'err');
+      B.voidDialog(inv);
+    } catch (e) { toast('Could not open invoice: ' + e.message, 'err'); }
   };
 
   /* ── Is the database ready? Until the migration has run, the grid keeps working exactly as before. ── */
@@ -81,7 +106,7 @@
     try {
       await MC.sb('invoices', 'GET', null, 'select=id,fy,seq,discount_pct,payable_amount,pdf_url&limit=1');
       await MC.sb('queue', 'GET', null, 'select=id,invoice_id,list_price,discount_pct&limit=1');
-      B.ready = true; refresh();
+      await B.load(); B.ready = true; refresh();
     } catch (e) { B.ready = false; console.info('MiNiCUTS billing: database migration not applied yet — grid stays in classic mode.'); }
   };
 
@@ -101,26 +126,25 @@
     if (r.invoice_id) return B.viewInvoiceForRow(queueId);
     await B.load();
     const S = B.S;
-    
     const byName = B.services.find(s => String(s.name).toLowerCase() === String(r.service || '').toLowerCase());
     const seed = MC.seedFromRow(r, byName ? byName.price : 0);
-    const startPrice = seed.list || '';
+    let chosen = byName || null;                       // the service MUST come from the Salon Setup price list
+    const seedPct = S.discounts.includes(seed.pct) ? seed.pct : 0;
 
-    const chips = [0, 5, 10, 15, 20, 25, 50].map(p => '<button type="button" class="btn btn-ghost btn-sm mc-chip" data-p="' + p + '" style="padding:6px 10px;">' + (p ? p + '%' : 'None') + '</button>').join('');
+    const chips = [0].concat(S.discounts).map(p => '<button type="button" class="btn btn-ghost btn-sm mc-chip" data-p="' + p + '" style="padding:6px 10px;">' + (p ? p + '%' : 'None') + '</button>').join('');
     const ov = MC.modal(
       '<div style="font-family:var(--fh);font-size:19px;font-weight:800;color:var(--bd);">💳 Checkout <span style="font-size:10px;font-weight:600;color:var(--muted);">' + MC.esc(MC.version) + '</span></div>' +
       '<div style="font-size:13px;color:var(--muted);margin:2px 0 14px;">' + MC.esc(r.customer_name || 'Guest') + ' · Token ' + MC.pad(r.token_number || 0) + (stylistsOf(r) ? ' · ' + MC.esc(stylistsOf(r)) : '') + '</div>' +
       '<div style="display:grid;gap:12px;">' +
         '<div>' + MC.lbl('Service') + '<div id="mcc-types" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;"></div>' +
-          '<div style="position:relative;"><input id="mcc-svcname" class="fi" type="text" autocomplete="off" placeholder="Type to search, e.g. haircut, colour…" value="' + MC.esc(r.service || '') + '"/>' +
+          '<div style="position:relative;"><input id="mcc-svcname" class="fi" type="text" autocomplete="off" placeholder="Type to search the price list, e.g. haircut, colour…" value="' + MC.esc(chosen ? chosen.name : '') + '"/>' +
           '<div id="mcc-list" style="display:none;position:absolute;left:0;right:0;top:100%;margin-top:4px;z-index:5;background:#fff;border:1px solid var(--border);border-radius:10px;max-height:230px;overflow:auto;box-shadow:0 8px 24px rgba(0,0,0,.18);"></div></div></div>' +
         '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">' +
-          '<div>' + MC.lbl('Price (' + S.currency + ')') + '<input id="mcc-price" class="fi" type="number" min="0" step="any" value="' + MC.esc(startPrice) + '" placeholder="0"/></div>' +
+          '<div>' + MC.lbl('Price (' + S.currency + ') · from price list') + '<input id="mcc-price" class="fi" type="text" readonly tabindex="-1" value="' + MC.esc(chosen ? chosen.price : '') + '" placeholder="Pick a service" style="background:#F1F5F9;font-weight:800;color:var(--bd);"/></div>' +
           '<div>' + MC.lbl('Tip (' + S.currency + ')') + '<input id="mcc-tip" class="fi" type="number" min="0" step="any" value="' + MC.esc(r.tip || '') + '" placeholder="0"/></div>' +
         '</div>' +
         '<div>' + MC.lbl('Discount %') + '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">' + chips +
-          '<input id="mcc-disc" class="fi" type="number" min="0" max="100" step="any" value="' + MC.esc(seed.pct || 0) + '" style="width:80px;"/><span style="font-size:12px;color:var(--muted);">%</span></div></div>' +
-        (seed.note ? '<div style="font-size:12px;background:#FFF7ED;color:#9A3412;border-radius:8px;padding:7px 10px;">ℹ️ ' + MC.esc(seed.note) + '</div>' : '') +
+          '<input id="mcc-disc" type="hidden" value="' + MC.esc(seedPct) + '"/></div></div>' +
         '<div>' + MC.lbl('Payment') + '<div style="display:flex;gap:8px;">' +
           '<button type="button" class="btn btn-ghost mc-pay" data-v="Cash" style="flex:1;padding:10px;">💵 Cash</button>' +
           '<button type="button" class="btn btn-ghost mc-pay" data-v="Credit" style="flex:1;padding:10px;">💳 Card</button></div></div>' +
@@ -171,28 +195,31 @@
       if (!force && (exact || !q.length && document.activeElement !== $('mcc-svcname'))) { box.style.display = 'none'; return; }
       box.innerHTML = (items.slice(0, 40).map((x, i) => '<div data-i="' + B.services.indexOf(x) + '" style="padding:9px 12px;cursor:pointer;display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid #F1F5F9;font-size:13.5px;"><span>' + MC.esc(x.name) + ' <span style="color:var(--muted);font-size:11px;">' + MC.esc(typeLabel(x.gender)) + '</span></span><b>' + MC.esc(x.price) + '</b></div>').join('') || '<div style="padding:10px 12px;color:var(--muted);font-size:13px;">No match — keep typing to use a custom service name.</div>') + (items.length > 40 ? '<div style="padding:6px 12px;color:var(--muted);font-size:11px;">Showing 40 of ' + items.length + ' — type more to narrow</div>' : '');
       box.style.display = 'block';
-      box.querySelectorAll('[data-i]').forEach(d => d.addEventListener('mousedown', e => { e.preventDefault(); const x = B.services[+d.dataset.i]; $('mcc-svcname').value = x.name; $('mcc-price').value = x.price; box.style.display = 'none'; paint(); $('mcc-disc').focus(); }));
+      box.querySelectorAll('[data-i]').forEach(d => d.addEventListener('mousedown', e => { e.preventDefault(); const x = B.services[+d.dataset.i]; chosen = x; $('mcc-svcname').value = x.name; $('mcc-price').value = x.price; box.style.display = 'none'; paint(); $('mcc-disc').focus(); }));
     };
-    $('mcc-svcname').addEventListener('input', () => showList(true));
+    $('mcc-svcname').addEventListener('input', () => {
+      const t = norm($('mcc-svcname').value), m = B.services.filter(x => norm(x.name) === t);
+      chosen = m.length === 1 ? m[0] : null;                 // typing alone never sets a price
+      $('mcc-price').value = chosen ? chosen.price : ''; paint(); showList(true);
+    });
     $('mcc-svcname').addEventListener('focus', () => showList(true));
     $('mcc-svcname').addEventListener('blur', () => setTimeout(() => { $('mcc-list').style.display = 'none'; }, 120));
     paintTypes();
-    ['mcc-price', 'mcc-tip', 'mcc-disc'].forEach(id => $(id).addEventListener('input', paint));
+    $('mcc-tip').addEventListener('input', paint);
     ov.querySelectorAll('.mc-chip').forEach(b => b.addEventListener('click', () => { $('mcc-disc').value = b.dataset.p; paint(); }));
     ov.querySelectorAll('.mc-pay').forEach(b => b.addEventListener('click', () => { pay = b.dataset.v; paint(); }));
     $('mcc-cancel').addEventListener('click', () => ov.close());
     $('mcc-issue').addEventListener('click', async () => {
       const msg = $('mcc-msg'); msg.style.display = 'none';
-      const svc = ($('mcc-svcname').value || '').trim();
       const v = read();
       const fail = t => { msg.textContent = t; msg.style.display = 'block'; };
-      if (!svc) return fail('Pick or type the service.');
-      if (!(v.listPrice > 0)) return fail('Enter the price.');
-      if (v.discountPct < 0 || v.discountPct > 100) return fail('Discount must be 0–100%.');
+      if (!chosen) return fail('Pick the service from the price list.');
+      if (!(Number(chosen.price) > 0)) return fail('This service has no price in Salon Setup — add it there first.');
+      if (v.discountPct !== 0 && !S.discounts.includes(v.discountPct)) return fail('Discount not allowed.');
       if (!pay) return fail('Choose Cash or Card.');
       const btn = $('mcc-issue'); btn.disabled = true; btn.textContent = 'Issuing…';
       try {
-        const inv = await B.issue(r, { service: svc, payment: pay, listPrice: v.listPrice, discountPct: v.discountPct, tip: v.tip });
+        const inv = await B.issue(r, { service: chosen.name.trim(), payment: pay, listPrice: Number(chosen.price), discountPct: v.discountPct, tip: v.tip });
         ov.close();
         B.showInvoice(inv, { fresh: true, onDone: opts.stampAfter });
       } catch (e) {
@@ -418,7 +445,7 @@
   B.voidDialog = function (inv) {
     const ov = MC.modal(
       '<div style="font-family:var(--fh);font-size:18px;font-weight:800;color:var(--err);">Void ' + MC.esc(inv.invoice_number) + '?</div>' +
-      '<div style="font-size:12.5px;color:var(--muted);margin:4px 0 12px;">The number stays in the register as VOID (it is never reused). The visit goes back to “no invoice” so you can check out again.</div>' +
+      '<div style="font-size:12.5px;color:var(--muted);margin:4px 0 12px;">The number stays in the register as VOID (it is never reused). The amount is cleared and the visit goes back to “no invoice” so you can check out again. The customer’s loyalty stamp is not changed.</div>' +
       MC.lbl('Reason') + '<select id="mcv-reason" class="fi"><option>Wrong amount</option><option>Wrong service</option><option>Wrong discount</option><option>Duplicate</option><option>Customer cancelled</option><option>Other</option></select>' +
       '<div style="display:flex;gap:8px;margin-top:14px;"><button class="btn btn-ghost" id="mcv-no" style="padding:10px 16px;">Keep</button><button class="btn btn-full" id="mcv-yes" style="background:var(--err);color:#fff;padding:11px;">Void invoice</button></div>', { width: 380 });
     ov.querySelector('#mcv-no').onclick = () => ov.close();
@@ -452,6 +479,7 @@
       '<div id="mcs-india" style="display:none;"><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">' + f('sac', 'SAC code', S.sac) + f('stateName', 'State', S.stateName) + f('stateCode', 'State code', S.stateCode, 'maxlength="2" placeholder="27"') + '</div>' +
         '<div style="font-size:11.5px;color:var(--muted);background:#FFF7ED;border-radius:8px;padding:8px 10px;margin-bottom:10px;line-height:1.5;">India: invoices show GSTIN, SAC, place of supply and a CGST/SGST split (walk-in salon services are supplied in-state). The number runs sequentially per financial year (Apr–Mar) and stays within 16 characters. Salons were taxed at 5% without input credit from 22 Sep 2025 and hairdressing uses SAC 999721 — please confirm the rate, scheme (regular or composition) and registration with your CA.</div></div>' +
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">' + f('prefix', 'Invoice prefix', S.prefix, 'maxlength="8"') + f('footer', 'Footer note', S.footer) + '</div>' +
+      f('discounts', 'Allowed discount % at checkout (comma separated)', S.discounts.join(', ')) +
       '<div style="margin:6px 0 10px;padding-top:10px;border-top:1px solid var(--border);font-family:var(--fh);font-weight:800;color:var(--bd);">📲 WhatsApp invoice</div>' +
       f('waTemplateName', 'Approved template name (Utility)', S.waTemplateName) +
       '<div class="fg" style="margin-bottom:10px;">' + MC.lbl('MiniCuts API key (this device)') + '<input class="fi" type="password" id="mcs-key" placeholder="same key as in Loyalty ▸ Settings ▸ Platform connection" value="' + MC.esc(localStorage.getItem('mw_tenant_key') || '') + '"/></div>' +
@@ -476,7 +504,8 @@
         country, bname: $('bname').value.trim(), addr: $('addr').value.trim(), phone: $('phone').value.trim(), taxId: $('taxId').value.trim().toUpperCase(),
         rate: parseFloat($('rate').value) || 0, basis: $('basis').value, prefix: MC.cleanPrefix($('prefix').value, country), footer: $('footer').value.trim(),
         sac: $('sac').value.trim(), stateName: $('stateName').value.trim(), stateCode: $('stateCode').value.trim(), currency: COUNTRIES[country].currency,
-        waTemplateName: $('waTemplateName').value.trim() || DEFAULTS.waTemplateName
+        waTemplateName: $('waTemplateName').value.trim() || DEFAULTS.waTemplateName,
+        discounts: B.parseDiscounts($('discounts').value)
       };
       /* keep the legacy keys that earlier versions of the app wrote */
       Object.assign(out, { trn: out.taxId, taxrate: out.rate, tax_incl: out.basis });
