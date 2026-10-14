@@ -37,7 +37,8 @@
       footer: raw.footer != null ? raw.footer : DEFAULTS.footer,
       sac: raw.sac || '999721', stateName: raw.stateName || '', stateCode: raw.stateCode || '',
       currency: raw.currency || COUNTRIES[country].currency,
-      waTemplateName: raw.waTemplateName || DEFAULTS.waTemplateName
+      waTemplateName: (raw.waTemplateName && raw.waTemplateName !== 'mc_invoice_utility') ? raw.waTemplateName : DEFAULTS.waTemplateName,
+      waTemplateLang: raw.waTemplateLang || 'en'
     });
     S.discounts = B.parseDiscounts(raw.discounts);
     S.taxLabel = COUNTRIES[country].taxLabel;
@@ -433,7 +434,7 @@
     opts = opts || {};
     if (!opts.noZen && (inv.id || opts.test) && !(opts.test ? false : !inv.pdf_url)) {
       if (!hasPhone(inv.mobile)) return { ok: false, error: 'No phone number on this invoice.' };
-      const z = await B.viaZen(opts.test ? { test_mobile: inv.mobile } : { invoice_id: inv.id });
+      const z = await B.viaZen(opts.test ? { test_mobile: inv.mobile, template: opts.template, template_lang: opts.lang } : { invoice_id: inv.id });
       if (z) {
         const okz = !!z.ok;
         if (!opts.test) {
@@ -455,7 +456,7 @@
         method: 'POST',
         headers: { 'Content-Type': 'application/json', apikey: c.key, Authorization: 'Bearer ' + c.key, 'x-tenant-key': key },
         body: JSON.stringify({
-          tenant_id: 'minicuts', mobile: inv.mobile, template_name: opts.template || S.waTemplateName, template_lang: 'en',
+          tenant_id: 'minicuts', mobile: inv.mobile, template_name: opts.template || S.waTemplateName, template_lang: opts.lang || S.waTemplateLang || 'en',
           params: B.waParams(inv),
           customer_id: inv.customer_id || undefined, customer_name: inv.customer_name || undefined, sent_by: opts.test ? 'staff-invoice-test' : 'staff-invoice'
         })
@@ -559,18 +560,51 @@
     await B.load(); const S = B.S || DEFAULTS, $ = id => el.querySelector('#mcw-' + id);
     el.innerHTML = '<div class="card"><div class="card-title">📲 WhatsApp invoice</div>' +
       '<p style="font-size:12.5px;color:var(--muted);margin:6px 0 12px;">Invoices go out through your approved <b>Utility</b> template with these 5 values in order: customer first name · salon name · visit date · invoice PDF link · salon name</p>' +
-      '<div class="fg" style="margin-bottom:10px;">' + MC.lbl('Approved template name (exactly as in Meta / Zen)') + '<input class="fi" id="mcw-tpl" value="' + MC.esc(S.waTemplateName) + '"/>' + (S.waTemplateName === 'mc_invoice_utility' ? '<div style="font-size:12px;color:#B45309;margin-top:3px;">⚠ “mc_invoice_utility” was an old placeholder and does not exist in WhatsApp. Type your real template name (e.g. booking_completed_invoice) and Save.</div>' : '') + '</div>' +
+      '<div class="fg" style="margin-bottom:10px;">' + MC.lbl('Message template') +
+        '<div style="display:flex;gap:8px;"><select class="fi" id="mcw-tplsel" style="flex:1;"><option value="">Loading your approved templates…</option></select><button class="btn btn-ghost" id="mcw-reload" title="Reload from WhatsApp">↻</button></div>' +
+        '<input class="fi" id="mcw-tpl" value="' + MC.esc(S.waTemplateName) + '" style="margin-top:6px;display:none;" placeholder="template name"/><input type="hidden" id="mcw-lang" value="' + MC.esc(S.waTemplateLang || 'en') + '"/>' +
+        '<div id="mcw-tplinfo" style="font-size:12px;color:var(--muted);margin-top:5px;line-height:1.5;"></div></div>' +
       '<div class="fg" style="margin-bottom:10px;">' + MC.lbl('MiniCuts API key (optional fallback)') + '<input class="fi" type="password" id="mcw-key" placeholder="same key as in Loyalty ▸ Settings ▸ Platform connection" value="' + MC.esc(localStorage.getItem('mw_tenant_key') || '') + '"/><div style="font-size:11.5px;color:var(--muted);margin-top:3px;">' + (localStorage.getItem('mw_tenant_key') ? '✓ A key is already saved in this browser — it is shared with the Loyalty app on the same web address, so you may not need to enter anything.' : 'No key saved in this browser yet. The Loyalty app saves the same key under the same address, so enter it once in either place.') + ' Only needed if the Zen send function is not deployed. Stored only in this browser, never in the database.</div></div>' +
       '<div id="mcw-msg" class="sm"></div><div style="display:flex;gap:8px;"><button class="btn btn-y" id="mcw-save" style="flex:1;">Save WhatsApp Settings ✅</button><button class="btn btn-ghost" id="mcw-check">🔌 Check connection</button></div>' +
       '<div style="margin:16px 0 8px;padding-top:12px;border-top:1px solid var(--border);font-family:var(--fh);font-weight:800;color:var(--bd);font-size:13px;">🧪 Send a test message</div>' +
       '<p style="font-size:12.5px;color:var(--muted);margin:0 0 8px;">Sends the template above with sample values (invoice TEST/00000, a sample amount and a sample link) to the number you enter. No invoice is created and nothing is saved in the sales data.</p>' +
       '<div style="display:flex;gap:8px;"><input class="fi" id="mcw-to" inputmode="tel" placeholder="Your own WhatsApp number, e.g. 0501234567" style="flex:1;"/><button class="btn btn-b" id="mcw-test">Send test</button></div>' +
       '<div id="mcw-tmsg" class="sm" style="margin-top:6px;"></div></div>';
+    /* Pick-list of templates Meta has approved for this WhatsApp account (read through Zen). Falls back to a typed name. */
+    const sel = $('tplsel'), info = $('tplinfo'); let TPLS = [];
+    const showInfo = () => {
+      const v = sel.value, t = TPLS.find(x => x.name + '|' + x.language === v);
+      if (!t) { info.textContent = ''; return; }
+      $('tpl').value = t.name; $('lang').value = t.language;
+      const okVars = t.vars === 5, okStatus = t.status === 'APPROVED';
+      info.innerHTML = '<div style="background:#F9FAFB;border:1px solid var(--border);border-radius:8px;padding:8px 10px;white-space:pre-wrap;color:#374151;">' + MC.esc(t.body || '(no body text)') + '</div>' +
+        '<div style="margin-top:4px;color:' + (okVars && okStatus ? 'var(--ok)' : '#B45309') + ';">' + (okStatus ? '✓ Approved' : '⚠ Status: ' + MC.esc(t.status)) + ' · ' + MC.esc(t.category || '') + ' · language ' + MC.esc(t.language) + ' · ' + t.vars + ' variable' + (t.vars === 1 ? '' : 's') +
+        (okVars ? ' — matches the 5 values we send.' : ' — we send exactly 5 values (name, salon, date, link, salon), so this template will not work.') + (t.has_header ? ' ⚠ Has a header, which we do not fill.' : '') + '</div>';
+    };
+    const loadTpls = async () => {
+      sel.style.display = ''; $('tpl').style.display = 'none';
+      sel.innerHTML = '<option value="">Loading your approved templates…</option>';
+      const z = await B.viaZen({ list_templates: true });
+      if (z && z.ok && Array.isArray(z.templates)) {
+        TPLS = z.templates.filter(t => t.status === 'APPROVED');
+        const fit = TPLS.filter(t => t.vars === 5 && !t.has_header), rest = TPLS.filter(t => !(t.vars === 5 && !t.has_header));
+        const o = t => '<option value="' + MC.esc(t.name + '|' + t.language) + '">' + MC.esc(t.name) + ' (' + MC.esc(t.language) + ')</option>';
+        sel.innerHTML = '<option value="">— choose a template —</option>' + (fit.length ? '<optgroup label="Fits invoices (5 values)">' + fit.map(o).join('') + '</optgroup>' : '') + (rest.length ? '<optgroup label="Other approved templates">' + rest.map(o).join('') + '</optgroup>' : '');
+        const cur = TPLS.find(t => t.name === $('tpl').value && t.language === $('lang').value) || TPLS.find(t => t.name === $('tpl').value);
+        if (cur) sel.value = cur.name + '|' + cur.language;
+        else info.innerHTML = '<span style="color:#B45309;">⚠ “' + MC.esc($('tpl').value) + '” is not in your approved list — pick one above.</span>';
+        if (cur) showInfo();
+      } else {
+        sel.style.display = 'none'; $('tpl').style.display = 'block';
+        info.innerHTML = '<span style="color:#B45309;">Could not load the list' + (z && z.error ? ' (' + MC.esc(String(z.error).slice(0, 120)) + ')' : '') + '. Type the exact template name and language.</span>';
+      }
+    };
+    sel.onchange = showInfo; $('reload').onclick = loadTpls; loadTpls();
     $('save').onclick = async () => {
       const m = $('msg');
       try {
         const old = (await MC.getConfig('co_settings')) || {};
-        await MC.setConfig('co_settings', Object.assign({}, old, { waTemplateName: $('tpl').value.trim() || DEFAULTS.waTemplateName }));
+        await MC.setConfig('co_settings', Object.assign({}, old, { waTemplateName: $('tpl').value.trim() || DEFAULTS.waTemplateName, waTemplateLang: $('lang').value.trim() || 'en' }));
         const k = $('key').value.trim().replace(/^["']|["']$/g, '').replace(/\s+/g, ''); $('key').value = k;
         if (k && !/^mwk_[0-9a-f]{48}$/.test(k)) { m.className = 'sm err'; m.textContent = 'That does not look like a MiniCuts platform key. A real one is “mwk_” followed by 48 letters/digits (52 characters in all) — you pasted ' + k.length + ' characters' + (/^mwk_/.test(k) ? ' (maybe cut off or extra text)' : ' starting “' + k.slice(0, 4) + '”') + '. It is not the Meta token or a Supabase key. Saved anyway; use Check connection.'; }
         if (k) localStorage.setItem('mw_tenant_key', k); else localStorage.removeItem('mw_tenant_key');
@@ -597,9 +631,10 @@
       const m = $('tmsg'), to = $('to').value.trim();
       if (!hasPhone(to)) { m.className = 'sm err'; m.textContent = 'Enter a valid WhatsApp number first.'; return; }
       $('test').disabled = true; m.className = 'sm'; m.textContent = 'Sending…';
-      const res = await B.sendWA({ mobile: to, customer_name: 'Test', invoice_number: 'TEST/00000', checkin_date: MC.today(), total_amount: 50, currency: (B.S || DEFAULTS).currency || 'AED', pdf_url: location.href.split('#')[0].replace(/[^/]*$/, '') }, { test: true, template: $('tpl').value.trim() || undefined });
+      const res = await B.sendWA({ mobile: to, customer_name: 'Test', invoice_number: 'TEST/00000', checkin_date: MC.today(), total_amount: 50, currency: (B.S || DEFAULTS).currency || 'AED', pdf_url: location.href.split('#')[0].replace(/[^/]*$/, '') }, { test: true, template: $('tpl').value.trim() || undefined, lang: $('lang').value.trim() || undefined });
       $('test').disabled = false;
-      m.className = 'sm ' + (res.ok ? 'ok' : 'err'); m.textContent = res.ok ? '✓ Accepted by WhatsApp — check the phone (can take a few seconds).' : (/Unauthorized/i.test(res.error) ? '✗ The platform does not accept the API key saved on this device (wrong, mistyped or revoked). The key must be the MiniCuts business-app key (starts “mwk_”). Recover it from the browser where the Loyalty app was set up, or ask Zen to create a new one — or use the Zen send function (no key needed).' : res.error);
+      m.className = 'sm ' + (res.ok ? 'ok' : 'err'); if (!res.ok && /132001|does not exist/i.test(res.error || '')) res.error = '✗ WhatsApp has no approved template with this name + language. Pick one from the list above (it only shows approved ones), or check the language. Details: ' + res.error;
+      m.textContent = res.ok ? '✓ Accepted by WhatsApp — check the phone (can take a few seconds).' : (/Unauthorized/i.test(res.error) ? '✗ The platform does not accept the API key saved on this device (wrong, mistyped or revoked). The key must be the MiniCuts business-app key (starts “mwk_”). Recover it from the browser where the Loyalty app was set up, or ask Zen to create a new one — or use the Zen send function (no key needed).' : res.error);
     };
   };
 

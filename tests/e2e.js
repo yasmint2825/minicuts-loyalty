@@ -24,7 +24,7 @@ const filt = (rows, qs) => { qs.forEach((v, k) => { if (['select', 'order', 'lim
       const j = (o, s) => route.fulfill({ status: s || 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify(o) });
       if (m === 'OPTIONS') return route.fulfill({ status: 204, headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': '*' } });
       if (u.pathname.startsWith('/storage/')) { pdfBytes = route.request().postDataBuffer().length; return j({ Key: 'x' }); }
-      if (u.pathname.includes('/functions/v1/mc-send-invoice')) { if (!zenOn) return j({ message: 'Requested function was not found' }, 404); zenCall = JSON.parse(route.request().postData()); return j({ ok: true }); }
+      if (u.pathname.includes('/functions/v1/mc-send-invoice')) { if (!zenOn) return j({ message: 'Requested function was not found' }, 404); zenCall = JSON.parse(route.request().postData()); if (zenCall.list_templates) return j({ ok: true, templates: [{ name: 'new_customer_offer', language: 'en', status: 'APPROVED', category: 'MARKETING', body: 'Hi {{1}}', vars: 1, has_header: true }, { name: 'booking_completed_invoice', language: 'en_US', status: 'APPROVED', category: 'UTILITY', body: 'Hi {{1}} {{2}} {{3}} {{4}} {{5}}', vars: 5, has_header: false }] }); return j({ ok: true }); }
       if (u.pathname.startsWith('/functions/')) { waCall = JSON.parse(route.request().postData()); return j({ ok: true }); }
       const t = u.pathname.split('/rest/v1/')[1]; if (process.env.NODB && /^invoices/.test(t)) return j({ message: 'relation "public.invoices" does not exist' }, 404);
       const rows = DB[t] || (DB[t] = []);
@@ -115,8 +115,11 @@ const filt = (rows, qs) => { qs.forEach((v, k) => { if (['select', 'order', 'lim
   // Zen-hosted sending (function deployed): no key needed in the browser
   zenOn = true; await pg.evaluate(() => localStorage.removeItem('mw_tenant_key')); await pg.fill('#mcw-key', '');
   await pg.click('#mcw-check'); await pg.waitForTimeout(400); ok(/through Zen/.test(await pg.innerText('#mcw-msg')), 'check connection: connected through Zen without a key');
+  await pg.click('#mcw-reload'); await pg.waitForTimeout(500);
+  ok(await pg.locator('#mcw-tplsel optgroup[label^="Fits"] option').count() === 1, 'picker lists the 5-variable template under "Fits invoices"');
+  await pg.selectOption('#mcw-tplsel', 'booking_completed_invoice|en_US'); ok(/matches the 5 values/.test(await pg.innerText('#mcw-tplinfo')), 'picker shows variable match');
   await pg.fill('#mcw-to', '0501234567'); await pg.click('#mcw-test'); await pg.waitForTimeout(400);
-  ok(zenCall && zenCall.test_mobile === '0501234567', 'test message goes through Zen function (no key)');
+  ok(zenCall && zenCall.test_mobile === '0501234567' && zenCall.template === 'booking_completed_invoice' && zenCall.template_lang === 'en_US', 'test message goes through Zen with the picked template + language');
   zenCall = null; zenOn = false;
   await pg.click('#cfg-nav [data-s="invoice"]');
   // Settings
