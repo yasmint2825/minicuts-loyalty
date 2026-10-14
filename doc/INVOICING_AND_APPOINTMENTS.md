@@ -36,3 +36,7 @@
 - Not deployed yet (production change - needs approval after the SQL migration, because it reads `invoices`).
 - The staff app calls it first; if it answers 404 (not deployed) the app falls back to the browser-stored `mwk_` key.
 - Deploy: `supabase functions deploy mc-send-invoice` (verify_jwt on).
+
+## Practice mode (test locally without touching production)
+
+Open `minicuts-staff.html?demo=1` (or `minicuts-checkin.html?demo=1`). `mc-demo.js` answers every Supabase call from a small database kept in the browser (localStorage); nothing reaches Supabase and no WhatsApp is sent. A red bar shows "PRACTICE MODE" with a reset button. Without `?demo=1` the file does nothing. Automated check: `node tests/e2e_demo.js`.
