@@ -85,9 +85,8 @@ const filt = (rows, qs) => { qs.forEach((v, k) => { if (['select', 'order', 'lim
   await pg.evaluate(() => { showTab('t-config', document.querySelectorAll('.tab')[8]); loadCfgScreen(); }); await pg.waitForSelector('#mcs-save');
   ok(await pg.isVisible('#mcs-save') && !(await pg.isVisible('#mcw-test')), 'settings: only Invoice section shown first');
   await pg.click('#cfg-nav [data-s="wa"]'); await pg.waitForSelector('#mcw-test'); ok(await pg.isVisible('#mcw-test') && !(await pg.isVisible('#mcs-save')), 'settings: WhatsApp tab shows test box');
-  let waBody = null; await pg.route('**/functions/v1/send-whatsapp', r => { waBody = JSON.parse(r.request().postData()); r.fulfill({ status: 200, contentType: 'application/json', body: '{"ok":true}' }); });
-  await pg.route('**/functions/v1/send-whatsapp', r => r.fulfill({ status: 400, contentType: 'application/json', body: '{"ok":false,"error":"mobile and either type or template_name are required"}' })); await pg.fill('#mcw-key', 'k123'); await pg.click('#mcw-check'); await pg.waitForTimeout(400); ok(/Key accepted/.test(await pg.innerText('#mcw-msg')), 'check connection ok'); await pg.unroute('**/functions/v1/send-whatsapp');
-  await pg.fill('#mcw-key', 'k123'); await pg.fill('#mcw-to', '0501234567'); await pg.click('#mcw-test'); await pg.waitForTimeout(500);
+  let waBody = null; await pg.route('**/functions/v1/send-whatsapp', r => { const b = JSON.parse(r.request().postData()); if (!b.mobile) return r.fulfill({ status: 400, contentType: 'application/json', body: '{"ok":false,"error":"mobile and either type or template_name are required"}' }); waBody = b; r.fulfill({ status: 200, contentType: 'application/json', body: '{"ok":true}' }); });
+  await pg.fill('#mcw-key', 'k123'); await pg.click('#mcw-check'); await pg.waitForTimeout(400); ok(/Key accepted/.test(await pg.innerText('#mcw-msg')), 'check connection ok'); await pg.fill('#mcw-to', '0501234567'); await pg.click('#mcw-test'); await pg.waitForTimeout(500);
   ok(waBody && waBody.params.length === 5 && waBody.params[1] === 'TEST/00000' && waBody.sent_by === 'staff-invoice-test', 'test message sends 5 sample params');
   await pg.click('#cfg-nav [data-s="invoice"]');
   // Settings
