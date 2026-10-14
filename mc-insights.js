@@ -175,7 +175,7 @@
       MC.sbAll('queue', 'select=id,customer_id,mobile,checkin_date,checkin_time,created_at,called_at,done_at,service,stylist,service_value,heard_via,status,invoice_id&status=eq.done&checkin_date=gte.' + from + '&checkin_date=lte.' + to),
       MC.sbAll('invoices', 'select=queue_id&status=eq.void&checkin_date=gte.' + from + '&checkin_date=lte.' + to).catch(() => [])]);
     const voided = new Set(vd.map(v => v.queue_id).filter(Boolean));
-    return rows.filter(r => !(voided.has(r.id) && !r.invoice_id));
+    return rows.filter(r => !(voided.has(r.id) && !r.invoice_id && !(num(r.service_value) > 0)));   // voided and still no amount = not served
   });
   const money = () => !!(MC.reports && MC.reports.st && MC.reports.st.unlocked);
 
