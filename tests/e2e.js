@@ -85,8 +85,8 @@ const filt = (rows, qs) => { qs.forEach((v, k) => { if (['select', 'order', 'lim
   await pg.click('[data-mg="boy"]'); await pg.click('#mn-save'); ok(/birthday/i.test(await pg.innerText('#mn-msg')), 'registration asks for the birthday');
   await pg.fill('#mn-dob', '2021-05-06'); await pg.click('#mn-save'); ok(/area/i.test(await pg.innerText('#mn-msg')), 'registration asks for the area');
   await pg.selectOption('#mn-loc', 'Al Barsha'); await pg.click('#mn-save'); ok(/heard/i.test(await pg.innerText('#mn-msg')), 'registration asks how they heard of us');
-  await pg.click('[data-mh="Instagram"]'); await pg.click('#mn-save'); await pg.waitForSelector('#ma-change');
-  const zayd = DB.customers.find(c => c.name === 'Zayd'); ok(zayd && zayd.mobile === '971559998888' && zayd.gender === 'boy' && zayd.tc_accepted === false && zayd.dob === '2021-05-06' && zayd.location === 'Al Barsha' && zayd.heard_via === 'Instagram', 'new customer saved in kiosk format with birthday, area and source');
+  await pg.click('[data-mh="Instagram"]'); await pg.click('#mn-save'); ok(/T&C/.test(await pg.innerText('#mn-msg')), 'registration asks for T&C consent'); await pg.check('#mn-tc'); await pg.click('#mn-save'); await pg.waitForSelector('#ma-change');
+  const zayd = DB.customers.find(c => c.name === 'Zayd'); ok(zayd && zayd.mobile === '971559998888' && zayd.gender === 'boy' && zayd.dob === '2021-05-06' && zayd.location === 'Al Barsha' && zayd.heard_via === 'Instagram' && zayd.tc_accepted === true && !!zayd.tc_accepted_at, 'new customer saved in kiosk format with birthday, area and source');
   await pg.click('#ma-change'); await pg.fill('#ma-q', '0559998888'); await pg.waitForSelector('[data-addto]'); await pg.click('[data-addto]'); ok(await pg.inputValue('#mn-loc') === 'Al Barsha', 'sibling area is prefilled'); await pg.fill('#mn-name', 'zayd'); await pg.click('[data-mg="boy"]'); await pg.fill('#mn-dob', '2021-05-06'); await pg.click('#mn-save'); await pg.waitForSelector('#ma-change');
   ok(DB.customers.filter(c => /zayd/i.test(c.name)).length === 1, 'same child + number is not duplicated');
   await pg.click('#ma-change'); await pg.fill('#ma-q', '050123'); await pg.waitForSelector('[data-cid="c1"]'); await pg.click('[data-cid="c1"]');
@@ -101,8 +101,8 @@ const filt = (rows, qs) => { qs.forEach((v, k) => { if (['select', 'order', 'lim
   await pg.click('#pd-save'); ok(/birthday/i.test(await pg.innerText('#pd-msg')), 'arrival asks for missing birthday before the token');
   await pg.fill('[data-dob]', '2020-03-04'); await pg.click('#pd-save'); ok(/area/i.test(await pg.innerText('#pd-msg')), 'arrival asks for area');
   await pg.selectOption('#pd-loc', 'Mirdif'); await pg.click('#pd-save'); ok(/heard/i.test(await pg.innerText('#pd-msg')), 'arrival asks how they heard');
-  await pg.click('[data-h="Google"]'); await pg.click('#pd-save'); await pg.waitForTimeout(700);
-  const c1 = DB.customers.find(c => c.id === 'c1'); ok(c1.dob === '2020-03-04' && c1.location === 'Mirdif' && c1.heard_via === 'Google', 'profile completed and saved');
+  await pg.click('[data-h="Google"]'); await pg.click('#pd-save'); ok(/T&C/.test(await pg.innerText('#pd-msg')), 'arrival asks for T&C consent'); await pg.check('#pd-tc'); await pg.click('#pd-save'); await pg.waitForTimeout(700);
+  const c1 = DB.customers.find(c => c.id === 'c1'); ok(c1.dob === '2020-03-04' && c1.location === 'Mirdif' && c1.heard_via === 'Google' && c1.tc_accepted === true, 'profile completed and saved');
   ok(DB.appointments[0].status === 'arrived' && DB.queue.some(q => q.remark && q.remark.startsWith('Appointment')), 'check-in creates queue row after profile is complete');
   // Reports
   await pg.evaluate(() => { showTab('t-reports'); MC.reports.init(); }); await pg.fill('#mr-pin', '8065'); await pg.click('#mr-go'); await pg.waitForTimeout(800);

@@ -172,6 +172,7 @@
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;"><div>' + MC.lbl('Boy / Girl') + '<div style="display:flex;gap:6px;"><button type="button" class="btn btn-sm btn-ghost" data-mg="boy">Boy</button><button type="button" class="btn btn-sm btn-ghost" data-mg="girl">Girl</button></div></div><div>' + MC.lbl('Parent (optional)') + '<input id="mn-par" class="fi" type="text"/></div></div>' +
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;"><div>' + MC.lbl('Birthday 🎂') + '<input id="mn-dob" class="fi" type="date" max="' + MC.today() + '"/></div><div>' + MC.lbl('Area 📍') + '<select id="mn-loc" class="fi"><option value="">Select area…</option>' + MC.AREAS.map(a => '<option>' + MC.esc(a) + '</option>').join('') + '</select></div></div>' +
       '<div style="margin-top:8px;">' + MC.lbl('How did they hear about us?') + '<div style="display:flex;gap:6px;flex-wrap:wrap;">' + MC.HEARD.map(h => '<button type="button" class="btn btn-sm btn-ghost" data-mh="' + MC.esc(h) + '">' + MC.esc(h) + '</button>').join('') + '</div></div>' +
+      '<label style="display:flex;gap:8px;align-items:flex-start;margin-top:8px;font-size:12.5px;font-weight:700;"><input type="checkbox" id="mn-tc" style="width:18px;height:18px;flex-shrink:0;"/><span>Parent has accepted the <a href="#" id="mn-tcview" style="color:var(--b);">T&amp;C</a></span></label>' +
       '<label style="display:flex;gap:6px;align-items:center;margin-top:8px;font-size:12px;color:var(--muted);"><input type="checkbox" id="mn-skip"/> Caller does not know yet — ask on arrival instead</label>' +
       '<div id="mn-msg" style="display:none;margin-top:8px;font-size:12.5px;font-weight:700;color:#DC2626;"></div><div style="display:flex;gap:8px;margin-top:10px;"><button type="button" class="btn btn-ghost btn-sm" id="mn-cancel">Back</button><button type="button" class="btn btn-y btn-sm" id="mn-save" style="flex:1;">Save customer</button></div></div></div>' +
       '<div>' + MC.lbl('Service') + '<select id="ma-svc" class="fi"></select></div>' +
@@ -213,26 +214,27 @@
       refreshSlots();
     };
     const showSel = () => {
-      const gaps = cust ? MC.profileGaps(cust) : [];
+      const gaps = cust ? MC.allGaps(cust) : [];
       $('ma-find').style.display = cust ? 'none' : 'block'; $('ma-new').style.display = 'none';
       $('ma-sel').style.display = cust ? 'block' : 'none';
       if (cust) $('ma-sel').innerHTML = '<div style="display:flex;align-items:center;gap:8px;background:#F0FDF4;border-radius:10px;padding:8px 10px;"><div style="flex:1;"><b>' + MC.esc(cust.name) + '</b> <span style="color:var(--muted);">(' + (gOf(cust) || '?') + ')</span><div style="font-size:12px;color:var(--muted);">📱 ' + MC.esc(cust.mobile) + (cust.parent ? ' · ' + MC.esc(cust.parent) : '') + '</div>' +
         (gaps.length ? '<div style="font-size:11.5px;color:#B45309;">⚠ Missing: ' + gaps.map(x => MC.GAP_LABEL[x]).join(', ') + ' — will be asked on arrival</div>' : '') + '</div><button type="button" class="btn btn-ghost btn-sm" id="ma-change">Change</button></div>';
       if (cust) $('ma-change').onclick = () => { cust = null; showSel(); renderSvc(); $('ma-q').focus(); };
       if (cust && gaps.length) { const fb = document.createElement('button'); fb.type = 'button'; fb.className = 'btn btn-y btn-sm'; fb.textContent = '📝 Fill now'; fb.style.marginTop = '6px';
-        fb.onclick = async () => { await MC.profileDialog([cust], { allowSkip: true, sub: 'Complete ' + cust.name + '’s profile' }); showSel(); };
+        fb.onclick = async () => { await MC.profileDialog([cust], { allowSkip: true, tc: true, sub: 'Complete ' + cust.name + '’s profile' }); showSel(); };
         $('ma-sel').firstChild.firstChild.appendChild(fb); }
       renderSvc();
     };
     const pickCust = c => { cust = c; $('ma-res').innerHTML = ''; showSel(); };
     const openNewForm = (mob, name, par, famRows) => {
       $('ma-find').style.display = 'none'; $('ma-new').style.display = 'block';
-      $('mn-mob').value = mob || ''; $('mn-name').value = name || ''; $('mn-par').value = par || ''; newGender = null; newHeard = null; $('mn-dob').value = ''; $('mn-loc').value = ''; $('mn-skip').checked = false; $('mn-msg').style.display = 'none';
+      $('mn-mob').value = mob || ''; $('mn-name').value = name || ''; $('mn-par').value = par || ''; newGender = null; newHeard = null; $('mn-dob').value = ''; $('mn-loc').value = ''; $('mn-skip').checked = false; $('mn-tc').checked = false; $('mn-msg').style.display = 'none';
       ov.querySelectorAll('[data-mh]').forEach(b => { b.classList.add('btn-ghost'); b.classList.remove('btn-y'); });
       ov.querySelectorAll('[data-mg]').forEach(b => { b.classList.add('btn-ghost'); b.classList.remove('btn-y'); });
       /* a sibling's area / source is reused, the rest is typed in */
       const sl = (famRows || []).find(c => c.location), sh = (famRows || []).find(c => c.heard_via);
       if (sl) $('mn-loc').value = sl.location;
+      if ((famRows || []).some(c => c.tc_accepted === true)) $('mn-tc').checked = true;
       if (sh) { newHeard = sh.heard_via; ov.querySelectorAll('[data-mh]').forEach(b => { const on = b.dataset.mh === newHeard; b.classList.toggle('btn-y', on); b.classList.toggle('btn-ghost', !on); }); }
       ($('mn-mob').value ? $('mn-name') : $('mn-mob')).focus();
     };
@@ -243,7 +245,7 @@
       const where = isNum ? 'mobile=ilike.*' + (digits.length > 9 ? digits.slice(-9) : digits.replace(/^0+/, '')) + '*' : 'or=(name.ilike.*' + encodeURIComponent(raw) + '*,parent.ilike.*' + encodeURIComponent(raw) + '*)';
       res.innerHTML = '<div style="color:var(--muted);font-size:13px;">Searching…</div>';
       let rows = [];
-      try { rows = await MC.sb('customers', 'GET', null, 'select=id,name,mobile,parent,gender,dob,location,heard_via&' + where + '&order=name&limit=40'); } catch (e) { if (my === sreq) res.innerHTML = '<div style="color:#DC2626;font-size:13px;">Search failed: ' + MC.esc(e.message) + '</div>'; return; }
+      try { rows = await MC.sb('customers', 'GET', null, 'select=id,name,mobile,parent,gender,dob,location,heard_via,tc_accepted&' + where + '&order=name&limit=40'); } catch (e) { if (my === sreq) res.innerHTML = '<div style="color:#DC2626;font-size:13px;">Search failed: ' + MC.esc(e.message) + '</div>'; return; }
       if (my !== sreq) return;
       const fam = {}; rows.forEach(r => { (fam[MC.last9(r.mobile)] = fam[MC.last9(r.mobile)] || []).push(r); });
       const keys = Object.keys(fam);
@@ -258,6 +260,7 @@
     $('ma-q').addEventListener('input', () => { clearTimeout(stimer); stimer = setTimeout(search, 250); });
     ov.querySelectorAll('[data-mh]').forEach(b => b.onclick = () => { newHeard = b.dataset.mh; ov.querySelectorAll('[data-mh]').forEach(x => { const on = x === b; x.classList.toggle('btn-y', on); x.classList.toggle('btn-ghost', !on); }); });
     ov.querySelectorAll('[data-mg]').forEach(b => b.onclick = () => { newGender = b.dataset.mg; ov.querySelectorAll('[data-mg]').forEach(x => { const on = x === b; x.classList.toggle('btn-y', on); x.classList.toggle('btn-ghost', !on); }); });
+    $('mn-tcview').onclick = e => { e.preventDefault(); MC.showTC(); };
     $('mn-cancel').onclick = () => { $('ma-new').style.display = 'none'; $('ma-find').style.display = 'block'; };
     $('mn-save').onclick = async () => {
       const m = $('mn-msg'), fail = t => { m.textContent = t; m.style.display = 'block'; };
@@ -270,14 +273,15 @@
       if (!skip && !dobV) return fail('Enter the birthday — or tick “ask on arrival”.');
       if (!skip && !locV) return fail('Select the area — or tick “ask on arrival”.');
       if (!skip && !newHeard) return fail('Tap how they heard about us — or tick “ask on arrival”.');
+      if (!skip && !$('mn-tc').checked) return fail('Tick the T&C box once the parent has accepted — or tick “ask on arrival”.');
       $('mn-save').disabled = true;
       try {
-        const fam = await MC.sb('customers', 'GET', null, 'select=id,name,mobile,parent,gender,dob,location,heard_via&mobile=ilike.*' + l9 + '&limit=50');
+        const fam = await MC.sb('customers', 'GET', null, 'select=id,name,mobile,parent,gender,dob,location,heard_via,tc_accepted&mobile=ilike.*' + l9 + '&limit=50');
         const dup = fam.find(c => c.name.trim().toLowerCase() === name.toLowerCase());
         if (dup) { toast(name + ' is already registered under this number — selected'); return pickCust(dup); }
         const sib = fam.find(c => c.location) || {}, sibH = fam.find(c => c.heard_via) || {}, sibP = fam.find(c => c.parent) || {};
-        const row = { name, mobile: '971' + l9, parent: $('mn-par').value.trim() || sibP.parent || null, gender: newGender, dob: dobV || null, location: locV || sib.location || null, heard_via: newHeard || sibH.heard_via || null,
-          stamps: 0, redemptions: 0, game_points: 0, game_spins: 0, tc_accepted: false };
+        const row = { name, mobile: '971' + l9, parent: $('mn-par').value.trim() || sibP.parent || null, gender: newGender, dob: dobV || null, location: locV || sib.location || null, heard_via: newHeard || sibH.heard_via || null, tc_accepted: !skip && $('mn-tc').checked, tc_accepted_at: !skip && $('mn-tc').checked ? new Date().toISOString() : null,
+          stamps: 0, redemptions: 0, game_points: 0, game_spins: 0 };
         const r = await MC.sb('customers', 'POST', row, null, 'return=representation');
         const made = Array.isArray(r) ? r[0] : r; if (!made || !made.id) throw new Error('Customer was not created');
         toast('Customer added'); pickCust(made);
@@ -326,8 +330,8 @@
     if ($('mp-ns')) $('mp-ns').onclick = () => set({ status: 'no_show' }, 'Marked no-show');
     if ($('mp-cx')) $('mp-cx').onclick = () => set({ status: 'cancelled' }, 'Appointment cancelled');
     /* show what is still missing on the profile before the customer arrives */
-    if (a.customer_id && a.status === 'booked') MC.sb('customers', 'GET', null, 'select=id,name,gender,dob,location,heard_via&id=eq.' + a.customer_id).then(r => {
-      const g = r[0] ? MC.profileGaps(r[0]) : []; if (!g.length || !ov.isConnected) return;
+    if (a.customer_id && a.status === 'booked') MC.sb('customers', 'GET', null, 'select=id,name,gender,dob,location,heard_via,tc_accepted&id=eq.' + a.customer_id).then(r => {
+      const g = r[0] ? MC.allGaps(r[0]) : []; if (!g.length || !ov.isConnected) return;
       const d = document.createElement('div'); d.style.cssText = 'font-size:12px;color:#B45309;background:#FFFBEB;border-radius:8px;padding:6px 10px;margin-bottom:8px;';
       d.textContent = '⚠ Profile missing: ' + g.map(x => MC.GAP_LABEL[x]).join(', ') + ' — you will be asked when they arrive.'; ov.querySelector('.mc-box').insertBefore(d, ov.querySelector('.mc-box').children[2] || null);
     }).catch(() => {});
@@ -337,14 +341,15 @@
         const t = MC.today();
         /* 1. make sure the profile is complete BEFORE a token is issued (sibling details are reused silently) */
         if (a.customer_id) {
-          const fam = await MC.sb('customers', 'GET', null, 'select=id,name,mobile,gender,dob,location,heard_via&mobile=ilike.*' + MC.last9(a.mobile) + '&limit=50');
+          const fam = await MC.sb('customers', 'GET', null, 'select=id,name,mobile,gender,dob,location,heard_via,tc_accepted&mobile=ilike.*' + MC.last9(a.mobile) + '&limit=50');
           const kid = fam.find(c => c.id === a.customer_id);
           if (kid) {
             const sibL = (fam.find(c => c.location) || {}).location, sibH = (fam.find(c => c.heard_via) || {}).heard_via, quiet = {};
             if (!kid.location && sibL) quiet.location = sibL; if (!kid.heard_via && sibH) quiet.heard_via = sibH;
+            if (kid.tc_accepted !== true && fam.some(c => c.tc_accepted === true)) { quiet.tc_accepted = true; quiet.tc_accepted_at = new Date().toISOString(); }
             if (Object.keys(quiet).length) { await MC.sb('customers', 'PATCH', quiet, 'id=eq.' + kid.id, 'return=minimal'); Object.assign(kid, quiet); }
-            if (MC.profileGaps(kid).length) {
-              const how = await MC.profileDialog([kid], { allowSkip: true });
+            if (MC.allGaps(kid).length) {
+              const how = await MC.profileDialog([kid], { allowSkip: true, tc: true });
               if (how === 'skipped') toast('Profile left incomplete', 'err');
             }
           }
