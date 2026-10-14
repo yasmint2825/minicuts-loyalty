@@ -167,9 +167,12 @@
       '<div style="font-family:var(--fh);font-size:19px;font-weight:800;color:var(--bd);margin-bottom:12px;">➕ New Appointment</div><div style="display:grid;gap:11px;">' +
       '<div id="ma-cust"><div id="ma-find">' + MC.lbl('Customer') + '<input id="ma-q" class="fi" type="search" autocomplete="off" placeholder="🔍 Search by mobile number or child’s name"/><div id="ma-res" style="margin-top:6px;max-height:190px;overflow:auto;"></div></div>' +
       '<div id="ma-sel" style="display:none;"></div>' +
-      '<div id="ma-new" style="display:none;border:1.5px dashed var(--border);border-radius:12px;padding:10px;margin-top:6px;"><div style="font-weight:800;margin-bottom:8px;">➕ New customer <span style="font-weight:600;color:var(--muted);font-size:12px;">— the rest of the profile is completed at arrival</span></div>' +
+      '<div id="ma-new" style="display:none;border:1.5px dashed var(--border);border-radius:12px;padding:10px;margin-top:6px;"><div style="font-weight:800;margin-bottom:8px;">➕ New customer <span style="font-weight:600;color:var(--muted);font-size:12px;">— please take the details now</span></div>' +
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;"><div>' + MC.lbl('Mobile') + '<input id="mn-mob" class="fi" type="tel" placeholder="05x xxx xxxx"/></div><div>' + MC.lbl('Child name') + '<input id="mn-name" class="fi" type="text"/></div></div>' +
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;"><div>' + MC.lbl('Boy / Girl') + '<div style="display:flex;gap:6px;"><button type="button" class="btn btn-sm btn-ghost" data-mg="boy">Boy</button><button type="button" class="btn btn-sm btn-ghost" data-mg="girl">Girl</button></div></div><div>' + MC.lbl('Parent (optional)') + '<input id="mn-par" class="fi" type="text"/></div></div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;"><div>' + MC.lbl('Birthday 🎂') + '<input id="mn-dob" class="fi" type="date" max="' + MC.today() + '"/></div><div>' + MC.lbl('Area 📍') + '<select id="mn-loc" class="fi"><option value="">Select area…</option>' + MC.AREAS.map(a => '<option>' + MC.esc(a) + '</option>').join('') + '</select></div></div>' +
+      '<div style="margin-top:8px;">' + MC.lbl('How did they hear about us?') + '<div style="display:flex;gap:6px;flex-wrap:wrap;">' + MC.HEARD.map(h => '<button type="button" class="btn btn-sm btn-ghost" data-mh="' + MC.esc(h) + '">' + MC.esc(h) + '</button>').join('') + '</div></div>' +
+      '<label style="display:flex;gap:6px;align-items:center;margin-top:8px;font-size:12px;color:var(--muted);"><input type="checkbox" id="mn-skip"/> Caller does not know yet — ask on arrival instead</label>' +
       '<div id="mn-msg" style="display:none;margin-top:8px;font-size:12.5px;font-weight:700;color:#DC2626;"></div><div style="display:flex;gap:8px;margin-top:10px;"><button type="button" class="btn btn-ghost btn-sm" id="mn-cancel">Back</button><button type="button" class="btn btn-y btn-sm" id="mn-save" style="flex:1;">Save customer</button></div></div></div>' +
       '<div>' + MC.lbl('Service') + '<select id="ma-svc" class="fi"></select></div>' +
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;"><div>' + MC.lbl('Date') + '<input id="ma-date" class="fi" type="date" value="' + S.date + '"/></div><div>' + MC.lbl('Stylist') + '<select id="ma-sty" class="fi"><option value="">Any available</option>' + S.staff.map(s => '<option>' + MC.esc(s.name) + '</option>').join('') + '</select></div></div>' +
@@ -198,7 +201,7 @@
     const refreshSlotsPaint = () => $('ma-slots').querySelectorAll('button').forEach(b => { const on = b.dataset.t === pick; b.classList.toggle('btn-y', on); b.classList.toggle('btn-ghost', !on); });
     ['ma-date', 'ma-svc', 'ma-sty'].forEach(id => $(id).addEventListener('change', refreshSlots));
     /* ── customer: search existing, or add new quickly ── */
-    let cust = null, sreq = 0, newGender = null, stimer = null;
+    let cust = null, sreq = 0, newGender = null, newHeard = null, stimer = null;
     const clean = t => String(t || '').replace(/[,()*%\\]/g, ' ').trim();
     const norm = t => { t = String(t || '').trim().toLowerCase(); return t.startsWith('boy') ? 'boy' : t.startsWith('girl') ? 'girl' : ''; };
     const gOf = c => norm(c && c.gender);
@@ -216,13 +219,21 @@
       if (cust) $('ma-sel').innerHTML = '<div style="display:flex;align-items:center;gap:8px;background:#F0FDF4;border-radius:10px;padding:8px 10px;"><div style="flex:1;"><b>' + MC.esc(cust.name) + '</b> <span style="color:var(--muted);">(' + (gOf(cust) || '?') + ')</span><div style="font-size:12px;color:var(--muted);">📱 ' + MC.esc(cust.mobile) + (cust.parent ? ' · ' + MC.esc(cust.parent) : '') + '</div>' +
         (gaps.length ? '<div style="font-size:11.5px;color:#B45309;">⚠ Missing: ' + gaps.map(x => MC.GAP_LABEL[x]).join(', ') + ' — will be asked on arrival</div>' : '') + '</div><button type="button" class="btn btn-ghost btn-sm" id="ma-change">Change</button></div>';
       if (cust) $('ma-change').onclick = () => { cust = null; showSel(); renderSvc(); $('ma-q').focus(); };
+      if (cust && gaps.length) { const fb = document.createElement('button'); fb.type = 'button'; fb.className = 'btn btn-y btn-sm'; fb.textContent = '📝 Fill now'; fb.style.marginTop = '6px';
+        fb.onclick = async () => { await MC.profileDialog([cust], { allowSkip: true, sub: 'Complete ' + cust.name + '’s profile' }); showSel(); };
+        $('ma-sel').firstChild.firstChild.appendChild(fb); }
       renderSvc();
     };
     const pickCust = c => { cust = c; $('ma-res').innerHTML = ''; showSel(); };
-    const openNewForm = (mob, name, par) => {
+    const openNewForm = (mob, name, par, famRows) => {
       $('ma-find').style.display = 'none'; $('ma-new').style.display = 'block';
-      $('mn-mob').value = mob || ''; $('mn-name').value = name || ''; $('mn-par').value = par || ''; newGender = null; $('mn-msg').style.display = 'none';
+      $('mn-mob').value = mob || ''; $('mn-name').value = name || ''; $('mn-par').value = par || ''; newGender = null; newHeard = null; $('mn-dob').value = ''; $('mn-loc').value = ''; $('mn-skip').checked = false; $('mn-msg').style.display = 'none';
+      ov.querySelectorAll('[data-mh]').forEach(b => { b.classList.add('btn-ghost'); b.classList.remove('btn-y'); });
       ov.querySelectorAll('[data-mg]').forEach(b => { b.classList.add('btn-ghost'); b.classList.remove('btn-y'); });
+      /* a sibling's area / source is reused, the rest is typed in */
+      const sl = (famRows || []).find(c => c.location), sh = (famRows || []).find(c => c.heard_via);
+      if (sl) $('mn-loc').value = sl.location;
+      if (sh) { newHeard = sh.heard_via; ov.querySelectorAll('[data-mh]').forEach(b => { const on = b.dataset.mh === newHeard; b.classList.toggle('btn-y', on); b.classList.toggle('btn-ghost', !on); }); }
       ($('mn-mob').value ? $('mn-name') : $('mn-mob')).focus();
     };
     const search = async () => {
@@ -241,10 +252,11 @@
           '<button type="button" class="btn btn-sm btn-ghost" data-addto="' + k + '">＋ another child</button></div></div>'; }).join('') +
         '<button type="button" class="btn btn-ghost btn-sm btn-full" id="ma-addnew">➕ ' + (keys.length ? 'Not listed? Add as new customer' : 'No match — add new customer') + '</button>';
       res.querySelectorAll('[data-cid]').forEach(b => b.onclick = () => pickCust(rows.find(r => r.id === b.dataset.cid)));
-      res.querySelectorAll('[data-addto]').forEach(b => b.onclick = () => { const f = fam[b.dataset.addto]; openNewForm(f[0].mobile, '', f[0].parent); });
+      res.querySelectorAll('[data-addto]').forEach(b => b.onclick = () => { const f = fam[b.dataset.addto]; openNewForm(f[0].mobile, '', f[0].parent, f); });
       res.querySelector('#ma-addnew').onclick = () => openNewForm(isNum ? raw : '', isNum ? '' : raw, '');
     };
     $('ma-q').addEventListener('input', () => { clearTimeout(stimer); stimer = setTimeout(search, 250); });
+    ov.querySelectorAll('[data-mh]').forEach(b => b.onclick = () => { newHeard = b.dataset.mh; ov.querySelectorAll('[data-mh]').forEach(x => { const on = x === b; x.classList.toggle('btn-y', on); x.classList.toggle('btn-ghost', !on); }); });
     ov.querySelectorAll('[data-mg]').forEach(b => b.onclick = () => { newGender = b.dataset.mg; ov.querySelectorAll('[data-mg]').forEach(x => { const on = x === b; x.classList.toggle('btn-y', on); x.classList.toggle('btn-ghost', !on); }); });
     $('mn-cancel').onclick = () => { $('ma-new').style.display = 'none'; $('ma-find').style.display = 'block'; };
     $('mn-save').onclick = async () => {
@@ -253,13 +265,18 @@
       if (l9.length !== 9) return fail('Enter a valid UAE mobile number (9 digits after 0, e.g. 050 123 4567).');
       if (!name) return fail('Enter the child’s name.');
       if (!newGender) return fail('Choose boy or girl.');
+      const skip = $('mn-skip').checked, dobV = $('mn-dob').value, locV = $('mn-loc').value;
+      if (dobV && dobV > MC.today()) return fail('Birthday cannot be in the future.');
+      if (!skip && !dobV) return fail('Enter the birthday — or tick “ask on arrival”.');
+      if (!skip && !locV) return fail('Select the area — or tick “ask on arrival”.');
+      if (!skip && !newHeard) return fail('Tap how they heard about us — or tick “ask on arrival”.');
       $('mn-save').disabled = true;
       try {
         const fam = await MC.sb('customers', 'GET', null, 'select=id,name,mobile,parent,gender,dob,location,heard_via&mobile=ilike.*' + l9 + '&limit=50');
         const dup = fam.find(c => c.name.trim().toLowerCase() === name.toLowerCase());
         if (dup) { toast(name + ' is already registered under this number — selected'); return pickCust(dup); }
         const sib = fam.find(c => c.location) || {}, sibH = fam.find(c => c.heard_via) || {}, sibP = fam.find(c => c.parent) || {};
-        const row = { name, mobile: '971' + l9, parent: $('mn-par').value.trim() || sibP.parent || null, gender: newGender, dob: null, location: sib.location || null, heard_via: sibH.heard_via || null,
+        const row = { name, mobile: '971' + l9, parent: $('mn-par').value.trim() || sibP.parent || null, gender: newGender, dob: dobV || null, location: locV || sib.location || null, heard_via: newHeard || sibH.heard_via || null,
           stamps: 0, redemptions: 0, game_points: 0, game_spins: 0, tc_accepted: false };
         const r = await MC.sb('customers', 'POST', row, null, 'return=representation');
         const made = Array.isArray(r) ? r[0] : r; if (!made || !made.id) throw new Error('Customer was not created');
