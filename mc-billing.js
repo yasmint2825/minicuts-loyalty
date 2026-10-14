@@ -539,7 +539,7 @@
         const old = (await MC.getConfig('co_settings')) || {};
         await MC.setConfig('co_settings', Object.assign({}, old, { waTemplateName: $('tpl').value.trim() || DEFAULTS.waTemplateName }));
         const k = $('key').value.trim().replace(/^["']|["']$/g, '').replace(/\s+/g, ''); $('key').value = k;
-        if (k && !/^mwk_/.test(k)) { m.className = 'sm err'; m.textContent = 'That does not look like a MiniCuts platform key — keys start with “mwk_”. (Not the Meta token, not the Supabase key.) Saved anyway; use Check connection.'; }
+        if (k && !/^mwk_[0-9a-f]{48}$/.test(k)) { m.className = 'sm err'; m.textContent = 'That does not look like a MiniCuts platform key. A real one is “mwk_” followed by 48 letters/digits (52 characters in all) — you pasted ' + k.length + ' characters' + (/^mwk_/.test(k) ? ' (maybe cut off or extra text)' : ' starting “' + k.slice(0, 4) + '”') + '. It is not the Meta token or a Supabase key. Saved anyway; use Check connection.'; }
         if (k) localStorage.setItem('mw_tenant_key', k); else localStorage.removeItem('mw_tenant_key');
         B.loaded = false; await B.load(true); if (!m.textContent || m.className.indexOf('err') < 0) { m.className = 'sm ok'; m.textContent = k ? 'Saved (key ending …' + k.slice(-4) + '). Now press Check connection.' : 'Saved — no key stored on this device.'; }
       } catch (e) { m.className = 'sm err'; m.textContent = 'Save failed: ' + e.message; }
