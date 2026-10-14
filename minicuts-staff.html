@@ -289,20 +289,26 @@ a.btn{text-decoration:none;}
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-shrink:0;flex-wrap:wrap;gap:10px;">
     <div>
       <div style="font-family:var(--fh);font-size:17px;font-weight:800;color:var(--bd);">🕐 History</div>
-      <div style="font-size:12px;color:var(--muted);margin-top:2px;">Browse any date — all check-ins including completed</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:2px;">Browse a day or a date range — totals at the top</div>
     </div>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
       <div style="display:flex;gap:6px;align-items:center;background:#fff;border:1.5px solid var(--border);border-radius:9px;padding:6px 10px;">
         <span style="font-size:12px;font-weight:700;color:var(--muted);">📅 Date:</span>
         <input type="date" id="hist-date" style="border:none;outline:none;font-family:var(--fb);font-size:13px;color:var(--text);background:transparent;cursor:pointer;" onchange="loadHist()"/>
       </div>
+      <select class="fi" id="hist-mode" style="width:auto;padding:7px 28px 7px 10px;" onchange="histModeChange()">
+        <option value="day">One day</option><option value="7">Last 7 days</option><option value="30">Last 30 days</option><option value="month">This month</option><option value="custom">Custom range…</option>
+      </select>
+      <span id="hist-custom" style="display:none;gap:6px;align-items:center;background:#fff;border:1.5px solid var(--border);border-radius:9px;padding:5px 10px;font-size:12px;font-weight:700;color:var(--muted);">
+        From <input type="date" id="hist-from" style="border:none;outline:none;font-family:var(--fb);font-size:13px;" onchange="loadHist()"/> to <input type="date" id="hist-to" style="border:none;outline:none;font-family:var(--fb);font-size:13px;" onchange="loadHist()"/>
+      </span>
       <button class="btn btn-ghost btn-sm" onclick="histNav(-1)">← Prev</button>
-      <button class="btn btn-ghost btn-sm" onclick="histSetDate(today());loadHist();">Today</button>
+      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('hist-mode').value='day';document.getElementById('hist-custom').style.display='none';histSetDate(today());loadHist();">Today</button>
       <button class="btn btn-ghost btn-sm" onclick="histNav(1)">Next →</button>
       <button class="btn btn-b btn-sm" onclick="loadHist()">↻ Load</button>
     </div>
   </div>
-  <div id="hist-summary" style="display:none;background:#F0FDF4;border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:13px;font-weight:700;color:var(--ok);"></div>
+  <div id="hist-summary" style="display:none;margin-bottom:12px;font-size:13px;font-weight:700;color:var(--ok);"></div>
   <div class="tbl-wrap">
     <table class="qt">
       <thead><tr><th>Token</th><th>Name</th><th>Service</th><th>Stylist(s)</th><th>Value</th><th>Tip</th><th>Pay</th><th>Remark</th><th>Status</th><th>Time</th><th>Actions</th></tr></thead>
@@ -639,7 +645,7 @@ a.btn{text-decoration:none;}
 <!-- TOAST CONTAINER -->
 <div class="tc" id="TC"></div>
 
-<script src="mc-demo.js?v=20261014u"></script>
+<script src="mc-demo.js?v=20261014v"></script>
 <script>
 const SB_URL='https://wtapyfgtwkjyjrjdnhkb.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind0YXB5Zmd0d2tqeWpyamRuaGtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0NDc3ODEsImV4cCI6MjA5NTAyMzc4MX0.y_-iPfb8Pcg9zh42h6RGVBsUVZm80LcA9sPlz_Gl_fA';
@@ -1022,34 +1028,90 @@ let _histData=[];
 function histSetDate(d){const el=document.getElementById('hist-date');if(el)el.value=d;}
 function histGetDate(){return document.getElementById('hist-date')?.value||today();}
 function histNav(dir){
-  const d=new Date(histGetDate()+'T12:00:00');
-  d.setDate(d.getDate()+dir);
-  histSetDate(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'));
+  const per=histPeriod(),ymd=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  const mode=document.getElementById('hist-mode')?.value||'day';
+  if(mode==='day'){const d=new Date(histGetDate()+'T12:00:00');d.setDate(d.getDate()+dir);histSetDate(ymd(d));}
+  else{ // a range moves by its own length and becomes a custom range
+    const len=Math.round((new Date(per.to+'T12:00:00')-new Date(per.from+'T12:00:00'))/864e5)+1;
+    const f=new Date(per.from+'T12:00:00'),e=new Date(per.to+'T12:00:00');f.setDate(f.getDate()+dir*len);e.setDate(e.getDate()+dir*len);
+    document.getElementById('hist-mode').value='custom';document.getElementById('hist-custom').style.display='flex';
+    document.getElementById('hist-from').value=ymd(f);document.getElementById('hist-to').value=ymd(e);
+  }
   loadHist();
 }
 const _custFetched=new Set();
 
+/* period shown in History: one day (default) or a range. Returns {from,to,single} */
+function histPeriod(){
+  const mode=document.getElementById('hist-mode')?.value||'day',t=today();
+  const ad=(ymd,n)=>{const d=new Date(ymd+'T12:00:00');d.setDate(d.getDate()+n);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
+  if(mode==='7')return{from:ad(t,-6),to:t,single:false};
+  if(mode==='30')return{from:ad(t,-29),to:t,single:false};
+  if(mode==='month')return{from:t.slice(0,8)+'01',to:t,single:false};
+  if(mode==='custom'){let f=document.getElementById('hist-from')?.value||t,e=document.getElementById('hist-to')?.value||f;if(e<f){const x=f;f=e;e=x;}return{from:f,to:e,single:f===e};}
+  const d=histGetDate();return{from:d,to:d,single:true};
+}
+function histModeChange(){
+  const m=document.getElementById('hist-mode').value,c=document.getElementById('hist-custom');
+  if(c)c.style.display=m==='custom'?'flex':'none';
+  if(m==='custom'){const f=document.getElementById('hist-from'),e=document.getElementById('hist-to');if(f&&!f.value)f.value=histGetDate();if(e&&!e.value)e.value=histGetDate();}
+  loadHist();
+}
+function dubaiYmd(iso){const ms=new Date(iso).getTime();return isNaN(ms)?'':new Date(ms+4*3600e3).toISOString().slice(0,10);}
 async function loadHist(){
-  const date=histGetDate();
+  const per=histPeriod(),date=per.from;
+  const label=per.single?per.from:per.from+' → '+per.to;
   const body=document.getElementById('hist-body');
-  if(body)body.innerHTML='<tr><td colspan="11" style="text-align:center;padding:30px;color:var(--muted);">Loading '+date+'...</td></tr>';
+  if(body)body.innerHTML='<tr><td colspan="11" style="text-align:center;padding:30px;color:var(--muted);">Loading '+label+'...</td></tr>';
   const sumEl=document.getElementById('hist-summary');if(sumEl)sumEl.style.display='none';
   try{
-    const rows=await sb('queue','GET',null,'select=*&checkin_date=eq.'+date+'&order=token_number.asc&limit=500');
+    const q='select=*&checkin_date=gte.'+per.from+'&checkin_date=lte.'+per.to+'&order=checkin_date.asc,token_number.asc';
+    const rows=window.MC&&MC.sbAll?await MC.sbAll('queue',q,12):await sb('queue','GET',null,q+'&limit=1000');
     _histData=rows||[];
-    const custIds=_histData.map(r=>r.customer_id).filter(Boolean);
-    const missing=custIds.filter(id=>!_custFetched.has(id));
-    if(missing.length){
-      const orFilter=missing.map(id=>'id.eq.'+id).join(',');
-      const custs=await sb('customers','GET',null,'select=id,location,heard_via&or=('+orFilter+')&limit=500');
+    // customers: we need created_at to tell new from returning, so fetch any that don't have it yet
+    const need=[...new Set(_histData.map(r=>r.customer_id).filter(Boolean))].filter(id=>!(_custMap[id]&&_custMap[id].created_at));
+    for(let i=0;i<need.length;i+=80){
+      const chunk=need.slice(i,i+80);
+      const custs=await sb('customers','GET',null,'select=id,location,heard_via,created_at&id=in.('+chunk.join(',')+')&limit=100');
       (custs||[]).forEach(c=>{_custMap[c.id]=Object.assign(_custMap[c.id]||{},c);});
-      missing.forEach(id=>_custFetched.add(id));
+      chunk.forEach(id=>_custFetched.add(id));
     }
     renderHist();
   }catch(e){
     console.error('loadHist:',e);
     if(body)body.innerHTML='<tr><td colspan="11" style="color:var(--err);padding:16px;">Error: '+e.message+'</td></tr>';
   }
+}
+/* High-level numbers for the period: visits, new / returning children, guests, revenue.
+   New = the child was registered inside the period (customers.created_at, Dubai date); returning = registered earlier;
+   guest = no profile. Children are counted once however many visits they had. */
+function histStats(data,per){
+  const done=data.filter(r=>r.status==='done');
+  const newK=new Set(),retK=new Set();let guests=0,newV=0,retV=0;
+  done.forEach(r=>{
+    if(!r.customer_id){guests++;return;}
+    const c=_custMap[r.customer_id],cd=c&&c.created_at?dubaiYmd(c.created_at):'';
+    const isNew=cd&&cd>=per.from&&cd<=per.to;
+    if(isNew){newK.add(r.customer_id);newV++;}else{retK.add(r.customer_id);retV++;}
+  });
+  [...newK].forEach(id=>retK.delete(id));
+  const rev=done.reduce((a,r)=>a+(Number(r.service_value)||0),0),tips=done.reduce((a,r)=>a+(Number(r.tip)||0),0);
+  return{visits:done.length,newKids:newK.size,retKids:retK.size,guests,newV,retV,rev,tips,
+    cancelled:data.filter(r=>r.status==='cancelled').length,open:data.filter(r=>r.status!=='done'&&r.status!=='cancelled').length};
+}
+function histTiles(st,per){
+  const days=Math.round((new Date(per.to+'T12:00:00')-new Date(per.from+'T12:00:00'))/864e5)+1;
+  const kids=st.newKids+st.retKids,pct=n=>kids?Math.round(n/kids*100)+'%':'—';
+  const tile=(n,l,sub,c)=>'<div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:10px 12px;min-width:0;"><div style="font:900 21px var(--fh);color:'+(c||'var(--bd)')+';line-height:1.1;">'+n+'</div><div style="font-size:10.5px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-top:2px;">'+l+'</div>'+(sub?'<div style="font-size:11px;color:var(--muted);margin-top:2px;">'+sub+'</div>':'')+'</div>';
+  return '<div id="hist-tiles" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:10px;">'
+    +tile(st.visits,'Visits served',days>1?(st.visits/days).toFixed(1)+' per day':(st.open?st.open+' still open':''))
+    +tile(kids,'Children',kids?'new + returning':'')
+    +tile(st.newKids,'New customers',pct(st.newKids)+' of children','#7C3AED')
+    +tile(st.retKids,'Returning',pct(st.retKids)+' of children','#1565C0')
+    +tile(st.guests,'Guests','walk-ins without a profile','#64748B')
+    +tile('AED '+Math.round(st.rev),'Revenue',st.visits?'avg AED '+Math.round(st.rev/st.visits)+' / visit':'','var(--ok)')
+    +tile('AED '+Math.round(st.tips),'Tips','','#16A34A')
+  +'</div>';
 }
 function buildSrcLocLine(custId){
   if(!custId)return'';
@@ -1066,9 +1128,10 @@ function buildSrcLocDirect(heard_via, location){
 function mcLabelCells(tblBody){try{const t=tblBody.closest('table');const hs=[...t.querySelectorAll('thead th')].map(h=>h.textContent.trim());tblBody.querySelectorAll('tr').forEach(tr=>{[...tr.children].forEach((td,i)=>{if(!td.hasAttribute('colspan')&&hs[i])td.setAttribute('data-label',hs[i]);});});}catch(e){}}
 function renderHist(){
   const body=document.getElementById('hist-body');if(!body)return;
-  const date=histGetDate();const isToday=date===today();
+  const per=histPeriod();const date=per.single?per.from:per.from+' → '+per.to;const isToday=per.single&&per.from===today();
   const data=_histData;
-  if(!data.length){body.innerHTML='<tr><td colspan="11" style="text-align:center;padding:40px;color:var(--muted);">No records for '+date+' 🐼</td></tr>';return;}
+  if(!data.length){const se=document.getElementById('hist-summary');if(se){se.style.display='block';se.innerHTML=histTiles(histStats([],per),per);}body.innerHTML='<tr><td colspan="11" style="text-align:center;padding:40px;color:var(--muted);">No records for '+date+' 🐼</td></tr>';return;}
+  const hst=histStats(data,per);
   const stamped=data.filter(r=>r.status==='done');
   const totalTips=stamped.filter(r=>r.tip>0).reduce((s,r)=>s+(Number(r.tip)||0),0);
   const totalRev=stamped.filter(r=>r.service_value>0).reduce((s,r)=>s+(Number(r.service_value)||0),0);
@@ -1079,8 +1142,8 @@ function renderHist(){
   const done=stamped.length;
   const sumEl=document.getElementById('hist-summary');
   if(sumEl){sumEl.style.display='block';
-    sumEl.innerHTML=
-      '<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:6px;">'
+    sumEl.innerHTML=histTiles(hst,per)
+      +'<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:6px;">'
       +'<span style="font-size:13px;">📊 <strong>'+date+(isToday?' (Today)':'')+'</strong> · '+data.length+' check-ins · '+done+' served</span>'
       +'</div>'
       +'<div style="display:flex;flex-wrap:wrap;gap:8px;">'
@@ -1115,7 +1178,7 @@ function renderHist(){
       +'<td>'+payBadge+'</td>'
       +'<td style="font-size:12px;color:var(--muted);max-width:150px;">'+(r.remark||'—')+'</td>'
       +'<td>'+sp+'</td>'
-      +'<td style="font-size:12px;color:var(--muted);">'+fmtT(r.checkin_time)+'</td>'
+      +'<td style="font-size:12px;color:var(--muted);">'+(per.single?'':'<div style="font-weight:700;">'+r.checkin_date+'</div>')+fmtT(r.checkin_time)+'</td>'
       +'<td><div style="display:flex;flex-direction:column;gap:4px;">'
         +'<button class="btn btn-ghost btn-sm" style="font-size:11px;" onclick="editHistRow(\''+r.id+'\')">✏️ Edit</button>'
         +waHistBtn
@@ -2367,11 +2430,11 @@ function setDefaultExpiry() {
 setDefaultExpiry();
 
 </script>
-<script src="mc-common.js?v=20261014u"></script>
-<script src="mc-billing.js?v=20261014u"></script>
-<script src="mc-appointments.js?v=20261014u"></script>
-<script src="mc-reports.js?v=20261014u"></script>
-<script src="mc-customers.js?v=20261014u"></script>
-<script src="mc-insights.js?v=20261014u"></script>
+<script src="mc-common.js?v=20261014v"></script>
+<script src="mc-billing.js?v=20261014v"></script>
+<script src="mc-appointments.js?v=20261014v"></script>
+<script src="mc-reports.js?v=20261014v"></script>
+<script src="mc-customers.js?v=20261014v"></script>
+<script src="mc-insights.js?v=20261014v"></script>
 </body>
 </html>

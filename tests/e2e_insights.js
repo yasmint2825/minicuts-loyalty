@@ -52,6 +52,16 @@ const { chromium } = require('playwright-core'); const path = require('path'); c
   await pg.evaluate(() => { MC.insights.st.tab = 'overview'; MC.insights.init(); }); await pg.waitForTimeout(500); await shot('08-overview-mobile');
   await pg.setViewportSize({ width: 1360, height: 860 }); await pg.evaluate(() => { MC.insights.st.preset = '90'; Object.assign(MC.insights.st, { from: MC.addDays(MC.today(), -90), to: MC.today() }); MC.insights.init(); }); await pg.waitForTimeout(600); await shot('09-overview-90d');
   ok((await pg.locator('.in-dc .c').count()) > 8, 'per-day chart columns drawn');
+  // History: high-level stats for a day and for a range
+  await pg.setViewportSize({ width: 1360, height: 860 });
+  await pg.evaluate(() => { showTab('t-history'); histSetDate(today()); }); await pg.evaluate(() => loadHist()); await pg.waitForTimeout(600);
+  const tiles1 = await pg.innerText('#hist-tiles'); ok(/Visits served/i.test(tiles1) && /New customers/i.test(tiles1) && /Returning/i.test(tiles1) && /Revenue/i.test(tiles1), 'history shows stat tiles for the day');
+  await pg.selectOption('#hist-mode', '30'); await pg.waitForTimeout(800);
+  const tiles30 = await pg.innerText('#hist-tiles'); const vis = Number((tiles30.match(/^(\d+)/) || [])[1]); ok(vis >= 20, 'range (30 days) shows many visits (' + vis + ')');
+  const nums = await pg.evaluate(() => { const st = histStats(_histData, histPeriod()); return st; });
+  ok(nums.newKids + nums.retKids + nums.guests <= nums.visits && nums.newKids + nums.retKids > 0, 'new + returning children add up (' + nums.newKids + ' new, ' + nums.retKids + ' returning, ' + nums.guests + ' guests of ' + nums.visits + ' visits)');
+  ok((await noX('#t-history .tbl-wrap')) <= 1, 'history range has no horizontal scroll'); await shot('10-history-range');
+  await pg.click('#t-history button:has-text("Today")'); await pg.waitForTimeout(500); ok(await pg.inputValue('#hist-mode') === 'day', 'Today returns to one-day view');
   // mobile
   await pg.setViewportSize({ width: 390, height: 800 }); await pg.waitForTimeout(300); ok(!(await pg.isVisible('#side')) || true, 'mobile layout ok');
   await pg.click('#menuBtn'); await pg.waitForTimeout(350); ok(await pg.isVisible('#side'), 'hamburger opens the drawer'); await shot('06-mobile-drawer');
