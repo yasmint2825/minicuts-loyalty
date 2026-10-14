@@ -1,0 +1,19 @@
+const assert=require('assert');const MC=require('../mc-common.js');require('../mc-appointments.js');require('../mc-reports.js');
+const A=MC.appt,R=MC.reports;let n=0;const t=(name,f)=>{f();n++;console.log('PASS',name)};
+const cfg=A.normCfg({});const mon='2026-10-12';// Monday
+const st=[{id:'1',name:'Lester',off_days:[1]},{id:'2',name:'George',off_days:[]}];
+t('off day excluded',()=>{const s=A.slots({date:mon,durationMin:30,cfg,stylists:st,leaves:[],roster:[],appts:[]});assert(s.every(x=>!x.stylists.includes('Lester')));assert.equal(s[0].start,'10:00');});
+t('slot ends at close',()=>{const s=A.slots({date:mon,durationMin:30,cfg,stylists:st,leaves:[],roster:[],appts:[]});assert.equal(s[s.length-1].start,'19:30');});
+t('booking blocks overlap',()=>{const ap=[{stylist:'George',appt_date:mon,start_time:'10:00:00',end_time:'10:45:00',status:'booked'}];const s=A.slots({date:mon,durationMin:30,cfg,stylists:st,leaves:[],roster:[],appts:ap,only:'George'});assert.equal(s[0].start,'10:45');});
+t('cancelled does not block',()=>{const ap=[{stylist:'George',appt_date:mon,start_time:'10:00:00',end_time:'10:45:00',status:'cancelled'}];assert.equal(A.slots({date:mon,durationMin:30,cfg,stylists:st,leaves:[],roster:[],appts:ap,only:'George'})[0].start,'10:00');});
+t('leave blocks',()=>{const lv=[{staff_id:'2',status:'approved',from_date:mon,to_date:mon}];assert.equal(A.slots({date:mon,durationMin:30,cfg,stylists:st,leaves:lv,roster:[],appts:[]}).length,0);});
+t('rejected leave ignored',()=>{const lv=[{staff_id:'2',status:'rejected',from_date:mon,to_date:mon}];assert(A.slots({date:mon,durationMin:30,cfg,stylists:st,leaves:lv,roster:[],appts:[]}).length>0);});
+t('public holiday blocks all',()=>{const ro=[{staff_id:null,type:'public_holiday',from_date:mon,to_date:mon}];assert.equal(A.slots({date:mon,durationMin:30,cfg,stylists:st,leaves:[],roster:[],appts:[]}).length>0,true);assert.equal(A.slots({date:mon,durationMin:30,cfg,stylists:st,leaves:[],roster:ro,appts:[]}).length,0);});
+t('weekend walk-in only',()=>assert.equal(A.slots({date:'2026-10-17',durationMin:30,cfg,stylists:st,leaves:[],roster:[],appts:[]}).length,0));
+t('lead time',()=>{const s=A.slots({date:mon,durationMin:30,cfg,stylists:st,leaves:[],roster:[],appts:[],nowMin:11*60});assert.equal(s[0].start,'11:30');});
+t('long service fits',()=>{const s=A.slots({date:mon,durationMin:90,cfg,stylists:st,leaves:[],roster:[],appts:[]});assert.equal(s[s.length-1].start,'18:30');});
+const rows=[{checkin_date:'2026-10-01',service_value:50,tip:5,payment_type:'Cash',stylist:'A',service:'Cut',customer_id:'c1',heard_via:'Google'},{checkin_date:'2026-10-02',service_value:40,tip:0,payment_type:'Credit',stylist:'B',service:'Cut',customer_id:'c2',heard_via:'Insta'},{checkin_date:'2026-10-02',service_value:30,payment_type:'Cash',stylist:'A',service:'Wash',customer_id:'c1',heard_via:'Google'}];
+t('sales by day',()=>{const d=R.salesByDay(rows);assert.equal(d.length,2);assert.equal(d[0].cash,55);assert.equal(d[1].card,40);});
+t('by stylist',()=>assert.equal(R.byStylist(rows)[0].sales,80));
+t('acquisition new vs returning',()=>{const a=R.acquisition(rows,{c1:'2026-09-01',c2:'2026-10-02'},'2026-10-01','2026-10-31');const g=a.find(x=>x.key==='Google'),i=a.find(x=>x.key==='Insta');assert.equal(g.newCount,0);assert.equal(g.retCount,1);assert.equal(i.newCount,1);assert.equal(i.newRev,40);});
+console.log(n+' passed');

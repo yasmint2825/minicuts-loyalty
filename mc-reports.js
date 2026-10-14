@@ -1,0 +1,119 @@
+/* ============================================================================
+ * mc-reports.js — standard reports (PIN protected): Sales & payments, Stylists, Services,
+ * Invoice/tax register, Customer acquisition, Appointments.   Every report has CSV export.
+ * Pure aggregators are exported for Node tests.
+ * ========================================================================== */
+(function (root) {
+  'use strict';
+  const MC = root.MC = root.MC || {};
+  const R = MC.reports = MC.reports || {};
+  const PIN = '8065';   // same PIN the app already uses for management screens
+
+  /* ── pure aggregation ─────────────────────────────────────────────────── */
+  const num = v => Number(v) || 0;
+  R.groupSum = function (rows, keyFn, valFns) {
+    const m = {};
+    rows.forEach(r => {
+      const k = keyFn(r) || '—';
+      const o = m[k] = m[k] || { key: k, count: 0 };
+      o.count++;
+      Object.keys(valFns).forEach(n => { o[n] = (o[n] || 0) + num(valFns[n](r)); });
+    });
+    return Object.keys(m).map(k => m[k]);
+  };
+  R.salesByDay = rows => R.groupSum(rows, r => r.checkin_date, { sales: r => r.service_value, tips: r => r.tip, cash: r => r.payment_type === 'Cash' ? num(r.service_value) + num(r.tip) : 0, card: r => r.payment_type === 'Credit' ? num(r.service_value) + num(r.tip) : 0 }).sort((a, b) => a.key < b.key ? -1 : 1);
+  R.byStylist = rows => R.groupSum(rows, r => r.stylist, { sales: r => r.service_value, tips: r => r.tip }).sort((a, b) => b.sales - a.sales);
+  R.byService = rows => R.groupSum(rows, r => r.service, { sales: r => r.service_value, disc: r => num(r.list_price) * num(r.discount_pct) / 100 }).sort((a, b) => b.sales - a.sales);
+  /* new vs returning in the period: new = customer's first-ever queue visit falls inside [from,to] */
+  R.acquisition = function (rows, firstSeen, from, to) {
+    const out = {};
+    rows.forEach(r => {
+      const src = r.heard_via || r._src || 'Unknown';
+      const o = out[src] = out[src] || { key: src, newCust: new Set(), retCust: new Set(), newRev: 0, retRev: 0 };
+      const id = r.customer_id || r.mobile || r.id, first = firstSeen[id];
+      const isNew = first && first >= from && first <= to;
+      (isNew ? o.newCust : o.retCust).add(id);
+      if (isNew) o.newRev += num(r.service_value); else o.retRev += num(r.service_value);
+    });
+    return Object.values(out).map(o => ({ key: o.key, newCount: o.newCust.size, retCount: o.retCust.size, newRev: o.newRev, retRev: o.retRev, total: o.newRev + o.retRev })).sort((a, b) => b.total - a.total);
+  };
+
+  /* ── UI ───────────────────────────────────────────────────────────────── */
+  R.st = { unlocked: false, from: null, to: null, tab: 'sales' };
+  const fmt = n => MC.r2(n).toFixed(2);
+  const table = (heads, rows, foot) => '<div style="overflow:auto;"><table class="tbl" style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr>' + heads.map(h => '<th style="text-align:left;padding:8px;border-bottom:2px solid var(--border);">' + MC.esc(h) + '</th>').join('') + '</tr></thead><tbody>' +
+    (rows.length ? rows.map(r => '<tr>' + r.map(c => '<td style="padding:7px 8px;border-bottom:1px solid var(--border);">' + MC.esc(c) + '</td>').join('') + '</tr>').join('') : '<tr><td colspan="' + heads.length + '" style="padding:16px;color:var(--muted);">No data for this period.</td></tr>') +
+    (foot ? '<tr style="font-weight:900;background:#F0FDF4;">' + foot.map(c => '<td style="padding:8px;">' + MC.esc(c) + '</td>').join('') + '</tr>' : '') + '</tbody></table></div>';
+
+  R.init = function () {
+    const el = document.getElementById('mc-reports-root'); if (!el) return;
+    if (!R.st.unlocked) {
+      el.innerHTML = '<div class="card" style="max-width:340px;"><div class="card-title">🔒 Reports</div><input id="mr-pin" class="fi" type="password" inputmode="numeric" placeholder="PIN" style="margin:10px 0;"/><button class="btn btn-y btn-full" id="mr-go">Unlock</button><div id="mr-err" class="sm err"></div></div>';
+      const go = () => { if (el.querySelector('#mr-pin').value === PIN) { R.st.unlocked = true; R.init(); } else el.querySelector('#mr-err').textContent = 'Wrong PIN'; };
+      el.querySelector('#mr-go').onclick = go; el.querySelector('#mr-pin').addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
+      return;
+    }
+    if (!R.st.from) { const n = new Date(); R.st.from = MC.monthRange(n.getFullYear(), n.getMonth()).from; R.st.to = MC.today(); }
+    const tabs = [['sales', '💰 Sales & payments'], ['stylist', '✂️ Stylists'], ['service', '🧴 Services'], ['tax', '🧾 Invoice register'], ['acq', '📣 Acquisition'], ['appt', '📅 Appointments']];
+    const presets = '<button class="btn btn-ghost btn-sm" data-p="today">Today</button><button class="btn btn-ghost btn-sm" data-p="week">7 days</button><button class="btn btn-ghost btn-sm" data-p="month">This month</button><button class="btn btn-ghost btn-sm" data-p="last">Last month</button>';
+    el.innerHTML = '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px;">' + presets +
+      '<input type="date" class="fi" id="mr-from" style="width:auto;" value="' + R.st.from + '"/><span>→</span><input type="date" class="fi" id="mr-to" style="width:auto;" value="' + R.st.to + '"/>' +
+      '<button class="btn btn-y btn-sm" id="mr-run">Run</button><button class="btn btn-ghost btn-sm" id="mr-csv">⬇ CSV</button></div>' +
+      '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">' + tabs.map(t => '<button class="btn btn-sm ' + (R.st.tab === t[0] ? 'btn-b' : 'btn-ghost') + '" data-t="' + t[0] + '">' + t[1] + '</button>').join('') + '</div><div id="mr-out" style="color:var(--muted);">Loading…</div>';
+    el.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { R.st.tab = b.dataset.t; R.init(); });
+    el.querySelectorAll('[data-p]').forEach(b => b.onclick = () => {
+      const n = new Date(), p = b.dataset.p;
+      if (p === 'today') { R.st.from = R.st.to = MC.today(); }
+      if (p === 'week') { R.st.from = MC.addDays(MC.today(), -6); R.st.to = MC.today(); }
+      if (p === 'month') { R.st.from = MC.monthRange(n.getFullYear(), n.getMonth()).from; R.st.to = MC.today(); }
+      if (p === 'last') { const m = n.getMonth() === 0 ? 11 : n.getMonth() - 1, y = n.getMonth() === 0 ? n.getFullYear() - 1 : n.getFullYear(); const rr = MC.monthRange(y, m); R.st.from = rr.from; R.st.to = rr.to; }
+      R.init();
+    });
+    el.querySelector('#mr-run').onclick = () => { R.st.from = el.querySelector('#mr-from').value; R.st.to = el.querySelector('#mr-to').value; R.init(); };
+    el.querySelector('#mr-csv').onclick = () => R.csv && MC.download('minicuts-' + R.st.tab + '-' + R.st.from + '_' + R.st.to + '.csv', R.csv);
+    R.csv = null;
+    R.run(el.querySelector('#mr-out')).catch(e => { el.querySelector('#mr-out').innerHTML = '<div style="color:var(--err);">' + MC.esc(e.message) + '</div>'; });
+  };
+
+  R.run = async function (out) {
+    const { from, to, tab } = R.st, q = 'checkin_date=gte.' + from + '&checkin_date=lte.' + to;
+    const done = () => MC.sbAll('queue', 'select=*&status=eq.done&' + q);
+    const set = (heads, rows, foot, note) => { R.csv = MC.csv(heads, rows); out.innerHTML = (note ? '<div style="font-size:12px;color:var(--muted);margin-bottom:8px;">' + note + '</div>' : '') + table(heads, rows, foot); };
+    if (tab === 'sales') {
+      const d = R.salesByDay(await done()), s = k => d.reduce((a, x) => a + x[k], 0);
+      set(['Date', 'Visits', 'Sales', 'Tips', 'Cash', 'Card'], d.map(x => [MC.fmtDate(x.key), x.count, fmt(x.sales), fmt(x.tips), fmt(x.cash), fmt(x.card)]),
+        ['Total', d.reduce((a, x) => a + x.count, 0), fmt(s('sales')), fmt(s('tips')), fmt(s('cash')), fmt(s('card'))], 'Sales = service value (tax included, tips excluded). Cash/Card include tips.');
+    } else if (tab === 'stylist') {
+      const d = R.byStylist(await done());
+      set(['Stylist', 'Visits', 'Sales', 'Avg ticket', 'Tips'], d.map(x => [x.key, x.count, fmt(x.sales), fmt(x.count ? x.sales / x.count : 0), fmt(x.tips)]));
+    } else if (tab === 'service') {
+      const d = R.byService(await done());
+      set(['Service', 'Count', 'Sales', 'Discount given'], d.map(x => [x.key, x.count, fmt(x.sales), fmt(x.disc)]));
+    } else if (tab === 'tax') {
+      const inv = await MC.sbAll('invoices', 'select=*&order=created_at.asc&' + q);
+      const ok = inv.filter(i => i.status !== 'void');
+      const sum = k => ok.reduce((a, i) => a + num(i[k]), 0);
+      set(['Invoice', 'Date', 'Customer', 'Service', 'Taxable', 'Tax', 'Discount', 'Total', 'Payment', 'Status'],
+        inv.map(i => [i.invoice_number, i.checkin_date, i.customer_name, i.service, fmt(i.base_amount), fmt(i.tax_amount), fmt(i.discount_amount), fmt(i.total_amount), i.payment_type, i.status]),
+        ['Total (excl. void)', '', '', '', fmt(sum('base_amount')), fmt(sum('tax_amount')), fmt(sum('discount_amount')), fmt(sum('total_amount')), '', ok.length + ' invoices']);
+    } else if (tab === 'acq') {
+      const rows = await done();
+      const ids = [...new Set(rows.map(r => r.customer_id).filter(Boolean))];
+      const first = {};
+      if (ids.length) {
+        const all = await MC.sbAll('queue', 'select=customer_id,checkin_date&customer_id=not.is.null&checkin_date=lte.' + to + '&order=checkin_date.asc');
+        all.forEach(r => { if (!first[r.customer_id] || r.checkin_date < first[r.customer_id]) first[r.customer_id] = r.checkin_date; });
+      }
+      const d = R.acquisition(rows, first, from, to);
+      set(['Source', 'New customers', 'Returning', 'Revenue (new)', 'Revenue (returning)', 'Revenue total'], d.map(x => [x.key, x.newCount, x.retCount, fmt(x.newRev), fmt(x.retRev), fmt(x.total)]),
+        null, 'New = first visit recorded in the live queue falls inside the period. Visits before 9 Jun 2026 sit in historical_transactions; the Acquisition dashboard in the Loyalty app merges both.');
+    } else if (tab === 'appt') {
+      const ap = await MC.sbAll('appointments', 'select=*&appt_date=gte.' + from + '&appt_date=lte.' + to + '&order=appt_date.asc,start_time.asc');
+      const st = k => ap.filter(a => a.status === k).length;
+      set(['Date', 'Time', 'Customer', 'Service', 'Stylist', 'Status'], ap.map(a => [a.appt_date, a.start_time.slice(0, 5), a.customer_name, a.service, a.stylist, a.status]),
+        ['Booked ' + ap.length, 'Arrived ' + st('arrived'), 'No-show ' + st('no_show'), 'Cancelled ' + st('cancelled'), '', '']);
+    }
+  };
+
+  if (typeof module !== 'undefined' && module.exports) module.exports = R;
+})(typeof window !== 'undefined' ? window : globalThis);
