@@ -48,7 +48,11 @@
     B.S = B.normalize(raw);
     try {
       const sv = await MC.sb('salon_services', 'GET', null, 'select=id,name,code,cat,gender,price,duration,status&order=gender.asc,name.asc&limit=1000');
-      B.services = (sv || []).filter(s => String(s.status || 'active').toLowerCase() !== 'inactive');
+      const seen = {};
+      B.services = (sv || []).filter(s => String(s.status || 'active').toLowerCase() !== 'inactive').filter(s => {
+        const k = String(s.name || '').trim().toLowerCase().replace(/\s+/g, ' ') + '|' + String(s.gender || '').trim().toLowerCase() + '|' + Number(s.price);
+        if (seen[k]) return false; seen[k] = 1; return true;     // same name+type+price = duplicate row in Salon Setup
+      });
     } catch (e) { console.warn('salon_services load failed', e.message); B.services = []; }
     B.loaded = true;
     return B.S;
@@ -78,12 +82,6 @@
     await B.load();
     const S = B.S;
     
-    const svcOptions = (() => {
-      const groups = {};
-      B.services.forEach(s => { const g = (s.gender || 'Other'); (groups[g] = groups[g] || []).push(s); });
-      return Object.keys(groups).map(g => '<optgroup label="' + MC.esc(g) + '">' + groups[g].map(s =>
-        '<option value="' + MC.esc(s.id) + '">' + MC.esc(s.name) + ' · ' + MC.esc(s.price) + '</option>').join('') + '</optgroup>').join('');
-    })();
     const byName = B.services.find(s => String(s.name).toLowerCase() === String(r.service || '').toLowerCase());
     const startPrice = r.list_price != null && r.list_price !== '' ? r.list_price : (r.service_value || (byName ? byName.price : '') || '');
 
@@ -92,8 +90,9 @@
       '<div style="font-family:var(--fh);font-size:19px;font-weight:800;color:var(--bd);">💳 Checkout</div>' +
       '<div style="font-size:13px;color:var(--muted);margin:2px 0 14px;">' + MC.esc(r.customer_name || 'Guest') + ' · Token ' + MC.pad(r.token_number || 0) + (stylistsOf(r) ? ' · ' + MC.esc(stylistsOf(r)) : '') + '</div>' +
       '<div style="display:grid;gap:12px;">' +
-        '<div>' + MC.lbl('Service') + '<select id="mcc-svc" class="fi"><option value="">— Pick from price list —</option>' + svcOptions + '<option value="__custom">Custom / other…</option></select>' +
-          '<input id="mcc-svcname" class="fi" type="text" placeholder="Service name" value="' + MC.esc(r.service || '') + '" style="margin-top:6px;' + (byName ? 'display:none;' : '') + '"/></div>' +
+        '<div>' + MC.lbl('Service') + '<div id="mcc-types" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;"></div>' +
+          '<div style="position:relative;"><input id="mcc-svcname" class="fi" type="text" autocomplete="off" placeholder="Type to search, e.g. haircut, colour…" value="' + MC.esc(r.service || '') + '"/>' +
+          '<div id="mcc-list" style="display:none;position:absolute;left:0;right:0;top:100%;margin-top:4px;z-index:5;background:#fff;border:1px solid var(--border);border-radius:10px;max-height:230px;overflow:auto;box-shadow:0 8px 24px rgba(0,0,0,.18);"></div></div></div>' +
         '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">' +
           '<div>' + MC.lbl('Price (' + S.currency + ')') + '<input id="mcc-price" class="fi" type="number" min="0" step="any" value="' + MC.esc(startPrice) + '" placeholder="0"/></div>' +
           '<div>' + MC.lbl('Tip (' + S.currency + ')') + '<input id="mcc-tip" class="fi" type="number" min="0" step="any" value="' + MC.esc(r.tip || '') + '" placeholder="0"/></div>' +
@@ -113,7 +112,6 @@
 
     const $ = id => ov.querySelector('#' + id);
     let pay = r.payment_type === 'Cash' || r.payment_type === 'Credit' ? r.payment_type : '';
-    if (byName) $('mcc-svc').value = byName.id;
 
     const read = () => ({
       listPrice: parseFloat($('mcc-price').value) || 0, discountPct: parseFloat($('mcc-disc').value) || 0,
@@ -137,12 +135,26 @@
       ov.querySelectorAll('.mc-chip').forEach(b => { const on = +b.dataset.p === (parseFloat($('mcc-disc').value) || 0); b.style.background = on ? 'var(--b)' : 'transparent'; b.style.color = on ? '#fff' : 'var(--b)'; });
       ov.querySelectorAll('.mc-pay').forEach(b => { const on = b.dataset.v === pay; b.style.background = on ? 'var(--b)' : 'transparent'; b.style.color = on ? '#fff' : 'var(--b)'; });
     };
-    $('mcc-svc').addEventListener('change', () => {
-      const v = $('mcc-svc').value;
-      if (v === '__custom') { $('mcc-svcname').style.display = ''; $('mcc-svcname').focus(); }
-      else if (v) { const s = B.services.find(x => String(x.id) === v); if (s) { $('mcc-svcname').value = s.name; $('mcc-svcname').style.display = 'none'; $('mcc-price').value = s.price; } }
-      paint();
-    });
+    /* type-ahead service picker with Boys / Girls / Both filter */
+    const norm = x => String(x || '').trim().toLowerCase();
+    const typeLabel = g => { g = norm(g); return g === 'boys' || g === 'boy' ? 'Boys' : g === 'girls' || g === 'girl' ? 'Girls' : g === 'both' || !g ? 'Both' : g[0].toUpperCase() + g.slice(1); };
+    const types = ['All'].concat([...new Set(B.services.map(x => typeLabel(x.gender)))]);
+    let typeSel = 'All';
+    const paintTypes = () => { $('mcc-types').innerHTML = types.map(t => '<button type="button" class="btn btn-sm ' + (t === typeSel ? 'btn-b' : 'btn-ghost') + '" data-ty="' + MC.esc(t) + '" style="padding:4px 10px;">' + MC.esc(t) + '</button>').join(''); $('mcc-types').querySelectorAll('button').forEach(b => b.onclick = () => { typeSel = b.dataset.ty; paintTypes(); showList(true); }); };
+    const showList = force => {
+      const q = norm($('mcc-svcname').value).split(/\s+/).filter(Boolean);
+      let items = B.services.filter(x => (typeSel === 'All' || typeLabel(x.gender) === typeSel) && q.every(w => norm(x.name).includes(w)));
+      const exact = items.length === 1 && norm(items[0].name) === norm($('mcc-svcname').value);
+      const box = $('mcc-list');
+      if (!force && (exact || !q.length && document.activeElement !== $('mcc-svcname'))) { box.style.display = 'none'; return; }
+      box.innerHTML = (items.slice(0, 40).map((x, i) => '<div data-i="' + B.services.indexOf(x) + '" style="padding:9px 12px;cursor:pointer;display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid #F1F5F9;font-size:13.5px;"><span>' + MC.esc(x.name) + ' <span style="color:var(--muted);font-size:11px;">' + MC.esc(typeLabel(x.gender)) + '</span></span><b>' + MC.esc(x.price) + '</b></div>').join('') || '<div style="padding:10px 12px;color:var(--muted);font-size:13px;">No match — keep typing to use a custom service name.</div>') + (items.length > 40 ? '<div style="padding:6px 12px;color:var(--muted);font-size:11px;">Showing 40 of ' + items.length + ' — type more to narrow</div>' : '');
+      box.style.display = 'block';
+      box.querySelectorAll('[data-i]').forEach(d => d.addEventListener('mousedown', e => { e.preventDefault(); const x = B.services[+d.dataset.i]; $('mcc-svcname').value = x.name; $('mcc-price').value = x.price; box.style.display = 'none'; paint(); $('mcc-disc').focus(); }));
+    };
+    $('mcc-svcname').addEventListener('input', () => showList(true));
+    $('mcc-svcname').addEventListener('focus', () => showList(true));
+    $('mcc-svcname').addEventListener('blur', () => setTimeout(() => { $('mcc-list').style.display = 'none'; }, 120));
+    paintTypes();
     ['mcc-price', 'mcc-tip', 'mcc-disc'].forEach(id => $(id).addEventListener('input', paint));
     ov.querySelectorAll('.mc-chip').forEach(b => b.addEventListener('click', () => { $('mcc-disc').value = b.dataset.p; paint(); }));
     ov.querySelectorAll('.mc-pay').forEach(b => b.addEventListener('click', () => { pay = b.dataset.v; paint(); }));

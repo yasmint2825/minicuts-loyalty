@@ -77,7 +77,11 @@
     A.state.staff = st.filter(x => rolesOk(x) && x.status !== 'inactive' && x.active !== false)
       .map(x => Object.assign({}, x, { off_days: Array.isArray(x.off_days) ? x.off_days : (typeof x.off_days === 'string' ? JSON.parse(x.off_days || '[]') : []) }));
     A.state.leaves = lv; A.state.roster = ro;
-    A.state.services = sv.filter(s => String(s.status || 'active').toLowerCase() !== 'inactive');
+    const seen = {};
+    A.state.services = sv.filter(s => String(s.status || 'active').toLowerCase() !== 'inactive').filter(s => {
+      const k = String(s.name || '').trim().toLowerCase().replace(/\s+/g, ' ') + '|' + String(s.gender || '').trim().toLowerCase() + '|' + Number(s.price);
+      if (seen[k]) return false; seen[k] = 1; return true;
+    });
   };
   A.loadDay = async function (ymd) {
     A.state.appts = await MC.sb('appointments', 'GET', null, 'appt_date=eq.' + ymd + '&order=start_time.asc&limit=500');
