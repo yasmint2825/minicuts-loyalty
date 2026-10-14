@@ -819,6 +819,7 @@ function buildLoyaltyInCell(r){
 }
 
 function buildRow(r){
+  const frz=!!(window.MC&&MC.billing&&MC.billing.frozenGrid&&MC.billing.frozenGrid());  // amount/tip/payment are set at checkout, not typed here
   const done=r.status==='done';const called=r.status==='called';const cancelled=r.status==='cancelled';
   const guest=r.is_guest||!r.customer_id;const locked=done||cancelled;
   const sp=done?'<span class="sp sp-d">✅ Done</span>':called?'<span class="sp sp-c">📢 Called</span>':cancelled?'<span class="sp" style="background:#F3F4F6;color:var(--muted);">✕ Cancelled</span>':'<span class="sp sp-w">⏳ Waiting</span>';
@@ -857,6 +858,14 @@ function buildRow(r){
     +(()=>{
       const pmtVal=r.payment_type||'';
       const pmtOpts=['','Cash','Credit'].map(p=>'<option value="'+p+'"'+(pmtVal===p?' selected':'')+'>'+( p||'— Pay —')+'</option>').join('');
+      if(frz&&!locked){
+        return '<td>'
+          +'<div style="margin-bottom:3px;"><span style="display:inline-block;font-size:11px;font-weight:700;color:'+(svcVal?'var(--b)':'var(--muted)')+';background:#F8FAFF;border:1px dashed #CBD5E1;border-radius:8px;padding:6px 10px;">'+(svcVal?'AED '+svcVal+(tip?' · tip '+tip:''):'💳 Amount set at checkout')+'</span></div>'
+          +'<input id="aed-'+r.id+'" type="hidden" value="'+(svcVal||'')+'"/><input id="tip-'+r.id+'" type="hidden" value="'+(tip||'')+'"/><input id="pmt-'+r.id+'" type="hidden" value="'+pmtVal+'"/>'
+          +'<input class="isel" type="text" placeholder="Remark..." maxlength="40" value="'+remark+'" style="width:100%;font-size:10.5px;padding:3px 5px;color:var(--muted);" '
+            +'onblur="updF(\''+r.id+'\',\'remark\',this.value)" onkeydown="if(event.key===\'Enter\')this.blur()"/>'
+          +'</td>';
+      }
       return '<td>'
         +'<div style="display:flex;gap:4px;align-items:flex-end;margin-bottom:3px;">'
           +'<div style="display:flex;flex-direction:column;align-items:center;gap:1px;">'
@@ -888,7 +897,7 @@ function buildRow(r){
     :(!called?'<button class="btn btn-b btn-sm" style="white-space:nowrap;" onclick="updS(\''+r.id+'\',\'called\')">📢 Call</button>':'')+
      '<button class="btn btn-g btn-sm" style="white-space:nowrap;" '
        +(!called?'disabled title="Call the customer first" style="opacity:.4;cursor:not-allowed;" ':'')
-       +'onclick="markDone(\''+r.id+'\',\''+r.customer_id+'\',\''+escQ(r.customer_name)+'\',\''+r.mobile+'\')">✅ Stamp</button>'+
+       +(frz?'onclick="MC.billing.stampFlow(\''+r.id+'\')">✅ Stamp &amp; Checkout</button>':'onclick="markDone(\''+r.id+'\',\''+r.customer_id+'\',\''+escQ(r.customer_name)+'\',\''+r.mobile+'\')">✅ Stamp</button>')+
      '<button class="btn btn-sm" style="background:#F3F4F6;color:var(--muted);white-space:nowrap;" onclick="cancelToken(\''+r.id+'\',\''+escQ(r.customer_name)+'\')">✕</button>')
     +'</div></td>'
     +'</tr>';
@@ -1118,11 +1127,11 @@ function editHistRow(id){
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
           <div><label style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px;">💵 Service Value (AED)</label>
-            <input id="eh-val" class="fi" type="number" min="0" step="5" value="${r.service_value||''}" placeholder="0" style="font-size:13px;"/></div>
+            <input id="eh-val" class="fi" type="number" min="0" step="5" ${r.invoice_id?'disabled title="Void the invoice to change this"':''} value="${r.service_value||''}" placeholder="0" style="font-size:13px;"/></div>
           <div><label style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px;">💰 Tip (AED)</label>
-            <input id="eh-tip" class="fi" type="number" min="0" step="5" value="${r.tip||''}" placeholder="0" style="font-size:13px;"/></div>
+            <input id="eh-tip" class="fi" type="number" min="0" step="5" ${r.invoice_id?'disabled title="Void the invoice to change this"':''} value="${r.tip||''}" placeholder="0" style="font-size:13px;"/></div>
           <div><label style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px;">💳 Payment</label>
-            <select id="eh-pmt" class="fi" style="font-size:13px;">
+            <select id="eh-pmt" class="fi" style="font-size:13px;" ${r.invoice_id?'disabled title="Void the invoice to change this"':''}>
               <option value="">— Select —</option>
               <option value="Cash"${r.payment_type==='Cash'?' selected':''}>💵 Cash</option>
               <option value="Credit"${r.payment_type==='Credit'?' selected':''}>💳 Credit</option>
@@ -2256,9 +2265,9 @@ function setDefaultExpiry() {
 setDefaultExpiry();
 
 </script>
-<script src="mc-common.js?v=20261014d"></script>
-<script src="mc-billing.js?v=20261014d"></script>
-<script src="mc-appointments.js?v=20261014d"></script>
-<script src="mc-reports.js?v=20261014d"></script>
+<script src="mc-common.js?v=20261014e"></script>
+<script src="mc-billing.js?v=20261014e"></script>
+<script src="mc-appointments.js?v=20261014e"></script>
+<script src="mc-reports.js?v=20261014e"></script>
 </body>
 </html>

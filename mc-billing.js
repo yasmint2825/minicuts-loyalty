@@ -74,8 +74,28 @@
     return '<button class="btn btn-sm btn-y" style="font-size:11px;white-space:nowrap;" onclick="MC.billing.openCheckout(\'' + r.id + '\')">💳 Checkout</button>';
   };
 
+  /* ── Is the database ready? Until the migration has run, the grid keeps working exactly as before. ── */
+  B.ready = false;
+  B.frozenGrid = () => B.ready === true || /[?&]freeze=1/.test(location.search);
+  B.probe = async function () {
+    try {
+      await MC.sb('invoices', 'GET', null, 'select=id,fy,seq,discount_pct,payable_amount,pdf_url&limit=1');
+      await MC.sb('queue', 'GET', null, 'select=id,invoice_id,list_price,discount_pct&limit=1');
+      B.ready = true; refresh();
+    } catch (e) { B.ready = false; console.info('MiNiCUTS billing: database migration not applied yet — grid stays in classic mode.'); }
+  };
+
+  /* ✅ Stamp & Checkout: amount, discount, tip and payment are captured in ONE step, then the visit is stamped. */
+  B.stampFlow = function (queueId) {
+    const r = rowById(queueId); if (!r) return;
+    const stamp = () => markDone(r.id, r.customer_id, r.customer_name, r.mobile);
+    if (r.invoice_id && Number(r.service_value) > 0 && r.payment_type) { stamp(); return; }   // invoiced earlier, stamp was interrupted
+    B.openCheckout(queueId, { stampAfter: stamp });
+  };
+
   /* ── CHECKOUT MODAL ───────────────────────────────────────────────────── */
-  B.openCheckout = async function (queueId) {
+  B.openCheckout = async function (queueId, opts) {
+    opts = opts || {};
     const r = rowById(queueId);
     if (!r) { toast('Row not found — reload the list', 'err'); return; }
     if (r.invoice_id) return B.viewInvoiceForRow(queueId);
@@ -174,7 +194,7 @@
       try {
         const inv = await B.issue(r, { service: svc, payment: pay, listPrice: v.listPrice, discountPct: v.discountPct, tip: v.tip });
         ov.close();
-        B.showInvoice(inv, { fresh: true });
+        B.showInvoice(inv, { fresh: true, onDone: opts.stampAfter });
       } catch (e) {
         btn.disabled = false; btn.textContent = '🧾 Issue Invoice';
         fail(/42501|row-level|policy|permission/i.test(e.message) ? 'Database not ready: run sql/001_billing_and_appointments.sql in Supabase first.' : 'Could not issue: ' + e.message);
@@ -339,9 +359,9 @@
         (phone && !void_ ? '<button class="btn btn-ghost" id="mci-manual" style="flex:1;padding:10px;" title="Opens WhatsApp with a ready message; you press send">💬 Open in WhatsApp</button>' : '') + '</div>' +
       '</div>' +
       '<div style="display:flex;gap:8px;margin-top:14px;">' + (void_ ? '' : '<button class="btn btn-ghost btn-sm" id="mci-void" style="color:var(--err);border-color:rgba(220,38,38,.3);">Void</button>') +
-        '<button class="btn btn-y" id="mci-close" style="flex:1;padding:10px;">Done</button></div>', { width: 440 });
+        '<button class="btn btn-y" id="mci-close" style="flex:1;padding:10px;">' + (opts.onDone ? 'Done — stamp visit ✅' : 'Done') + '</button></div>', { width: 440, sticky: !!opts.onDone });
     const $ = id => ov.querySelector('#' + id);
-    $('mci-close').onclick = () => ov.close();
+    $('mci-close').onclick = () => { ov.close(); if (opts.onDone) opts.onDone(); };
     $('mci-pdf').onclick = async () => {
       try {
         if (!inv.pdf_url && !inv._blobUrl) { $('mci-pdf').textContent = 'Creating…'; await B.attachPdf(inv); $('mci-pdf').textContent = '👁 View PDF'; }
@@ -469,6 +489,8 @@
       } catch (e) { msg.className = 'sm err'; msg.textContent = 'Save failed: ' + e.message; }
     };
   };
+
+  if (typeof document !== 'undefined') setTimeout(() => B.probe(), 0);
 
   /* expose for the host page */
   window.mcRowButton = B.rowButton;

@@ -22,7 +22,8 @@ const filt = (rows, qs) => { qs.forEach((v, k) => { if (['select', 'order', 'lim
       if (m === 'OPTIONS') return route.fulfill({ status: 204, headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': '*' } });
       if (u.pathname.startsWith('/storage/')) { pdfBytes = route.request().postDataBuffer().length; return j({ Key: 'x' }); }
       if (u.pathname.startsWith('/functions/')) { waCall = JSON.parse(route.request().postData()); return j({ ok: true }); }
-      const t = u.pathname.split('/rest/v1/')[1]; const rows = DB[t] || (DB[t] = []);
+      const t = u.pathname.split('/rest/v1/')[1]; if (process.env.NODB && /^invoices/.test(t)) return j({ message: 'relation "public.invoices" does not exist' }, 404);
+      const rows = DB[t] || (DB[t] = []);
       if (m === 'GET') { let r = filt(rows, u.searchParams); const o = u.searchParams.get('order'); if (o) { const [f, d] = o.split(',')[0].split('.'); r = [...r].sort((a, c) => (a[f] > c[f] ? 1 : -1) * (d === 'desc' ? -1 : 1)); } const l = +u.searchParams.get('limit'); return j(l ? r.slice(0, l) : r); }
       const body = JSON.parse(route.request().postData() || '{}');
       if (m === 'POST') { const arr = [].concat(body).map(x => Object.assign({ id: 'id' + Math.random().toString(16).slice(2, 8) }, x));
@@ -37,6 +38,13 @@ const filt = (rows, qs) => { qs.forEach((v, k) => { if (['select', 'order', 'lim
   });
   await pg.goto('file://' + ROOT + '/minicuts-staff.html'); await pg.waitForTimeout(800);
   const ok = (c, msg) => { console.log((c ? 'PASS ' : 'FAIL ') + msg); if (!c) process.exitCode = 1; };
+  if (process.env.NODB) {
+    DB.queue.push({ id: 'q2', customer_id: 'c1', customer_name: 'Aisha', mobile: '971501234567', service: 'Haircut', token_number: 9, checkin_date: today, checkin_time: new Date().toISOString(), status: 'called', stylist: 'George' });
+    await pg.evaluate(() => { showTab('t-queue', document.querySelectorAll('.tab')[0]); loadQ(); }); await pg.waitForTimeout(800);
+    ok(await pg.getAttribute('#aed-q2', 'type') === 'number', 'before migration: amount box is typeable (classic mode)');
+    ok(/^✅ Stamp$/.test((await pg.innerText('#qr-q2 .btn-g')).trim()), 'before migration: plain Stamp button');
+    ok(errs.length === 0, 'before migration: no errors ' + JSON.stringify(errs.slice(0, 2))); await b.close(); return;
+  }
   // History → checkout
   await pg.evaluate(() => { showTab('t-history', document.querySelectorAll('.tab')[1]); histSetDate(today()); }); await pg.evaluate(() => loadHist()); await pg.waitForTimeout(600);
   ok(await pg.locator('text=💳 Checkout').count() > 0, 'Checkout button shown in History');
@@ -76,6 +84,19 @@ const filt = (rows, qs) => { qs.forEach((v, k) => { if (['select', 'order', 'lim
   await pg.fill('#mcs-taxId', '123'); await pg.click('#mcs-save'); await pg.waitForTimeout(300); ok(/not valid/.test(await pg.innerText('#mcs-msg')), 'invalid TRN rejected');
   await pg.selectOption('#mcs-country', 'IN'); await pg.fill('#mcs-taxId', '27ABCDE1234F1Z5'); await pg.click('#mcs-save'); await pg.waitForTimeout(500);
   ok(JSON.parse(DB.staff_config.find(c => c.key === 'co_settings').value).country === 'IN', 'India GSTIN saved');
+  // Stamp & Checkout (grid frozen once DB is ready)
+  DB.queue.push({ id: 'q2', customer_id: 'c1', customer_name: 'Aisha', mobile: '971501234567', service: 'Haircut', token_number: 9, checkin_date: today, checkin_time: new Date().toISOString(), status: 'called', stylist: 'George' });
+  DB.customers[0].stamps = 2;
+  await pg.evaluate(() => { showTab('t-queue', document.querySelectorAll('.tab')[0]); loadQ(); }); await pg.waitForTimeout(800);
+  ok(await pg.getAttribute('#aed-q2', 'type') === 'hidden', 'grid amount is not typeable before checkout');
+  ok(/Stamp &/.test(await pg.innerText('#qr-q2 .btn-g')), 'Stamp button becomes Stamp & Checkout');
+  await pg.click('#qr-q2 .btn-g'); await pg.waitForSelector('#mcc-issue');
+  await pg.fill('#mcc-svcname', 'Haircut'); await pg.fill('#mcc-price', '60'); await pg.click('.mc-chip[data-p="10"]'); await pg.click('.mc-pay[data-v="Cash"]'); await pg.click('#mcc-issue');
+  await pg.waitForSelector('#mci-close'); ok(/stamp visit/.test(await pg.innerText('#mci-close')), 'invoice screen offers Done — stamp visit');
+  ok(DB.queue.find(q => q.id === 'q2').status === 'called', 'not stamped until invoice screen is confirmed');
+  await pg.click('#mci-close'); await pg.waitForTimeout(900);
+  const q2 = DB.queue.find(q => q.id === 'q2'); ok(q2.status === 'done' && q2.service_value === 54 && q2.payment_type === 'Cash' && q2.discount_pct === 10, 'visit stamped with checkout values ' + JSON.stringify([q2.status, q2.service_value, q2.payment_type]));
+  ok((DB.visits || []).some(v => v.service_value === 54), 'visits row carries the amount');
   await pg.screenshot({ path: process.env.SHOT || '/tmp/shot.png' });
   ok(errs.length === 0, 'no console/page errors ' + JSON.stringify(errs.slice(0, 3)));
   await b.close();

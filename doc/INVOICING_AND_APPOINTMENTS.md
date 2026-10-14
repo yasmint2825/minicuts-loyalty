@@ -22,3 +22,8 @@
 - Guests have no customer record, so acquisition for them shows "Unknown".
 - Acquisition report covers live queue only; the Loyalty dashboard merges pre-9 Jun history.
 - Tests: `node tests/unit.test.js`; `node tests/e2e.js` (Playwright, mocked Supabase).
+
+## Grid is read-only before checkout (once the migration is applied)
+- Queue rows no longer take AED / Tip / Pay typed in the grid. **✅ Stamp & Checkout** opens one window for service, price, discount %, tip and Cash/Card, issues the invoice, then stamps the visit ("Done — stamp visit").
+- Safety: until `sql/001_billing_and_appointments.sql` has run, the page detects it and the grid works exactly as before (typeable amounts, plain Stamp). `?freeze=1` in the page address previews the new layout without the database.
+- After an invoice exists, History ▸ Edit locks amount, tip and payment. Void the invoice to change them.
