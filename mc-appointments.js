@@ -329,12 +329,15 @@
     $('mp-close').onclick = () => ov.close();
     if ($('mp-ns')) $('mp-ns').onclick = () => set({ status: 'no_show' }, 'Marked no-show');
     if ($('mp-cx')) $('mp-cx').onclick = () => set({ status: 'cancelled' }, 'Appointment cancelled');
-    /* show what is still missing on the profile before the customer arrives */
-    if (a.customer_id && a.status === 'booked') MC.sb('customers', 'GET', null, 'select=id,name,gender,dob,location,heard_via,tc_accepted&id=eq.' + a.customer_id).then(r => {
-      const g = r[0] ? MC.allGaps(r[0]) : []; if (!g.length || !ov.isConnected) return;
-      const d = document.createElement('div'); d.style.cssText = 'font-size:12px;color:#B45309;background:#FFFBEB;border-radius:8px;padding:6px 10px;margin-bottom:8px;';
-      d.textContent = '⚠ Profile missing: ' + g.map(x => MC.GAP_LABEL[x]).join(', ') + ' — you will be asked when they arrive.'; ov.querySelector('.mc-box').insertBefore(d, ov.querySelector('.mc-box').children[2] || null);
-    }).catch(() => {});
+    /* show what is still missing on the profile before the customer arrives, with a button to take it now */
+    if (a.customer_id && a.status === 'booked') {
+      const warn = document.createElement('div'); warn.style.cssText = 'font-size:12.5px;color:#B45309;background:#FFFBEB;border-radius:8px;padding:8px 10px;margin-bottom:8px;display:none;';
+      const paint = kid => { const g = MC.allGaps(kid); if (!g.length) { warn.style.display = 'none'; return; }
+        warn.style.display = 'block'; warn.innerHTML = '⚠ Profile missing: ' + g.map(x => MC.esc(MC.GAP_LABEL[x])).join(', ') + '<br><button type="button" class="btn btn-y btn-sm" id="mp-fill" style="margin-top:6px;">📝 Complete profile now (incl. T&amp;C)</button>';
+        warn.querySelector('#mp-fill').onclick = async () => { await MC.profileDialog([kid], { allowSkip: true, tc: true, sub: 'Complete ' + kid.name + '’s profile' }); paint(kid); }; };
+      ov.querySelector('.mc-box').insertBefore(warn, ov.querySelector('.mc-box').children[2] || null);
+      MC.sb('customers', 'GET', null, 'select=id,name,gender,dob,location,heard_via,tc_accepted&id=eq.' + a.customer_id).then(r => { if (r[0] && ov.isConnected) paint(r[0]); }).catch(() => {});
+    }
     if ($('mp-in')) $('mp-in').onclick = async () => {
       $('mp-in').disabled = true;
       try {
