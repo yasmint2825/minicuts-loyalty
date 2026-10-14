@@ -8,7 +8,7 @@
   const MC = root.MC = root.MC || {};
 
   /* ── tiny utils ─────────────────────────────────────────────────────────── */
-  MC.version = '2026-10-14.11 (customer search, profile gate)';
+  MC.version = '2026-10-14.12 (WA key hints)';
   MC.esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   MC.r2 = n => Math.round(((Number(n) || 0) + Number.EPSILON) * 100) / 100;
   MC.money = (n, cur) => (cur || 'AED') + ' ' + MC.r2(n).toFixed(2);

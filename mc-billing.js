@@ -538,8 +538,10 @@
       try {
         const old = (await MC.getConfig('co_settings')) || {};
         await MC.setConfig('co_settings', Object.assign({}, old, { waTemplateName: $('tpl').value.trim() || DEFAULTS.waTemplateName }));
-        const k = $('key').value.trim(); if (k) localStorage.setItem('mw_tenant_key', k); else localStorage.removeItem('mw_tenant_key');
-        B.loaded = false; await B.load(true); m.className = 'sm ok'; m.textContent = 'Saved.';
+        const k = $('key').value.trim().replace(/^["']|["']$/g, '').replace(/\s+/g, ''); $('key').value = k;
+        if (k && !/^mwk_/.test(k)) { m.className = 'sm err'; m.textContent = 'That does not look like a MiniCuts platform key — keys start with “mwk_”. (Not the Meta token, not the Supabase key.) Saved anyway; use Check connection.'; }
+        if (k) localStorage.setItem('mw_tenant_key', k); else localStorage.removeItem('mw_tenant_key');
+        B.loaded = false; await B.load(true); if (!m.textContent || m.className.indexOf('err') < 0) { m.className = 'sm ok'; m.textContent = k ? 'Saved (key ending …' + k.slice(-4) + '). Now press Check connection.' : 'Saved — no key stored on this device.'; }
       } catch (e) { m.className = 'sm err'; m.textContent = 'Save failed: ' + e.message; }
     };
     $('check').onclick = async () => {
@@ -561,7 +563,7 @@
       $('test').disabled = true; m.className = 'sm'; m.textContent = 'Sending…';
       const res = await B.sendWA({ mobile: to, customer_name: 'Test', invoice_number: 'TEST/00000', checkin_date: MC.today(), total_amount: 50, currency: (B.S || DEFAULTS).currency || 'AED', pdf_url: location.href.split('#')[0].replace(/[^/]*$/, '') }, { test: true, template: $('tpl').value.trim() || undefined });
       $('test').disabled = false;
-      m.className = 'sm ' + (res.ok ? 'ok' : 'err'); m.textContent = res.ok ? '✓ Accepted by WhatsApp — check the phone (can take a few seconds).' : res.error;
+      m.className = 'sm ' + (res.ok ? 'ok' : 'err'); m.textContent = res.ok ? '✓ Accepted by WhatsApp — check the phone (can take a few seconds).' : (/Unauthorized/i.test(res.error) ? '✗ The platform does not accept the API key saved on this device (wrong, mistyped or revoked). Create/copy a key from the Zen console ▸ MiniCuts ▸ API keys, paste it above, Save, then Check connection.' : res.error);
     };
   };
 
