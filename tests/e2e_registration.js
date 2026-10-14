@@ -3,7 +3,7 @@ const { chromium } = require('playwright-core'); const fs = require('fs'); const
 const ROOT = path.resolve(__dirname, '..'); const today = (() => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); })();
 const DB = {
   queue: [{ id: 'q1', customer_id: 'c1', customer_name: 'Aisha', mobile: '971501234567', service: 'Haircut', token_number: 1, checkin_date: today, checkin_time: new Date().toISOString(), status: 'done', service_value: 0, stylist: 'Lester' }],
-  customers: [{ id: 'cFull', name: 'Omar', mobile: '971500000001', gender: 'Boy', dob: '2019-01-02', location: 'Mirdif', heard_via: 'Google', stamps: 2 }, { id: 'cInaya', name: 'Inaya', mobile: '971529206260', gender: 'Girl', dob: null, location: null, heard_via: null, stamps: 0 }],
+  customers: [{ id: 'cFull', name: 'Omar', mobile: '971500000001', gender: 'Boy', dob: '2019-01-02', location: 'Mirdif', heard_via: 'Google', tc_accepted: true, stamps: 2 }, { id: 'cInaya', name: 'Inaya', mobile: '971529206260', gender: 'Girl', dob: null, location: null, heard_via: null, stamps: 0 }],
   invoices: [], appointments: [], staff_config: [{ key: 'co_settings', value: JSON.stringify({ bname: 'MiNiCUTS FZCO', trn: '100123456700003', taxrate: 5, tax_incl: 'inclusive', prefix: 'MC' }) }],
   salon_services: [{ id: 's1', name: 'Haircut', gender: 'Boy', price: 50, duration: 30, status: 'active' }, { id: 's1b', name: 'Haircut ', gender: 'Boy', price: 50, duration: 30, status: 'active' }, { id: 'd1', name: 'Boys - Haircut + Colour + Hair Tattoo', gender: 'boys', price: 80, status: 'active' }, { id: 'd2', name: 'Boys - Haircut + Colour + Hair Tattoo', gender: 'boys', price: 80, status: 'active' }, { id: 'd3', name: 'Boys - Haircut + Colour + Hair Wash', gender: 'boys', price: 80, status: 'active' }, { id: 'd4', name: 'Girls - Haircut + Colour', gender: 'girls', price: 90, status: 'active' }, { id: 's2', name: 'Styling', gender: 'Girl', price: 80, duration: 45, status: 'active' }],
   staff: [{ id: 'st1', name: 'Lester', role: 'Stylist', off_days: [1] }, { id: 'st2', name: 'George', role: 'Stylist', off_days: [] }], staff_leaves: [], staff_roster: []
@@ -57,9 +57,10 @@ const filt = (rows, qs) => { qs.forEach((v, k) => { if (['select', 'order', 'lim
   await pg.fill('#mn-dob', '2022-02-03'); await pg.click('#mn-save'); ok(/area/i.test(await pg.innerText('#mn-msg')), 'A: new customer — asks area');
   await pg.selectOption('#mn-loc', 'Al Barsha'); await pg.click('#mn-save'); ok(/heard/i.test(await pg.innerText('#mn-msg')), 'A: new customer — asks how they heard');
   await pg.fill('#mn-dob', '2999-01-01'); await pg.click('[data-mh="Instagram"]'); await pg.click('#mn-save'); ok(/future/i.test(await pg.innerText('#mn-msg')), 'A: future birthday rejected');
-  await pg.fill('#mn-dob', '2022-02-03'); await pg.click('#mn-save'); await pg.waitForSelector('#ma-change');
+  await pg.fill('#mn-dob', '2022-02-03'); await pg.click('#mn-save'); ok(/T&C/.test(await pg.innerText('#mn-msg')), 'A: new customer — asks T&C consent');
+  await pg.check('#mn-tc'); await pg.click('#mn-save'); await pg.waitForSelector('#ma-change');
   const layla = DB.customers.find(c => c.name === 'Layla');
-  ok(layla && layla.mobile === '971558887777' && layla.gender === 'girl' && layla.dob === '2022-02-03' && layla.location === 'Al Barsha' && layla.heard_via === 'Instagram', 'A: saved with birthday, area and source');
+  ok(layla && layla.mobile === '971558887777' && layla.gender === 'girl' && layla.dob === '2022-02-03' && layla.location === 'Al Barsha' && layla.heard_via === 'Instagram' && layla.tc_accepted === true && !!layla.tc_accepted_at, 'A: saved with birthday, area, source and T&C consent');
   ok(!/Missing/.test(await pg.innerText('#ma-sel')) && await pg.locator('#ma-sel >> text=Fill now').count() === 0, 'A: no missing-details warning, no Fill now');
   await bookIt(); const apA = DB.appointments.find(a => a.customer_name === 'Layla'); ok(apA && apA.status === 'booked', 'A: appointment booked');
   await arrive(apA.id); await pg.click('#mp-in'); await pg.waitForTimeout(900);
@@ -77,11 +78,13 @@ const filt = (rows, qs) => { qs.forEach((v, k) => { if (['select', 'order', 'lim
 
   /* ── C. already-registered customer with missing details (Inaya) ── */
   await openNew(); await pg.fill('#ma-q', '0529206260'); await pg.waitForSelector('[data-cid="cInaya"]'); await pg.click('[data-cid="cInaya"]');
-  const sel = await pg.innerText('#ma-sel'); ok(/Missing/.test(sel) && /birthday/.test(sel) && /area/.test(sel) && /heard/.test(sel), 'C: booking shows what is missing');
+  const sel = await pg.innerText('#ma-sel'); ok(/Missing/.test(sel) && /birthday/.test(sel) && /area/.test(sel) && /heard/.test(sel) && /T&C/.test(sel), 'C: booking shows what is missing, including T&C');
   await pg.click('#ma-sel >> text=Fill now'); await pg.waitForSelector('#pd-save');
   await pg.click('#pd-save'); ok(/birthday/i.test(await pg.innerText('#pd-msg')), 'C: Fill now asks birthday');
-  await pg.fill('[data-dob]', '2021-07-08'); await pg.selectOption('#pd-loc', 'Dubai Silicon Oasis (DSO)'); await pg.click('[data-h="Ad Board"]'); await pg.click('#pd-save'); await pg.waitForTimeout(600);
-  const ina = DB.customers.find(c => c.id === 'cInaya'); ok(ina.dob === '2021-07-08' && ina.location === 'Dubai Silicon Oasis (DSO)' && ina.heard_via === 'Ad Board', 'C: Fill now saved the details');
+  await pg.fill('[data-dob]', '2021-07-08'); await pg.selectOption('#pd-loc', 'Dubai Silicon Oasis (DSO)'); await pg.click('[data-h="Ad Board"]'); await pg.click('#pd-save'); ok(/T&C/.test(await pg.innerText('#pd-msg')), 'C: Fill now asks T&C consent'); 
+  await pg.click('#pd-tcview'); await pg.waitForSelector('#tc-x'); ok(/MiNiCUTS/.test(await pg.innerText('.mc-box >> nth=-1')), 'C: T&C text can be read'); await pg.click('#tc-x');
+  await pg.check('#pd-tc'); await pg.click('#pd-save'); await pg.waitForTimeout(600);
+  const ina = DB.customers.find(c => c.id === 'cInaya'); ok(ina.dob === '2021-07-08' && ina.location === 'Dubai Silicon Oasis (DSO)' && ina.heard_via === 'Ad Board' && ina.tc_accepted === true, 'C: Fill now saved the details and T&C');
   ok(!/Missing/.test(await pg.innerText('#ma-sel')), 'C: warning disappears after Fill now');
   await pg.keyboard.press('Escape'); await pg.evaluate(() => document.querySelectorAll('.mc-ov').forEach(o => o.remove()));
 
@@ -94,22 +97,22 @@ const filt = (rows, qs) => { qs.forEach((v, k) => { if (['select', 'order', 'lim
   await pg.click('#pd-save'); ok(/birthday/i.test(await pg.innerText('#pd-msg')), 'C2: arrival asks birthday before the token');
   await pg.fill('[data-dob]', '2020-09-10'); await pg.click('#pd-save'); ok(/area/i.test(await pg.innerText('#pd-msg')), 'C2: arrival asks area');
   await pg.selectOption('#pd-loc', 'Mirdif'); await pg.click('#pd-save'); ok(/heard/i.test(await pg.innerText('#pd-msg')), 'C2: arrival asks source');
-  await pg.click('[data-h="Friends / Family"]'); await pg.click('#pd-save'); await pg.waitForTimeout(900);
-  const noor = DB.customers.find(c => c.id === 'cNoor'); ok(noor.dob === '2020-09-10' && noor.location === 'Mirdif' && noor.heard_via === 'Friends / Family', 'C2: details saved');
+  await pg.click('[data-h="Friends / Family"]'); await pg.click('#pd-save'); ok(/T&C/.test(await pg.innerText('#pd-msg')), 'C2: arrival asks T&C consent'); await pg.check('#pd-tc'); await pg.click('#pd-save'); await pg.waitForTimeout(900);
+  const noor = DB.customers.find(c => c.id === 'cNoor'); ok(noor.dob === '2020-09-10' && noor.location === 'Mirdif' && noor.heard_via === 'Friends / Family' && noor.tc_accepted === true, 'C2: details and T&C saved');
   ok(DB.queue.some(q => q.customer_id === 'cNoor') && DB.appointments.find(a => a.id === apC.id).status === 'arrived', 'C2: token issued only after the profile');
 
   /* ── D. new customer, caller does not know → "ask on arrival", skip at arrival still lets them in ── */
   await openNew(); await pg.fill('#ma-q', '0567776666'); await pg.waitForSelector('#ma-addnew'); await pg.click('#ma-addnew');
   await pg.fill('#mn-name', 'Rayan'); await pg.click('[data-mg="boy"]'); await pg.check('#mn-skip'); await pg.click('#mn-save'); await pg.waitForSelector('#ma-change');
-  const ray = DB.customers.find(c => c.name === 'Rayan'); ok(ray && ray.dob === null && ray.location === null && ray.heard_via === null, 'D: "ask on arrival" saves without details');
+  const ray = DB.customers.find(c => c.name === 'Rayan'); ok(ray && ray.dob === null && ray.location === null && ray.heard_via === null && ray.tc_accepted === false, 'D: "ask on arrival" saves without details');
   await bookIt(); const apD = DB.appointments.find(a => a.customer_name === 'Rayan'); await arrive(apD.id); await pg.click('#mp-in'); await pg.waitForSelector('#pd-skip'); await pg.click('#pd-skip'); await pg.waitForTimeout(900);
   ok(DB.queue.some(q => q.customer_id === ray.id), 'D: Skip at arrival still checks the child in');
 
   /* ── E. second child on a known number reuses sibling area/source ── */
   await openNew(); await pg.fill('#ma-q', '0529206260'); await pg.waitForSelector('[data-addto]'); await pg.click('[data-addto]');
   ok(await pg.inputValue('#mn-loc') === 'Dubai Silicon Oasis (DSO)' && await pg.locator('[data-mh="Ad Board"].btn-y').count() === 1, 'E: sibling area and source prefilled');
-  await pg.fill('#mn-name', 'Zara'); await pg.click('[data-mg="girl"]'); await pg.fill('#mn-dob', '2023-01-02'); await pg.click('#mn-save'); await pg.waitForSelector('#ma-change');
-  const zara = DB.customers.find(c => c.name === 'Zara'); ok(zara && zara.location === 'Dubai Silicon Oasis (DSO)' && zara.heard_via === 'Ad Board' && zara.dob === '2023-01-02', 'E: sibling saved with inherited area/source');
+  ok(await pg.isChecked('#mn-tc'), 'E: sibling T&C consent carried over'); await pg.fill('#mn-name', 'Zara'); await pg.click('[data-mg="girl"]'); await pg.fill('#mn-dob', '2023-01-02'); await pg.click('#mn-save'); await pg.waitForSelector('#ma-change');
+  const zara = DB.customers.find(c => c.name === 'Zara'); ok(zara && zara.location === 'Dubai Silicon Oasis (DSO)' && zara.heard_via === 'Ad Board' && zara.dob === '2023-01-02' && zara.tc_accepted === true, 'E: sibling saved with inherited area/source');
 
   ok(errs.length === 0, 'no console/page errors ' + JSON.stringify(errs.slice(0, 3)));
   await b.close();

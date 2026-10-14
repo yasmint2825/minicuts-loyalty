@@ -8,7 +8,7 @@
   const MC = root.MC = root.MC || {};
 
   /* ── tiny utils ─────────────────────────────────────────────────────────── */
-  MC.version = '2026-10-15.30 (registration asks birthday, area, source)';
+  MC.version = '2026-10-15.31 (registration + arrival ask T&C consent)';
   MC.esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   MC.r2 = n => Math.round(((Number(n) || 0) + Number.EPSILON) * 100) / 100;
   MC.money = (n, cur) => (cur || 'AED') + ' ' + MC.r2(n).toFixed(2);
@@ -101,7 +101,16 @@
     if (blank(c.heard_via)) g.push('heard_via');
     return g;
   };
-  MC.GAP_LABEL = { gender: 'boy/girl', dob: 'birthday', location: 'area', heard_via: 'how they heard of us' };
+  MC.GAP_LABEL = { gender: 'boy/girl', dob: 'birthday', location: 'area', heard_via: 'how they heard of us', tc: 'T&C consent' };
+  /* booking / arrival also need the parent's T&C consent (same flag the kiosk sets). Only call with rows that were selected WITH tc_accepted. */
+  MC.allGaps = function (c) { const g = MC.profileGaps(c); if (c.tc_accepted !== true) g.push('tc'); return g; };
+  MC.showTC = async function () {
+    let html = '';
+    try { const r = await MC.sb('staff_config', 'GET', null, 'key=eq.tc_text&select=value&limit=1'); if (r.length && r[0].value) html = typeof r[0].value === 'string' ? r[0].value : JSON.stringify(r[0].value); } catch (e) { /* use fallback */ }
+    if (!html) html = '<b>MiNiCUTS — Privacy &amp; Terms</b><p>MiNiCUTS FZCO collects the mobile number, child’s name, date of birth and visit history for queue management, the loyalty programme, in-salon games, WhatsApp reminders and promotions. Data is used only for MiNiCUTS services and is never sold or shared.</p>';
+    const o = MC.modal('<div style="max-height:70vh;overflow:auto;font-size:13px;line-height:1.7;">' + html + '</div><button class="btn btn-ghost btn-full" id="tc-x" style="margin-top:10px;">Close</button>', { width: 460 });
+    o.querySelector('#tc-x').onclick = () => o.close();
+  };
   /* Ask only for what is missing, prefilled with what we know. Resolves 'saved' | 'skipped'. */
   MC.profileDialog = function (kids, opts) {
     opts = opts || {};
@@ -111,7 +120,8 @@
       const famHear = kids.find(k => !(k.heard_via || '').trim()) ? !kids.some(k => (k.heard_via || '').trim()) : false;
       const locKnown = (kids.find(k => (k.location || '').trim()) || {}).location, hearKnown = (kids.find(k => (k.heard_via || '').trim()) || {}).heard_via;
       const needLocKids = kids.filter(k => !(k.location || '').trim()), needHearKids = kids.filter(k => !(k.heard_via || '').trim());
-      if (!needKid.length && !needLocKids.length && !needHearKids.length) return resolve('saved');
+      const needTcKids = opts.tc ? kids.filter(k => k.tc_accepted !== true) : [];
+      if (!needKid.length && !needLocKids.length && !needHearKids.length && !needTcKids.length) return resolve('saved');
       let hear = hearKnown || null; const gen = {};
       const kidHtml = needKid.map(k => '<div style="border:1.5px solid var(--border);border-radius:12px;padding:10px;margin-bottom:8px;"><div style="font-weight:800;margin-bottom:6px;">👦👧 ' + MC.esc(k.name) + '</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">' +
         (MC.profileGaps(k).includes('gender') ? '<div>' + MC.lbl('Boy / Girl') + '<div style="display:flex;gap:6px;"><button type="button" class="btn btn-sm btn-ghost" data-g="' + k.id + ':boy">Boy</button><button type="button" class="btn btn-sm btn-ghost" data-g="' + k.id + ':girl">Girl</button></div></div>' : '<div></div>') +
@@ -120,12 +130,14 @@
         kidHtml +
         (needLocKids.length ? '<div style="margin-bottom:10px;">' + MC.lbl('Area') + '<select class="fi" id="pd-loc"><option value="">Select area…</option>' + MC.AREAS.map(a => '<option' + (a === locKnown ? ' selected' : '') + '>' + MC.esc(a) + '</option>').join('') + '</select></div>' : '') +
         (needHearKids.length ? '<div style="margin-bottom:10px;">' + MC.lbl('How did they hear about us?') + '<div style="display:flex;gap:6px;flex-wrap:wrap;">' + MC.HEARD.map(h => '<button type="button" class="btn btn-sm btn-ghost" data-h="' + MC.esc(h) + '">' + MC.esc(h) + '</button>').join('') + '</div></div>' : '') +
+        (needTcKids.length ? '<div style="background:#F0F9FF;border:1.5px solid #BAE6FD;border-radius:12px;padding:10px 12px;margin-bottom:10px;"><label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer;"><input type="checkbox" id="pd-tc" style="width:18px;height:18px;margin-top:2px;flex-shrink:0;"/><span style="font-size:12.5px;font-weight:700;line-height:1.6;">Parent has read and accepted the <a href="#" id="pd-tcview" style="color:var(--b);">T&amp;C</a></span></label></div>' : '') +
         '<div id="pd-msg" style="display:none;margin:8px 0;padding:8px 12px;border-radius:8px;font-size:12.5px;font-weight:700;background:#FEE2E2;color:#DC2626;"></div>' +
         '<div style="display:flex;gap:8px;margin-top:10px;"><button class="btn btn-y" id="pd-save" style="flex:1;padding:12px;">Save &amp; continue ✅</button>' + (opts.allowSkip ? '<button class="btn btn-ghost" id="pd-skip">Skip</button>' : '') + '</div>', { width: 440, sticky: true });
       const $ = id => ov.querySelector('#' + id), fail = t => { $('pd-msg').textContent = t; $('pd-msg').style.display = 'block'; };
       const paint = (sel, on) => sel.forEach(b => { b.classList.toggle('btn-y', on(b)); b.classList.toggle('btn-ghost', !on(b)); });
       ov.querySelectorAll('[data-g]').forEach(b => b.onclick = () => { const [id, v] = b.dataset.g.split(':'); gen[id] = v; paint([...ov.querySelectorAll('[data-g^="' + id + ':"]')], x => x === b); });
       ov.querySelectorAll('[data-h]').forEach(b => { if (b.dataset.h === hear) paint([b], () => true); b.onclick = () => { hear = b.dataset.h; paint([...ov.querySelectorAll('[data-h]')], x => x === b); }; });
+      if ($('pd-tcview')) $('pd-tcview').onclick = e => { e.preventDefault(); MC.showTC(); };
       if ($('pd-skip')) $('pd-skip').onclick = () => { ov.close(); resolve('skipped'); };
       $('pd-save').onclick = async () => {
         for (const k of needKid) {
@@ -136,6 +148,7 @@
         const loc = $('pd-loc') ? $('pd-loc').value : '';
         if (needLocKids.length && !loc) return fail('Select the area.');
         if (needHearKids.length && !hear) return fail('Tap how they heard about us.');
+        if (needTcKids.length && !$('pd-tc').checked) return fail('Tick the box once the parent has accepted the T&C.');
         $('pd-save').disabled = true; $('pd-save').textContent = 'Saving…';
         try {
           for (const k of kids) {
@@ -144,6 +157,7 @@
             if (gaps.includes('dob')) patch.dob = ov.querySelector('[data-dob="' + k.id + '"]').value;
             if (gaps.includes('location') && loc) patch.location = loc;
             if (gaps.includes('heard_via') && hear) patch.heard_via = hear;
+            if (opts.tc && k.tc_accepted !== true) { patch.tc_accepted = true; patch.tc_accepted_at = new Date().toISOString(); }
             if (Object.keys(patch).length) { await MC.sb('customers', 'PATCH', patch, 'id=eq.' + k.id, 'return=minimal'); Object.assign(k, patch); }
           }
           ov.close(); resolve('saved');
