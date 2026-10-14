@@ -62,6 +62,10 @@ const { chromium } = require('playwright-core'); const path = require('path'); c
   ok(nums.newKids + nums.retKids + nums.guests <= nums.visits && nums.newKids + nums.retKids > 0, 'new + returning children add up (' + nums.newKids + ' new, ' + nums.retKids + ' returning, ' + nums.guests + ' guests of ' + nums.visits + ' visits)');
   ok((await noX('#t-history .tbl-wrap')) <= 1, 'history range has no horizontal scroll'); await shot('10-history-range');
   await pg.click('#t-history button:has-text("Today")'); await pg.waitForTimeout(500); ok(await pg.inputValue('#hist-mode') === 'day', 'Today returns to one-day view');
+  // Settings: one broken block must not blank the page
+  await pg.evaluate(() => { window.__old = MC.appt.renderSettings; MC.appt.renderSettings = () => { throw new Error('boom'); }; showTab('t-config'); loadCfgScreen(); }); await pg.waitForTimeout(500);
+  ok((await pg.locator('#cfg-nav button').count()) >= 5 && /could not load/i.test(await pg.innerText('#mc-settings-appt')), 'settings nav still loads when one block fails');
+  await pg.evaluate(() => { MC.appt.renderSettings = window.__old; loadCfgScreen(); }); await pg.waitForTimeout(400);
   // mobile
   await pg.setViewportSize({ width: 390, height: 800 }); await pg.waitForTimeout(300); ok(!(await pg.isVisible('#side')) || true, 'mobile layout ok');
   await pg.click('#menuBtn'); await pg.waitForTimeout(350); ok(await pg.isVisible('#side'), 'hamburger opens the drawer'); await shot('06-mobile-drawer');

@@ -645,7 +645,7 @@ a.btn{text-decoration:none;}
 <!-- TOAST CONTAINER -->
 <div class="tc" id="TC"></div>
 
-<script src="mc-demo.js?v=20261014v"></script>
+<script src="mc-demo.js?v=20261014w"></script>
 <script>
 const SB_URL='https://wtapyfgtwkjyjrjdnhkb.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind0YXB5Zmd0d2tqeWpyamRuaGtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0NDc3ODEsImV4cCI6MjA5NTAyMzc4MX0.y_-iPfb8Pcg9zh42h6RGVBsUVZm80LcA9sPlz_Gl_fA';
@@ -1505,7 +1505,10 @@ function cfgInitNav(){
   let s='invoice';try{s=localStorage.getItem('mc_cfg_sec')||'invoice';}catch(e){}
   cfgShow(CFG_SECS.some(x=>x[0]===s)?s:'invoice');
 }
-function loadCfgScreen(){loadGvSetup();if(window.MC&&MC.billing){MC.billing.renderSettings();MC.appt.renderSettings();MC.billing.renderWaSettings();}cfgInitNav();
+/* each settings block loads on its own: one failing block must never blank the whole Settings page */
+function cfgSafe(label,fn){try{const r=fn();if(r&&r.catch)r.catch(e=>{console.error('Settings: '+label,e);cfgBlockError(label,e);});}catch(e){console.error('Settings: '+label,e);cfgBlockError(label,e);}}
+function cfgBlockError(label,e){const ids={invoice:'mc-settings-billing',appointments:'mc-settings-appt',whatsapp:'mc-settings-wa'};const el=document.getElementById(ids[label]);if(el)el.innerHTML='<div class="card"><div class="card-title">⚠️ '+label+' settings could not load</div><p style="font-size:12.5px;color:var(--muted);">'+String(e&&e.message||e).replace(/</g,'&lt;')+' — refresh the page (Ctrl+Shift+R). If it stays, make sure all app files were uploaded together.</p></div>';}
+function loadCfgScreen(){cfgSafe('vouchers',()=>loadGvSetup());cfgSafe('invoice',()=>window.MC&&MC.billing&&MC.billing.renderSettings());cfgSafe('appointments',()=>window.MC&&MC.appt&&MC.appt.renderSettings());cfgSafe('whatsapp',()=>window.MC&&MC.billing&&MC.billing.renderWaSettings());cfgInitNav();
   const ta=document.getElementById('cfg-sty');
   if(ta)ta.value=STYLISTS.join('\n');
   const tmpl=document.getElementById('cfg-wa-tmpl');
@@ -2430,11 +2433,11 @@ function setDefaultExpiry() {
 setDefaultExpiry();
 
 </script>
-<script src="mc-common.js?v=20261014v"></script>
-<script src="mc-billing.js?v=20261014v"></script>
-<script src="mc-appointments.js?v=20261014v"></script>
-<script src="mc-reports.js?v=20261014v"></script>
-<script src="mc-customers.js?v=20261014v"></script>
-<script src="mc-insights.js?v=20261014v"></script>
+<script src="mc-common.js?v=20261014w"></script>
+<script src="mc-billing.js?v=20261014w"></script>
+<script src="mc-appointments.js?v=20261014w"></script>
+<script src="mc-reports.js?v=20261014w"></script>
+<script src="mc-customers.js?v=20261014w"></script>
+<script src="mc-insights.js?v=20261014w"></script>
 </body>
 </html>
