@@ -13,9 +13,10 @@ t('weekend walk-in only',()=>assert.equal(A.slots({date:'2026-10-17',durationMin
 t('lead time',()=>{const s=A.slots({date:mon,durationMin:30,cfg,stylists:st,leaves:[],roster:[],appts:[],nowMin:11*60});assert.equal(s[0].start,'11:30');});
 t('long service fits',()=>{const s=A.slots({date:mon,durationMin:90,cfg,stylists:st,leaves:[],roster:[],appts:[]});assert.equal(s[s.length-1].start,'18:30');});
 const rows=[{checkin_date:'2026-10-01',service_value:50,tip:5,payment_type:'Cash',stylist:'A',service:'Cut',customer_id:'c1',heard_via:'Google'},{checkin_date:'2026-10-02',service_value:40,tip:0,payment_type:'Credit',stylist:'B',service:'Cut',customer_id:'c2',heard_via:'Insta'},{checkin_date:'2026-10-02',service_value:30,payment_type:'Cash',stylist:'A',service:'Wash',customer_id:'c1',heard_via:'Google'}];
-t('sales by day',()=>{const d=R.salesByDay(rows);assert.equal(d.length,2);assert.equal(d[0].cash,55);assert.equal(d[1].card,40);});
-t('by stylist',()=>assert.equal(R.byStylist(rows)[0].sales,80));
+t('sales by day',()=>{const d=R.salesByDay(R.enrich(rows,{}));assert.equal(d.length,2);assert.equal(d[0].cash,55);assert.equal(d[1].card,40);});
+t('by stylist',()=>assert.equal(R.byStylist(R.enrich(rows,{}))[0].total,80));
 t('acquisition new vs returning',()=>{const a=R.acquisition(rows,{c1:'2026-09-01',c2:'2026-10-02'},'2026-10-01','2026-10-31');const g=a.find(x=>x.key==='Google'),i=a.find(x=>x.key==='Insta');assert.equal(g.newCount,0);assert.equal(g.retCount,1);assert.equal(i.newCount,1);assert.equal(i.newRev,40);});
+t('enrich uses invoice breakdown',()=>{const e=R.enrich([{id:1,service_value:45}],{1:{list_price:50,discount_pct:10,discount_amount:5,base_amount:42.86,tax_amount:2.14,payable_amount:45}})[0];assert.equal(e._list,50);assert.equal(e._net,42.86);assert.equal(e._tax,2.14);assert.equal(e._total,45);});
 console.log(n+' passed');
 t('seed: grid value after discount, % in remark',()=>{const x=MC.seedFromRow({service_value:39.9,remark:'5% discount'});assert.equal(x.list,42);assert.equal(x.pct,5);const c=MC.calcInvoice({listPrice:x.list,discountPct:x.pct,taxRegistered:false});assert.equal(c.payable,39.9);});
 t('seed: no % => full price',()=>{const x=MC.seedFromRow({service_value:50,remark:''});assert.equal(x.list,50);assert.equal(x.pct,0);});

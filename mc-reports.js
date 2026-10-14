@@ -21,9 +21,26 @@
     });
     return Object.keys(m).map(k => m[k]);
   };
-  R.salesByDay = rows => R.groupSum(rows, r => r.checkin_date, { sales: r => r.service_value, tips: r => r.tip, cash: r => r.payment_type === 'Cash' ? num(r.service_value) + num(r.tip) : 0, card: r => r.payment_type === 'Credit' ? num(r.service_value) + num(r.tip) : 0 }).sort((a, b) => a.key < b.key ? -1 : 1);
-  R.byStylist = rows => R.groupSum(rows, r => r.stylist, { sales: r => r.service_value, tips: r => r.tip }).sort((a, b) => b.sales - a.sales);
-  R.byService = rows => R.groupSum(rows, r => r.service, { sales: r => r.service_value, disc: r => num(r.list_price) * num(r.discount_pct) / 100 }).sort((a, b) => b.sales - a.sales);
+  /* Attach price breakdown to each done visit. Invoice (if any) is the source of truth for tax;
+   * visits without an invoice (older rows) count as: base = value, no discount, no tax. */
+  R.enrich = function (rows, invByQueue) {
+    return rows.map(r => {
+      const i = invByQueue && invByQueue[r.id];
+      const val = num(r.service_value);
+      if (i) {
+        const list = num(i.list_price != null ? i.list_price : i.base_amount), disc = num(i.discount_amount);
+        return Object.assign({}, r, { _list: list, _pct: num(i.discount_pct), _disc: disc, _net: num(i.base_amount), _tax: num(i.tax_amount), _total: i.payable_amount != null ? num(i.payable_amount) : val });
+      }
+      const list = r.list_price != null && num(r.list_price) > 0 ? num(r.list_price) : val;
+      const pct = num(r.discount_pct), disc = r.list_price != null && num(r.list_price) > 0 ? Math.max(0, list - val) : 0;
+      return Object.assign({}, r, { _list: list, _pct: pct, _disc: disc, _net: val, _tax: 0, _total: val });
+    });
+  };
+  const V = { list: r => r._list, disc: r => r._disc, net: r => r._net, tax: r => r._tax, total: r => r._total, tips: r => r.tip };
+  const pctOf = o => o.list ? o.disc / o.list * 100 : 0;
+  R.salesByDay = rows => R.groupSum(rows, r => r.checkin_date, Object.assign({}, V, { cash: r => r.payment_type === 'Cash' ? num(r._total) + num(r.tip) : 0, card: r => r.payment_type === 'Credit' ? num(r._total) + num(r.tip) : 0 })).sort((a, b) => a.key < b.key ? -1 : 1);
+  R.byStylist = rows => R.groupSum(rows, r => r.stylist, V).sort((a, b) => b.total - a.total);
+  R.byService = rows => R.groupSum(rows, r => r.service, V).sort((a, b) => b.total - a.total);
   /* new vs returning in the period: new = customer's first-ever queue visit falls inside [from,to] */
   R.acquisition = function (rows, firstSeen, from, to) {
     const out = {};
@@ -54,7 +71,7 @@
       return;
     }
     if (!R.st.from) { const n = new Date(); R.st.from = MC.monthRange(n.getFullYear(), n.getMonth()).from; R.st.to = MC.today(); }
-    const tabs = [['sales', '💰 Sales & payments'], ['stylist', '✂️ Stylists'], ['service', '🧴 Services'], ['tax', '🧾 Invoice register'], ['acq', '📣 Acquisition'], ['appt', '📅 Appointments']];
+    const tabs = [['sales', '💰 Sales & payments'], ['detail', '🧾 Visit detail'], ['stylist', '✂️ Stylists'], ['service', '🧴 Services'], ['tax', '🧾 Invoice register'], ['acq', '📣 Acquisition'], ['appt', '📅 Appointments']];
     const presets = '<button class="btn btn-ghost btn-sm" data-p="today">Today</button><button class="btn btn-ghost btn-sm" data-p="week">7 days</button><button class="btn btn-ghost btn-sm" data-p="month">This month</button><button class="btn btn-ghost btn-sm" data-p="last">Last month</button>';
     el.innerHTML = '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px;">' + presets +
       '<input type="date" class="fi" id="mr-from" style="width:auto;" value="' + R.st.from + '"/><span>→</span><input type="date" class="fi" id="mr-to" style="width:auto;" value="' + R.st.to + '"/>' +
@@ -77,18 +94,34 @@
 
   R.run = async function (out) {
     const { from, to, tab } = R.st, q = 'checkin_date=gte.' + from + '&checkin_date=lte.' + to;
-    const done = () => MC.sbAll('queue', 'select=*&status=eq.done&' + q);
+    const done = async () => {
+      const rows = await MC.sbAll('queue', 'select=*&status=eq.done&' + q);
+      let inv = [];
+      try { inv = await MC.sbAll('invoices', 'select=queue_id,list_price,discount_pct,discount_amount,base_amount,tax_amount,payable_amount&status=neq.void&queue_id=not.is.null&' + q); } catch (e) { inv = []; }   // before migration: no invoices yet
+      const m = {}; inv.forEach(i => { m[i.queue_id] = i; });
+      return R.enrich(rows, m);
+    };
     const set = (heads, rows, foot, note) => { R.csv = MC.csv(heads, rows); out.innerHTML = (note ? '<div style="font-size:12px;color:var(--muted);margin-bottom:8px;">' + note + '</div>' : '') + table(heads, rows, foot); };
+    const note = 'Base price = list price before discount. Net value = after discount, before tax. Total = net + tax (what the customer pays, tips excluded). Visits without an invoice show tax 0.';
+    const cols = x => [fmt(x.list), fmt(x.disc), fmt(pctOf(x)) + '%', fmt(x.net), fmt(x.tax), fmt(x.total)];
+    const tot = d => { const t = {}; ['list', 'disc', 'net', 'tax', 'total', 'tips', 'cash', 'card', 'count'].forEach(k => t[k] = d.reduce((a, x) => a + (x[k] || 0), 0)); return t; };
     if (tab === 'sales') {
-      const d = R.salesByDay(await done()), s = k => d.reduce((a, x) => a + x[k], 0);
-      set(['Date', 'Visits', 'Sales', 'Tips', 'Cash', 'Card'], d.map(x => [MC.fmtDate(x.key), x.count, fmt(x.sales), fmt(x.tips), fmt(x.cash), fmt(x.card)]),
-        ['Total', d.reduce((a, x) => a + x.count, 0), fmt(s('sales')), fmt(s('tips')), fmt(s('cash')), fmt(s('card'))], 'Sales = service value (tax included, tips excluded). Cash/Card include tips.');
+      const d = R.salesByDay(await done()), t = tot(d);
+      set(['Date', 'Visits', 'Base price', 'Discount', 'Disc %', 'Net value', 'Tax', 'Total', 'Tips', 'Cash', 'Card'], d.map(x => [MC.fmtDate(x.key), x.count].concat(cols(x), [fmt(x.tips), fmt(x.cash), fmt(x.card)])),
+        ['Total', t.count].concat(cols(t), [fmt(t.tips), fmt(t.cash), fmt(t.card)]), note + ' Cash/Card include tips.');
+    } else if (tab === 'detail') {
+      const d = (await done()).sort((a, b) => a.checkin_date < b.checkin_date ? -1 : a.checkin_date > b.checkin_date ? 1 : 0);
+      const t = { list: 0, disc: 0, net: 0, tax: 0, total: 0, tips: 0, count: d.length }; d.forEach(r => { t.list += r._list; t.disc += r._disc; t.net += r._net; t.tax += r._tax; t.total += r._total; t.tips += num(r.tip); });
+      set(['Date', 'Invoice', 'Customer', 'Service', 'Stylist', 'Base price', 'Disc %', 'Discount', 'Net value', 'Tax', 'Total', 'Tip', 'Payment'],
+        d.map(r => [MC.fmtDate(r.checkin_date), r.invoice_number || '', r.customer_name || r.name || '', r.service, r.stylist, fmt(r._list), fmt(r._pct) + '%', fmt(r._disc), fmt(r._net), fmt(r._tax), fmt(r._total), fmt(r.tip), r.payment_type]),
+        ['Total', '', '', '', '', fmt(t.list), '', fmt(t.disc), fmt(t.net), fmt(t.tax), fmt(t.total), fmt(t.tips), ''], note);
     } else if (tab === 'stylist') {
-      const d = R.byStylist(await done());
-      set(['Stylist', 'Visits', 'Sales', 'Avg ticket', 'Tips'], d.map(x => [x.key, x.count, fmt(x.sales), fmt(x.count ? x.sales / x.count : 0), fmt(x.tips)]));
+      const d = R.byStylist(await done()), t = tot(d);
+      set(['Stylist', 'Visits', 'Base price', 'Discount', 'Disc %', 'Net value', 'Tax', 'Total', 'Avg ticket', 'Tips'], d.map(x => [x.key, x.count].concat(cols(x), [fmt(x.count ? x.total / x.count : 0), fmt(x.tips)])),
+        ['Total', t.count].concat(cols(t), [fmt(t.count ? t.total / t.count : 0), fmt(t.tips)]), note);
     } else if (tab === 'service') {
-      const d = R.byService(await done());
-      set(['Service', 'Count', 'Sales', 'Discount given'], d.map(x => [x.key, x.count, fmt(x.sales), fmt(x.disc)]));
+      const d = R.byService(await done()), t = tot(d);
+      set(['Service', 'Count', 'Base price', 'Discount', 'Disc %', 'Net value', 'Tax', 'Total'], d.map(x => [x.key, x.count].concat(cols(x))), ['Total', t.count].concat(cols(t)), note);
     } else if (tab === 'tax') {
       const inv = await MC.sbAll('invoices', 'select=*&order=created_at.asc&' + q);
       const ok = inv.filter(i => i.status !== 'void');
