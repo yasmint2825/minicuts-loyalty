@@ -528,7 +528,7 @@
       '<p style="font-size:12.5px;color:var(--muted);margin:6px 0 12px;">Invoices go out through your approved <b>Utility</b> template with these 5 values in order: customer first name · invoice no. · date · amount · PDF link.</p>' +
       '<div class="fg" style="margin-bottom:10px;">' + MC.lbl('Approved template name') + '<input class="fi" id="mcw-tpl" value="' + MC.esc(S.waTemplateName) + '"/></div>' +
       '<div class="fg" style="margin-bottom:10px;">' + MC.lbl('MiniCuts API key (this device only)') + '<input class="fi" type="password" id="mcw-key" placeholder="same key as in Loyalty ▸ Settings ▸ Platform connection" value="' + MC.esc(localStorage.getItem('mw_tenant_key') || '') + '"/><div style="font-size:11.5px;color:var(--muted);margin-top:3px;">Stored only in this browser — never in the database.</div></div>' +
-      '<div id="mcw-msg" class="sm"></div><button class="btn btn-y btn-full" id="mcw-save">Save WhatsApp Settings ✅</button>' +
+      '<div id="mcw-msg" class="sm"></div><div style="display:flex;gap:8px;"><button class="btn btn-y" id="mcw-save" style="flex:1;">Save WhatsApp Settings ✅</button><button class="btn btn-ghost" id="mcw-check">🔌 Check connection</button></div>' +
       '<div style="margin:16px 0 8px;padding-top:12px;border-top:1px solid var(--border);font-family:var(--fh);font-weight:800;color:var(--bd);font-size:13px;">🧪 Send a test message</div>' +
       '<p style="font-size:12.5px;color:var(--muted);margin:0 0 8px;">Sends the template above with sample values (invoice TEST/00000, a sample amount and a sample link) to the number you enter. No invoice is created and nothing is saved in the sales data.</p>' +
       '<div style="display:flex;gap:8px;"><input class="fi" id="mcw-to" inputmode="tel" placeholder="Your own WhatsApp number, e.g. 0501234567" style="flex:1;"/><button class="btn btn-b" id="mcw-test">Send test</button></div>' +
@@ -541,6 +541,19 @@
         const k = $('key').value.trim(); if (k) localStorage.setItem('mw_tenant_key', k); else localStorage.removeItem('mw_tenant_key');
         B.loaded = false; await B.load(true); m.className = 'sm ok'; m.textContent = 'Saved.';
       } catch (e) { m.className = 'sm err'; m.textContent = 'Save failed: ' + e.message; }
+    };
+    $('check').onclick = async () => {
+      const m = $('msg'), k = $('key').value.trim(), c = MC.conf();
+      if (!k) { m.className = 'sm err'; m.textContent = 'Paste the MiniCuts API key first.'; return; }
+      m.className = 'sm'; m.textContent = 'Checking…';
+      try {
+        /* No mobile number on purpose: the platform checks the key first, then rejects the empty request, so nothing is sent or logged. */
+        const r = await fetch(c.url + '/functions/v1/send-whatsapp', { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: c.key, Authorization: 'Bearer ' + c.key, 'x-tenant-key': k }, body: JSON.stringify({ tenant_id: 'minicuts', template_name: 'connection_check' }) });
+        const j = await r.json().catch(() => ({}));
+        if (r.status === 401) { m.className = 'sm err'; m.textContent = '✗ The platform rejected this key (invalid or revoked). Copy it again from Loyalty ▸ Settings ▸ Platform connection.'; }
+        else if (r.status === 400 && /mobile and either/i.test(j.error || '')) { m.className = 'sm ok'; m.textContent = '✓ Key accepted by the platform. Use “Send test” below to confirm WhatsApp itself delivers.'; }
+        else { m.className = 'sm err'; m.textContent = 'Unexpected reply (' + r.status + '): ' + String(j.error || j.message || '').slice(0, 200); }
+      } catch (e) { m.className = 'sm err'; m.textContent = 'Could not reach the platform: ' + e.message; }
     };
     $('test').onclick = async () => {
       const m = $('tmsg'), to = $('to').value.trim();
