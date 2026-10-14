@@ -590,7 +590,7 @@
       $('test').disabled = true; m.className = 'sm'; m.textContent = 'Sending…';
       const res = await B.sendWA({ mobile: to, customer_name: 'Test', invoice_number: 'TEST/00000', checkin_date: MC.today(), total_amount: 50, currency: (B.S || DEFAULTS).currency || 'AED', pdf_url: location.href.split('#')[0].replace(/[^/]*$/, '') }, { test: true, template: $('tpl').value.trim() || undefined });
       $('test').disabled = false;
-      m.className = 'sm ' + (res.ok ? 'ok' : 'err'); m.textContent = res.ok ? '✓ Accepted by WhatsApp — check the phone (can take a few seconds).' : (/Unauthorized/i.test(res.error) ? '✗ The platform does not accept the API key saved on this device (wrong, mistyped or revoked). Create/copy a key from the Zen console ▸ MiniCuts ▸ API keys, paste it above, Save, then Check connection.' : res.error);
+      m.className = 'sm ' + (res.ok ? 'ok' : 'err'); m.textContent = res.ok ? '✓ Accepted by WhatsApp — check the phone (can take a few seconds).' : (/Unauthorized/i.test(res.error) ? '✗ The platform does not accept the API key saved on this device (wrong, mistyped or revoked). The key must be the MiniCuts business-app key (starts “mwk_”). Recover it from the browser where the Loyalty app was set up, or ask Zen to create a new one — or use the Zen send function (no key needed).' : res.error);
     };
   };
 
