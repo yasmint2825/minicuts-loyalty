@@ -493,6 +493,7 @@
           const patch = { invoice_id: null, invoice_number: null, service_value: 0, tip: null, discount_pct: 0, list_price: null };
           await MC.sb('queue', 'PATCH', patch, 'id=eq.' + inv.queue_id, 'return=minimal');
           const r = rowById(inv.queue_id); if (r) Object.assign(r, patch);
+          if (typeof window.mcMarkVoided === 'function') window.mcMarkVoided(inv.queue_id);   // stop counting this visit as served until it is checked out again
         }
         ov.close(); refresh(); toast('Invoice voided');
       } catch (e) { toast('Void failed: ' + e.message, 'err'); }

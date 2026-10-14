@@ -108,6 +108,17 @@ const MC_add = (s, n) => { const d = new Date(s + 'T12:00:00'); d.setDate(d.getD
   ok(d1 === MC_add(d0, 1) && d2 === MC_add(d0, -1), 'appointments ◀ ▶ move one day (' + d2 + ' ‹ ' + d0 + ' › ' + d1 + ')');
   await pg.evaluate(() => { const o = MC.appt.loadDay; MC.appt.loadDay = async () => { throw new Error('network down'); }; window.__o = o; }); await pg.click('#mc-appt-root button:has-text("▶")'); await pg.waitForTimeout(500);
   ok(/Could not open/.test(await pg.innerText('#mc-appt-root')) && (await pg.inputValue('#mc-appt-root input[type=date]')) === d2, 'a failed day load shows a message and keeps the current day'); await pg.evaluate(() => { MC.appt.loadDay = window.__o; });
+  // Voided bills are not "served": strip, History tiles and status chip
+  await pg.setViewportSize({ width: 1360, height: 860 });
+  await pg.evaluate(() => { showTab('t-history'); histSetDate(today()); }); await pg.evaluate(() => loadHist()); await pg.waitForTimeout(600);
+  const before = await pg.evaluate(() => ({ served: histStats(_histData, histPeriod()).visits, doneRows: _histData.filter(r => r.status === 'done').length, strip: Number(document.getElementById('st-d').textContent) }));
+  const victim = await pg.evaluate(() => { const r = _histData.find(x => x.status === 'done' && !x.invoice_id); return r && r.id; });
+  await pg.evaluate(id => MC.sb('invoices', 'POST', { invoice_number: 'MC/TEST/1', status: 'void', void_reason: 'Wrong amount', queue_id: id, checkin_date: today(), total: 0 }), victim);
+  await pg.evaluate(() => loadHist()); await pg.evaluate(() => loadQ()); await pg.waitForTimeout(700);
+  const after = await pg.evaluate(() => ({ served: histStats(_histData, histPeriod()).visits, strip: Number(document.getElementById('st-d').textContent), summary: document.getElementById('hist-summary').innerText, chips: document.querySelectorAll('#hist-body .sp').length }));
+  ok(after.served === before.served - 1 && after.strip === before.strip - 1, 'a voided bill drops out of served (' + before.served + ' → ' + after.served + ', strip ' + before.strip + ' → ' + after.strip + ')');
+  ok(/voided/i.test(after.summary) && /Voided/.test(await pg.innerText('#hist-body')), 'History says how many were voided and marks the row'); await shot('14-history-voided');
+  await pg.evaluate(id => { const r = _histData.find(x => x.id === id); r.invoice_id = 'inv-again'; }, victim); ok(await pg.evaluate(id => !isVoidedVisit(_histData.find(x => x.id === id)), victim), 'a re-issued bill counts as served again');
   // mobile
   await pg.setViewportSize({ width: 390, height: 800 }); await pg.waitForTimeout(300); ok(!(await pg.isVisible('#side')) || true, 'mobile layout ok');
   await pg.click('#menuBtn'); await pg.waitForTimeout(350); ok(await pg.isVisible('#side'), 'hamburger opens the drawer'); await shot('06-mobile-drawer');

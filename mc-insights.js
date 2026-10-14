@@ -169,7 +169,14 @@
     const [cust, visits] = await Promise.all([MC.customers.load().then(() => MC.customers.st.all), cached('visits', 300000, () => MC.sbAll('visits', 'select=customer_id,type,created_at&order=created_at.asc'))]);
     return { cust, visits };
   };
-  const loadRows = (from, to) => cached('q' + from + to, 120000, () => MC.sbAll('queue', 'select=id,customer_id,mobile,checkin_date,checkin_time,created_at,called_at,done_at,service,stylist,service_value,heard_via,status&status=eq.done&checkin_date=gte.' + from + '&checkin_date=lte.' + to));
+  /* done visits in the range, minus visits whose bill was voided and not re-issued (same "served" rule as History and the queue strip) */
+  const loadRows = (from, to) => cached('q' + from + to, 120000, async () => {
+    const [rows, vd] = await Promise.all([
+      MC.sbAll('queue', 'select=id,customer_id,mobile,checkin_date,checkin_time,created_at,called_at,done_at,service,stylist,service_value,heard_via,status,invoice_id&status=eq.done&checkin_date=gte.' + from + '&checkin_date=lte.' + to),
+      MC.sbAll('invoices', 'select=queue_id&status=eq.void&checkin_date=gte.' + from + '&checkin_date=lte.' + to).catch(() => [])]);
+    const voided = new Set(vd.map(v => v.queue_id).filter(Boolean));
+    return rows.filter(r => !(voided.has(r.id) && !r.invoice_id));
+  });
   const money = () => !!(MC.reports && MC.reports.st && MC.reports.st.unlocked);
 
   I.askPin = function (then) {

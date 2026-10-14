@@ -659,7 +659,7 @@ a.btn{text-decoration:none;}
 <!-- TOAST CONTAINER -->
 <div class="tc" id="TC"></div>
 
-<script src="mc-demo.js?v=20261014z"></script>
+<script src="mc-demo.js?v=20261015a"></script>
 <script>
 const SB_URL='https://wtapyfgtwkjyjrjdnhkb.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind0YXB5Zmd0d2tqeWpyamRuaGtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0NDc3ODEsImV4cCI6MjA5NTAyMzc4MX0.y_-iPfb8Pcg9zh42h6RGVBsUVZm80LcA9sPlz_Gl_fA';
@@ -796,6 +796,7 @@ async function loadQ(){
   try{
     const rows=await sb('queue','GET',null,'select=*&checkin_date=eq.'+today()+'&order=token_number.asc&limit=200');
     _qdata=rows||[];
+    await loadVoidedSet(today(),today());
     const custIds=_qdata.map(r=>r.customer_id).filter(Boolean);
     if(custIds.length){
       const orFilter=custIds.map(id=>'id.eq.'+id).join(',');
@@ -854,17 +855,25 @@ async function refreshRewardBadges(force){
   }catch(e){console.warn('badges:',e.message);}finally{_rbBusy=false;}
 }
 setInterval(()=>refreshRewardBadges(true),120000);
+/* A visit whose invoice was voided stays 'done' in the queue (the haircut happened, the bill was cancelled, amount cleared).
+   It is NOT counted as served until it is checked out again — same rule on the strip, History and Insights. */
+let _voidedQ=new Set();
+function isVoidedVisit(r){return !!r&&r.status==='done'&&!r.invoice_id&&_voidedQ.has(r.id);}
+async function loadVoidedSet(from,to){
+  try{const v=await sb('invoices','GET',null,'select=queue_id&status=eq.void&checkin_date=gte.'+from+'&checkin_date=lte.'+to+'&limit=1000');(v||[]).forEach(x=>{if(x.queue_id)_voidedQ.add(x.queue_id);});}catch(e){console.warn('voided list:',e.message);}
+}
+window.mcMarkVoided=function(qid){if(qid){_voidedQ.add(qid);try{updateStats();}catch(e){}}};
 function updateStats(){
   try{refreshRewardBadges();}catch(e){}
   const w=_qdata.filter(r=>r.status==='waiting').length;
   const c=_qdata.filter(r=>r.status==='called').length;
-  const d=_qdata.filter(r=>r.status==='done').length;
+  const d=_qdata.filter(r=>r.status==='done'&&!isVoidedVisit(r)).length;
   const nx=_qdata.find(r=>r.status==='waiting');
   const e=id=>document.getElementById(id);
   if(e('st-w'))e('st-w').textContent=w;if(e('st-c'))e('st-c').textContent=c;
   if(e('st-d'))e('st-d').textContent=d;if(e('st-n'))e('st-n').textContent=nx?String(nx.token_number).padStart(2,'0'):'—';
   // Revenue
-  const done=_qdata.filter(r=>r.status==='done');
+  const done=_qdata.filter(r=>r.status==='done'&&!isVoidedVisit(r));
   const totalRev=done.reduce((s,r)=>s+(Number(r.service_value)||0),0);
   if(e('st-rev'))e('st-rev').textContent=totalRev?'AED '+totalRev:'—';
   // Tip split by staff
@@ -1115,6 +1124,7 @@ async function loadHist(){
     const q='select=*&checkin_date=gte.'+per.from+'&checkin_date=lte.'+per.to+'&order=checkin_date.asc,token_number.asc';
     const rows=window.MC&&MC.sbAll?await MC.sbAll('queue',q,12):await sb('queue','GET',null,q+'&limit=1000');
     _histData=rows||[];
+    await loadVoidedSet(per.from,per.to);
     // customers: we need created_at to tell new from returning, so fetch any that don't have it yet
     const need=[...new Set(_histData.map(r=>r.customer_id).filter(Boolean))].filter(id=>!(_custMap[id]&&_custMap[id].created_at));
     for(let i=0;i<need.length;i+=80){
@@ -1133,7 +1143,7 @@ async function loadHist(){
    New = the child was registered inside the period (customers.created_at, Dubai date); returning = registered earlier;
    guest = no profile. Children are counted once however many visits they had. */
 function histStats(data,per){
-  const done=data.filter(r=>r.status==='done');
+  const done=data.filter(r=>r.status==='done'&&!isVoidedVisit(r));
   const newK=new Set(),retK=new Set();let guests=0,newV=0,retV=0;
   done.forEach(r=>{
     if(!r.customer_id){guests++;return;}
@@ -1144,7 +1154,7 @@ function histStats(data,per){
   [...newK].forEach(id=>retK.delete(id));
   const rev=done.reduce((a,r)=>a+(Number(r.service_value)||0),0),tips=done.reduce((a,r)=>a+(Number(r.tip)||0),0);
   return{visits:done.length,newKids:newK.size,retKids:retK.size,guests,newV,retV,rev,tips,
-    cancelled:data.filter(r=>r.status==='cancelled').length,open:data.filter(r=>r.status!=='done'&&r.status!=='cancelled').length};
+    cancelled:data.filter(r=>r.status==='cancelled').length,voided:data.filter(isVoidedVisit).length,open:data.filter(r=>r.status!=='done'&&r.status!=='cancelled').length};
 }
 function histTiles(st,per){
   const days=Math.round((new Date(per.to+'T12:00:00')-new Date(per.from+'T12:00:00'))/864e5)+1;
@@ -1158,6 +1168,7 @@ function histTiles(st,per){
     +tile(st.guests,'Guests','walk-ins without a profile','#64748B')
     +tile('AED '+Math.round(st.rev),'Revenue',st.visits?'avg AED '+Math.round(st.rev/st.visits)+' / visit':'','var(--ok)')
     +tile('AED '+Math.round(st.tips),'Tips','','#16A34A')
+    +((st.voided||st.cancelled)?tile((st.voided||0)+(st.cancelled||0),'Voided / cancelled',(st.voided?st.voided+' voided bill'+(st.voided>1?'s':''):'')+(st.voided&&st.cancelled?' · ':'')+(st.cancelled?st.cancelled+' cancelled':'')+' — not counted as served','#DC2626'):'')
   +'</div>';
 }
 function buildSrcLocLine(custId){
@@ -1179,7 +1190,7 @@ function renderHist(){
   const data=_histData;
   if(!data.length){const se=document.getElementById('hist-summary');if(se){se.style.display='block';se.innerHTML=histTiles(histStats([],per),per);}body.innerHTML='<tr><td colspan="11" style="text-align:center;padding:40px;color:var(--muted);">No records for '+date+' 🐼</td></tr>';return;}
   const hst=histStats(data,per);
-  const stamped=data.filter(r=>r.status==='done');
+  const stamped=data.filter(r=>r.status==='done'&&!isVoidedVisit(r));
   const totalTips=stamped.filter(r=>r.tip>0).reduce((s,r)=>s+(Number(r.tip)||0),0);
   const totalRev=stamped.filter(r=>r.service_value>0).reduce((s,r)=>s+(Number(r.service_value)||0),0);
   const cashRev=stamped.filter(r=>r.payment_type==='Cash').reduce((s,r)=>s+(Number(r.service_value)||0),0);
@@ -1191,7 +1202,7 @@ function renderHist(){
   if(sumEl){sumEl.style.display='block';
     sumEl.innerHTML=histTiles(hst,per)
       +'<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:6px;">'
-      +'<span style="font-size:13px;">📊 <strong>'+date+(isToday?' (Today)':'')+'</strong> · '+data.length+' check-ins · '+done+' served</span>'
+      +'<span style="font-size:13px;">📊 <strong>'+date+(isToday?' (Today)':'')+'</strong> · '+data.length+' check-ins · '+done+' served'+(hst.voided?' · '+hst.voided+' voided':'')+(hst.cancelled?' · '+hst.cancelled+' cancelled':'')+'</span>'
       +'</div>'
       +'<div style="display:flex;flex-wrap:wrap;gap:8px;">'
       +'<span style="background:#E0F2FE;color:#0369A1;padding:5px 13px;border-radius:8px;font-size:12.5px;font-weight:700;">💰 Total: AED '+(totalRev+totalTips)+'</span>'
@@ -1200,7 +1211,7 @@ function renderHist(){
       +'</div>';}
   body.innerHTML=data.slice().reverse().map(r=>{
     const done=r.status==='done';const called=r.status==='called';const cancelled=r.status==='cancelled';const guest=r.is_guest;
-    const sp=done?'<span class="sp sp-d">✅ Done</span>':called?'<span class="sp sp-c">📢 Called</span>':cancelled?'<span class="sp" style="background:#F3F4F6;color:var(--muted);">✕ Cancelled</span>':guest?'<span class="sp sp-g">👤 Guest</span>':'<span class="sp sp-w">⏳ Waiting</span>';
+    const sp=isVoidedVisit(r)?'<span class="sp" style="background:#FEE2E2;color:#B91C1C;">🚫 Voided</span>':done?'<span class="sp sp-d">✅ Done</span>':called?'<span class="sp sp-c">📢 Called</span>':cancelled?'<span class="sp" style="background:#F3F4F6;color:var(--muted);">✕ Cancelled</span>':guest?'<span class="sp sp-g">👤 Guest</span>':'<span class="sp sp-w">⏳ Waiting</span>';
     const styStr=[r.stylist,r.stylist2].filter(Boolean).join(' & ');
     const hasMob=r.mobile&&!String(r.mobile).startsWith('GUEST')&&String(r.mobile).replace(/\D/g,'').length>4;
     const waHistBtn=hasMob
@@ -2483,12 +2494,12 @@ function setDefaultExpiry() {
 setDefaultExpiry();
 
 </script>
-<script src="mc-common.js?v=20261014z"></script>
-<script src="mc-billing.js?v=20261014z"></script>
-<script src="mc-appointments.js?v=20261014z"></script>
-<script src="mc-reports.js?v=20261014z"></script>
-<script src="mc-customers.js?v=20261014z"></script>
-<script src="mc-loyalty.js?v=20261014z"></script>
-<script src="mc-insights.js?v=20261014z"></script>
+<script src="mc-common.js?v=20261015a"></script>
+<script src="mc-billing.js?v=20261015a"></script>
+<script src="mc-appointments.js?v=20261015a"></script>
+<script src="mc-reports.js?v=20261015a"></script>
+<script src="mc-customers.js?v=20261015a"></script>
+<script src="mc-loyalty.js?v=20261015a"></script>
+<script src="mc-insights.js?v=20261015a"></script>
 </body>
 </html>
