@@ -63,7 +63,7 @@ const filt = (rows, qs) => { qs.forEach((v, k) => { if (['select', 'order', 'lim
   ok(DB.queue[0].service_value === 45 && DB.queue[0].invoice_id === inv.id && DB.queue[0].discount_pct === 10, 'queue row updated');
   ok(pdfBytes > 1000 && /invoices\/.*\.pdf$/.test(inv.pdf_url || ''), 'PDF built & uploaded (' + pdfBytes + ' bytes)');
   await pg.evaluate(() => localStorage.setItem('mw_tenant_key', 'k')); await pg.click('#mci-send'); await pg.waitForTimeout(500);
-  ok(waCall && waCall.template_name === 'booking_completed_invoice' && waCall.params.length === 5 && /^https/.test(waCall.params[4]) && DB.invoices[0].whatsapp_sent === true, 'WhatsApp utility call ' + JSON.stringify(waCall && waCall.params));
+  ok(waCall && waCall.template_name === 'booking_completed_invoice' && waCall.params.length === 5 && waCall.params[1] === 'MiNiCUTS' && waCall.params[4] === 'MiNiCUTS' && /^https/.test(waCall.params[3]) && DB.invoices[0].whatsapp_sent === true, 'WhatsApp utility call ' + JSON.stringify(waCall && waCall.params));
   await pg.click('#mci-close'); ok(await pg.locator('text=🧾 Invoice').count() > 0, 'row now shows Invoice button');
   // void → re-checkout allowed
   await pg.locator('text=✕ Void').first().click(); await pg.waitForSelector('#mcv-yes'); await pg.click('#mcv-yes'); await pg.waitForTimeout(500);
@@ -111,7 +111,7 @@ const filt = (rows, qs) => { qs.forEach((v, k) => { if (['select', 'order', 'lim
   await pg.click('#cfg-nav [data-s="wa"]'); await pg.waitForSelector('#mcw-test'); ok(await pg.isVisible('#mcw-test') && !(await pg.isVisible('#mcs-save')), 'settings: WhatsApp tab shows test box');
   let waBody = null; await pg.route('**/functions/v1/send-whatsapp', r => { const b = JSON.parse(r.request().postData()); if (!b.mobile) return r.fulfill({ status: 400, contentType: 'application/json', body: '{"ok":false,"error":"mobile and either type or template_name are required"}' }); waBody = b; r.fulfill({ status: 200, contentType: 'application/json', body: '{"ok":true}' }); });
   await pg.fill('#mcw-key', 'k123'); await pg.click('#mcw-check'); await pg.waitForTimeout(400); ok(/Key accepted/.test(await pg.innerText('#mcw-msg')), 'check connection ok'); await pg.fill('#mcw-to', '0501234567'); await pg.click('#mcw-test'); await pg.waitForTimeout(500);
-  ok(waBody && waBody.params.length === 5 && waBody.params[1] === 'TEST/00000' && waBody.sent_by === 'staff-invoice-test', 'test message sends 5 sample params');
+  ok(waBody && waBody.params.length === 5 && waBody.params[0] === 'Test' && waBody.params[1] === 'MiNiCUTS' && waBody.sent_by === 'staff-invoice-test', 'test message sends 5 sample params');
   // Zen-hosted sending (function deployed): no key needed in the browser
   zenOn = true; await pg.evaluate(() => localStorage.removeItem('mw_tenant_key')); await pg.fill('#mcw-key', '');
   await pg.click('#mcw-check'); await pg.waitForTimeout(400); ok(/through Zen/.test(await pg.innerText('#mcw-msg')), 'check connection: connected through Zen without a key');

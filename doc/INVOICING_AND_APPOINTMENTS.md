@@ -4,7 +4,8 @@
 1. Run `sql/001_billing_and_appointments.sql` on **dev** (`flczmpscouzthbcostlg`), test, then **prod** (`wtapyfgtwkjyjrjdnhkb`). Then Supabase ▸ Settings ▸ API ▸ Reload schema.
 2. Staff app ▸ Settings ▸ **Invoice & Tax**: confirm business name, address, TRN/GSTIN, rate, and whether list prices include tax. (Saved TRN `11233333333` is a placeholder; a UAE TRN has 15 digits.) Paste the MiniCuts API key (same as `mw_tenant_key`) on each device that sends WhatsApp.
 3. Submit Meta **Utility** template `booking_completed_invoice` (en):
-   `Hi {{1}}, thank you for visiting MiNiCUTS. Your invoice {{2}} dated {{3}} for {{4}} is ready. View or download it here: {{5}} Thank you for choosing MiNiCUTS.`
+   `Hi {{1}}, Your appointment at {{2}} on {{3}} is Completed. Thank you for visiting us. We hope you had a pleasant experience. 💛 Here is your invoice: {{4}} Sincerely, The Team at {{5}},`
+   Values sent in order: {{1}} customer first name, {{2}} salon name, {{3}} visit date, {{4}} invoice PDF link, {{5}} salon name.
    Until approved, staff can use "Open in WhatsApp" (wa.me, manual send).
 4. Settings ▸ **Appointments**: confirm opening hours and bookable days (Sat/Sun default to walk-in only).
 5. Merge to `main` only after testing on dev.

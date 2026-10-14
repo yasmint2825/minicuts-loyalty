@@ -38,6 +38,9 @@ function toE164(mobile: string): string {
   return "971" + n;
 }
 const validUae = (m: string) => /^971\d{9}$/.test(toE164(m));
+// Template booking_completed_invoice:
+//   Hi {{1}}, Your appointment at {{2}} on {{3}} is Completed. ... Here is your invoice: {{4}} ... The Team at {{5}}
+const brandOf = (name: unknown) => String(name || "MiNiCUTS").replace(/\s*\(.*\)\s*$/, "").replace(/\s+(FZCO|FZE|FZ-LLC|LLC|L\.L\.C\.?)$/i, "").trim() || "MiNiCUTS";
 const fmtDate = (s: string) => {
   const d = new Date(String(s).slice(0, 10) + "T12:00:00Z");
   return isNaN(d.getTime()) ? String(s) : d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
@@ -61,7 +64,7 @@ Deno.serve(async (req) => {
 
     if (invoice_id) {
       const { data: inv, error } = await supabase.from("invoices")
-        .select("id, invoice_number, customer_id, customer_name, mobile, checkin_date, total_amount, currency, pdf_url, status")
+        .select("id, invoice_number, customer_id, customer_name, mobile, checkin_date, pdf_url, status, seller")
         .eq("id", invoice_id).maybeSingle();
       if (error || !inv) return json({ ok: false, error: "Invoice not found" }, 404);
       if (inv.status === "void") return json({ ok: false, error: "This invoice is void" }, 400);
@@ -70,13 +73,8 @@ Deno.serve(async (req) => {
       if (!String(inv.pdf_url).startsWith(allowed)) return json({ ok: false, error: "PDF link is not from the invoices bucket" }, 400);
       if (!inv.mobile || !validUae(inv.mobile)) return json({ ok: false, error: "No valid UAE mobile number on this invoice" }, 400);
       mobile = inv.mobile; customer_id = inv.customer_id || undefined; customer_name = inv.customer_name || undefined;
-      params = [
-        String(inv.customer_name || "there").split(" ")[0],
-        inv.invoice_number,
-        fmtDate(inv.checkin_date),
-        `${inv.currency || "AED"} ${Number(inv.total_amount || 0).toFixed(2)}`,
-        inv.pdf_url,
-      ];
+      const brand = brandOf((inv.seller as { bname?: string } | null)?.bname || settings.bname);
+      params = [String(inv.customer_name || "there").split(" ")[0], brand, fmtDate(inv.checkin_date), inv.pdf_url, brand];
     } else if (test_mobile) {
       if (!validUae(test_mobile)) return json({ ok: false, error: "Enter a valid UAE mobile number" }, 400);
       const since = new Date(Date.now() - 3600_000).toISOString();
@@ -84,7 +82,8 @@ Deno.serve(async (req) => {
         .eq("tenant_id", TENANT).eq("sent_by", "staff-invoice-test").gte("created_at", since);
       if ((count || 0) >= 5) return json({ ok: false, error: "Test limit reached (5 per hour). Try again later." }, 429);
       mobile = test_mobile; sent_by = "staff-invoice-test";
-      params = ["Test", "TEST/00000", fmtDate(new Date().toISOString()), "AED 50.00", `${SUPABASE_URL}/storage/v1/object/public/invoices/sample.pdf`];
+      const brand = brandOf(settings.bname);
+      params = ["Test", brand, fmtDate(new Date().toISOString()), `${SUPABASE_URL}/storage/v1/object/public/invoices/sample.pdf`, brand];
     } else {
       return json({ ok: false, error: "invoice_id is required" }, 400);
     }

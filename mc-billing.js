@@ -420,6 +420,15 @@
       return j;
     } catch (e) { return null; }
   };
+  /* Template booking_completed_invoice:  Hi {{1}}, Your appointment at {{2}} on {{3}} is Completed. ... Here is your invoice: {{4}} ... The Team at {{5}} */
+  B.brand = function (inv) {
+    const n = (inv && inv.seller && inv.seller.bname) || (B.S && B.S.bname) || 'MiNiCUTS';
+    return String(n).replace(/\s*\(.*\)\s*$/, '').replace(/\s+(FZCO|FZE|FZ-LLC|LLC|L\.L\.C\.?)$/i, '').trim() || 'MiNiCUTS';
+  };
+  B.waParams = function (inv) {
+    const brand = B.brand(inv);
+    return [String(inv.customer_name || 'there').split(' ')[0], brand, MC.fmtDate(inv.checkin_date), inv.pdf_url, brand];
+  };
   B.sendWA = async function (inv, opts) {
     opts = opts || {};
     if (!opts.noZen && (inv.id || opts.test) && !(opts.test ? false : !inv.pdf_url)) {
@@ -447,7 +456,7 @@
         headers: { 'Content-Type': 'application/json', apikey: c.key, Authorization: 'Bearer ' + c.key, 'x-tenant-key': key },
         body: JSON.stringify({
           tenant_id: 'minicuts', mobile: inv.mobile, template_name: opts.template || S.waTemplateName, template_lang: 'en',
-          params: [String(inv.customer_name || 'there').split(' ')[0], inv.invoice_number, MC.fmtDate(inv.checkin_date), MC.money(inv.total_amount, inv.currency), inv.pdf_url],
+          params: B.waParams(inv),
           customer_id: inv.customer_id || undefined, customer_name: inv.customer_name || undefined, sent_by: opts.test ? 'staff-invoice-test' : 'staff-invoice'
         })
       });
@@ -549,7 +558,7 @@
     const el = document.getElementById('mc-settings-wa'); if (!el) return;
     await B.load(); const S = B.S || DEFAULTS, $ = id => el.querySelector('#mcw-' + id);
     el.innerHTML = '<div class="card"><div class="card-title">📲 WhatsApp invoice</div>' +
-      '<p style="font-size:12.5px;color:var(--muted);margin:6px 0 12px;">Invoices go out through your approved <b>Utility</b> template with these 5 values in order: customer first name · invoice no. · date · amount · PDF link.</p>' +
+      '<p style="font-size:12.5px;color:var(--muted);margin:6px 0 12px;">Invoices go out through your approved <b>Utility</b> template with these 5 values in order: customer first name · salon name · visit date · invoice PDF link · salon name</p>' +
       '<div class="fg" style="margin-bottom:10px;">' + MC.lbl('Approved template name (exactly as in Meta / Zen)') + '<input class="fi" id="mcw-tpl" value="' + MC.esc(S.waTemplateName) + '"/>' + (S.waTemplateName === 'mc_invoice_utility' ? '<div style="font-size:12px;color:#B45309;margin-top:3px;">⚠ “mc_invoice_utility” was an old placeholder and does not exist in WhatsApp. Type your real template name (e.g. booking_completed_invoice) and Save.</div>' : '') + '</div>' +
       '<div class="fg" style="margin-bottom:10px;">' + MC.lbl('MiniCuts API key (optional fallback)') + '<input class="fi" type="password" id="mcw-key" placeholder="same key as in Loyalty ▸ Settings ▸ Platform connection" value="' + MC.esc(localStorage.getItem('mw_tenant_key') || '') + '"/><div style="font-size:11.5px;color:var(--muted);margin-top:3px;">' + (localStorage.getItem('mw_tenant_key') ? '✓ A key is already saved in this browser — it is shared with the Loyalty app on the same web address, so you may not need to enter anything.' : 'No key saved in this browser yet. The Loyalty app saves the same key under the same address, so enter it once in either place.') + ' Only needed if the Zen send function is not deployed. Stored only in this browser, never in the database.</div></div>' +
       '<div id="mcw-msg" class="sm"></div><div style="display:flex;gap:8px;"><button class="btn btn-y" id="mcw-save" style="flex:1;">Save WhatsApp Settings ✅</button><button class="btn btn-ghost" id="mcw-check">🔌 Check connection</button></div>' +
