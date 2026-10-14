@@ -79,8 +79,8 @@ const filt = (rows, qs) => { qs.forEach((v, k) => { if (['select', 'order', 'lim
   ok(DB.appointments[0].status === 'arrived' && DB.queue.some(q => q.remark && q.remark.startsWith('Appointment')), 'check-in creates queue row');
   // Reports
   await pg.evaluate(() => { showTab('t-reports', document.querySelectorAll('.tab')[3]); MC.reports.init(); }); await pg.fill('#mr-pin', '8065'); await pg.click('#mr-go'); await pg.waitForTimeout(800);
-  ok(/Total/.test(await pg.innerText('#mr-out')), 'sales report renders');
-  await pg.click('[data-t="tax"]'); await pg.waitForTimeout(600); ok(/MC\//.test(await pg.innerText('#mr-out')), 'tax register lists invoices');
+  ok(/Total/.test(await pg.innerText('#mr-out')), 'sales report renders'); console.log('SALES>>', (await pg.innerText('#mr-out')).replace(/\s+/g,' ').slice(0,700));
+  await pg.click('[data-t="tax"]'); await pg.waitForTimeout(600); ok(/MC\//.test(await pg.innerText('#mr-out')), 'tax register lists invoices'); console.log('TAX>>', (await pg.innerText('#mr-out')).replace(/\s+/g,' ').slice(0,900)); ok(/Taxable value/.test(await pg.innerText('#mr-out')) && /TRN|GSTIN/.test(await pg.innerText('#mr-out')), 'tax report has summary + tax id');
   // Settings tabs + WhatsApp test message
   await pg.evaluate(() => { showTab('t-config', document.querySelectorAll('.tab')[8]); loadCfgScreen(); }); await pg.waitForSelector('#mcs-save');
   ok(await pg.isVisible('#mcs-save') && !(await pg.isVisible('#mcw-test')), 'settings: only Invoice section shown first');

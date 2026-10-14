@@ -71,7 +71,7 @@
       return;
     }
     if (!R.st.from) { const n = new Date(); R.st.from = MC.monthRange(n.getFullYear(), n.getMonth()).from; R.st.to = MC.today(); }
-    const tabs = [['sales', '💰 Sales & payments'], ['detail', '🧾 Visit detail'], ['stylist', '✂️ Stylists'], ['service', '🧴 Services'], ['tax', '🧾 Invoice register'], ['acq', '📣 Acquisition'], ['appt', '📅 Appointments']];
+    const tabs = [['sales', '💰 Sales & payments'], ['detail', '🧾 Visit detail'], ['stylist', '✂️ Stylists'], ['service', '🧴 Services'], ['tax', '🏛 Tax report (VAT/GST)'], ['acq', '📣 Acquisition'], ['appt', '📅 Appointments']];
     const presets = '<button class="btn btn-ghost btn-sm" data-p="today">Today</button><button class="btn btn-ghost btn-sm" data-p="week">7 days</button><button class="btn btn-ghost btn-sm" data-p="month">This month</button><button class="btn btn-ghost btn-sm" data-p="last">Last month</button>';
     el.innerHTML = '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px;">' + presets +
       '<input type="date" class="fi" id="mr-from" style="width:auto;" value="' + R.st.from + '"/><span>→</span><input type="date" class="fi" id="mr-to" style="width:auto;" value="' + R.st.to + '"/>' +
@@ -123,12 +123,27 @@
       const d = R.byService(await done()), t = tot(d);
       set(['Service', 'Count', 'Base price', 'Discount', 'Disc %', 'Net value', 'Tax', 'Total'], d.map(x => [x.key, x.count].concat(cols(x))), ['Total', t.count].concat(cols(t)), note);
     } else if (tab === 'tax') {
-      const inv = await MC.sbAll('invoices', 'select=*&order=created_at.asc&' + q);
-      const ok = inv.filter(i => i.status !== 'void');
-      const sum = k => ok.reduce((a, i) => a + num(i[k]), 0);
-      set(['Invoice', 'Date', 'Customer', 'Service', 'Taxable', 'Tax', 'Discount', 'Total', 'Payment', 'Status'],
-        inv.map(i => [i.invoice_number, i.checkin_date, i.customer_name, i.service, fmt(i.base_amount), fmt(i.tax_amount), fmt(i.discount_amount), fmt(i.total_amount), i.payment_type, i.status]),
-        ['Total (excl. void)', '', '', '', fmt(sum('base_amount')), fmt(sum('tax_amount')), fmt(sum('discount_amount')), fmt(sum('total_amount')), '', ok.length + ' invoices']);
+      /* Tax-authority view: one line per invoice, voids listed but excluded from totals.
+       * Taxable = value after discount and before tax; Tax = VAT/GST charged; Total = what the customer paid for the service (tips are not part of the supply). */
+      const inv = await MC.sbAll('invoices', 'select=*&order=checkin_date.asc,created_at.asc&' + q);
+      const ok = inv.filter(i => i.status !== 'void'), voided = inv.filter(i => i.status === 'void');
+      const isIN = ok.some(i => i.country === 'IN') || (MC.billing && MC.billing.S && MC.billing.S.country === 'IN');
+      const S = (MC.billing && MC.billing.S) || {}, label = isIN ? 'GST' : 'VAT', idl = isIN ? 'GSTIN' : 'TRN';
+      const sum = (arr, k) => arr.reduce((a, i) => a + num(i[k]), 0);
+      const heads = ['Invoice', 'Date', 'Customer', 'Service', 'Base price', 'Disc %', 'Discount', 'Taxable value', label + ' %'].concat(isIN ? ['CGST', 'SGST'] : [label], ['Total', 'Payment', 'Status']);
+      const line = i => [i.invoice_number, i.checkin_date, i.customer_name, i.service, fmt(i.list_price != null ? i.list_price : i.base_amount), fmt(i.discount_pct) + '%', fmt(i.discount_amount), fmt(i.base_amount), fmt(i.tax_rate)].concat(isIN ? [fmt(i.cgst), fmt(i.sgst)] : [fmt(i.tax_amount)], [fmt(i.payable_amount != null ? i.payable_amount : num(i.base_amount) + num(i.tax_amount)), i.payment_type, i.status === 'void' ? 'VOID' : 'Issued']);
+      const tot = ['Total (excl. void)', '', '', '', fmt(sum(ok, 'list_price')), '', fmt(sum(ok, 'discount_amount')), fmt(sum(ok, 'base_amount')), ''].concat(isIN ? [fmt(sum(ok, 'cgst')), fmt(sum(ok, 'sgst'))] : [fmt(sum(ok, 'tax_amount'))], [fmt(ok.reduce((a, i) => a + (i.payable_amount != null ? num(i.payable_amount) : num(i.base_amount) + num(i.tax_amount)), 0)), '', ok.length + ' invoices']);
+      /* reconcile with sales: completed visits in the period that have no invoice are NOT in this register */
+      let gap = '';
+      try {
+        const done = await MC.sbAll('queue', 'select=id,service_value,invoice_id&status=eq.done&' + q);
+        const un = done.filter(r => !r.invoice_id && num(r.service_value) > 0);
+        if (un.length) gap = '<div style="background:#FFF7ED;border-radius:8px;padding:8px 10px;margin-bottom:8px;color:#9A3412;"><b>⚠ ' + un.length + ' completed visit(s) worth ' + fmt(un.reduce((a, r) => a + num(r.service_value), 0)) + ' have no invoice</b> and are not in this register (visits before invoicing started, or checked out the old way).</div>';
+      } catch (e) {}
+      const hdr = '<div style="margin-bottom:8px;"><b>' + MC.esc(S.bname || 'MiNiCUTS') + '</b> · ' + idl + ': <b>' + MC.esc(S.taxId || 'not set') + '</b> · Period ' + MC.fmtDate(from) + ' – ' + MC.fmtDate(to) + ' · Tax basis: prices ' + (S.basis === 'exclusive' ? 'exclude' : 'include') + ' ' + label + '</div>' +
+        '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px;">' + [['Taxable value', sum(ok, 'base_amount')], [label + ' collected', sum(ok, 'tax_amount')], ['Discounts given', sum(ok, 'discount_amount')], ['Voided invoices', voided.length]].map(x => '<div style="background:#F0FDF4;border-radius:8px;padding:8px 12px;"><div style="font-size:11px;color:var(--muted);">' + x[0] + '</div><div style="font-weight:900;font-size:16px;">' + (typeof x[1] === 'number' && x[0] !== 'Voided invoices' ? fmt(x[1]) : x[1]) + '</div></div>').join('') + '</div>' + gap;
+      set(heads, inv.map(line), tot, 'Voided invoices stay listed (numbers are never reused) but are excluded from totals. Tips are not part of the taxable supply.');
+      out.insertAdjacentHTML('afterbegin', hdr);
     } else if (tab === 'acq') {
       const rows = await done();
       const ids = [...new Set(rows.map(r => r.customer_id).filter(Boolean))];
