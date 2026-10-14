@@ -30,15 +30,18 @@ const MC_add = (s, n) => { const d = new Date(s + 'T12:00:00'); d.setDate(d.getD
   await pg.fill('#ce-par', 'Khalid'); await pg.selectOption('#ce-loc', 'Mirdif'); await pg.click('#ce-ok'); await pg.waitForTimeout(700);
   ok(/Khalid/.test(await pg.innerText('#cu-detail')) && /Mirdif/.test(await pg.innerText('#cu-detail')), 'edit details saved and shown');
   // Insights
-  await pg.click('#side [data-p="t-insights"]'); await pg.waitForSelector('.in-kpi'); ok(/Visits/.test(await pg.innerText('#mc-insights-root')), 'insights overview renders'); await shot('04-insights-overview');
+  await pg.click('#side [data-p="t-insights"]'); await pg.waitForSelector('#in-pin'); ok(!(await pg.locator('.in-kpi').count()) && /security code/i.test(await pg.innerText('#mc-insights-root')), 'Insights shows only a code screen until unlocked (no figures loaded)');
+  await pg.fill('#in-pin', '0000'); await pg.click('#in-go'); ok(/Wrong code/.test(await pg.innerText('#in-err')) && !(await pg.locator('.in-kpi').count()), 'wrong code rejected');
+  await pg.fill('#in-pin', '8065'); await pg.press('#in-pin', 'Enter'); await pg.waitForSelector('.in-kpi'); ok(/Visits/.test(await pg.innerText('#mc-insights-root')), 'correct code opens the overview'); await shot('04-insights-overview');
   ok((await pg.locator('.in-heat .in-hr i').count()) > 50, 'busiest-times heat map drawn');
-  ok(/🔒/.test(await pg.innerText('.in-kpis')), 'revenue is hidden until PIN');
-  await pg.click('#in-unlock'); await pg.fill('#ip-pin', '0000'); await pg.click('#ip-go'); ok(/Wrong PIN/.test(await pg.innerText('#ip-err')), 'wrong PIN rejected');
-  await pg.fill('#ip-pin', '8065'); await pg.click('#ip-go'); await pg.waitForTimeout(500); ok(/AED incl\. VAT/.test(await pg.innerText('.in-kpis')), 'revenue shows after PIN');
+  ok(/AED incl\. VAT/.test(await pg.innerText('.in-kpis')), 'revenue shows once unlocked');
   for (const [t, re] of [['customers', /registered children/i], ['retention', /return rate/i], ['ops', /avg wait/i], ['acq', /who came in/i], ['games', /plays/i]]) {
     await pg.click('#in-tabs [data-t="' + t + '"]'); await pg.waitForTimeout(500); ok(re.test(await pg.innerText('#mc-insights-root')), 'insights tab ' + t); await shot('05-insights-' + t);
   }
   await pg.click('#in-tabs [data-t="retention"]'); await pg.waitForTimeout(300); await pg.click('#in-rr [data-d="30"]'); await pg.waitForTimeout(400); ok(/last 30 days/i.test(await pg.innerText('#mc-insights-root')), 'return-rate window switches');
+  await pg.click('#in-lock'); await pg.waitForSelector('#in-pin'); ok(!(await pg.locator('.in-kpi').count()), 'Lock button hides Insights again');
+  await pg.click('#side [data-p="t-reports"]'); await pg.waitForTimeout(300); ok(/PIN/.test(await pg.innerText('#t-reports')) || /Unlock/.test(await pg.innerText('#t-reports')), 'locking also locks Reports');
+  await pg.evaluate(() => MC.reports.unlock('8065'));
   // reports still work
   await pg.click('#side [data-p="t-reports"]'); await pg.waitForTimeout(300); ok(/Sales/.test(await pg.innerText('#t-reports')), 'reports page opens (PIN shared with insights)');
   // no sideways scrolling anywhere (desktop + phone): history, queue, insights tabs

@@ -182,13 +182,26 @@
   const TABS = [['overview', '📈 Overview'], ['customers', '👨‍👩‍👧 Customers'], ['retention', '🔄 Retention'], ['ops', '⏱ Operations'], ['acq', '📣 Acquisition'], ['games', '🎮 Games']];
   const PRESETS = [['7', 'Last 7 days'], ['30', 'Last 30 days'], ['month', 'This month'], ['last', 'Last month'], ['90', 'Last 90 days']];
 
+  /* full-page lock: same security code as Reports (and the Loyalty app's Analytics) */
+  I.lockScreen = function (el) {
+    if (!document.getElementById('in-style')) { const st = document.createElement('style'); st.id = 'in-style'; st.textContent = style; document.head.appendChild(st); }
+    el.innerHTML = '<div class="in-card" style="max-width:360px;margin:40px auto;text-align:center;"><div style="font-size:34px;">🔒</div><div class="in-ct" style="margin:6px 0 4px;">Insights</div><div class="in-cs">Enter the security code to view business figures.</div>' +
+      '<input id="in-pin" class="fi" type="password" inputmode="numeric" autocomplete="off" placeholder="Security code" style="text-align:center;font-size:18px;letter-spacing:.3em;margin:10px 0 8px;"/><div id="in-err" class="sm err" style="min-height:18px;"></div>' +
+      '<button class="btn btn-y btn-full" id="in-go" style="margin-top:6px;">Unlock</button></div>';
+    const pin = el.querySelector('#in-pin'), go = () => { if (MC.reports && MC.reports.unlock(pin.value)) I.init(); else { el.querySelector('#in-err').textContent = 'Wrong code'; pin.value = ''; pin.focus(); } };
+    el.querySelector('#in-go').onclick = go; pin.addEventListener('keydown', ev => { if (ev.key === 'Enter') go(); }); setTimeout(() => pin.focus(), 40);
+  };
+
   I.init = function () {
     const el = document.getElementById('mc-insights-root'); if (!el) return;
     if (!document.getElementById('in-style')) { const s = document.createElement('style'); s.id = 'in-style'; s.textContent = style; document.head.appendChild(s); }
+    if (!money()) return I.lockScreen(el);                       // nothing is fetched or drawn until the security code is entered
     const S = I.st; if (!S.from) Object.assign(S, rangeFor(S.preset));
     const needsRange = ['overview', 'ops', 'acq'].includes(S.tab);
     el.innerHTML = '<div class="in-top"><div class="in-seg" id="in-tabs">' + TABS.map(t => '<button data-t="' + t[0] + '" class="' + (S.tab === t[0] ? 'on' : '') + '">' + t[1] + '</button>').join('') + '</div>' +
-      (needsRange ? '<div class="in-seg" id="in-pre" style="margin-left:auto;">' + PRESETS.map(p => '<button data-p="' + p[0] + '" class="' + (S.preset === p[0] ? 'on' : '') + '">' + p[1] + '</button>').join('') + '</div><span class="in-cs" style="margin:0;">' + MC.fmtDate(S.from) + ' → ' + MC.fmtDate(S.to) + '</span>' : '') + '</div><div id="in-out"><div class="in-empty">Loading…</div></div>';
+      '<button class="btn btn-ghost btn-sm" id="in-lock" title="Hide Insights and Reports until the code is entered again" style="margin-left:auto;">🔒 Lock</button>' +
+      (needsRange ? '<div class="in-seg" id="in-pre">' + PRESETS.map(p => '<button data-p="' + p[0] + '" class="' + (S.preset === p[0] ? 'on' : '') + '">' + p[1] + '</button>').join('') + '</div><span class="in-cs" style="margin:0;">' + MC.fmtDate(S.from) + ' → ' + MC.fmtDate(S.to) + '</span>' : '') + '</div><div id="in-out"><div class="in-empty">Loading…</div></div>';
+    el.querySelector('#in-lock').onclick = () => { if (MC.reports) MC.reports.st.unlocked = false; I.st.cache = {}; I.init(); };
     el.querySelectorAll('#in-tabs [data-t]').forEach(b => b.onclick = () => { S.tab = b.dataset.t; I.init(); });
     el.querySelectorAll('#in-pre [data-p]').forEach(b => b.onclick = () => { S.preset = b.dataset.p; Object.assign(S, rangeFor(S.preset)); I.init(); });
     const out = el.querySelector('#in-out'), my = S.run = (S.run || 0) + 1;
