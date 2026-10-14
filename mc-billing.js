@@ -83,7 +83,8 @@
     const S = B.S;
     
     const byName = B.services.find(s => String(s.name).toLowerCase() === String(r.service || '').toLowerCase());
-    const startPrice = r.list_price != null && r.list_price !== '' ? r.list_price : (r.service_value || (byName ? byName.price : '') || '');
+    const seed = MC.seedFromRow(r, byName ? byName.price : 0);
+    const startPrice = seed.list || '';
 
     const chips = [0, 5, 10, 15, 20, 25, 50].map(p => '<button type="button" class="btn btn-ghost btn-sm mc-chip" data-p="' + p + '" style="padding:6px 10px;">' + (p ? p + '%' : 'None') + '</button>').join('');
     const ov = MC.modal(
@@ -98,7 +99,8 @@
           '<div>' + MC.lbl('Tip (' + S.currency + ')') + '<input id="mcc-tip" class="fi" type="number" min="0" step="any" value="' + MC.esc(r.tip || '') + '" placeholder="0"/></div>' +
         '</div>' +
         '<div>' + MC.lbl('Discount %') + '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">' + chips +
-          '<input id="mcc-disc" class="fi" type="number" min="0" max="100" step="any" value="' + MC.esc(r.discount_pct || 0) + '" style="width:80px;"/><span style="font-size:12px;color:var(--muted);">%</span></div></div>' +
+          '<input id="mcc-disc" class="fi" type="number" min="0" max="100" step="any" value="' + MC.esc(seed.pct || 0) + '" style="width:80px;"/><span style="font-size:12px;color:var(--muted);">%</span></div></div>' +
+        (seed.note ? '<div style="font-size:12px;background:#FFF7ED;color:#9A3412;border-radius:8px;padding:7px 10px;">ℹ️ ' + MC.esc(seed.note) + '</div>' : '') +
         '<div>' + MC.lbl('Payment') + '<div style="display:flex;gap:8px;">' +
           '<button type="button" class="btn btn-ghost mc-pay" data-v="Cash" style="flex:1;padding:10px;">💵 Cash</button>' +
           '<button type="button" class="btn btn-ghost mc-pay" data-v="Credit" style="flex:1;padding:10px;">💳 Card</button></div></div>' +

@@ -8,7 +8,7 @@
   const MC = root.MC = root.MC || {};
 
   /* ── tiny utils ─────────────────────────────────────────────────────────── */
-  MC.version = '2026-10-14.3 (search picker)';
+  MC.version = '2026-10-14.4 (search picker + grid discount)';
   MC.esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   MC.r2 = n => Math.round(((Number(n) || 0) + Number.EPSILON) * 100) / 100;
   MC.money = (n, cur) => (cur || 'AED') + ' ' + MC.r2(n).toFixed(2);
@@ -106,6 +106,21 @@
     if (o.country === 'IN' && tax > 0) { cgst = MC.r2(tax / 2); sgst = MC.r2(tax - cgst); }
     const tip = MC.r2(o.tip);
     return { list, discountPct: pct, discountAmount: discAmt, net, taxable, tax, cgst, sgst, igst, payable, tip, grand: MC.r2(payable + tip), rate };
+  };
+  /* Starting point for checkout from a grid row.
+   * Teams enter the amount the customer actually pays in the grid and note the discount in the remark ("5%").
+   * So a grid value with a % in the remark means: value = AFTER discount -> work back to the list price.
+   * Without a % in the remark the value is taken as the full price. A row already checked out keeps its saved list/discount. */
+  MC.seedFromRow = function (r, catalogPrice) {
+    const val = Number(r.service_value) || 0;
+    if (r.list_price != null && r.list_price !== '' && Number(r.list_price) > 0)
+      return { list: Number(r.list_price), pct: Number(r.discount_pct) || 0, note: '' };
+    const m = /(\d+(?:\.\d+)?)\s*%/.exec(String(r.remark || ''));
+    const pct = m ? Math.min(100, Number(m[1])) : 0;
+    if (val > 0 && pct > 0 && pct < 100)
+      return { list: MC.r2(val / (1 - pct / 100)), pct, note: 'Amount in the grid (' + MC.r2(val).toFixed(2) + ') is after the ' + pct + '% in the remark, so the full price is worked back to ' + MC.r2(val / (1 - pct / 100)).toFixed(2) + '. Check it.' };
+    if (val > 0) return { list: val, pct: 0, note: '' };
+    return { list: Number(catalogPrice) || 0, pct: 0, note: '' };
   };
   /* Financial year label. India: Apr–Mar -> '2627'. UAE: calendar year -> '2026'. */
   MC.fyFor = function (ymd, country) {

@@ -17,3 +17,7 @@ t('sales by day',()=>{const d=R.salesByDay(rows);assert.equal(d.length,2);assert
 t('by stylist',()=>assert.equal(R.byStylist(rows)[0].sales,80));
 t('acquisition new vs returning',()=>{const a=R.acquisition(rows,{c1:'2026-09-01',c2:'2026-10-02'},'2026-10-01','2026-10-31');const g=a.find(x=>x.key==='Google'),i=a.find(x=>x.key==='Insta');assert.equal(g.newCount,0);assert.equal(g.retCount,1);assert.equal(i.newCount,1);assert.equal(i.newRev,40);});
 console.log(n+' passed');
+t('seed: grid value after discount, % in remark',()=>{const x=MC.seedFromRow({service_value:39.9,remark:'5% discount'});assert.equal(x.list,42);assert.equal(x.pct,5);const c=MC.calcInvoice({listPrice:x.list,discountPct:x.pct,taxRegistered:false});assert.equal(c.payable,39.9);});
+t('seed: no % => full price',()=>{const x=MC.seedFromRow({service_value:50,remark:''});assert.equal(x.list,50);assert.equal(x.pct,0);});
+t('seed: saved list price wins',()=>{const x=MC.seedFromRow({service_value:45,list_price:50,discount_pct:10,remark:'5%'});assert.equal(x.list,50);assert.equal(x.pct,10);});
+t('seed: empty row uses catalogue price',()=>assert.equal(MC.seedFromRow({service_value:0},55).list,55));
