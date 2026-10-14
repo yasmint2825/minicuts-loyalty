@@ -362,6 +362,7 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
   <button class="bb" onclick="goPassport()">🎖️ Stamps</button>
 </div>
 
+<script src="mc-demo.js?v=20261014q"></script>
 <script>
 const SB_URL='https://wtapyfgtwkjyjrjdnhkb.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind0YXB5Zmd0d2tqeWpyamRuaGtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0NDc3ODEsImV4cCI6MjA5NTAyMzc4MX0.y_-iPfb8Pcg9zh42h6RGVBsUVZm80LcA9sPlz_Gl_fA';
@@ -656,8 +657,8 @@ async function doLookup(){
   const mob=getM(); const mAlt='0'+mob.slice(3); const st=document.getElementById('lu-st');
   try{
     const [rA,rB,queueRows]=await Promise.all([
-      sb('customers','GET',null,'select=id,name,mobile,gender,stamps,game_points,heard_via,tc_accepted,location&mobile=eq.'+encodeURIComponent(mob)+'&limit=20'),
-      sb('customers','GET',null,'select=id,name,mobile,gender,stamps,game_points,heard_via,tc_accepted,location&mobile=eq.'+encodeURIComponent(mAlt)+'&limit=20'),
+      sb('customers','GET',null,'select=id,name,mobile,gender,dob,stamps,game_points,heard_via,tc_accepted,location&mobile=eq.'+encodeURIComponent(mob)+'&limit=20'),
+      sb('customers','GET',null,'select=id,name,mobile,gender,dob,stamps,game_points,heard_via,tc_accepted,location&mobile=eq.'+encodeURIComponent(mAlt)+'&limit=20'),
       sb('queue','GET',null,'select=customer_id,status&checkin_date=eq.'+today()+'&status=in.(waiting,called)&limit=50')
     ]);
     const seen=new Set();
@@ -794,6 +795,77 @@ async function proceedCheckin(){
   _proceedCheckinCore(eligible, regKids, newCount);
 }
 
+// ── Complete missing profile details before a token is issued (returning children only) ──
+// Asks ONLY for what is missing: boy/girl, birthday per child, and the family's area. Never blocks check-in if saving fails.
+function askMissingDetails(kids){
+  return new Promise(resolve=>{
+    const sib = (_foundKids||[]).find(k=>k.location);
+    const needKid = kids.filter(k=>!k.dob||!k.gender);
+    const needLoc = !sib && kids.some(k=>!k.location);
+    // area known on a sibling: copy it silently, no question
+    if(sib){ kids.filter(k=>!k.location).forEach(k=>{ k.location=sib.location; sb('customers','PATCH',{location:sib.location},'id=eq.'+k.id+'&location=is.null').catch(()=>{}); }); }
+    if(!needKid.length && !needLoc){ resolve(true); return; }
+    const gen={};
+    const ov=document.createElement('div');
+    ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;overflow:auto;';
+    const locOpts=(document.getElementById('rg-loc')?[...document.getElementById('rg-loc').options].map(o=>o.value?'<option>'+o.text+'</option>':'').join(''):'');
+    const esc=t=>String(t==null?'':t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+    ov.innerHTML='<div style="background:#fff;border-radius:20px;padding:22px;max-width:440px;width:100%;max-height:92vh;overflow:auto;">'+
+      '<div style="font-family:var(--fh);font-size:20px;font-weight:800;color:var(--bd);margin-bottom:4px;">📝 Quick update</div>'+
+      '<div style="font-size:13px;color:var(--muted);margin-bottom:14px;">Just a few details we are missing — then we will issue your token.</div>'+
+      needKid.map(k=>'<div style="border:2px solid var(--border);border-radius:14px;padding:12px;margin-bottom:10px;"><div style="font-weight:800;margin-bottom:8px;">'+esc(k.name)+'</div>'+
+        (!k.gender?'<div style="display:flex;gap:8px;margin-bottom:8px;"><button type="button" data-g="'+k.id+':boy" style="flex:1;padding:11px;border-radius:10px;border:2px solid var(--border);background:#fff;font-family:var(--fh);font-weight:800;">👦 Boy</button><button type="button" data-g="'+k.id+':girl" style="flex:1;padding:11px;border-radius:10px;border:2px solid var(--border);background:#fff;font-family:var(--fh);font-weight:800;">👧 Girl</button></div>':'')+
+        (!k.dob?'<label style="font-size:11px;font-weight:800;color:#6B7280;text-transform:uppercase;">Birthday 🎂</label><input type="date" class="fi" data-dob="'+k.id+'" max="'+today()+'" style="width:100%;"/>':'')+'</div>').join('')+
+      (needLoc?'<div style="margin-bottom:10px;"><label style="font-size:11px;font-weight:800;color:#6B7280;text-transform:uppercase;">Where do you live? 📍</label><select class="fi" id="md-loc" style="width:100%;"><option value="">Select area...</option>'+locOpts+'</select></div>':'')+
+      '<div id="md-err" style="display:none;color:var(--err);font-size:12.5px;font-weight:700;margin:6px 0;"></div>'+
+      '<button type="button" id="md-go" style="width:100%;padding:14px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--y),#FFB300);font-family:var(--fh);font-size:16px;font-weight:800;color:var(--bd);">Continue ✅</button></div>';
+    document.body.appendChild(ov);
+    const q=id=>ov.querySelector('#'+id), err=t=>{q('md-err').textContent=t;q('md-err').style.display='block';};
+    ov.querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>{const[id,v]=b.dataset.g.split(':');gen[id]=v;ov.querySelectorAll('[data-g^="'+id+':"]').forEach(x=>{const on=x===b;x.style.background=on?'linear-gradient(135deg,var(--y),#FFB300)':'#fff';x.style.borderColor=on?'var(--yd)':'var(--border)';});});
+    q('md-go').onclick=async()=>{
+      for(const k of needKid){
+        if(!k.gender&&!gen[k.id]) return err('Please choose boy or girl for '+k.name+' 👆');
+        if(!k.dob&&!ov.querySelector('[data-dob="'+k.id+'"]').value) return err('Please enter '+k.name+'\'s birthday 🎂');
+      }
+      const loc=q('md-loc')?q('md-loc').value:'';
+      if(needLoc&&!loc) return err('Please select your area 📍');
+      q('md-go').disabled=true; q('md-go').textContent='Saving...';
+      try{
+        for(const k of needKid){
+          const patch={};
+          if(!k.gender) patch.gender=gen[k.id];
+          if(!k.dob) patch.dob=ov.querySelector('[data-dob="'+k.id+'"]').value;
+          await sb('customers','PATCH',patch,'id=eq.'+k.id); Object.assign(k,patch);
+        }
+        if(needLoc){
+          const ids=(_foundKids||kids).filter(k=>!k.location).map(k=>k.id);
+          if(ids.length) await sb('customers','PATCH',{location:loc},'id=in.('+ids.join(',')+')&location=is.null');
+          (_foundKids||kids).forEach(k=>{ if(!k.location) k.location=loc; });
+        }
+        ov.remove(); resolve(true);
+      }catch(e){
+        // never trap a family at the kiosk because of a save problem
+        q('md-go').disabled=false; q('md-go').textContent='Continue ✅';
+        err('Could not save ('+e.message.slice(0,60)+'). Tap Continue again, or ask our team.');
+        q('md-go').onclick=()=>{ov.remove();resolve(true);};
+      }
+    };
+  });
+}
+
+// If the family has an appointment today, tie it to this token and hand the stylist over (silent, never blocks)
+async function linkAppointments(rows){
+  try{
+    for(const r of rows){
+      if(!r.customer_id) continue;
+      const ap=await sb('appointments','GET',null,'select=id,stylist,start_time&customer_id=eq.'+r.customer_id+'&appt_date=eq.'+today()+'&status=eq.booked&limit=1');
+      if(!ap||!ap.length) continue;
+      await sb('appointments','PATCH',{status:'arrived',queue_id:r.id,updated_at:new Date().toISOString()},'id=eq.'+ap[0].id);
+      if(r.id) await sb('queue','PATCH',{stylist:ap[0].stylist,remark:'Appointment '+String(ap[0].start_time).slice(0,5)},'id=eq.'+r.id);
+    }
+  }catch(e){ /* appointments not set up yet, or offline: ignore */ }
+}
+
 async function _proceedCheckinCore(eligible, regKids, newCount){
   const needsHear = newCount>0 || regKids.some(c=>!c.heard_via && (Number(c.stamps)||0)===0);
   if(needsHear && !_hearAbout){ document.getElementById('lu-hear-err').style.display='block'; return; }
@@ -821,6 +893,9 @@ async function _proceedCheckinCore(eligible, regKids, newCount){
     }
     newKidData.push({name, gender, dob:yy+'-'+mm+'-'+dd});
   }
+
+  // Returning children with missing details (birthday / boy-girl / area): ask before the token is issued
+  try{ if(regKids.length && !(await askMissingDetails(regKids))) return; }catch(e){ console.warn('details step skipped',e); }
 
   // Show loading screen
   showScr('s-ci');
@@ -873,6 +948,7 @@ async function _proceedCheckinCore(eligible, regKids, newCount){
       heard_via: c.heard_via||heardVia||null
     }));
     const inserted = await reserveTokenBlock(allKids.length, mob, kidRows);
+    linkAppointments(inserted);
 
     // Fire-and-forget: save heard_via for customers who didn't have it
     allKids.forEach(c=>{

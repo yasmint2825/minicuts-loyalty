@@ -8,6 +8,7 @@
   const MC = root.MC = root.MC || {};
 
   /* ── tiny utils ─────────────────────────────────────────────────────────── */
+  MC.version = '2026-10-14.29 (voided = no amount; Jamie fix)';
   MC.esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   MC.r2 = n => Math.round(((Number(n) || 0) + Number.EPSILON) * 100) / 100;
   MC.money = (n, cur) => (cur || 'AED') + ' ' + MC.r2(n).toFixed(2);
@@ -86,6 +87,71 @@
   };
   MC.lbl = t => '<label style="font-size:11px;font-weight:800;color:#6B7280;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px;">' + t + '</label>';
 
+  /* ── customer profile helpers (shared by appointment booking and queue arrival) ── */
+  MC.AREAS = ['Dubai Silicon Oasis (DSO)', 'Academic City', 'Al Barsha', 'Al Furjan', 'Al Karama', 'Al Khail Gate', 'Al Nahda', 'Al Qusais', 'Al Warqa', 'Arabian Ranches', 'Arjan', 'Bur Dubai', 'Business Bay', 'Damac Hills', 'Deira', 'Discovery Gardens', 'Downtown Dubai', 'Dubai Creek Harbour', 'Dubai Hills Estate', 'Dubai Investments Park (DIP)', 'Dubai Marina', 'Dubai Production City (IMPZ)', 'Dubai South / Expo City', 'Emirates Hills', 'Falcon City', 'Green Community', 'Greens / Views', 'International City', 'JBR / JLT', 'JVC / JVT', 'Jumeirah', 'Jumeirah Islands / Park', 'Liwan', 'Dubailand', 'Meydan', 'Mirdif', 'Motor City', 'Muhaisnah', 'Nad Al Sheba', 'Oud Metha', 'Palm Jumeirah', 'Rashidiya', 'Remraam', 'Ras Al Khor', 'Sports City', 'Springs / Meadows', 'Town Square', 'Umm Suqeim', 'Umm Ramool', 'Other / Outside Dubai'];
+  MC.HEARD = ['Ad Board', 'Instagram', 'Friends / Family', 'Google'];
+  /* same format the check-in kiosk stores: 971 + last 9 digits */
+  MC.mob971 = m => { const l = MC.last9(m); return l.length === 9 ? '971' + l : String(m || '').replace(/\D/g, ''); };
+  /* which details are still missing for a child's customer record */
+  MC.profileGaps = function (c) {
+    const g = [], blank = v => v == null || String(v).trim() === '';
+    if (blank(c.gender)) g.push('gender');
+    if (blank(c.dob)) g.push('dob');
+    if (blank(c.location)) g.push('location');
+    if (blank(c.heard_via)) g.push('heard_via');
+    return g;
+  };
+  MC.GAP_LABEL = { gender: 'boy/girl', dob: 'birthday', location: 'area', heard_via: 'how they heard of us' };
+  /* Ask only for what is missing, prefilled with what we know. Resolves 'saved' | 'skipped'. */
+  MC.profileDialog = function (kids, opts) {
+    opts = opts || {};
+    return new Promise(resolve => {
+      const needKid = kids.filter(k => MC.profileGaps(k).some(x => x === 'gender' || x === 'dob'));
+      const famLoc = kids.find(k => !(k.location || '').trim()) ? !kids.some(k => (k.location || '').trim()) : false;
+      const famHear = kids.find(k => !(k.heard_via || '').trim()) ? !kids.some(k => (k.heard_via || '').trim()) : false;
+      const locKnown = (kids.find(k => (k.location || '').trim()) || {}).location, hearKnown = (kids.find(k => (k.heard_via || '').trim()) || {}).heard_via;
+      const needLocKids = kids.filter(k => !(k.location || '').trim()), needHearKids = kids.filter(k => !(k.heard_via || '').trim());
+      if (!needKid.length && !needLocKids.length && !needHearKids.length) return resolve('saved');
+      let hear = hearKnown || null; const gen = {};
+      const kidHtml = needKid.map(k => '<div style="border:1.5px solid var(--border);border-radius:12px;padding:10px;margin-bottom:8px;"><div style="font-weight:800;margin-bottom:6px;">👦👧 ' + MC.esc(k.name) + '</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">' +
+        (MC.profileGaps(k).includes('gender') ? '<div>' + MC.lbl('Boy / Girl') + '<div style="display:flex;gap:6px;"><button type="button" class="btn btn-sm btn-ghost" data-g="' + k.id + ':boy">Boy</button><button type="button" class="btn btn-sm btn-ghost" data-g="' + k.id + ':girl">Girl</button></div></div>' : '<div></div>') +
+        (MC.profileGaps(k).includes('dob') ? '<div>' + MC.lbl('Birthday') + '<input type="date" class="fi" data-dob="' + k.id + '" max="' + MC.today() + '"/></div>' : '<div></div>') + '</div></div>').join('');
+      const ov = MC.modal('<div style="font-family:var(--fh);font-size:18px;font-weight:800;color:var(--bd);margin-bottom:4px;">📝 Complete the profile</div><div style="font-size:12.5px;color:var(--muted);margin-bottom:12px;">' + (opts.sub || 'A few details are missing. It takes 10 seconds and helps with birthday offers and reminders.') + '</div>' +
+        kidHtml +
+        (needLocKids.length ? '<div style="margin-bottom:10px;">' + MC.lbl('Area') + '<select class="fi" id="pd-loc"><option value="">Select area…</option>' + MC.AREAS.map(a => '<option' + (a === locKnown ? ' selected' : '') + '>' + MC.esc(a) + '</option>').join('') + '</select></div>' : '') +
+        (needHearKids.length ? '<div style="margin-bottom:10px;">' + MC.lbl('How did they hear about us?') + '<div style="display:flex;gap:6px;flex-wrap:wrap;">' + MC.HEARD.map(h => '<button type="button" class="btn btn-sm btn-ghost" data-h="' + MC.esc(h) + '">' + MC.esc(h) + '</button>').join('') + '</div></div>' : '') +
+        '<div id="pd-msg" style="display:none;margin:8px 0;padding:8px 12px;border-radius:8px;font-size:12.5px;font-weight:700;background:#FEE2E2;color:#DC2626;"></div>' +
+        '<div style="display:flex;gap:8px;margin-top:10px;"><button class="btn btn-y" id="pd-save" style="flex:1;padding:12px;">Save &amp; continue ✅</button>' + (opts.allowSkip ? '<button class="btn btn-ghost" id="pd-skip">Skip</button>' : '') + '</div>', { width: 440, sticky: true });
+      const $ = id => ov.querySelector('#' + id), fail = t => { $('pd-msg').textContent = t; $('pd-msg').style.display = 'block'; };
+      const paint = (sel, on) => sel.forEach(b => { b.classList.toggle('btn-y', on(b)); b.classList.toggle('btn-ghost', !on(b)); });
+      ov.querySelectorAll('[data-g]').forEach(b => b.onclick = () => { const [id, v] = b.dataset.g.split(':'); gen[id] = v; paint([...ov.querySelectorAll('[data-g^="' + id + ':"]')], x => x === b); });
+      ov.querySelectorAll('[data-h]').forEach(b => { if (b.dataset.h === hear) paint([b], () => true); b.onclick = () => { hear = b.dataset.h; paint([...ov.querySelectorAll('[data-h]')], x => x === b); }; });
+      if ($('pd-skip')) $('pd-skip').onclick = () => { ov.close(); resolve('skipped'); };
+      $('pd-save').onclick = async () => {
+        for (const k of needKid) {
+          const gaps = MC.profileGaps(k);
+          if (gaps.includes('gender') && !gen[k.id]) return fail('Choose boy or girl for ' + k.name + '.');
+          if (gaps.includes('dob') && !ov.querySelector('[data-dob="' + k.id + '"]').value) return fail('Enter ' + k.name + '’s birthday.');
+        }
+        const loc = $('pd-loc') ? $('pd-loc').value : '';
+        if (needLocKids.length && !loc) return fail('Select the area.');
+        if (needHearKids.length && !hear) return fail('Tap how they heard about us.');
+        $('pd-save').disabled = true; $('pd-save').textContent = 'Saving…';
+        try {
+          for (const k of kids) {
+            const patch = {}, gaps = MC.profileGaps(k);
+            if (gaps.includes('gender')) patch.gender = gen[k.id];
+            if (gaps.includes('dob')) patch.dob = ov.querySelector('[data-dob="' + k.id + '"]').value;
+            if (gaps.includes('location') && loc) patch.location = loc;
+            if (gaps.includes('heard_via') && hear) patch.heard_via = hear;
+            if (Object.keys(patch).length) { await MC.sb('customers', 'PATCH', patch, 'id=eq.' + k.id, 'return=minimal'); Object.assign(k, patch); }
+          }
+          ov.close(); resolve('saved');
+        } catch (e) { $('pd-save').disabled = false; $('pd-save').textContent = 'Save & continue ✅'; fail('Could not save: ' + e.message + (opts.allowSkip ? ' — you can Skip.' : '')); }
+      };
+    });
+  };
+
   /* ── pure business logic ────────────────────────────────────────────────── */
   /* Money: price on the list, % discount, tax either inside the price ('inclusive') or added on top ('exclusive').
    * service_value saved on the queue row = payable (what the customer pays for the service, tax included, tip excluded) —
@@ -105,6 +171,21 @@
     if (o.country === 'IN' && tax > 0) { cgst = MC.r2(tax / 2); sgst = MC.r2(tax - cgst); }
     const tip = MC.r2(o.tip);
     return { list, discountPct: pct, discountAmount: discAmt, net, taxable, tax, cgst, sgst, igst, payable, tip, grand: MC.r2(payable + tip), rate };
+  };
+  /* Starting point for checkout from a grid row.
+   * Teams enter the amount the customer actually pays in the grid and note the discount in the remark ("5%").
+   * So a grid value with a % in the remark means: value = AFTER discount -> work back to the list price.
+   * Without a % in the remark the value is taken as the full price. A row already checked out keeps its saved list/discount. */
+  MC.seedFromRow = function (r, catalogPrice) {
+    const val = Number(r.service_value) || 0;
+    if (r.list_price != null && r.list_price !== '' && Number(r.list_price) > 0)
+      return { list: Number(r.list_price), pct: Number(r.discount_pct) || 0, note: '' };
+    const m = /(\d+(?:\.\d+)?)\s*%/.exec(String(r.remark || ''));
+    const pct = m ? Math.min(100, Number(m[1])) : 0;
+    if (val > 0 && pct > 0 && pct < 100)
+      return { list: MC.r2(val / (1 - pct / 100)), pct, note: 'Amount in the grid (' + MC.r2(val).toFixed(2) + ') is after the ' + pct + '% in the remark, so the full price is worked back to ' + MC.r2(val / (1 - pct / 100)).toFixed(2) + '. Check it.' };
+    if (val > 0) return { list: val, pct: 0, note: '' };
+    return { list: Number(catalogPrice) || 0, pct: 0, note: '' };
   };
   /* Financial year label. India: Apr–Mar -> '2627'. UAE: calendar year -> '2026'. */
   MC.fyFor = function (ymd, country) {

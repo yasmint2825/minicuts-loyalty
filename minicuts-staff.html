@@ -83,6 +83,14 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
 .qt tbody tr:hover{background:#F8FBFF;}
 .qt tbody tr.done{background:#FAFAFA;}
 .qt tbody tr.called{background:#EEF6FF;}
+.qt tbody tr.reward{background:#FFFBEB;box-shadow:inset 5px 0 0 #F59E0B;}
+.qt tbody tr.reward.rw-fwrow{background:#F0FDF4;box-shadow:inset 5px 0 0 #16A34A;}
+.rw-note{display:inline-block;margin-top:3px;font:800 10.5px var(--fb);color:#92400E;background:#FEF3C7;border-radius:6px;padding:2px 7px;}
+.rw-fwrow .rw-note{color:#166534;background:#DCFCE7;}
+.rw-pills{display:inline-flex;flex-wrap:wrap;gap:4px;margin-left:4px;vertical-align:middle;}
+.rw-btn{border:none;border-radius:99px;padding:3px 10px;font:800 11px var(--fh);cursor:pointer;line-height:1.5;animation:rwp 1.8s ease-in-out infinite;}
+.rw-fw{background:#16A34A;color:#fff;}.rw-pz{background:linear-gradient(135deg,#FFD600,#FFB300);color:#0D47A1;}
+@keyframes rwp{0%,100%{box-shadow:0 0 0 0 rgba(245,158,11,.5);}50%{box-shadow:0 0 0 5px rgba(245,158,11,0);}}
 .qt td{padding:6px 8px;font-size:12.5px;vertical-align:middle;}
 .isel{font-size:11.5px;padding:4px 6px;border:1.5px solid var(--border);border-radius:6px;background:#fff;outline:none;cursor:pointer;width:100%;}
 .isel:focus{border-color:var(--b);}
@@ -139,8 +147,6 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
   div[style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr!important;}
 
   /* Tables: switch to horizontal scroll, allow shrinking columns */
-  .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
-  .qt{table-layout:auto;min-width:640px;}
   .qt th,.qt td{padding:6px 6px;font-size:11.5px;}
   .qt th:nth-child(6),.qt td:nth-child(6){width:auto;min-width:160px;}
 
@@ -151,33 +157,105 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
   .toast{min-width:0;width:100%;}
 }
 
+
+/* ═══ MODERN SHELL (2026-10) — sidebar navigation, softer surfaces. Page ids / handlers are unchanged. ═══ */
+:root{--bg:#F3F6FC;--r:14px;--side-w:236px;}
+body{background:var(--bg);}
+.top{background:#fff;border-bottom:1px solid var(--border);padding:8px 18px;box-shadow:0 1px 2px rgba(15,23,42,.03);position:relative;z-index:30;}
+.top-brand{color:var(--bd);font-size:18px;}.top-sub{font:800 11px var(--fb);background:var(--y);color:var(--bd);padding:2px 9px;border-radius:99px;margin-left:2px;letter-spacing:.04em;text-transform:uppercase;}
+#clk{color:var(--muted);font-size:12px;}
+.top-link{color:var(--b);font:800 12px var(--fb);text-decoration:none;padding:6px 11px;border:1px solid var(--border);border-radius:99px;}.top-link:hover{background:#F0F6FF;}
+.menu-btn{display:none;border:1px solid var(--border);background:#fff;border-radius:10px;font-size:18px;width:38px;height:38px;cursor:pointer;color:var(--bd);}
+.shell{display:flex;flex:1;min-height:0;}
+.side{width:var(--side-w);flex-shrink:0;background:#fff;border-right:1px solid var(--border);padding:6px 10px 8px;overflow:hidden;display:flex;flex-direction:column;}
+.nav-g{font:800 10px var(--fb);text-transform:uppercase;letter-spacing:.08em;color:#94A3B8;padding:clamp(5px,1.4vh,12px) 10px 2px;}
+.side .tab{display:flex;align-items:center;gap:10px;width:100%;padding:clamp(5px,1.15vh,9px) 10px;margin:0;border:none;border-radius:11px;background:transparent;color:#475569;font:700 13.5px var(--fb);text-align:left;cursor:pointer;white-space:normal;border-bottom:none;}
+.side .tab i{font-style:normal;width:22px;text-align:center;font-size:15px;flex-shrink:0;}
+.side .tab{white-space:nowrap!important;overflow:hidden;text-overflow:ellipsis;}
+.side .nb{margin-left:auto;min-width:20px;height:19px;padding:0 6px;border-radius:99px;background:#DC2626;color:#fff;font:800 11px/19px var(--fb);text-align:center;display:none;flex-shrink:0;}
+.side .nb.on{display:inline-block;}.side .nb.amber{background:#F59E0B;}.side .nb.green{background:#16A34A;}
+@media (max-height:700px){.side .tab{font-size:12.5px;}.nav-g{font-size:9.5px;}}
+@media (max-height:600px){.side .tab{font-size:12px;padding:4px 10px;}.nav-g{padding-top:3px;}}
+.side .tab:hover{background:#F1F5FD;color:var(--bd);}
+.side .tab.active{background:#E6EFFE;color:var(--bd);box-shadow:inset 3px 0 0 var(--b);}
+.main{flex:1;min-width:0;min-height:0;display:flex;flex-direction:column;overflow-y:auto;}
+.stats-strip{margin:14px 22px 0;border:1px solid var(--border);border-radius:14px;padding:10px 18px;box-shadow:0 1px 3px rgba(15,23,42,.04);}
+.page{padding:14px 22px 28px;overflow:visible;flex:none;}
+.page.active{display:block;}
+#t-queue.active,#t-history.active{display:flex;flex-direction:column;}
+.card{border-radius:16px;border:1px solid var(--border);box-shadow:0 1px 3px rgba(15,23,42,.04);}
+.filters{border-radius:14px;border:1px solid var(--border);box-shadow:none;}
+.tbl-wrap{border-radius:14px;border:1px solid var(--border);box-shadow:none;background:#fff;}
+.qt thead{background:#F5F8FE;}.qt thead th{color:#475569;border-bottom:1px solid var(--border);}
+.qt tbody tr:hover{background:#FAFCFF;}
+.fi{border-radius:10px;}.fi:focus{box-shadow:0 0 0 3px rgba(21,101,192,.12);}
+.btn{border-radius:10px;}
+a.btn{text-decoration:none;}
+.side-scrim{display:none;}
+#t-queue .tbl-wrap,#t-history .tbl-wrap{max-height:calc(100vh - 235px);min-height:260px;}
+
+/* ── NO SIDEWAYS SCROLL: tables fit the width; on narrow screens each row becomes a card ── */
+.tbl-wrap{overflow-x:hidden;}
+.qt{table-layout:auto;width:100%;}
+.qt td,.qt th{overflow-wrap:anywhere;}
+#t-history .qt th,#t-history .qt td,#t-queue .qt th,#t-queue .qt td{width:auto!important;padding-left:8px;padding-right:8px;}
+#t-history .qt thead th,#t-queue .qt thead th{white-space:nowrap;}
+#t-queue .qt thead th:nth-child(6){white-space:normal;}
+@media (max-width:1100px){
+  .qt,.qt tbody,.qt tr,.qt td{display:block;width:100%!important;}
+  .qt thead{display:none;}
+  .qt tr{border-bottom:8px solid #F1F5F9;padding:8px 4px;}
+  .qt td{display:grid;grid-template-columns:92px minmax(0,1fr);gap:8px;padding:4px 10px!important;border:none!important;font-size:12.5px;max-width:none!important;}
+  .qt td[data-label]::before{content:attr(data-label);font-size:10.5px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;padding-top:2px;}
+  .qt td[colspan]{display:block;}
+  .qt td[colspan]::before{content:none;}
+}
+@media (max-width:900px){
+  .menu-btn{display:inline-flex;align-items:center;justify-content:center;}
+  .side{position:fixed;top:0;bottom:0;left:0;z-index:60;transform:translateX(-102%);transition:transform .2s ease;box-shadow:6px 0 24px rgba(15,23,42,.18);width:min(86vw,300px);padding-top:16px;}
+  .side-open .side{transform:none;}
+  .side-open .side-scrim{display:block;position:fixed;inset:0;background:rgba(15,23,42,.35);z-index:50;}
+  .stats-strip{margin:10px 12px 0;padding:8px 12px;}
+  .page{padding:10px 12px 24px;}
+  .top-link{display:none;}
+}
 </style>
 </head>
 <body>
 
 <!-- TOPBAR -->
 <div class="top">
-  <div class="top-brand">🐼 MiniCuts <span style="opacity:.6;font-size:13px;font-weight:700;">Staff Panel</span></div>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <button class="menu-btn" id="menuBtn" onclick="toggleSide()" aria-label="Menu">☰</button>
+    <div class="top-brand">🐼 MiniCuts <span class="top-sub">Staff</span></div>
+  </div>
   <div class="top-right">
     <div id="clk"></div>
-    <div class="badge-staff">✂️ Staff</div>
-    <a href="./index.html" target="_blank" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);color:#fff;padding:5px 11px;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;">📋 Loyalty</a>
+    <a href="./index.html" target="_blank" class="top-link">Loyalty app ↗</a>
   </div>
 </div>
 
-<!-- TABS -->
-<div class="tabs">
-  <button class="tab active" onclick="showTab('t-queue',this)">📋 Queue</button>
-  <button class="tab" onclick="showTab('t-history',this);histSetDate(today());loadHist();">🕐 History</button>
-  <button class="tab" onclick="showTab('t-appt',this);MC.appt.init();">📅 Appointments</button>
-  <button class="tab" onclick="showTab('t-reports',this);MC.reports.init();">📊 Reports</button>
-  <button class="tab" onclick="showTab('t-prizes',this);loadPrizes();">🎁 Game Prizes</button>
-  <button class="tab" onclick="showTab('t-freewash',this);loadFreeWash();">🚿 Free Wash</button>
-  <button class="tab" onclick="showTab('t-vouchers',this);loadVouchers();">🎁 Gift Vouchers</button>
-  <button class="tab" onclick="showTab('t-kod',this);loadKod();">💜 KoD</button>
-  <button class="tab" onclick="window.open('./minicuts-staff-mgmt.html','_blank')">👥 Staff Mgmt ↗</button>
-  <button class="tab" onclick="showTab('t-config',this);loadCfgScreen();">⚙️ Settings</button>
-</div>
+<div class="shell">
+<div class="side-scrim" id="sideScrim" onclick="toggleSide(false)"></div>
+<aside class="side" id="side">
+  <div class="nav-g">Today</div>
+  <button class="tab active" data-p="t-queue" onclick="showTab('t-queue')"><i>📋</i>Queue<span class="nb amber" id="nb-queue" title="Waiting or called customers with a reward to give"></span></button>
+  <button class="tab" data-p="t-appt" onclick="showTab('t-appt');MC.appt.init();"><i>📅</i>Appointments</button>
+  <button class="tab" data-p="t-history" onclick="showTab('t-history');histSetDate(today());loadHist();"><i>🕐</i>History</button>
+  <div class="nav-g">Customers</div>
+  <button class="tab" data-p="t-customers" onclick="showTab('t-customers');MC.customers.init();"><i>🔍</i>Find customer</button>
+  <button class="tab" data-p="t-prizes" onclick="showTab('t-prizes');loadPrizes();"><i>🎮</i>Game prizes<span class="nb" id="nb-prizes" title="Children with a game prize still to hand over"></span></button>
+  <button class="tab" data-p="t-freewash" onclick="showTab('t-freewash');loadFreeWash();"><i>🚿</i>Free wash<span class="nb green" id="nb-fw" title="Children with a free hair wash waiting"></span></button>
+  <button class="tab" data-p="t-vouchers" onclick="showTab('t-vouchers');loadVouchers();"><i>🎁</i>Gift vouchers</button>
+  <button class="tab" data-p="t-kod" onclick="showTab('t-kod');loadKod();"><i>💜</i>KoD discount</button>
+  <div class="nav-g">Insights</div>
+  <button class="tab" data-p="t-insights" onclick="showTab('t-insights');MC.insights.init();"><i>📈</i>Insights</button>
+  <button class="tab" data-p="t-reports" onclick="showTab('t-reports');MC.reports.init();"><i>📊</i>Reports &amp; tax</button>
+  <div class="nav-g">Manage</div>
+  <button class="tab" onclick="window.open('./minicuts-staff-mgmt.html','_blank')"><i>👥</i>Staff management ↗</button>
+  <button class="tab" data-p="t-config" onclick="showTab('t-config');loadCfgScreen();"><i>⚙️</i>Settings</button>
+</aside>
+<div class="main">
 
 <!-- STATS STRIP -->
 <div class="stats-strip" style="flex-wrap:wrap;row-gap:6px;">
@@ -225,20 +303,26 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-shrink:0;flex-wrap:wrap;gap:10px;">
     <div>
       <div style="font-family:var(--fh);font-size:17px;font-weight:800;color:var(--bd);">🕐 History</div>
-      <div style="font-size:12px;color:var(--muted);margin-top:2px;">Browse any date — all check-ins including completed</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:2px;">Browse a day or a date range — totals at the top</div>
     </div>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
       <div style="display:flex;gap:6px;align-items:center;background:#fff;border:1.5px solid var(--border);border-radius:9px;padding:6px 10px;">
         <span style="font-size:12px;font-weight:700;color:var(--muted);">📅 Date:</span>
         <input type="date" id="hist-date" style="border:none;outline:none;font-family:var(--fb);font-size:13px;color:var(--text);background:transparent;cursor:pointer;" onchange="loadHist()"/>
       </div>
+      <select class="fi" id="hist-mode" style="width:auto;padding:7px 28px 7px 10px;" onchange="histModeChange()">
+        <option value="day">One day</option><option value="7">Last 7 days</option><option value="30">Last 30 days</option><option value="month">This month</option><option value="custom">Custom range…</option>
+      </select>
+      <span id="hist-custom" style="display:none;gap:6px;align-items:center;background:#fff;border:1.5px solid var(--border);border-radius:9px;padding:5px 10px;font-size:12px;font-weight:700;color:var(--muted);">
+        From <input type="date" id="hist-from" style="border:none;outline:none;font-family:var(--fb);font-size:13px;" onchange="loadHist()"/> to <input type="date" id="hist-to" style="border:none;outline:none;font-family:var(--fb);font-size:13px;" onchange="loadHist()"/>
+      </span>
       <button class="btn btn-ghost btn-sm" onclick="histNav(-1)">← Prev</button>
-      <button class="btn btn-ghost btn-sm" onclick="histSetDate(today());loadHist();">Today</button>
+      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('hist-mode').value='day';document.getElementById('hist-custom').style.display='none';histSetDate(today());loadHist();">Today</button>
       <button class="btn btn-ghost btn-sm" onclick="histNav(1)">Next →</button>
       <button class="btn btn-b btn-sm" onclick="loadHist()">↻ Load</button>
     </div>
   </div>
-  <div id="hist-summary" style="display:none;background:#F0FDF4;border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:13px;font-weight:700;color:var(--ok);"></div>
+  <div id="hist-summary" style="display:none;margin-bottom:12px;font-size:13px;font-weight:700;color:var(--ok);"></div>
   <div class="tbl-wrap">
     <table class="qt">
       <thead><tr><th>Token</th><th>Name</th><th>Service</th><th>Stylist(s)</th><th>Value</th><th>Tip</th><th>Pay</th><th>Remark</th><th>Status</th><th>Time</th><th>Actions</th></tr></thead>
@@ -316,7 +400,8 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
 
 <!-- ══ TAB: SETTINGS ══ -->
 <div class="page" id="t-config">
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;align-items:start;"><div id="mc-settings-billing"></div><div id="mc-settings-appt"></div></div>
+  <div id="cfg-nav" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;position:sticky;top:0;z-index:5;background:var(--bg,#fff);padding:6px 0;"></div>
+  <div id="cfg-top" style="display:grid;grid-template-columns:minmax(0,720px);gap:20px;margin-bottom:20px;align-items:start;"><div id="mc-settings-billing" data-sec="invoice"></div><div id="mc-settings-loyalty" data-sec="loyalty"></div><div id="mc-settings-appt" data-sec="appt"></div><div id="mc-settings-wa" data-sec="wa"></div></div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
     <div>
       <div class="card">
@@ -565,9 +650,16 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
   </div>
 </div>
 
+<div class="page" id="t-customers"><div id="mc-customers-root"></div></div>
+<div class="page" id="t-insights"><div id="mc-insights-root"></div></div>
+
+</div><!-- /main -->
+</div><!-- /shell -->
+
 <!-- TOAST CONTAINER -->
 <div class="tc" id="TC"></div>
 
+<script src="mc-demo.js?v=20261015b"></script>
 <script>
 const SB_URL='https://wtapyfgtwkjyjrjdnhkb.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind0YXB5Zmd0d2tqeWpyamRuaGtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0NDc3ODEsImV4cCI6MjA5NTAyMzc4MX0.y_-iPfb8Pcg9zh42h6RGVBsUVZm80LcA9sPlz_Gl_fA';
@@ -677,14 +769,21 @@ setInterval(()=>{const e=document.getElementById('clk');if(e)e.textContent=new D
 
 function today(){const n=new Date();return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');}
 function fmtT(iso){if(!iso)return'—';return new Date(iso).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});}
+/* big, longer-lived banner so the team notices a reward while calling the customer */
+function rewardAlert(msg){const e=document.createElement('div');e.className='toast info';e.style.cssText='background:#FEF3C7;color:#78350F;border:2px solid #F59E0B;font-weight:800;font-size:14px;';e.innerHTML='🔔 '+msg.replace(/</g,'&lt;');document.getElementById('TC').appendChild(e);setTimeout(()=>e.remove(),9000);}
 function toast(msg,t='ok'){const e=document.createElement('div');e.className='toast '+t;e.innerHTML=(t==='ok'?'✅':t==='err'?'❌':'ℹ️')+' '+msg;document.getElementById('TC').appendChild(e);setTimeout(()=>e.remove(),3500);}
 function showM(el,msg,t){if(!el)return;el.textContent=msg;el.className='sm '+t;el.style.display='block';}
 
-function showTab(id,btn){
+function showTab(id){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.p===id));
   document.getElementById(id).classList.add('active');
-  if(btn)btn.classList.add('active');
+  const m=document.querySelector('.main'); if(m)m.scrollTop=0;
+  toggleSide(false);
+}
+function toggleSide(force){
+  const on=typeof force==='boolean'?force:!document.body.classList.contains('side-open');
+  document.body.classList.toggle('side-open',on);
 }
 
 // QUEUE
@@ -697,6 +796,7 @@ async function loadQ(){
   try{
     const rows=await sb('queue','GET',null,'select=*&checkin_date=eq.'+today()+'&order=token_number.asc&limit=200');
     _qdata=rows||[];
+    await loadVoidedSet(today(),today());
     const custIds=_qdata.map(r=>r.customer_id).filter(Boolean);
     if(custIds.length){
       const orFilter=custIds.map(id=>'id.eq.'+id).join(',');
@@ -716,7 +816,7 @@ async function loadQ(){
       // Mark as fetched so loadHist doesn't re-fetch these IDs
       custIds.forEach(id=>_custFetched.add(id));
     }
-    populateStyFilter();renderQ();updateStats();
+    populateStyFilter();renderQ();updateStats();refreshRewardBadges(true);
     if(!_qdata.length&&body)body.innerHTML='<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--muted);">No check-ins yet today 🐼</td></tr>';
   }catch(e){
     toast('Error: '+e.message,'err');
@@ -734,16 +834,47 @@ function populateStyFilter(){
   sel.value=cur;
 }
 
+/* sidebar numbers: children with a free wash waiting / a game prize still to hand over (all customers), and queue rows with a reward */
+let _rbBusy=false,_rbAt=0;
+async function refreshRewardBadges(force){
+  const set=(id,n)=>{const el=document.getElementById(id);if(!el)return;el.textContent=n>99?'99+':n;el.classList.toggle('on',n>0);};
+  try{
+    const act=_qdata.filter(r=>r.status==='waiting'||r.status==='called').filter(r=>{const x=rewardsFor(r);return x.fw||x.levels.length;}).length;
+    set('nb-queue',act);
+    if(_rbBusy||(!force&&Date.now()-_rbAt<60000))return;_rbBusy=true;
+    const [fw,pl,pg]=await Promise.all([
+      sb('customers','GET',null,'select=id,stamps,expiry_date&stamps=gte.'+paidNeeded()+'&limit=1000'),
+      sb('customers','GET',null,'select=id,game_points&game_points=gte.'+GAME_LEVELS[0].pts+'&limit=1000'),
+      sb('prizes_given','GET',null,'select=customer_id,stage_pts&limit=5000').catch(()=>[])
+    ]);
+    const now=new Date();
+    set('nb-fw',(fw||[]).filter(c=>!(c.expiry_date&&now>new Date(c.expiry_date))).length);
+    const given={};(pg||[]).forEach(p=>{(given[p.customer_id]=given[p.customer_id]||new Set()).add(p.stage_pts);});
+    set('nb-prizes',(pl||[]).filter(c=>GAME_LEVELS.some(l=>Number(c.game_points)>=l.pts&&!(given[c.id]&&given[c.id].has(l.pts)))).length);
+    _rbAt=Date.now();
+  }catch(e){console.warn('badges:',e.message);}finally{_rbBusy=false;}
+}
+setInterval(()=>refreshRewardBadges(true),120000);
+/* A visit whose invoice was voided stays 'done' in the queue (the haircut happened, the bill was cancelled, amount cleared).
+   It is NOT counted as served until it is checked out again — same rule on the strip, History and Insights. */
+let _voidedQ=new Set();
+/* …and only while the amount is still cleared: if staff typed an amount back in afterwards (e.g. via Edit), the bill was fixed outside the invoice and the visit counts as served */
+function isVoidedVisit(r){return !!r&&r.status==='done'&&!r.invoice_id&&!(Number(r.service_value)>0)&&_voidedQ.has(r.id);}
+async function loadVoidedSet(from,to){
+  try{const v=await sb('invoices','GET',null,'select=queue_id&status=eq.void&checkin_date=gte.'+from+'&checkin_date=lte.'+to+'&limit=1000');(v||[]).forEach(x=>{if(x.queue_id)_voidedQ.add(x.queue_id);});}catch(e){console.warn('voided list:',e.message);}
+}
+window.mcMarkVoided=function(qid){if(qid){_voidedQ.add(qid);try{updateStats();}catch(e){}}};
 function updateStats(){
+  try{refreshRewardBadges();}catch(e){}
   const w=_qdata.filter(r=>r.status==='waiting').length;
   const c=_qdata.filter(r=>r.status==='called').length;
-  const d=_qdata.filter(r=>r.status==='done').length;
+  const d=_qdata.filter(r=>r.status==='done'&&!isVoidedVisit(r)).length;
   const nx=_qdata.find(r=>r.status==='waiting');
   const e=id=>document.getElementById(id);
   if(e('st-w'))e('st-w').textContent=w;if(e('st-c'))e('st-c').textContent=c;
   if(e('st-d'))e('st-d').textContent=d;if(e('st-n'))e('st-n').textContent=nx?String(nx.token_number).padStart(2,'0'):'—';
   // Revenue
-  const done=_qdata.filter(r=>r.status==='done');
+  const done=_qdata.filter(r=>r.status==='done'&&!isVoidedVisit(r));
   const totalRev=done.reduce((s,r)=>s+(Number(r.service_value)||0),0);
   if(e('st-rev'))e('st-rev').textContent=totalRev?'AED '+totalRev:'—';
   // Tip split by staff
@@ -777,41 +908,45 @@ function renderQ(){
   if(nmF)data=data.filter(r=>(r.customer_name||'').toLowerCase().includes(nmF));
   const body=document.getElementById('qt-body');if(!body)return;
   if(!data.length){body.innerHTML='<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--muted);">Queue is clear — no active customers 🐼</td></tr>';return;}
-  body.innerHTML=data.map(row=>buildRow(row)).join('');
+  body.innerHTML=data.map(row=>buildRow(row)).join('');mcLabelCells(body);
 }
 
+/* Rewards a queued child is entitled to right now: free hair wash (stamps reached, passport not expired) and game prize levels not yet handed over */
+function rewardsFor(r){
+  const cid=r&&r.customer_id;if(!cid||r.is_guest)return{fw:false,levels:[]};
+  const c=_custMap[cid];if(!c)return{fw:false,levels:[]};
+  const stamps=Number(c.stamps||0),pts=Number(c.game_points||0),now=new Date();
+  const exp=c.expiry_date?new Date(c.expiry_date):null;
+  const fw=stamps>=paidNeeded()&&!(exp&&now>exp);
+  const givenPts=new Set((_prizesMap[cid]||[]).map(p=>p.stage_pts));
+  return{fw,levels:GAME_LEVELS.filter(l=>pts>=l.pts&&!givenPts.has(l.pts))};
+}
+function rewardText(r,name){
+  const x=rewardsFor(r);const bits=[];
+  if(x.fw)bits.push('a FREE HAIR WASH 🚿');
+  x.levels.forEach(l=>bits.push('a game prize — Level '+l.level+' '+l.icon+' '+l.badge));
+  return bits.length?(name||r.customer_name||'This child')+' has '+bits.join(' and ')+' to collect':'';
+}
 function buildLoyaltyInCell(r){
   const cid=r.customer_id;if(!cid||r.is_guest)return'';
-  const c=_custMap[cid];
-  if(!c){console.log('buildLoyaltyInCell: no customer data for',cid,'_custMap keys=',Object.keys(_custMap));return'';}
-  console.log('buildLoyaltyInCell:',c.name,'stamps=',c.stamps,'pts=',c.game_points);
-  const PAID=paidNeeded();
-  const stamps=Number(c.stamps||0);
-  const pts=Number(c.game_points||0);
-  const now=new Date();
-  const exp=c.expiry_date?new Date(c.expiry_date):null;
-  const freeWashReady=stamps>=PAID&&!(exp&&now>exp);
-  const prizes=_prizesMap[cid]||[];
-  const givenPts=new Set(prizes.map(p=>p.stage_pts));
-  const pendingLevels=GAME_LEVELS.filter(l=>pts>=l.pts&&!givenPts.has(l.pts));
+  const c=_custMap[cid];if(!c)return'';
+  const x=rewardsFor(r),freeWashReady=x.fw,pendingLevels=x.levels;
   const done=r.status==='done'||r.status==='cancelled';
   if(!freeWashReady&&!pendingLevels.length) return'';
 
-  let pills='<span style="display:inline-flex;flex-wrap:wrap;gap:3px;margin-left:4px;vertical-align:middle;">';
+  let pills='<span class="rw-pills">';
   if(freeWashReady){
     if(done){
       pills+='<span style="background:#DCFCE7;color:#16A34A;padding:1px 7px;border-radius:99px;font-size:10px;font-weight:700;">🚿 Free Wash</span>';
     } else {
-      pills+='<button onclick="queueGiveFreeWash(\''+cid+'\',\''+escQ(c.name)+'\',\''+r.id+'\',\''+escQ(c.mobile||'')+'\')" '
-        +'style="background:#16A34A;color:#fff;border:none;border-radius:99px;padding:1px 8px;font-size:10.5px;font-weight:800;cursor:pointer;font-family:var(--fh);line-height:1.6;">🚿 Free Wash</button>';
+      pills+='<button class="rw-btn rw-fw" title="Free hair wash is due — tap when given" onclick="queueGiveFreeWash(\''+cid+'\',\''+escQ(c.name)+'\',\''+r.id+'\',\''+escQ(c.mobile||'')+'\')">🚿 FREE WASH due</button>';
     }
   }
   pendingLevels.forEach(l=>{
     if(done){
       pills+='<span style="background:#FEF3C7;color:#92400E;padding:1px 7px;border-radius:99px;font-size:10px;font-weight:700;">'+l.icon+' L'+l.level+'</span>';
     } else {
-      pills+='<button onclick="queueGivePrize(\''+cid+'\',\''+escQ(c.name)+'\','+l.pts+',\'Level '+l.level+' · '+escQ(l.badge)+'\')" '
-        +'style="background:linear-gradient(135deg,#FFD600,#FFB300);color:#0D47A1;border:none;border-radius:99px;padding:1px 8px;font-size:10.5px;font-weight:800;cursor:pointer;font-family:var(--fh);line-height:1.6;">'+l.icon+' L'+l.level+'</button>';
+      pills+='<button class="rw-btn rw-pz" title="Game prize to hand over — tap when given" onclick="queueGivePrize(\''+cid+'\',\''+escQ(c.name)+'\','+l.pts+',\'Level '+l.level+' · '+escQ(l.badge)+'\')">'+l.icon+' PRIZE L'+l.level+'</button>';
     }
   });
   pills+='</span>';
@@ -819,6 +954,7 @@ function buildLoyaltyInCell(r){
 }
 
 function buildRow(r){
+  const frz=!!(window.MC&&MC.billing&&MC.billing.frozenGrid&&MC.billing.frozenGrid());  // amount/tip/payment are set at checkout, not typed here
   const done=r.status==='done';const called=r.status==='called';const cancelled=r.status==='cancelled';
   const guest=r.is_guest||!r.customer_id;const locked=done||cancelled;
   const sp=done?'<span class="sp sp-d">✅ Done</span>':called?'<span class="sp sp-c">📢 Called</span>':cancelled?'<span class="sp" style="background:#F3F4F6;color:var(--muted);">✕ Cancelled</span>':'<span class="sp sp-w">⏳ Waiting</span>';
@@ -834,7 +970,9 @@ function buildRow(r){
   const c=cid?_custMap[cid]:null;
   const loyaltyCell=buildLoyaltyInCell(r);
 
-  return'<tr class="'+(done?'done':called?'called':cancelled?'done':'')+'" id="qr-'+r.id+'">'
+  const rwx=(!done&&!cancelled)?rewardsFor(r):{fw:false,levels:[]};
+  const hasRw=rwx.fw||rwx.levels.length>0;
+  return'<tr class="'+(done?'done':called?'called':cancelled?'done':'')+(hasRw?' reward'+(rwx.fw?' rw-fwrow':''):'')+'" id="qr-'+r.id+'">'
     +'<td><div class="tok-b '+(guest?'guest':'')+'">'+String(r.token_number).padStart(2,'0')+'</div></td>'
     // Name + pills on mobile line
     +'<td>'
@@ -843,6 +981,7 @@ function buildRow(r){
         +(guest?'👤 Guest':'📱 '+displayMob(r.mobile||''))
         +loyaltyCell
       +'</div>'
+      +(hasRw?'<div class="rw-note">🔔 '+(rwx.fw?'Free hair wash due':'')+(rwx.fw&&rwx.levels.length?' · ':'')+(rwx.levels.length?'Game prize to give':'')+' — tell the customer</div>':'')
     +'</td>'
     // Service
     +'<td><select class="isel" onchange="updF(\''+r.id+'\',\'service\',this.value)"'+(locked?' disabled':'')+'>'+svcOpts+'</select></td>'
@@ -857,6 +996,14 @@ function buildRow(r){
     +(()=>{
       const pmtVal=r.payment_type||'';
       const pmtOpts=['','Cash','Credit'].map(p=>'<option value="'+p+'"'+(pmtVal===p?' selected':'')+'>'+( p||'— Pay —')+'</option>').join('');
+      if(frz&&!locked){
+        return '<td>'
+          +'<div style="margin-bottom:3px;"><span style="display:inline-block;font-size:11px;font-weight:700;color:'+(svcVal?'var(--b)':'var(--muted)')+';background:#F8FAFF;border:1px dashed #CBD5E1;border-radius:8px;padding:6px 10px;">'+(svcVal?'AED '+svcVal+(tip?' · tip '+tip:''):'💳 Amount set at checkout')+'</span></div>'
+          +'<input id="aed-'+r.id+'" type="hidden" value="'+(svcVal||'')+'"/><input id="tip-'+r.id+'" type="hidden" value="'+(tip||'')+'"/><input id="pmt-'+r.id+'" type="hidden" value="'+pmtVal+'"/>'
+          +'<input class="isel" type="text" placeholder="Remark..." maxlength="40" value="'+remark+'" style="width:100%;font-size:10.5px;padding:3px 5px;color:var(--muted);" '
+            +'onblur="updF(\''+r.id+'\',\'remark\',this.value)" onkeydown="if(event.key===\'Enter\')this.blur()"/>'
+          +'</td>';
+      }
       return '<td>'
         +'<div style="display:flex;gap:4px;align-items:flex-end;margin-bottom:3px;">'
           +'<div style="display:flex;flex-direction:column;align-items:center;gap:1px;">'
@@ -888,7 +1035,7 @@ function buildRow(r){
     :(!called?'<button class="btn btn-b btn-sm" style="white-space:nowrap;" onclick="updS(\''+r.id+'\',\'called\')">📢 Call</button>':'')+
      '<button class="btn btn-g btn-sm" style="white-space:nowrap;" '
        +(!called?'disabled title="Call the customer first" style="opacity:.4;cursor:not-allowed;" ':'')
-       +'onclick="markDone(\''+r.id+'\',\''+r.customer_id+'\',\''+escQ(r.customer_name)+'\',\''+r.mobile+'\')">✅ Stamp</button>'+
+       +(frz?'onclick="MC.billing.stampFlow(\''+r.id+'\')">✅ Stamp &amp; Checkout</button>':'onclick="markDone(\''+r.id+'\',\''+r.customer_id+'\',\''+escQ(r.customer_name)+'\',\''+r.mobile+'\')">✅ Stamp</button>')+
      '<button class="btn btn-sm" style="background:#F3F4F6;color:var(--muted);white-space:nowrap;" onclick="cancelToken(\''+r.id+'\',\''+escQ(r.customer_name)+'\')">✕</button>')
     +'</div></td>'
     +'</tr>';
@@ -910,6 +1057,7 @@ async function queueGiveFreeWash(custId,name,queueId,mobile){
     // Update local cache
     if(_custMap[custId]){_custMap[custId].stamps=0;_custMap[custId].expiry_date=null;}
     toast('🚿 Free wash redeemed for '+name+' — stamp card reset!');
+    try{refreshRewardBadges(true);}catch(e){}
     renderQ();
     // WhatsApp nudge
     if(mobile&&!mobile.startsWith('GUEST')){
@@ -926,6 +1074,7 @@ async function queueGivePrize(custId,name,stagePts,stageLabel){
     if(!_prizesMap[custId]) _prizesMap[custId]=[];
     _prizesMap[custId].push({customer_id:custId,stage_pts:stagePts,stage_label:stageLabel,given_at:new Date().toISOString()});
     toast('🎁 '+stageLabel+' given to '+name+'!');
+    try{refreshRewardBadges(true);}catch(e){}
     renderQ();
   }catch(e){toast('Error: '+e.message,'err');}
 }
@@ -936,34 +1085,92 @@ let _histData=[];
 function histSetDate(d){const el=document.getElementById('hist-date');if(el)el.value=d;}
 function histGetDate(){return document.getElementById('hist-date')?.value||today();}
 function histNav(dir){
-  const d=new Date(histGetDate()+'T12:00:00');
-  d.setDate(d.getDate()+dir);
-  histSetDate(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'));
+  const per=histPeriod(),ymd=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  const mode=document.getElementById('hist-mode')?.value||'day';
+  if(mode==='day'){const d=new Date(histGetDate()+'T12:00:00');d.setDate(d.getDate()+dir);histSetDate(ymd(d));}
+  else{ // a range moves by its own length and becomes a custom range
+    const len=Math.round((new Date(per.to+'T12:00:00')-new Date(per.from+'T12:00:00'))/864e5)+1;
+    const f=new Date(per.from+'T12:00:00'),e=new Date(per.to+'T12:00:00');f.setDate(f.getDate()+dir*len);e.setDate(e.getDate()+dir*len);
+    document.getElementById('hist-mode').value='custom';document.getElementById('hist-custom').style.display='flex';
+    document.getElementById('hist-from').value=ymd(f);document.getElementById('hist-to').value=ymd(e);
+  }
   loadHist();
 }
 const _custFetched=new Set();
 
+/* period shown in History: one day (default) or a range. Returns {from,to,single} */
+function histPeriod(){
+  const mode=document.getElementById('hist-mode')?.value||'day',t=today();
+  const ad=(ymd,n)=>{const d=new Date(ymd+'T12:00:00');d.setDate(d.getDate()+n);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
+  if(mode==='7')return{from:ad(t,-6),to:t,single:false};
+  if(mode==='30')return{from:ad(t,-29),to:t,single:false};
+  if(mode==='month')return{from:t.slice(0,8)+'01',to:t,single:false};
+  if(mode==='custom'){let f=document.getElementById('hist-from')?.value||t,e=document.getElementById('hist-to')?.value||f;if(e<f){const x=f;f=e;e=x;}return{from:f,to:e,single:f===e};}
+  const d=histGetDate();return{from:d,to:d,single:true};
+}
+function histModeChange(){
+  const m=document.getElementById('hist-mode').value,c=document.getElementById('hist-custom');
+  if(c)c.style.display=m==='custom'?'flex':'none';
+  if(m==='custom'){const f=document.getElementById('hist-from'),e=document.getElementById('hist-to');if(f&&!f.value)f.value=histGetDate();if(e&&!e.value)e.value=histGetDate();}
+  loadHist();
+}
+function dubaiYmd(iso){const ms=new Date(iso).getTime();return isNaN(ms)?'':new Date(ms+4*3600e3).toISOString().slice(0,10);}
 async function loadHist(){
-  const date=histGetDate();
+  const per=histPeriod(),date=per.from;
+  const label=per.single?per.from:per.from+' → '+per.to;
   const body=document.getElementById('hist-body');
-  if(body)body.innerHTML='<tr><td colspan="11" style="text-align:center;padding:30px;color:var(--muted);">Loading '+date+'...</td></tr>';
+  if(body)body.innerHTML='<tr><td colspan="11" style="text-align:center;padding:30px;color:var(--muted);">Loading '+label+'...</td></tr>';
   const sumEl=document.getElementById('hist-summary');if(sumEl)sumEl.style.display='none';
   try{
-    const rows=await sb('queue','GET',null,'select=*&checkin_date=eq.'+date+'&order=token_number.asc&limit=500');
+    const q='select=*&checkin_date=gte.'+per.from+'&checkin_date=lte.'+per.to+'&order=checkin_date.asc,token_number.asc';
+    const rows=window.MC&&MC.sbAll?await MC.sbAll('queue',q,12):await sb('queue','GET',null,q+'&limit=1000');
     _histData=rows||[];
-    const custIds=_histData.map(r=>r.customer_id).filter(Boolean);
-    const missing=custIds.filter(id=>!_custFetched.has(id));
-    if(missing.length){
-      const orFilter=missing.map(id=>'id.eq.'+id).join(',');
-      const custs=await sb('customers','GET',null,'select=id,location,heard_via&or=('+orFilter+')&limit=500');
+    await loadVoidedSet(per.from,per.to);
+    // customers: we need created_at to tell new from returning, so fetch any that don't have it yet
+    const need=[...new Set(_histData.map(r=>r.customer_id).filter(Boolean))].filter(id=>!(_custMap[id]&&_custMap[id].created_at));
+    for(let i=0;i<need.length;i+=80){
+      const chunk=need.slice(i,i+80);
+      const custs=await sb('customers','GET',null,'select=id,location,heard_via,created_at&id=in.('+chunk.join(',')+')&limit=100');
       (custs||[]).forEach(c=>{_custMap[c.id]=Object.assign(_custMap[c.id]||{},c);});
-      missing.forEach(id=>_custFetched.add(id));
+      chunk.forEach(id=>_custFetched.add(id));
     }
     renderHist();
   }catch(e){
     console.error('loadHist:',e);
     if(body)body.innerHTML='<tr><td colspan="11" style="color:var(--err);padding:16px;">Error: '+e.message+'</td></tr>';
   }
+}
+/* High-level numbers for the period: visits, new / returning children, guests, revenue.
+   New = the child was registered inside the period (customers.created_at, Dubai date); returning = registered earlier;
+   guest = no profile. Children are counted once however many visits they had. */
+function histStats(data,per){
+  const done=data.filter(r=>r.status==='done'&&!isVoidedVisit(r));
+  const newK=new Set(),retK=new Set();let guests=0,newV=0,retV=0;
+  done.forEach(r=>{
+    if(!r.customer_id){guests++;return;}
+    const c=_custMap[r.customer_id],cd=c&&c.created_at?dubaiYmd(c.created_at):'';
+    const isNew=cd&&cd>=per.from&&cd<=per.to;
+    if(isNew){newK.add(r.customer_id);newV++;}else{retK.add(r.customer_id);retV++;}
+  });
+  [...newK].forEach(id=>retK.delete(id));
+  const rev=done.reduce((a,r)=>a+(Number(r.service_value)||0),0),tips=done.reduce((a,r)=>a+(Number(r.tip)||0),0);
+  return{visits:done.length,newKids:newK.size,retKids:retK.size,guests,newV,retV,rev,tips,
+    cancelled:data.filter(r=>r.status==='cancelled').length,voided:data.filter(isVoidedVisit).length,open:data.filter(r=>r.status!=='done'&&r.status!=='cancelled').length};
+}
+function histTiles(st,per){
+  const days=Math.round((new Date(per.to+'T12:00:00')-new Date(per.from+'T12:00:00'))/864e5)+1;
+  const kids=st.newKids+st.retKids,pct=n=>kids?Math.round(n/kids*100)+'%':'—';
+  const tile=(n,l,sub,c)=>'<div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:10px 12px;min-width:0;"><div style="font:900 21px var(--fh);color:'+(c||'var(--bd)')+';line-height:1.1;">'+n+'</div><div style="font-size:10.5px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-top:2px;">'+l+'</div>'+(sub?'<div style="font-size:11px;color:var(--muted);margin-top:2px;">'+sub+'</div>':'')+'</div>';
+  return '<div id="hist-tiles" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:10px;">'
+    +tile(st.visits,'Visits served',days>1?(st.visits/days).toFixed(1)+' per day':(st.open?st.open+' still open':''))
+    +tile(kids,'Children',kids?'new + returning':'')
+    +tile(st.newKids,'New customers',pct(st.newKids)+' of children','#7C3AED')
+    +tile(st.retKids,'Returning',pct(st.retKids)+' of children','#1565C0')
+    +tile(st.guests,'Guests','walk-ins without a profile','#64748B')
+    +tile('AED '+Math.round(st.rev),'Revenue',st.visits?'avg AED '+Math.round(st.rev/st.visits)+' / visit':'','var(--ok)')
+    +tile('AED '+Math.round(st.tips),'Tips','','#16A34A')
+    +((st.voided||st.cancelled)?tile((st.voided||0)+(st.cancelled||0),'Voided / cancelled',(st.voided?st.voided+' voided bill'+(st.voided>1?'s':''):'')+(st.voided&&st.cancelled?' · ':'')+(st.cancelled?st.cancelled+' cancelled':'')+' — not counted as served','#DC2626'):'')
+  +'</div>';
 }
 function buildSrcLocLine(custId){
   if(!custId)return'';
@@ -977,12 +1184,14 @@ function buildSrcLocDirect(heard_via, location){
   if(!bits.length)return'';
   return'<div style="display:flex;flex-direction:column;align-items:flex-start;gap:3px;margin-top:3px;width:100%;min-width:0;">'+bits.join('')+'</div>';
 }
+function mcLabelCells(tblBody){try{const t=tblBody.closest('table');const hs=[...t.querySelectorAll('thead th')].map(h=>h.textContent.trim());tblBody.querySelectorAll('tr').forEach(tr=>{[...tr.children].forEach((td,i)=>{if(!td.hasAttribute('colspan')&&hs[i])td.setAttribute('data-label',hs[i]);});});}catch(e){}}
 function renderHist(){
   const body=document.getElementById('hist-body');if(!body)return;
-  const date=histGetDate();const isToday=date===today();
+  const per=histPeriod();const date=per.single?per.from:per.from+' → '+per.to;const isToday=per.single&&per.from===today();
   const data=_histData;
-  if(!data.length){body.innerHTML='<tr><td colspan="11" style="text-align:center;padding:40px;color:var(--muted);">No records for '+date+' 🐼</td></tr>';return;}
-  const stamped=data.filter(r=>r.status==='done');
+  if(!data.length){const se=document.getElementById('hist-summary');if(se){se.style.display='block';se.innerHTML=histTiles(histStats([],per),per);}body.innerHTML='<tr><td colspan="11" style="text-align:center;padding:40px;color:var(--muted);">No records for '+date+' 🐼</td></tr>';return;}
+  const hst=histStats(data,per);
+  const stamped=data.filter(r=>r.status==='done'&&!isVoidedVisit(r));
   const totalTips=stamped.filter(r=>r.tip>0).reduce((s,r)=>s+(Number(r.tip)||0),0);
   const totalRev=stamped.filter(r=>r.service_value>0).reduce((s,r)=>s+(Number(r.service_value)||0),0);
   const cashRev=stamped.filter(r=>r.payment_type==='Cash').reduce((s,r)=>s+(Number(r.service_value)||0),0);
@@ -992,9 +1201,9 @@ function renderHist(){
   const done=stamped.length;
   const sumEl=document.getElementById('hist-summary');
   if(sumEl){sumEl.style.display='block';
-    sumEl.innerHTML=
-      '<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:6px;">'
-      +'<span style="font-size:13px;">📊 <strong>'+date+(isToday?' (Today)':'')+'</strong> · '+data.length+' check-ins · '+done+' served</span>'
+    sumEl.innerHTML=histTiles(hst,per)
+      +'<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:6px;">'
+      +'<span style="font-size:13px;">📊 <strong>'+date+(isToday?' (Today)':'')+'</strong> · '+data.length+' check-ins · '+done+' served'+(hst.voided?' · '+hst.voided+' voided':'')+(hst.cancelled?' · '+hst.cancelled+' cancelled':'')+'</span>'
       +'</div>'
       +'<div style="display:flex;flex-wrap:wrap;gap:8px;">'
       +'<span style="background:#E0F2FE;color:#0369A1;padding:5px 13px;border-radius:8px;font-size:12.5px;font-weight:700;">💰 Total: AED '+(totalRev+totalTips)+'</span>'
@@ -1003,7 +1212,7 @@ function renderHist(){
       +'</div>';}
   body.innerHTML=data.slice().reverse().map(r=>{
     const done=r.status==='done';const called=r.status==='called';const cancelled=r.status==='cancelled';const guest=r.is_guest;
-    const sp=done?'<span class="sp sp-d">✅ Done</span>':called?'<span class="sp sp-c">📢 Called</span>':cancelled?'<span class="sp" style="background:#F3F4F6;color:var(--muted);">✕ Cancelled</span>':guest?'<span class="sp sp-g">👤 Guest</span>':'<span class="sp sp-w">⏳ Waiting</span>';
+    const sp=isVoidedVisit(r)?'<span class="sp" style="background:#FEE2E2;color:#B91C1C;">🚫 Voided</span>':done?'<span class="sp sp-d">✅ Done</span>':called?'<span class="sp sp-c">📢 Called</span>':cancelled?'<span class="sp" style="background:#F3F4F6;color:var(--muted);">✕ Cancelled</span>':guest?'<span class="sp sp-g">👤 Guest</span>':'<span class="sp sp-w">⏳ Waiting</span>';
     const styStr=[r.stylist,r.stylist2].filter(Boolean).join(' & ');
     const hasMob=r.mobile&&!String(r.mobile).startsWith('GUEST')&&String(r.mobile).replace(/\D/g,'').length>4;
     const waHistBtn=hasMob
@@ -1023,15 +1232,14 @@ function renderHist(){
       +'</td>'
       +'<td>'+(r.service||'—')+'</td>'
       +'<td>'+(styStr||'<span style="color:var(--muted);">—</span>')+'</td>'
-      +'<td style="font-weight:800;color:var(--b);">'+(r.service_value?'AED '+r.service_value:'—')+'</td>'
+      +'<td style="font-weight:800;color:var(--b);">'+(r.service_value?'AED '+r.service_value:'—')+(window.MC&&MC.billing&&MC.billing.cellNote?MC.billing.cellNote(r):'')+'</td>'
       +'<td style="font-weight:800;color:var(--ok);">'+(r.tip?'AED '+r.tip:'—')+'</td>'
       +'<td>'+payBadge+'</td>'
       +'<td style="font-size:12px;color:var(--muted);max-width:150px;">'+(r.remark||'—')+'</td>'
       +'<td>'+sp+'</td>'
-      +'<td style="font-size:12px;color:var(--muted);">'+fmtT(r.checkin_time)+'</td>'
+      +'<td style="font-size:12px;color:var(--muted);">'+(per.single?'':'<div style="font-weight:700;">'+r.checkin_date+'</div>')+fmtT(r.checkin_time)+'</td>'
       +'<td><div style="display:flex;flex-direction:column;gap:4px;">'
         +'<button class="btn btn-ghost btn-sm" style="font-size:11px;" onclick="editHistRow(\''+r.id+'\')">✏️ Edit</button>'
-        +waHistBtn
         +(window.mcRowButton?window.mcRowButton(r):'')
       +'</div></td>'
       +'</tr>';
@@ -1046,6 +1254,7 @@ function renderHist(){
     +'</td>'
     +'<td colspan="3" style="padding:10px 14px;color:var(--muted);font-size:12px;">Combined: AED '+(totalRev+totalTips)+'</td>'
   +'</tr>';
+  mcLabelCells(body);
 }
 
 
@@ -1118,11 +1327,11 @@ function editHistRow(id){
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
           <div><label style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px;">💵 Service Value (AED)</label>
-            <input id="eh-val" class="fi" type="number" min="0" step="5" value="${r.service_value||''}" placeholder="0" style="font-size:13px;"/></div>
+            <input id="eh-val" class="fi" type="number" min="0" step="5" ${r.invoice_id?'disabled title="Void the invoice to change this"':''} value="${r.service_value||''}" placeholder="0" style="font-size:13px;"/></div>
           <div><label style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px;">💰 Tip (AED)</label>
-            <input id="eh-tip" class="fi" type="number" min="0" step="5" value="${r.tip||''}" placeholder="0" style="font-size:13px;"/></div>
+            <input id="eh-tip" class="fi" type="number" min="0" step="5" ${r.invoice_id?'disabled title="Void the invoice to change this"':''} value="${r.tip||''}" placeholder="0" style="font-size:13px;"/></div>
           <div><label style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px;">💳 Payment</label>
-            <select id="eh-pmt" class="fi" style="font-size:13px;">
+            <select id="eh-pmt" class="fi" style="font-size:13px;" ${r.invoice_id?'disabled title="Void the invoice to change this"':''}>
               <option value="">— Select —</option>
               <option value="Cash"${r.payment_type==='Cash'?' selected':''}>💵 Cash</option>
               <option value="Credit"${r.payment_type==='Credit'?' selected':''}>💳 Credit</option>
@@ -1176,6 +1385,7 @@ async function updS(id,status){
   const prevStatus=r?.status;
   if(r){r.status=status;if(status==='called')r.called_at=new Date().toISOString();}
   renderQ();updateStats();
+  if(status==='called'&&r){const m=rewardText(r);if(m)rewardAlert(m);}
   // Fire DB in background
   try{
     const patch={status};
@@ -1255,6 +1465,7 @@ async function markDone(qid,cid,name,mob){
       if(_custMap[cid]){_custMap[cid].stamps=ns;_custMap[cid].expiry_date=exp;}
       const paid=paidNeeded();const styStr=[stylist,stylist2].filter(Boolean).join(' & ');
       toast(name+' — Stamp '+ns+'/'+(paid+1)+(ns>paid?' 🎁':'')+(styStr?' · '+styStr:'')+(service_value?' · AED '+service_value:'')+(tip?' · Tip '+tip:''));
+      try{refreshRewardBadges(true);}catch(e){}
       showWAPrompt(name,ns,mob,c.parent,c.gender,stylist,stylist2,remark,tip,service_value);
     }else{
       toast(name+' done (guest)'+(service_value?' · AED '+service_value:'')+(tip?' · Tip AED '+tip:''),'info');
@@ -1331,7 +1542,33 @@ function showWAPrompt(name,stamps,mobile,parent,gender,stylist,stylist2,remark,t
 }
 
 // CONFIG
-function loadCfgScreen(){loadGvSetup();if(window.MC&&MC.billing){MC.billing.renderSettings();MC.appt.renderSettings();}
+
+const CFG_SECS=[['invoice','🧾 Invoice & Tax'],['loyalty','🎯 Loyalty'],['appt','📅 Appointments'],['wa','📲 WhatsApp'],['team','✂️ Team'],['vouchers','🎁 Vouchers'],['tools','🔧 Tools']];
+function cfgSecOf(card){
+  if(card.parentElement&&card.parentElement.dataset&&card.parentElement.dataset.sec)return card.parentElement.dataset.sec;
+  const t=((card.querySelector('.card-title')||{}).textContent||'');
+  if(/Stylist/.test(t))return 'team';
+  if(/WhatsApp|Message/.test(t))return 'wa';
+  if(/Voucher/.test(t))return 'vouchers';
+  return 'tools';
+}
+function cfgShow(sec){
+  try{localStorage.setItem('mc_cfg_sec',sec);}catch(e){}
+  document.querySelectorAll('#cfg-nav button').forEach(b=>b.className='btn btn-sm '+(b.dataset.s===sec?'btn-b':'btn-ghost'));
+  document.querySelectorAll('#t-config .card').forEach(c=>{c.style.display=cfgSecOf(c)===sec?'':'none';});
+  document.querySelectorAll('#t-config [data-sec]').forEach(w=>{w.style.display=w.dataset.sec===sec?'':'none';});
+  document.querySelectorAll('#t-config > div:not(#cfg-nav):not(#cfg-top)').forEach(g=>{const any=[...g.querySelectorAll('.card')].some(c=>c.style.display!=='none');g.style.display=any?'':'none';});
+}
+function cfgInitNav(){
+  const nav=document.getElementById('cfg-nav');if(!nav)return;
+  if(!nav.children.length){nav.innerHTML=CFG_SECS.map(x=>'<button class="btn btn-sm btn-ghost" data-s="'+x[0]+'">'+x[1]+'</button>').join('');nav.querySelectorAll('button').forEach(b=>b.onclick=()=>cfgShow(b.dataset.s));}
+  let s='invoice';try{s=localStorage.getItem('mc_cfg_sec')||'invoice';}catch(e){}
+  cfgShow(CFG_SECS.some(x=>x[0]===s)?s:'invoice');
+}
+/* each settings block loads on its own: one failing block must never blank the whole Settings page */
+function cfgSafe(label,fn){try{const r=fn();if(r&&r.catch)r.catch(e=>{console.error('Settings: '+label,e);cfgBlockError(label,e);});}catch(e){console.error('Settings: '+label,e);cfgBlockError(label,e);}}
+function cfgBlockError(label,e){const ids={invoice:'mc-settings-billing',loyalty:'mc-settings-loyalty',appointments:'mc-settings-appt',whatsapp:'mc-settings-wa'};const el=document.getElementById(ids[label]);if(el)el.innerHTML='<div class="card"><div class="card-title">⚠️ '+label+' settings could not load</div><p style="font-size:12.5px;color:var(--muted);">'+String(e&&e.message||e).replace(/</g,'&lt;')+' — refresh the page (Ctrl+Shift+R). If it stays, make sure all app files were uploaded together.</p></div>';}
+function loadCfgScreen(){cfgSafe('vouchers',()=>loadGvSetup());cfgSafe('invoice',()=>window.MC&&MC.billing&&MC.billing.renderSettings());cfgSafe('loyalty',()=>window.MC&&MC.loyalty&&MC.loyalty.render());cfgSafe('appointments',()=>window.MC&&MC.appt&&MC.appt.renderSettings());cfgSafe('whatsapp',()=>window.MC&&MC.billing&&MC.billing.renderWaSettings());cfgInitNav();
   const ta=document.getElementById('cfg-sty');
   if(ta)ta.value=STYLISTS.join('\n');
   const tmpl=document.getElementById('cfg-wa-tmpl');
@@ -1512,6 +1749,7 @@ async function pzGive(e,custId,custName,stagePts,stageLabel){
     await sb('prizes_given','POST',{customer_id:custId,stage_pts:stagePts,stage_label:stageLabel,given_at:new Date().toISOString(),given_by:'staff'});
     _pzPrizes.push({customer_id:custId,stage_pts:stagePts,stage_label:stageLabel,given_at:new Date().toISOString(),given_by:'staff'});
     toast('🎁 Prize marked as given for '+custName);
+    try{refreshRewardBadges(true);}catch(e){}
     // Check if player still has pending prizes after this one
     const player=_pzPlayers.find(p=>p.id===custId);
     const stillPending=player?pzPending(player).length>0:false;
@@ -1644,6 +1882,7 @@ async function markFreeWashGiven(id,name,btn){
     await sb('customers','PATCH',{stamps:0,redemptions:(c.redemptions||0)+1,first_stamp_date:null,expiry_date:null,last_visit_date:now},'id=eq.'+id);
     await sb('visits','POST',{customer_id:id,type:'free',stamp_count_after:0,cycle_expiry:null});
     toast('🚿 Free wash marked as given for '+name+' — stamp card reset!');
+    try{refreshRewardBadges(true);}catch(e){}
     loadFreeWash();
   }catch(e){
     toast('Error: '+e.message,'err');
@@ -2256,9 +2495,12 @@ function setDefaultExpiry() {
 setDefaultExpiry();
 
 </script>
-<script src="mc-common.js"></script>
-<script src="mc-billing.js"></script>
-<script src="mc-appointments.js"></script>
-<script src="mc-reports.js"></script>
+<script src="mc-common.js?v=20261015b"></script>
+<script src="mc-billing.js?v=20261015b"></script>
+<script src="mc-appointments.js?v=20261015b"></script>
+<script src="mc-reports.js?v=20261015b"></script>
+<script src="mc-customers.js?v=20261015b"></script>
+<script src="mc-loyalty.js?v=20261015b"></script>
+<script src="mc-insights.js?v=20261015b"></script>
 </body>
 </html>
