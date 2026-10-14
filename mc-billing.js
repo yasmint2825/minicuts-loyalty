@@ -87,7 +87,7 @@
 
     const chips = [0, 5, 10, 15, 20, 25, 50].map(p => '<button type="button" class="btn btn-ghost btn-sm mc-chip" data-p="' + p + '" style="padding:6px 10px;">' + (p ? p + '%' : 'None') + '</button>').join('');
     const ov = MC.modal(
-      '<div style="font-family:var(--fh);font-size:19px;font-weight:800;color:var(--bd);">💳 Checkout</div>' +
+      '<div style="font-family:var(--fh);font-size:19px;font-weight:800;color:var(--bd);">💳 Checkout <span style="font-size:10px;font-weight:600;color:var(--muted);">' + MC.esc(MC.version) + '</span></div>' +
       '<div style="font-size:13px;color:var(--muted);margin:2px 0 14px;">' + MC.esc(r.customer_name || 'Guest') + ' · Token ' + MC.pad(r.token_number || 0) + (stylistsOf(r) ? ' · ' + MC.esc(stylistsOf(r)) : '') + '</div>' +
       '<div style="display:grid;gap:12px;">' +
         '<div>' + MC.lbl('Service') + '<div id="mcc-types" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;"></div>' +
