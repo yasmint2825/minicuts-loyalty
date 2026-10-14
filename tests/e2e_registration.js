@@ -92,7 +92,8 @@ const filt = (rows, qs) => { qs.forEach((v, k) => { if (['select', 'order', 'lim
   DB.customers.push({ id: 'cNoor', name: 'Noor', mobile: '971541112223', gender: 'Girl', dob: null, location: null, heard_via: null, stamps: 0 });
   await openNew(); await pg.fill('#ma-q', '0541112223'); await pg.waitForSelector('[data-cid="cNoor"]'); await pg.click('[data-cid="cNoor"]'); await bookIt();
   const apC = DB.appointments.find(a => a.customer_name === 'Noor'); ok(apC && apC.status === 'booked', 'C2: booked while details were missing (still allowed)');
-  await arrive(apC.id); await pg.waitForSelector('text=Profile missing', { timeout: 3000 }); ok(true, 'C2: appointment card warns that details are missing');
+  await arrive(apC.id); await pg.waitForSelector('text=Profile missing', { timeout: 3000 }); ok(/T&C/.test(await pg.innerText('.mc-box >> nth=-1')), 'C2: appointment card warns that details (incl. T&C) are missing');
+  await pg.click('#mp-fill'); await pg.waitForSelector('#pd-tc'); ok(true, 'C2: card button opens the profile window with the T&C checkbox'); await pg.click('#pd-skip'); await pg.waitForTimeout(300);
   await pg.click('#mp-in'); await pg.waitForSelector('#pd-save');
   await pg.click('#pd-save'); ok(/birthday/i.test(await pg.innerText('#pd-msg')), 'C2: arrival asks birthday before the token');
   await pg.fill('[data-dob]', '2020-09-10'); await pg.click('#pd-save'); ok(/area/i.test(await pg.innerText('#pd-msg')), 'C2: arrival asks area');
