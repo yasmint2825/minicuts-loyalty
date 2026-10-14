@@ -82,9 +82,12 @@ const filt = (rows, qs) => { qs.forEach((v, k) => { if (['select', 'order', 'lim
   await pg.fill('#ma-q', '0559998888'); await pg.waitForSelector('#ma-addnew:has-text("No match")'); await pg.click('#ma-addnew');
   ok(await pg.inputValue('#mn-mob') === '0559998888', 'new-customer form prefilled with typed mobile');
   await pg.fill('#mn-name', 'Zayd'); await pg.click('#mn-save'); ok(/boy or girl/.test(await pg.innerText('#mn-msg')), 'gender required for a new customer');
-  await pg.click('[data-mg="boy"]'); await pg.click('#mn-save'); await pg.waitForSelector('#ma-change');
-  const zayd = DB.customers.find(c => c.name === 'Zayd'); ok(zayd && zayd.mobile === '971559998888' && zayd.gender === 'boy' && zayd.tc_accepted === false && zayd.dob === null, 'new customer saved in kiosk format');
-  await pg.click('#ma-change'); await pg.fill('#ma-q', '0559998888'); await pg.waitForSelector('[data-addto]'); await pg.click('[data-addto]'); await pg.fill('#mn-name', 'zayd'); await pg.click('[data-mg="boy"]'); await pg.click('#mn-save'); await pg.waitForSelector('#ma-change');
+  await pg.click('[data-mg="boy"]'); await pg.click('#mn-save'); ok(/birthday/i.test(await pg.innerText('#mn-msg')), 'registration asks for the birthday');
+  await pg.fill('#mn-dob', '2021-05-06'); await pg.click('#mn-save'); ok(/area/i.test(await pg.innerText('#mn-msg')), 'registration asks for the area');
+  await pg.selectOption('#mn-loc', 'Al Barsha'); await pg.click('#mn-save'); ok(/heard/i.test(await pg.innerText('#mn-msg')), 'registration asks how they heard of us');
+  await pg.click('[data-mh="Instagram"]'); await pg.click('#mn-save'); await pg.waitForSelector('#ma-change');
+  const zayd = DB.customers.find(c => c.name === 'Zayd'); ok(zayd && zayd.mobile === '971559998888' && zayd.gender === 'boy' && zayd.tc_accepted === false && zayd.dob === '2021-05-06' && zayd.location === 'Al Barsha' && zayd.heard_via === 'Instagram', 'new customer saved in kiosk format with birthday, area and source');
+  await pg.click('#ma-change'); await pg.fill('#ma-q', '0559998888'); await pg.waitForSelector('[data-addto]'); await pg.click('[data-addto]'); ok(await pg.inputValue('#mn-loc') === 'Al Barsha', 'sibling area is prefilled'); await pg.fill('#mn-name', 'zayd'); await pg.click('[data-mg="boy"]'); await pg.fill('#mn-dob', '2021-05-06'); await pg.click('#mn-save'); await pg.waitForSelector('#ma-change');
   ok(DB.customers.filter(c => /zayd/i.test(c.name)).length === 1, 'same child + number is not duplicated');
   await pg.click('#ma-change'); await pg.fill('#ma-q', '050123'); await pg.waitForSelector('[data-cid="c1"]'); await pg.click('[data-cid="c1"]');
   ok((await pg.$$eval('#ma-svc option', o => o.map(x => x.textContent))).every(t => !/\((Boy|boys)\)/.test(t)), 'services follow the child\'s gender (girl sees no boy-only services)');
