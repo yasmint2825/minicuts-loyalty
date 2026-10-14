@@ -135,4 +135,5 @@ end $$;
 -- Body:
 --   Hi {{1}}, thank you for visiting MiNiCUTS. Your invoice {{2}} dated {{3}} for {{4}} is ready.
 --   View or download it here: {{5}}
+--   Thank you for choosing MiNiCUTS.      (Meta rejects a body that ends with a variable)
 -- Samples: {{1}}=Aisha  {{2}}=MC/2026/00012  {{3}}=14 Oct 2026  {{4}}=AED 42.00  {{5}}=https://.../invoices/abc.pdf
