@@ -51,3 +51,11 @@ The staff page now has a left sidebar (a drawer on phones): **Today** (Queue, Ap
 **Insights** (`mc-insights.js`, read-only): Overview, Customers (mix, ages, areas, sources, registrations), Retention (return rate by window, gender, age, needs-attention), Operations (load by day, busiest times, wait/service time per stylist, long-wait days), Acquisition (new vs returning per source), Games. Revenue figures sit behind the same PIN as Reports. Revenue by day/stylist/service and the VAT report stay in Reports; the one-off Excel history import stays in the Loyalty app.
 
 Notes: `queue.checkin_time` is a UTC timestamp, so busiest-times shifts it to Dubai (UTC+4). Return rate uses the `visits` log (paid + free washes), same source as the Loyalty app. Practice mode (`?demo=1`) now seeds about ten weeks of history so these screens have data (storage key `mc_demo_db_v2`).
+
+## Loyalty settings, reward badges and queue highlights (staff app)
+
+- **Settings → 🎯 Loyalty** (`mc-loyalty.js`) edits the shared `loyalty_config` row: visits needed for the free wash, boy/girl passport validity, nudge / lapsed / expiry-warning timings, the loyalty WhatsApp wording and the after-service message. Prize levels are shown read-only (they live in the game). Login details are neither shown nor changed.
+- Saving is safe by design: values are range-checked, a before → after list must be confirmed, the row is re-read just before writing and only the managed fields are replaced (credentials and any other key are kept), then the staff app applies the new rules at once.
+- **Menu numbers**: Free wash (green) = children with a free wash waiting and a valid passport; Game prizes (red) = children with an unclaimed prize level; Queue (amber) = waiting/called children who have a reward. Refreshed after every stamp / prize / free wash and every 2 minutes.
+- **Queue**: a child with a free wash or prize gets a tinted row with a coloured edge, a pulsing button (tap = given) and a "tell the customer" note; pressing **Call** shows a banner with what is due.
+- History no longer has a WhatsApp button (Edit / Invoice / Checkout / Void remain).

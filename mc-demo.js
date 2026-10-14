@@ -66,6 +66,7 @@
   let DB = load();
 
   const like = (val, pat) => new RegExp('^' + pat.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*') + '$', 'i').test(String(val == null ? '' : val));
+  const cmp = (a, b) => (a !== '' && a != null && b !== '' && !isNaN(a) && !isNaN(b)) ? Number(a) - Number(b) : (String(a) < String(b) ? -1 : String(a) > String(b) ? 1 : 0);   // numbers compare as numbers, dates/text as text
   const filt = (rows, qs) => {
     qs.forEach((v, k) => {
       if (['select', 'order', 'limit', 'offset'].includes(k)) return;
@@ -74,8 +75,8 @@
       if ((m = /^eq\.(.*)$/.exec(v))) rows = rows.filter(r => String(r[k]) === m[1]);
       else if ((m = /^neq\.(.*)$/.exec(v))) rows = rows.filter(r => String(r[k]) !== m[1]);
       else if ((m = /^in\.\((.*)\)$/.exec(v))) rows = rows.filter(r => m[1].split(',').includes(String(r[k])));
-      else if ((m = /^gte\.(.*)$/.exec(v))) rows = rows.filter(r => String(r[k]) >= m[1]);
-      else if ((m = /^lte\.(.*)$/.exec(v))) rows = rows.filter(r => String(r[k]) <= m[1]);
+      else if ((m = /^gte\.(.*)$/.exec(v))) rows = rows.filter(r => cmp(r[k], m[1]) >= 0);
+      else if ((m = /^lte\.(.*)$/.exec(v))) rows = rows.filter(r => cmp(r[k], m[1]) <= 0);
       else if ((m = /^ilike\.(.*)$/.exec(v))) rows = rows.filter(r => like(r[k], m[1]));
       else if (v === 'is.null') rows = rows.filter(r => r[k] == null);
       else if (v === 'not.is.null') rows = rows.filter(r => r[k] != null);

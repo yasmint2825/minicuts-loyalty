@@ -66,6 +66,37 @@ const { chromium } = require('playwright-core'); const path = require('path'); c
   await pg.evaluate(() => { window.__old = MC.appt.renderSettings; MC.appt.renderSettings = () => { throw new Error('boom'); }; showTab('t-config'); loadCfgScreen(); }); await pg.waitForTimeout(500);
   ok((await pg.locator('#cfg-nav button').count()) >= 5 && /could not load/i.test(await pg.innerText('#mc-settings-appt')), 'settings nav still loads when one block fails');
   await pg.evaluate(() => { MC.appt.renderSettings = window.__old; loadCfgScreen(); }); await pg.waitForTimeout(400);
+  // Menu fits without a scrollbar at common laptop heights
+  for (const h of [900, 720, 600]) { await pg.setViewportSize({ width: 1360, height: h }); await pg.waitForTimeout(150); const o = await pg.evaluate(() => { const e = document.getElementById('side'); return e.scrollHeight - e.clientHeight; }); ok(o <= 1, 'sidebar fits with no scrollbar at ' + h + 'px tall (overflow ' + o + ')'); }
+  await pg.setViewportSize({ width: 1360, height: 860 });
+  // History: no WhatsApp button any more, Checkout still there
+  await pg.evaluate(() => { showTab('t-history'); histSetDate(today()); }); await pg.evaluate(() => loadHist()); await pg.waitForTimeout(500);
+  ok((await pg.locator('#hist-body >> text=💬 WA').count()) === 0 && (await pg.locator('#hist-body >> text=💳 Checkout').count()) > 0, 'history rows have no WA button; Checkout remains');
+  // Rewards: queue highlight, call alert, badges
+  await pg.evaluate(() => { showTab('t-queue'); }); await pg.evaluate(() => loadQ()); await pg.waitForTimeout(700);
+  const cid = await pg.evaluate(() => { const r = _qdata.find(x => x.customer_id && x.status === 'waiting'); return r && r.customer_id; });
+  ok(!!cid, 'practice queue has a waiting child');
+  await pg.evaluate(c => { _custMap[c].stamps = paidNeeded(); _custMap[c].expiry_date = null; renderQ(); updateStats(); }, cid); await pg.waitForTimeout(200);
+  ok((await pg.locator('#qt-body tr.reward.rw-fwrow').count()) >= 1 && /Free hair wash due/i.test(await pg.innerText('#qt-body tr.reward .rw-note')), 'queue row is highlighted with a free-wash note');
+  ok(Number(await pg.innerText('#nb-queue')) >= 1 && await pg.evaluate(() => document.getElementById('nb-queue').classList.contains('on')), 'queue tab shows how many waiting children have a reward');
+  await pg.evaluate(c => { const r = _qdata.find(x => x.customer_id === c); updS(r.id, 'called'); }, cid); await pg.waitForTimeout(300);
+  ok(/FREE HAIR WASH/.test(await pg.innerText('#TC')), 'calling a child with a reward pops a banner for the team'); await shot('11-reward-queue');
+  await pg.evaluate(c => MC.sb('customers', 'PATCH', { stamps: 5 }, 'id=eq.' + c), cid); await pg.evaluate(() => refreshRewardBadges(true)); await pg.waitForTimeout(500);
+  ok(await pg.evaluate(() => document.getElementById('nb-fw').classList.contains('on') && Number(document.getElementById('nb-fw').textContent) >= 1), 'Free wash menu shows a number');
+  await pg.evaluate(c => MC.sb('customers', 'PATCH', { game_points: 300 }, 'id=eq.' + c), cid); await pg.evaluate(() => refreshRewardBadges(true)); await pg.waitForTimeout(500);
+  ok(await pg.evaluate(() => document.getElementById('nb-prizes').classList.contains('on')), 'Game prizes menu shows a number'); await shot('12-badges');
+  // Loyalty settings: edit, review, save — credentials and unknown keys must survive
+  await pg.evaluate(() => MC.setConfig('loyalty_config', { user: 'admin', pass: 'keepme', resetCode: 'RC', extraKey: { a: 1 }, stampsNeeded: 6, boyMonths: 12 }));
+  await pg.click('#side [data-p="t-config"]'); await pg.waitForTimeout(500); await pg.click('#cfg-nav button:has-text("Loyalty")'); await pg.waitForSelector('#lo-stampsNeeded');
+  ok((await pg.inputValue('#lo-stampsNeeded')) === '6' && (await pg.inputValue('#lo-girlMonths')) === '15' && (await pg.inputValue('#lo-girlLapsedWeeks')) === '26', 'loyalty settings show the saved rules (defaults for blanks)'); await shot('13-loyalty-settings');
+  await pg.fill('#lo-stampsNeeded', '8'); ok(/7 paid haircuts/.test(await pg.innerText('#lo-rule')), 'rule preview updates live (8 visits = 7 paid)');
+  await pg.fill('#lo-boyNudgeWeeks', '20'); await pg.click('#lo-save'); ok(/nudge should come before/i.test(await pg.innerText('#lo-msg')), 'invalid combination is refused');
+  await pg.fill('#lo-boyNudgeWeeks', '9'); await pg.click('#lo-save'); await pg.waitForSelector('#lo-yes'); ok(/Total visits/.test(await pg.innerText('.mc-ov')) && /Nudge/.test(await pg.innerText('.mc-ov')), 'confirmation lists the changes'); await pg.click('#lo-yes'); await pg.waitForTimeout(700);
+  const saved = await pg.evaluate(() => MC.getConfig('loyalty_config'));
+  ok(saved.stampsNeeded === 8 && saved.boyNudgeWeeks === 9 && saved.user === 'admin' && saved.pass === 'keepme' && saved.resetCode === 'RC' && saved.extraKey.a === 1, 'saved: new rules written, login + unknown keys untouched');
+  ok(await pg.evaluate(() => paidNeeded() === 7 && MC.customers.cfg().paid === 7), 'staff app applies the new rule immediately (paid stamps needed = 7)');
+  await pg.evaluate(c => { _custMap[c].stamps = 5; renderQ(); }, cid); ok(!(await pg.evaluate(c => rewardsFor(_qdata.find(x => x.customer_id === c)).fw, cid)), 'with 8-visit rule, 5 stamps no longer counts as a free wash');
+  await pg.evaluate(() => MC.setConfig('loyalty_config', { stampsNeeded: 6 })); await pg.evaluate(() => { LCFG = { stampsNeeded: 6 }; });
   // mobile
   await pg.setViewportSize({ width: 390, height: 800 }); await pg.waitForTimeout(300); ok(!(await pg.isVisible('#side')) || true, 'mobile layout ok');
   await pg.click('#menuBtn'); await pg.waitForTimeout(350); ok(await pg.isVisible('#side'), 'hamburger opens the drawer'); await shot('06-mobile-drawer');
