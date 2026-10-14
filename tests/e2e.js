@@ -63,7 +63,7 @@ const filt = (rows, qs) => { qs.forEach((v, k) => { if (['select', 'order', 'lim
   ok(DB.queue[0].service_value === 45 && DB.queue[0].invoice_id === inv.id && DB.queue[0].discount_pct === 10, 'queue row updated');
   ok(pdfBytes > 1000 && /invoices\/.*\.pdf$/.test(inv.pdf_url || ''), 'PDF built & uploaded (' + pdfBytes + ' bytes)');
   await pg.evaluate(() => localStorage.setItem('mw_tenant_key', 'k')); await pg.click('#mci-send'); await pg.waitForTimeout(500);
-  ok(waCall && waCall.template_name === 'mc_invoice_utility' && waCall.params.length === 5 && /^https/.test(waCall.params[4]) && DB.invoices[0].whatsapp_sent === true, 'WhatsApp utility call ' + JSON.stringify(waCall && waCall.params));
+  ok(waCall && waCall.template_name === 'booking_completed_invoice' && waCall.params.length === 5 && /^https/.test(waCall.params[4]) && DB.invoices[0].whatsapp_sent === true, 'WhatsApp utility call ' + JSON.stringify(waCall && waCall.params));
   await pg.click('#mci-close'); ok(await pg.locator('text=🧾 Invoice').count() > 0, 'row now shows Invoice button');
   // void → re-checkout allowed
   await pg.locator('text=✕ Void').first().click(); await pg.waitForSelector('#mcv-yes'); await pg.click('#mcv-yes'); await pg.waitForTimeout(500);

@@ -131,7 +131,7 @@ do $$ begin
 end $$;
 
 -- ── 5. WHATSAPP TEMPLATE (reference only — submitted in Meta, not SQL) ──────
--- Name: mc_invoice_utility   Language: en   Category: UTILITY
+-- Name: booking_completed_invoice   Language: en   Category: UTILITY
 -- Body:
 --   Hi {{1}}, thank you for visiting MiNiCUTS. Your invoice {{2}} dated {{3}} for {{4}} is ready.
 --   View or download it here: {{5}}
