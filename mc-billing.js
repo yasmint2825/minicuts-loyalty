@@ -409,10 +409,11 @@
   /* ── WHATSAPP (utility template through the existing Zen `send-whatsapp` function) ── */
   /* Body variables: {{1}} name  {{2}} invoice no  {{3}} date  {{4}} amount  {{5}} PDF link
    * The deployed function supports text body/header parameters only, so the PDF goes in as a link in {{5}}. */
-  B.sendWA = async function (inv) {
+  B.sendWA = async function (inv, opts) {
+    opts = opts || {};
     const key = localStorage.getItem('mw_tenant_key') || '';
     if (!key) return { ok: false, error: 'WhatsApp is not connected on this device: paste the MiniCuts API key in Settings → Invoice & Tax.' };
-    if (!inv.pdf_url) return { ok: false, error: 'No PDF link yet — tap “Create PDF” first.' };
+    if (!inv.pdf_url && !opts.test) return { ok: false, error: 'No PDF link yet — tap “Create PDF” first.' };
     if (!hasPhone(inv.mobile)) return { ok: false, error: 'No phone number on this invoice.' };
     const c = MC.conf(), S = B.S || DEFAULTS;
     let res;
@@ -421,14 +422,15 @@
         method: 'POST',
         headers: { 'Content-Type': 'application/json', apikey: c.key, Authorization: 'Bearer ' + c.key, 'x-tenant-key': key },
         body: JSON.stringify({
-          tenant_id: 'minicuts', mobile: inv.mobile, template_name: S.waTemplateName, template_lang: 'en',
+          tenant_id: 'minicuts', mobile: inv.mobile, template_name: opts.template || S.waTemplateName, template_lang: 'en',
           params: [String(inv.customer_name || 'there').split(' ')[0], inv.invoice_number, MC.fmtDate(inv.checkin_date), MC.money(inv.total_amount, inv.currency), inv.pdf_url],
-          customer_id: inv.customer_id || undefined, customer_name: inv.customer_name || undefined, sent_by: 'staff-invoice'
+          customer_id: inv.customer_id || undefined, customer_name: inv.customer_name || undefined, sent_by: opts.test ? 'staff-invoice-test' : 'staff-invoice'
         })
       });
       res = await r.json();
     } catch (e) { res = { ok: false, error: e.message }; }
     const ok = !!(res && res.ok);
+    if (opts.test) return ok ? { ok: true } : { ok: false, error: String((res && (res.error || res.message)) || 'send failed').slice(0, 300) };
     const patch = ok ? { whatsapp_sent: true, whatsapp_sent_at: new Date().toISOString(), wa_status: 'sent', wa_error: null }
                      : { wa_status: 'failed', wa_error: String((res && res.error) || 'send failed').slice(0, 300) };
     try { await MC.sb('invoices', 'PATCH', patch, 'id=eq.' + inv.id, 'return=minimal'); } catch (e) {}
@@ -471,18 +473,18 @@
     el.innerHTML =
       '<div class="card"><div class="card-title">🧾 Invoice &amp; Tax</div>' +
       '<p style="font-size:12.5px;color:var(--muted);margin:6px 0 14px;">Printed on every invoice PDF. Changing these affects new invoices only.</p>' +
+      '<div style="font-family:var(--fh);font-weight:800;color:var(--bd);font-size:13px;margin-bottom:8px;">1 · Business details</div>' +
       '<div class="fg" style="margin-bottom:10px;">' + MC.lbl('Country') + '<select class="fi" id="mcs-country"><option value="AE">UAE (VAT / TRN)</option><option value="IN">India (GST / GSTIN)</option></select></div>' +
       f('bname', 'Business name', S.bname) + f('addr', 'Address', S.addr) + f('phone', 'Phone', S.phone) +
       '<div class="fg" style="margin-bottom:10px;"><label id="mcs-idlbl" style="font-size:11px;font-weight:800;color:#6B7280;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px;"></label><input class="fi" id="mcs-taxId" value="' + MC.esc(S.taxId) + '"/><div id="mcs-idhint" style="font-size:11.5px;margin-top:3px;"></div></div>' +
+      '<div style="margin:14px 0 8px;padding-top:10px;border-top:1px solid var(--border);font-family:var(--fh);font-weight:800;color:var(--bd);font-size:13px;">2 · Tax</div>' +
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">' + f('rate', 'Tax rate %', S.rate, 'type="number" step="any" min="0" max="28"') +
         '<div class="fg" style="margin-bottom:10px;">' + MC.lbl('Prices on your list are') + '<select class="fi" id="mcs-basis"><option value="inclusive">Tax included</option><option value="exclusive">Tax added on top</option></select></div></div>' +
       '<div id="mcs-india" style="display:none;"><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">' + f('sac', 'SAC code', S.sac) + f('stateName', 'State', S.stateName) + f('stateCode', 'State code', S.stateCode, 'maxlength="2" placeholder="27"') + '</div>' +
         '<div style="font-size:11.5px;color:var(--muted);background:#FFF7ED;border-radius:8px;padding:8px 10px;margin-bottom:10px;line-height:1.5;">India: invoices show GSTIN, SAC, place of supply and a CGST/SGST split (walk-in salon services are supplied in-state). The number runs sequentially per financial year (Apr–Mar) and stays within 16 characters. Salons were taxed at 5% without input credit from 22 Sep 2025 and hairdressing uses SAC 999721 — please confirm the rate, scheme (regular or composition) and registration with your CA.</div></div>' +
+      '<div style="margin:14px 0 8px;padding-top:10px;border-top:1px solid var(--border);font-family:var(--fh);font-weight:800;color:var(--bd);font-size:13px;">3 · Invoice numbering &amp; checkout</div>' +
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">' + f('prefix', 'Invoice prefix', S.prefix, 'maxlength="8"') + f('footer', 'Footer note', S.footer) + '</div>' +
       f('discounts', 'Allowed discount % at checkout (comma separated)', S.discounts.join(', ')) +
-      '<div style="margin:6px 0 10px;padding-top:10px;border-top:1px solid var(--border);font-family:var(--fh);font-weight:800;color:var(--bd);">📲 WhatsApp invoice</div>' +
-      f('waTemplateName', 'Approved template name (Utility)', S.waTemplateName) +
-      '<div class="fg" style="margin-bottom:10px;">' + MC.lbl('MiniCuts API key (this device)') + '<input class="fi" type="password" id="mcs-key" placeholder="same key as in Loyalty ▸ Settings ▸ Platform connection" value="' + MC.esc(localStorage.getItem('mw_tenant_key') || '') + '"/></div>' +
       '<div id="mcs-msg" class="sm"></div><button class="btn btn-y btn-full" id="mcs-save">Save Invoice Settings ✅</button></div>';
     const $ = id => el.querySelector('#mcs-' + id);
     $('country').value = S.country; $('basis').value = S.basis;
@@ -504,7 +506,6 @@
         country, bname: $('bname').value.trim(), addr: $('addr').value.trim(), phone: $('phone').value.trim(), taxId: $('taxId').value.trim().toUpperCase(),
         rate: parseFloat($('rate').value) || 0, basis: $('basis').value, prefix: MC.cleanPrefix($('prefix').value, country), footer: $('footer').value.trim(),
         sac: $('sac').value.trim(), stateName: $('stateName').value.trim(), stateCode: $('stateCode').value.trim(), currency: COUNTRIES[country].currency,
-        waTemplateName: $('waTemplateName').value.trim() || DEFAULTS.waTemplateName,
         discounts: B.parseDiscounts($('discounts').value)
       };
       /* keep the legacy keys that earlier versions of the app wrote */
@@ -512,10 +513,42 @@
       try {
         const old = (await MC.getConfig('co_settings')) || {};
         await MC.setConfig('co_settings', Object.assign({}, old, out));
-        const key = $('key').value.trim(); if (key) localStorage.setItem('mw_tenant_key', key); else localStorage.removeItem('mw_tenant_key');
         B.loaded = false; await B.load(true);
         msg.className = 'sm ok'; msg.textContent = 'Saved.';
       } catch (e) { msg.className = 'sm err'; msg.textContent = 'Save failed: ' + e.message; }
+    };
+  };
+
+
+  /* ── Settings ▸ WhatsApp invoice (template, device key, test message) ── */
+  B.renderWaSettings = async function () {
+    const el = document.getElementById('mc-settings-wa'); if (!el) return;
+    await B.load(); const S = B.S || DEFAULTS, $ = id => el.querySelector('#mcw-' + id);
+    el.innerHTML = '<div class="card"><div class="card-title">📲 WhatsApp invoice</div>' +
+      '<p style="font-size:12.5px;color:var(--muted);margin:6px 0 12px;">Invoices go out through your approved <b>Utility</b> template with these 5 values in order: customer first name · invoice no. · date · amount · PDF link.</p>' +
+      '<div class="fg" style="margin-bottom:10px;">' + MC.lbl('Approved template name') + '<input class="fi" id="mcw-tpl" value="' + MC.esc(S.waTemplateName) + '"/></div>' +
+      '<div class="fg" style="margin-bottom:10px;">' + MC.lbl('MiniCuts API key (this device only)') + '<input class="fi" type="password" id="mcw-key" placeholder="same key as in Loyalty ▸ Settings ▸ Platform connection" value="' + MC.esc(localStorage.getItem('mw_tenant_key') || '') + '"/><div style="font-size:11.5px;color:var(--muted);margin-top:3px;">Stored only in this browser — never in the database.</div></div>' +
+      '<div id="mcw-msg" class="sm"></div><button class="btn btn-y btn-full" id="mcw-save">Save WhatsApp Settings ✅</button>' +
+      '<div style="margin:16px 0 8px;padding-top:12px;border-top:1px solid var(--border);font-family:var(--fh);font-weight:800;color:var(--bd);font-size:13px;">🧪 Send a test message</div>' +
+      '<p style="font-size:12.5px;color:var(--muted);margin:0 0 8px;">Sends the template above with sample values (invoice TEST/00000, a sample amount and a sample link) to the number you enter. No invoice is created and nothing is saved in the sales data.</p>' +
+      '<div style="display:flex;gap:8px;"><input class="fi" id="mcw-to" inputmode="tel" placeholder="Your own WhatsApp number, e.g. 0501234567" style="flex:1;"/><button class="btn btn-b" id="mcw-test">Send test</button></div>' +
+      '<div id="mcw-tmsg" class="sm" style="margin-top:6px;"></div></div>';
+    $('save').onclick = async () => {
+      const m = $('msg');
+      try {
+        const old = (await MC.getConfig('co_settings')) || {};
+        await MC.setConfig('co_settings', Object.assign({}, old, { waTemplateName: $('tpl').value.trim() || DEFAULTS.waTemplateName }));
+        const k = $('key').value.trim(); if (k) localStorage.setItem('mw_tenant_key', k); else localStorage.removeItem('mw_tenant_key');
+        B.loaded = false; await B.load(true); m.className = 'sm ok'; m.textContent = 'Saved.';
+      } catch (e) { m.className = 'sm err'; m.textContent = 'Save failed: ' + e.message; }
+    };
+    $('test').onclick = async () => {
+      const m = $('tmsg'), to = $('to').value.trim();
+      if (!hasPhone(to)) { m.className = 'sm err'; m.textContent = 'Enter a valid WhatsApp number first.'; return; }
+      $('test').disabled = true; m.className = 'sm'; m.textContent = 'Sending…';
+      const res = await B.sendWA({ mobile: to, customer_name: 'Test', invoice_number: 'TEST/00000', checkin_date: MC.today(), total_amount: 50, currency: (B.S || DEFAULTS).currency || 'AED', pdf_url: location.href.split('#')[0].replace(/[^/]*$/, '') }, { test: true, template: $('tpl').value.trim() || undefined });
+      $('test').disabled = false;
+      m.className = 'sm ' + (res.ok ? 'ok' : 'err'); m.textContent = res.ok ? '✓ Accepted by WhatsApp — check the phone (can take a few seconds).' : res.error;
     };
   };
 

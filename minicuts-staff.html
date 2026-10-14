@@ -316,7 +316,8 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
 
 <!-- ══ TAB: SETTINGS ══ -->
 <div class="page" id="t-config">
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;align-items:start;"><div id="mc-settings-billing"></div><div id="mc-settings-appt"></div></div>
+  <div id="cfg-nav" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;position:sticky;top:0;z-index:5;background:var(--bg,#fff);padding:6px 0;"></div>
+  <div id="cfg-top" style="display:grid;grid-template-columns:minmax(0,720px);gap:20px;margin-bottom:20px;align-items:start;"><div id="mc-settings-billing" data-sec="invoice"></div><div id="mc-settings-appt" data-sec="appt"></div><div id="mc-settings-wa" data-sec="wa"></div></div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
     <div>
       <div class="card">
@@ -1340,7 +1341,30 @@ function showWAPrompt(name,stamps,mobile,parent,gender,stylist,stylist2,remark,t
 }
 
 // CONFIG
-function loadCfgScreen(){loadGvSetup();if(window.MC&&MC.billing){MC.billing.renderSettings();MC.appt.renderSettings();}
+
+const CFG_SECS=[['invoice','🧾 Invoice & Tax'],['appt','📅 Appointments'],['wa','📲 WhatsApp'],['team','✂️ Team'],['vouchers','🎁 Vouchers'],['tools','🔧 Tools']];
+function cfgSecOf(card){
+  if(card.parentElement&&card.parentElement.dataset&&card.parentElement.dataset.sec)return card.parentElement.dataset.sec;
+  const t=((card.querySelector('.card-title')||{}).textContent||'');
+  if(/Stylist/.test(t))return 'team';
+  if(/WhatsApp|Message/.test(t))return 'wa';
+  if(/Voucher/.test(t))return 'vouchers';
+  return 'tools';
+}
+function cfgShow(sec){
+  try{localStorage.setItem('mc_cfg_sec',sec);}catch(e){}
+  document.querySelectorAll('#cfg-nav button').forEach(b=>b.className='btn btn-sm '+(b.dataset.s===sec?'btn-b':'btn-ghost'));
+  document.querySelectorAll('#t-config .card').forEach(c=>{c.style.display=cfgSecOf(c)===sec?'':'none';});
+  document.querySelectorAll('#t-config [data-sec]').forEach(w=>{w.style.display=w.dataset.sec===sec?'':'none';});
+  document.querySelectorAll('#t-config > div:not(#cfg-nav):not(#cfg-top)').forEach(g=>{const any=[...g.querySelectorAll('.card')].some(c=>c.style.display!=='none');g.style.display=any?'':'none';});
+}
+function cfgInitNav(){
+  const nav=document.getElementById('cfg-nav');if(!nav)return;
+  if(!nav.children.length){nav.innerHTML=CFG_SECS.map(x=>'<button class="btn btn-sm btn-ghost" data-s="'+x[0]+'">'+x[1]+'</button>').join('');nav.querySelectorAll('button').forEach(b=>b.onclick=()=>cfgShow(b.dataset.s));}
+  let s='invoice';try{s=localStorage.getItem('mc_cfg_sec')||'invoice';}catch(e){}
+  cfgShow(CFG_SECS.some(x=>x[0]===s)?s:'invoice');
+}
+function loadCfgScreen(){loadGvSetup();if(window.MC&&MC.billing){MC.billing.renderSettings();MC.appt.renderSettings();MC.billing.renderWaSettings();}cfgInitNav();
   const ta=document.getElementById('cfg-sty');
   if(ta)ta.value=STYLISTS.join('\n');
   const tmpl=document.getElementById('cfg-wa-tmpl');
@@ -2265,9 +2289,9 @@ function setDefaultExpiry() {
 setDefaultExpiry();
 
 </script>
-<script src="mc-common.js?v=20261014g"></script>
-<script src="mc-billing.js?v=20261014g"></script>
-<script src="mc-appointments.js?v=20261014g"></script>
-<script src="mc-reports.js?v=20261014g"></script>
+<script src="mc-common.js?v=20261014h"></script>
+<script src="mc-billing.js?v=20261014h"></script>
+<script src="mc-appointments.js?v=20261014h"></script>
+<script src="mc-reports.js?v=20261014h"></script>
 </body>
 </html>

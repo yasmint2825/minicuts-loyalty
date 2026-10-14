@@ -81,6 +81,14 @@ const filt = (rows, qs) => { qs.forEach((v, k) => { if (['select', 'order', 'lim
   await pg.evaluate(() => { showTab('t-reports', document.querySelectorAll('.tab')[3]); MC.reports.init(); }); await pg.fill('#mr-pin', '8065'); await pg.click('#mr-go'); await pg.waitForTimeout(800);
   ok(/Total/.test(await pg.innerText('#mr-out')), 'sales report renders');
   await pg.click('[data-t="tax"]'); await pg.waitForTimeout(600); ok(/MC\//.test(await pg.innerText('#mr-out')), 'tax register lists invoices');
+  // Settings tabs + WhatsApp test message
+  await pg.evaluate(() => { showTab('t-config', document.querySelectorAll('.tab')[8]); loadCfgScreen(); }); await pg.waitForSelector('#mcs-save');
+  ok(await pg.isVisible('#mcs-save') && !(await pg.isVisible('#mcw-test')), 'settings: only Invoice section shown first');
+  await pg.click('#cfg-nav [data-s="wa"]'); await pg.waitForSelector('#mcw-test'); ok(await pg.isVisible('#mcw-test') && !(await pg.isVisible('#mcs-save')), 'settings: WhatsApp tab shows test box');
+  let waBody = null; await pg.route('**/functions/v1/send-whatsapp', r => { waBody = JSON.parse(r.request().postData()); r.fulfill({ status: 200, contentType: 'application/json', body: '{"ok":true}' }); });
+  await pg.fill('#mcw-key', 'k123'); await pg.fill('#mcw-to', '0501234567'); await pg.click('#mcw-test'); await pg.waitForTimeout(500);
+  ok(waBody && waBody.params.length === 5 && waBody.params[1] === 'TEST/00000' && waBody.sent_by === 'staff-invoice-test', 'test message sends 5 sample params');
+  await pg.click('#cfg-nav [data-s="invoice"]');
   // Settings
   await pg.evaluate(() => { showTab('t-config', document.querySelectorAll('.tab')[8]); loadCfgScreen(); }); await pg.waitForSelector('#mcs-save');
   await pg.fill('#mcs-taxId', '123'); await pg.click('#mcs-save'); await pg.waitForTimeout(300); ok(/not valid/.test(await pg.innerText('#mcs-msg')), 'invalid TRN rejected');
