@@ -8,7 +8,10 @@ const DB = {
   salon_services: [{ id: 's1', name: 'Haircut', gender: 'Boy', price: 50, duration: 30, status: 'active' }, { id: 's1b', name: 'Haircut ', gender: 'Boy', price: 50, duration: 30, status: 'active' }, { id: 'd1', name: 'Boys - Haircut + Colour + Hair Tattoo', gender: 'boys', price: 80, status: 'active' }, { id: 'd2', name: 'Boys - Haircut + Colour + Hair Tattoo', gender: 'boys', price: 80, status: 'active' }, { id: 'd3', name: 'Boys - Haircut + Colour + Hair Wash', gender: 'boys', price: 80, status: 'active' }, { id: 'd4', name: 'Girls - Haircut + Colour', gender: 'girls', price: 90, status: 'active' }, { id: 's2', name: 'Styling', gender: 'Girl', price: 80, duration: 45, status: 'active' }],
   staff: [{ id: 'st1', name: 'Lester', role: 'Stylist', off_days: [1] }, { id: 'st2', name: 'George', role: 'Stylist', off_days: [] }], staff_leaves: [], staff_roster: []
 };
+const like = (val, pat) => new RegExp('^' + pat.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*') + '$', 'i').test(String(val == null ? '' : val));
 const filt = (rows, qs) => { qs.forEach((v, k) => { if (['select', 'order', 'limit', 'offset'].includes(k)) return; let m;
+  if (k === 'or' && (m = /^\((.*)\)$/.exec(v))) { const conds = m[1].split(',').map(c => /^(\w+)\.ilike\.(.*)$/.exec(c)); if (conds.every(Boolean)) rows = rows.filter(r => conds.some(c => like(r[c[1]], decodeURIComponent(c[2])))); return; }
+  if ((m = /^ilike\.(.*)$/.exec(v))) { rows = rows.filter(r => like(r[k], m[1])); return; }
   if ((m = /^eq\.(.*)$/.exec(v))) rows = rows.filter(r => String(r[k]) === m[1]); else if ((m = /^in\.\((.*)\)$/.exec(v))) rows = rows.filter(r => m[1].split(',').includes(String(r[k])));
   else if ((m = /^gte\.(.*)$/.exec(v))) rows = rows.filter(r => String(r[k]) >= m[1]); else if ((m = /^lte\.(.*)$/.exec(v))) rows = rows.filter(r => String(r[k]) <= m[1]); }); return rows; };
 (async () => {
@@ -70,13 +73,33 @@ const filt = (rows, qs) => { qs.forEach((v, k) => { if (['select', 'order', 'lim
   await pg.evaluate(() => { showTab('t-appt', document.querySelectorAll('.tab')[2]); MC.appt.state.date = (() => { let d = MC.parseYmd(MC.today()); d.setDate(d.getDate() + 1); while ([0, 6].includes(d.getDay())) d.setDate(d.getDate() + 1); return MC.ymd(d); })(); MC.appt.init(); }); await pg.waitForTimeout(800);
   ok(await pg.locator('#mc-appt-root table').count() === 1, 'calendar renders');
   await pg.evaluate(() => MC.appt.openNew()); await pg.waitForSelector('#ma-slots button');
-  await pg.fill('#ma-mob', '0501234567'); await pg.fill('#ma-name', 'Aisha'); await pg.selectOption('#ma-sty', 'George'); await pg.waitForTimeout(300);
+  // customer search: by mobile fragment, pick the child
+  await pg.fill('#ma-q', '050123'); await pg.waitForSelector('[data-cid="c1"]'); ok(await pg.locator('[data-cid]').count() === 1, 'search by mobile finds the child');
+  await pg.click('[data-cid="c1"]'); ok(/Aisha/.test(await pg.innerText('#ma-sel')) && /Missing/.test(await pg.innerText('#ma-sel')), 'selected child shows missing profile details');
+  await pg.click('#ma-change'); await pg.fill('#ma-q', 'ais'); await pg.waitForSelector('[data-cid="c1"]'); ok(true, 'search by name works');
+  // new customer quick add + duplicate protection
+  await pg.fill('#ma-q', '0559998888'); await pg.waitForSelector('#ma-addnew:has-text("No match")'); await pg.click('#ma-addnew');
+  ok(await pg.inputValue('#mn-mob') === '0559998888', 'new-customer form prefilled with typed mobile');
+  await pg.fill('#mn-name', 'Zayd'); await pg.click('#mn-save'); ok(/boy or girl/.test(await pg.innerText('#mn-msg')), 'gender required for a new customer');
+  await pg.click('[data-mg="boy"]'); await pg.click('#mn-save'); await pg.waitForSelector('#ma-change');
+  const zayd = DB.customers.find(c => c.name === 'Zayd'); ok(zayd && zayd.mobile === '971559998888' && zayd.gender === 'boy' && zayd.tc_accepted === false && zayd.dob === null, 'new customer saved in kiosk format');
+  await pg.click('#ma-change'); await pg.fill('#ma-q', '0559998888'); await pg.waitForSelector('[data-addto]'); await pg.click('[data-addto]'); await pg.fill('#mn-name', 'zayd'); await pg.click('[data-mg="boy"]'); await pg.click('#mn-save'); await pg.waitForSelector('#ma-change');
+  ok(DB.customers.filter(c => /zayd/i.test(c.name)).length === 1, 'same child + number is not duplicated');
+  await pg.click('#ma-change'); await pg.fill('#ma-q', '050123'); await pg.waitForSelector('[data-cid="c1"]'); await pg.click('[data-cid="c1"]');
+  ok((await pg.$$eval('#ma-svc option', o => o.map(x => x.textContent))).every(t => !/\((Boy|boys)\)/.test(t)), 'services follow the child\'s gender (girl sees no boy-only services)');
+  await pg.selectOption('#ma-sty', 'George'); await pg.waitForTimeout(300);
   await pg.locator('#ma-slots button').first().click(); await pg.click('#ma-save'); await pg.waitForTimeout(800);
-  const ap = DB.appointments[0]; ok(ap && ap.stylist === 'George' && ap.duration_min === 30 && ap.end_time === '10:30', 'appointment saved ' + JSON.stringify(ap && [ap.start_time, ap.end_time]));
+  const ap = DB.appointments[0]; ok(ap && ap.stylist === 'George' && ap.duration_min === 45 && ap.end_time === '10:45', 'appointment saved ' + JSON.stringify(ap && [ap.start_time, ap.end_time]));
   await pg.evaluate(() => MC.appt.openNew()); await pg.waitForSelector('#ma-slots button'); await pg.selectOption('#ma-sty', 'George');
-  await pg.waitForTimeout(300); const first = await pg.locator('#ma-slots button').first().innerText(); ok(first === '10:30', 'next free slot after booking is 10:30 (got ' + first + ')'); await pg.keyboard.press('Escape'); await pg.evaluate(() => document.querySelector('.mc-ov').remove());
-  await pg.evaluate(id => MC.appt.openAppt(id), ap.id); await pg.click('#mp-in'); await pg.waitForTimeout(600);
-  ok(DB.appointments[0].status === 'arrived' && DB.queue.some(q => q.remark && q.remark.startsWith('Appointment')), 'check-in creates queue row');
+  await pg.waitForTimeout(300); const first = await pg.locator('#ma-slots button').first().innerText(); ok(first === '10:45', 'next free slot after booking is 10:45 (got ' + first + ')'); await pg.keyboard.press('Escape'); await pg.evaluate(() => document.querySelector('.mc-ov').remove());
+  ok(DB.appointments[0].customer_id === 'c1', 'appointment linked to the customer record');
+  await pg.evaluate(id => MC.appt.openAppt(id), ap.id); await pg.click('#mp-in'); await pg.waitForSelector('#pd-save');
+  await pg.click('#pd-save'); ok(/birthday/i.test(await pg.innerText('#pd-msg')), 'arrival asks for missing birthday before the token');
+  await pg.fill('[data-dob]', '2020-03-04'); await pg.click('#pd-save'); ok(/area/i.test(await pg.innerText('#pd-msg')), 'arrival asks for area');
+  await pg.selectOption('#pd-loc', 'Mirdif'); await pg.click('#pd-save'); ok(/heard/i.test(await pg.innerText('#pd-msg')), 'arrival asks how they heard');
+  await pg.click('[data-h="Google"]'); await pg.click('#pd-save'); await pg.waitForTimeout(700);
+  const c1 = DB.customers.find(c => c.id === 'c1'); ok(c1.dob === '2020-03-04' && c1.location === 'Mirdif' && c1.heard_via === 'Google', 'profile completed and saved');
+  ok(DB.appointments[0].status === 'arrived' && DB.queue.some(q => q.remark && q.remark.startsWith('Appointment')), 'check-in creates queue row after profile is complete');
   // Reports
   await pg.evaluate(() => { showTab('t-reports', document.querySelectorAll('.tab')[3]); MC.reports.init(); }); await pg.fill('#mr-pin', '8065'); await pg.click('#mr-go'); await pg.waitForTimeout(800);
   ok(/Total/.test(await pg.innerText('#mr-out')), 'sales report renders'); console.log('SALES>>', (await pg.innerText('#mr-out')).replace(/\s+/g,' ').slice(0,700));
@@ -91,7 +114,7 @@ const filt = (rows, qs) => { qs.forEach((v, k) => { if (['select', 'order', 'lim
   await pg.click('#cfg-nav [data-s="invoice"]');
   // Settings
   await pg.evaluate(() => { showTab('t-config', document.querySelectorAll('.tab')[8]); loadCfgScreen(); }); await pg.waitForSelector('#mcs-save');
-  await pg.fill('#mcs-taxId', '123'); await pg.click('#mcs-save'); await pg.waitForTimeout(300); ok(/not valid/.test(await pg.innerText('#mcs-msg')), 'invalid TRN rejected');
+  await pg.waitForTimeout(600); await pg.fill('#mcs-taxId', '123'); await pg.click('#mcs-save'); await pg.waitForTimeout(300); ok(/not valid/.test(await pg.innerText('#mcs-msg')), 'invalid TRN rejected');
   await pg.selectOption('#mcs-country', 'IN'); await pg.fill('#mcs-taxId', '27ABCDE1234F1Z5'); await pg.click('#mcs-save'); await pg.waitForTimeout(500);
   ok(JSON.parse(DB.staff_config.find(c => c.key === 'co_settings').value).country === 'IN', 'India GSTIN saved');
   // Stamp & Checkout (grid frozen once DB is ready)

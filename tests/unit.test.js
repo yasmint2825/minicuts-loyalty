@@ -17,6 +17,8 @@ t('sales by day',()=>{const d=R.salesByDay(R.enrich(rows,{}));assert.equal(d.len
 t('by stylist',()=>assert.equal(R.byStylist(R.enrich(rows,{}))[0].total,80));
 t('acquisition new vs returning',()=>{const a=R.acquisition(rows,{c1:'2026-09-01',c2:'2026-10-02'},'2026-10-01','2026-10-31');const g=a.find(x=>x.key==='Google'),i=a.find(x=>x.key==='Insta');assert.equal(g.newCount,0);assert.equal(g.retCount,1);assert.equal(i.newCount,1);assert.equal(i.newRev,40);});
 t('enrich uses invoice breakdown',()=>{const e=R.enrich([{id:1,service_value:45}],{1:{list_price:50,discount_pct:10,discount_amount:5,base_amount:42.86,tax_amount:2.14,payable_amount:45}})[0];assert.equal(e._list,50);assert.equal(e._net,42.86);assert.equal(e._tax,2.14);assert.equal(e._total,45);});
+t('profile gaps',()=>{assert.deepEqual(MC.profileGaps({gender:'boy',dob:'2020-01-01',location:'Mirdif',heard_via:'Google'}),[]);assert.deepEqual(MC.profileGaps({gender:'boy',dob:null,location:' ',heard_via:''}),['dob','location','heard_via']);});
+t('mob971',()=>{assert.equal(MC.mob971('050 123 4567'),'971501234567');assert.equal(MC.mob971('+971501234567'),'971501234567');});
 console.log(n+' passed');
 t('seed: grid value after discount, % in remark',()=>{const x=MC.seedFromRow({service_value:39.9,remark:'5% discount'});assert.equal(x.list,42);assert.equal(x.pct,5);const c=MC.calcInvoice({listPrice:x.list,discountPct:x.pct,taxRegistered:false});assert.equal(c.payable,39.9);});
 t('seed: no % => full price',()=>{const x=MC.seedFromRow({service_value:50,remark:''});assert.equal(x.list,50);assert.equal(x.pct,0);});

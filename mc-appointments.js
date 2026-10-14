@@ -153,9 +153,13 @@
     const svcOpts = S.services.map(s => '<option value="' + MC.esc(s.id) + '">' + MC.esc(s.name) + (s.gender ? ' (' + MC.esc(s.gender) + ')' : '') + ' · ' + A.svcDuration(s) + ' min</option>').join('');
     const ov = MC.modal(
       '<div style="font-family:var(--fh);font-size:19px;font-weight:800;color:var(--bd);margin-bottom:12px;">➕ New Appointment</div><div style="display:grid;gap:11px;">' +
-      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;"><div>' + MC.lbl('Mobile') + '<input id="ma-mob" class="fi" type="tel" placeholder="05x xxx xxxx"/></div><div>' + MC.lbl('Child name') + '<input id="ma-name" class="fi" type="text"/></div></div>' +
-      '<div id="ma-known" style="font-size:12px;color:var(--ok);display:none;"></div>' +
-      '<div>' + MC.lbl('Service') + '<select id="ma-svc" class="fi">' + svcOpts + '</select></div>' +
+      '<div id="ma-cust"><div id="ma-find">' + MC.lbl('Customer') + '<input id="ma-q" class="fi" type="search" autocomplete="off" placeholder="🔍 Search by mobile number or child’s name"/><div id="ma-res" style="margin-top:6px;max-height:190px;overflow:auto;"></div></div>' +
+      '<div id="ma-sel" style="display:none;"></div>' +
+      '<div id="ma-new" style="display:none;border:1.5px dashed var(--border);border-radius:12px;padding:10px;margin-top:6px;"><div style="font-weight:800;margin-bottom:8px;">➕ New customer <span style="font-weight:600;color:var(--muted);font-size:12px;">— the rest of the profile is completed at arrival</span></div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;"><div>' + MC.lbl('Mobile') + '<input id="mn-mob" class="fi" type="tel" placeholder="05x xxx xxxx"/></div><div>' + MC.lbl('Child name') + '<input id="mn-name" class="fi" type="text"/></div></div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;"><div>' + MC.lbl('Boy / Girl') + '<div style="display:flex;gap:6px;"><button type="button" class="btn btn-sm btn-ghost" data-mg="boy">Boy</button><button type="button" class="btn btn-sm btn-ghost" data-mg="girl">Girl</button></div></div><div>' + MC.lbl('Parent (optional)') + '<input id="mn-par" class="fi" type="text"/></div></div>' +
+      '<div id="mn-msg" style="display:none;margin-top:8px;font-size:12.5px;font-weight:700;color:#DC2626;"></div><div style="display:flex;gap:8px;margin-top:10px;"><button type="button" class="btn btn-ghost btn-sm" id="mn-cancel">Back</button><button type="button" class="btn btn-y btn-sm" id="mn-save" style="flex:1;">Save customer</button></div></div></div>' +
+      '<div>' + MC.lbl('Service') + '<select id="ma-svc" class="fi"></select></div>' +
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;"><div>' + MC.lbl('Date') + '<input id="ma-date" class="fi" type="date" value="' + S.date + '"/></div><div>' + MC.lbl('Stylist') + '<select id="ma-sty" class="fi"><option value="">Any available</option>' + S.staff.map(s => '<option>' + MC.esc(s.name) + '</option>').join('') + '</select></div></div>' +
       '<div>' + MC.lbl('Time') + '<div id="ma-slots" style="display:flex;flex-wrap:wrap;gap:6px;max-height:150px;overflow:auto;"></div></div>' +
       '<div>' + MC.lbl('Note (optional)') + '<input id="ma-note" class="fi" type="text"/></div></div>' +
@@ -181,21 +185,82 @@
     };
     const refreshSlotsPaint = () => $('ma-slots').querySelectorAll('button').forEach(b => { const on = b.dataset.t === pick; b.classList.toggle('btn-y', on); b.classList.toggle('btn-ghost', !on); });
     ['ma-date', 'ma-svc', 'ma-sty'].forEach(id => $(id).addEventListener('change', refreshSlots));
-    $('ma-mob').addEventListener('blur', async () => {
-      const l9 = MC.last9($('ma-mob').value); if (l9.length < 9) return;
+    /* ── customer: search existing, or add new quickly ── */
+    let cust = null, sreq = 0, newGender = null, stimer = null;
+    const clean = t => String(t || '').replace(/[,()*%\\]/g, ' ').trim();
+    const norm = t => { t = String(t || '').trim().toLowerCase(); return t.startsWith('boy') ? 'boy' : t.startsWith('girl') ? 'girl' : ''; };
+    const gOf = c => norm(c && c.gender);
+    const renderSvc = () => {
+      const g = gOf(cust), list = S.services.filter(x => !g || !norm(x.gender) || norm(x.gender) === g);
+      const keep = $('ma-svc').value;
+      $('ma-svc').innerHTML = (list.length ? list : S.services).map(x => '<option value="' + MC.esc(x.id) + '">' + MC.esc(x.name) + (x.gender ? ' (' + MC.esc(x.gender) + ')' : '') + ' · ' + A.svcDuration(x) + ' min</option>').join('');
+      if (keep && $('ma-svc').querySelector('option[value="' + CSS.escape(keep) + '"]')) $('ma-svc').value = keep;
+      refreshSlots();
+    };
+    const showSel = () => {
+      const gaps = cust ? MC.profileGaps(cust) : [];
+      $('ma-find').style.display = cust ? 'none' : 'block'; $('ma-new').style.display = 'none';
+      $('ma-sel').style.display = cust ? 'block' : 'none';
+      if (cust) $('ma-sel').innerHTML = '<div style="display:flex;align-items:center;gap:8px;background:#F0FDF4;border-radius:10px;padding:8px 10px;"><div style="flex:1;"><b>' + MC.esc(cust.name) + '</b> <span style="color:var(--muted);">(' + (gOf(cust) || '?') + ')</span><div style="font-size:12px;color:var(--muted);">📱 ' + MC.esc(cust.mobile) + (cust.parent ? ' · ' + MC.esc(cust.parent) : '') + '</div>' +
+        (gaps.length ? '<div style="font-size:11.5px;color:#B45309;">⚠ Missing: ' + gaps.map(x => MC.GAP_LABEL[x]).join(', ') + ' — will be asked on arrival</div>' : '') + '</div><button type="button" class="btn btn-ghost btn-sm" id="ma-change">Change</button></div>';
+      if (cust) $('ma-change').onclick = () => { cust = null; showSel(); renderSvc(); $('ma-q').focus(); };
+      renderSvc();
+    };
+    const pickCust = c => { cust = c; $('ma-res').innerHTML = ''; showSel(); };
+    const openNewForm = (mob, name, par) => {
+      $('ma-find').style.display = 'none'; $('ma-new').style.display = 'block';
+      $('mn-mob').value = mob || ''; $('mn-name').value = name || ''; $('mn-par').value = par || ''; newGender = null; $('mn-msg').style.display = 'none';
+      ov.querySelectorAll('[data-mg]').forEach(b => { b.classList.add('btn-ghost'); b.classList.remove('btn-y'); });
+      ($('mn-mob').value ? $('mn-name') : $('mn-mob')).focus();
+    };
+    const search = async () => {
+      const raw = clean($('ma-q').value), my = ++sreq, res = $('ma-res');
+      if (raw.length < 2) { res.innerHTML = ''; return; }
+      const digits = raw.replace(/\D/g, ''), isNum = digits.length >= 3 && digits.length >= raw.replace(/\s/g, '').length - 1;
+      const where = isNum ? 'mobile=ilike.*' + (digits.length > 9 ? digits.slice(-9) : digits.replace(/^0+/, '')) + '*' : 'or=(name.ilike.*' + encodeURIComponent(raw) + '*,parent.ilike.*' + encodeURIComponent(raw) + '*)';
+      res.innerHTML = '<div style="color:var(--muted);font-size:13px;">Searching…</div>';
+      let rows = [];
+      try { rows = await MC.sb('customers', 'GET', null, 'select=id,name,mobile,parent,gender,dob,location,heard_via&' + where + '&order=name&limit=40'); } catch (e) { if (my === sreq) res.innerHTML = '<div style="color:#DC2626;font-size:13px;">Search failed: ' + MC.esc(e.message) + '</div>'; return; }
+      if (my !== sreq) return;
+      const fam = {}; rows.forEach(r => { (fam[MC.last9(r.mobile)] = fam[MC.last9(r.mobile)] || []).push(r); });
+      const keys = Object.keys(fam);
+      res.innerHTML = keys.map(k => { const f = fam[k]; return '<div style="border:1.5px solid var(--border);border-radius:10px;padding:8px;margin-bottom:6px;"><div style="font-size:12px;color:var(--muted);margin-bottom:5px;">📱 ' + MC.esc(f[0].mobile) + (f[0].parent ? ' · ' + MC.esc(f[0].parent) : '') + '</div><div style="display:flex;flex-wrap:wrap;gap:6px;">' +
+          f.map(c => '<button type="button" class="btn btn-sm btn-b" data-cid="' + c.id + '">' + (gOf(c) === 'girl' ? '👧' : '👦') + ' ' + MC.esc(c.name) + '</button>').join('') +
+          '<button type="button" class="btn btn-sm btn-ghost" data-addto="' + k + '">＋ another child</button></div></div>'; }).join('') +
+        '<button type="button" class="btn btn-ghost btn-sm btn-full" id="ma-addnew">➕ ' + (keys.length ? 'Not listed? Add as new customer' : 'No match — add new customer') + '</button>';
+      res.querySelectorAll('[data-cid]').forEach(b => b.onclick = () => pickCust(rows.find(r => r.id === b.dataset.cid)));
+      res.querySelectorAll('[data-addto]').forEach(b => b.onclick = () => { const f = fam[b.dataset.addto]; openNewForm(f[0].mobile, '', f[0].parent); });
+      res.querySelector('#ma-addnew').onclick = () => openNewForm(isNum ? raw : '', isNum ? '' : raw, '');
+    };
+    $('ma-q').addEventListener('input', () => { clearTimeout(stimer); stimer = setTimeout(search, 250); });
+    ov.querySelectorAll('[data-mg]').forEach(b => b.onclick = () => { newGender = b.dataset.mg; ov.querySelectorAll('[data-mg]').forEach(x => { const on = x === b; x.classList.toggle('btn-y', on); x.classList.toggle('btn-ghost', !on); }); });
+    $('mn-cancel').onclick = () => { $('ma-new').style.display = 'none'; $('ma-find').style.display = 'block'; };
+    $('mn-save').onclick = async () => {
+      const m = $('mn-msg'), fail = t => { m.textContent = t; m.style.display = 'block'; };
+      const l9 = MC.last9($('mn-mob').value), name = $('mn-name').value.trim().replace(/\s+/g, ' ');
+      if (l9.length !== 9) return fail('Enter a valid UAE mobile number (9 digits after 0, e.g. 050 123 4567).');
+      if (!name) return fail('Enter the child’s name.');
+      if (!newGender) return fail('Choose boy or girl.');
+      $('mn-save').disabled = true;
       try {
-        const r = await MC.sb('customers', 'GET', null, 'select=id,name,mobile&mobile=ilike.*' + l9 + '&limit=5');
-        const k = $('ma-known');
-        if (r.length) { k.style.display = 'block'; k.textContent = 'Existing customer: ' + r.map(x => x.name).join(', '); if (!$('ma-name').value) $('ma-name').value = r[0].name; $('ma-mob').dataset.cid = r[0].id; }
-        else { k.style.display = 'none'; delete $('ma-mob').dataset.cid; }
-      } catch (e) {}
-    });
+        const fam = await MC.sb('customers', 'GET', null, 'select=id,name,mobile,parent,gender,dob,location,heard_via&mobile=ilike.*' + l9 + '&limit=50');
+        const dup = fam.find(c => c.name.trim().toLowerCase() === name.toLowerCase());
+        if (dup) { toast(name + ' is already registered under this number — selected'); return pickCust(dup); }
+        const sib = fam.find(c => c.location) || {}, sibH = fam.find(c => c.heard_via) || {}, sibP = fam.find(c => c.parent) || {};
+        const row = { name, mobile: '971' + l9, parent: $('mn-par').value.trim() || sibP.parent || null, gender: newGender, dob: null, location: sib.location || null, heard_via: sibH.heard_via || null,
+          stamps: 0, redemptions: 0, game_points: 0, game_spins: 0, tc_accepted: false };
+        const r = await MC.sb('customers', 'POST', row, null, 'return=representation');
+        const made = Array.isArray(r) ? r[0] : r; if (!made || !made.id) throw new Error('Customer was not created');
+        toast('Customer added'); pickCust(made);
+      } catch (e) { fail(e.message); } finally { $('mn-save').disabled = false; }
+    };
     $('ma-cancel').onclick = () => ov.close();
     $('ma-save').onclick = async () => {
       const msg = $('ma-msg'), fail = t => { msg.textContent = t; msg.style.display = 'block'; };
-      const svc = S.services.find(x => String(x.id) === $('ma-svc').value), name = $('ma-name').value.trim(), mob = $('ma-mob').value.trim();
-      if (!name) return fail('Enter the child\'s name.');
-      if (MC.last9(mob).length < 9) return fail('Enter a valid mobile number.');
+      const svc = S.services.find(x => String(x.id) === $('ma-svc').value);
+      if (!cust) return fail('Search and select the customer, or add a new one.');
+      if (!svc) return fail('Pick a service.');
+      const name = cust.name, mob = cust.mobile;
       if (!pick) return fail('Pick a time.');
       const slot = cache.find(c => c.start === pick); if (!slot) return fail('That time is no longer free.');
       const sty = $('ma-sty').value || slot.stylists[0];
@@ -207,12 +272,13 @@
         const fresh = await MC.sb('appointments', 'GET', null, 'appt_date=eq.' + $('ma-date').value + '&stylist=eq.' + encodeURIComponent(sty) + '&status=in.(booked,arrived)&limit=200');
         const s0 = MC.toMin(pick);
         if (A.overlaps(fresh.map(a => [MC.toMin(a.start_time), MC.toMin(a.end_time)]), s0, s0 + dur)) throw new Error('Someone just booked that slot — pick another.');
-        await MC.sb('appointments', 'POST', { customer_id: $('ma-mob').dataset.cid || null, customer_name: name, mobile: mob, service_id: String(svc.id), service: svc.name, duration_min: dur,
+        await MC.sb('appointments', 'POST', { customer_id: cust.id, customer_name: name, mobile: mob, service_id: String(svc.id), service: svc.name, duration_min: dur,
           stylist: sty, appt_date: $('ma-date').value, start_time: pick, end_time: MC.fromMin(s0 + dur), notes: $('ma-note').value.trim() || null, source: 'staff', status: 'booked' }, null, 'return=minimal');
         ov.close(); toast('Appointment booked'); await A.go($('ma-date').value);
       } catch (e) { btn.disabled = false; btn.textContent = 'Book'; fail(e.message); }
     };
-    refreshSlots();
+    renderSvc();
+    setTimeout(() => $('ma-q').focus(), 50);
   };
 
   /* ── manage one appointment ───────────────────────────────────────────── */
@@ -230,16 +296,42 @@
     $('mp-close').onclick = () => ov.close();
     if ($('mp-ns')) $('mp-ns').onclick = () => set({ status: 'no_show' }, 'Marked no-show');
     if ($('mp-cx')) $('mp-cx').onclick = () => set({ status: 'cancelled' }, 'Appointment cancelled');
+    /* show what is still missing on the profile before the customer arrives */
+    if (a.customer_id && a.status === 'booked') MC.sb('customers', 'GET', null, 'select=id,name,gender,dob,location,heard_via&id=eq.' + a.customer_id).then(r => {
+      const g = r[0] ? MC.profileGaps(r[0]) : []; if (!g.length || !ov.isConnected) return;
+      const d = document.createElement('div'); d.style.cssText = 'font-size:12px;color:#B45309;background:#FFFBEB;border-radius:8px;padding:6px 10px;margin-bottom:8px;';
+      d.textContent = '⚠ Profile missing: ' + g.map(x => MC.GAP_LABEL[x]).join(', ') + ' — you will be asked when they arrive.'; ov.querySelector('.mc-box').insertBefore(d, ov.querySelector('.mc-box').children[2] || null);
+    }).catch(() => {});
     if ($('mp-in')) $('mp-in').onclick = async () => {
       $('mp-in').disabled = true;
       try {
         const t = MC.today();
-        const ex = await MC.sb('queue', 'GET', null, 'select=token_number&checkin_date=eq.' + t + '&order=token_number.desc&limit=1');
-        const tok = (ex.length ? Number(ex[0].token_number) || 0 : 0) + 1;
-        const q = (await MC.sb('queue', 'POST', { customer_id: a.customer_id || null, customer_name: a.customer_name, mobile: a.mobile || null, service: a.service, token_number: tok,
-          checkin_date: t, checkin_time: new Date().toISOString(), status: 'waiting', is_guest: !a.customer_id, stylist: a.stylist, remark: 'Appointment ' + a.start_time.slice(0, 5) }))[0];
+        /* 1. make sure the profile is complete BEFORE a token is issued (sibling details are reused silently) */
+        if (a.customer_id) {
+          const fam = await MC.sb('customers', 'GET', null, 'select=id,name,mobile,gender,dob,location,heard_via&mobile=ilike.*' + MC.last9(a.mobile) + '&limit=50');
+          const kid = fam.find(c => c.id === a.customer_id);
+          if (kid) {
+            const sibL = (fam.find(c => c.location) || {}).location, sibH = (fam.find(c => c.heard_via) || {}).heard_via, quiet = {};
+            if (!kid.location && sibL) quiet.location = sibL; if (!kid.heard_via && sibH) quiet.heard_via = sibH;
+            if (Object.keys(quiet).length) { await MC.sb('customers', 'PATCH', quiet, 'id=eq.' + kid.id, 'return=minimal'); Object.assign(kid, quiet); }
+            if (MC.profileGaps(kid).length) {
+              const how = await MC.profileDialog([kid], { allowSkip: true });
+              if (how === 'skipped') toast('Profile left incomplete', 'err');
+            }
+          }
+        }
+        /* 2. never create a second token: they may already have checked in on the kiosk */
+        let q = null;
+        if (a.customer_id) { const ex0 = await MC.sb('queue', 'GET', null, 'select=id,token_number&customer_id=eq.' + a.customer_id + '&checkin_date=eq.' + t + '&status=in.(waiting,called)&limit=1'); q = ex0[0] || null; }
+        if (q) { await MC.sb('queue', 'PATCH', { stylist: a.stylist, remark: 'Appointment ' + a.start_time.slice(0, 5) }, 'id=eq.' + q.id, 'return=minimal'); }
+        else {
+          const ex = await MC.sb('queue', 'GET', null, 'select=token_number&checkin_date=eq.' + t + '&order=token_number.desc&limit=1');
+          const tok = (ex.length ? Number(ex[0].token_number) || 0 : 0) + 1;
+          q = (await MC.sb('queue', 'POST', { customer_id: a.customer_id || null, customer_name: a.customer_name, mobile: a.mobile || null, service: a.service, token_number: tok,
+            checkin_date: t, checkin_time: new Date().toISOString(), status: 'waiting', is_guest: !a.customer_id, stylist: a.stylist, remark: 'Appointment ' + a.start_time.slice(0, 5) }))[0];
+        }
         await MC.sb('appointments', 'PATCH', { status: 'arrived', queue_id: q.id, updated_at: new Date().toISOString() }, 'id=eq.' + id, 'return=minimal');
-        ov.close(); toast('Added to queue as Token ' + MC.pad(tok)); A.go(A.state.date);
+        ov.close(); toast('Added to queue as Token ' + MC.pad(q.token_number)); A.go(A.state.date);
         if (typeof loadQ === 'function') loadQ();
       } catch (e) { $('mp-in').disabled = false; toast(e.message, 'err'); }
     };
