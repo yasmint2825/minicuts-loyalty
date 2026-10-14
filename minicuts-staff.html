@@ -139,8 +139,6 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
   div[style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr!important;}
 
   /* Tables: switch to horizontal scroll, allow shrinking columns */
-  .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
-  .qt{table-layout:auto;min-width:640px;}
   .qt th,.qt td{padding:6px 6px;font-size:11.5px;}
   .qt th:nth-child(6),.qt td:nth-child(6){width:auto;min-width:160px;}
 
@@ -182,6 +180,22 @@ body{background:var(--bg);}
 a.btn{text-decoration:none;}
 .side-scrim{display:none;}
 #t-queue .tbl-wrap,#t-history .tbl-wrap{max-height:calc(100vh - 235px);min-height:260px;}
+
+/* ── NO SIDEWAYS SCROLL: tables fit the width; on narrow screens each row becomes a card ── */
+.tbl-wrap{overflow-x:hidden;}
+.qt{table-layout:auto;width:100%;}
+.qt td,.qt th{overflow-wrap:anywhere;}
+#t-history .qt th,#t-history .qt td,#t-queue .qt th,#t-queue .qt td{width:auto!important;padding-left:8px;padding-right:8px;}
+#t-history .qt thead th,#t-queue .qt thead th{white-space:normal;}
+@media (max-width:1100px){
+  .qt,.qt tbody,.qt tr,.qt td{display:block;width:100%!important;}
+  .qt thead{display:none;}
+  .qt tr{border-bottom:8px solid #F1F5F9;padding:8px 4px;}
+  .qt td{display:grid;grid-template-columns:92px minmax(0,1fr);gap:8px;padding:4px 10px!important;border:none!important;font-size:12.5px;max-width:none!important;}
+  .qt td[data-label]::before{content:attr(data-label);font-size:10.5px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;padding-top:2px;}
+  .qt td[colspan]{display:block;}
+  .qt td[colspan]::before{content:none;}
+}
 @media (max-width:900px){
   .menu-btn{display:inline-flex;align-items:center;justify-content:center;}
   .side{position:fixed;top:0;bottom:0;left:0;z-index:60;transform:translateX(-102%);transition:transform .2s ease;box-shadow:6px 0 24px rgba(15,23,42,.18);width:min(86vw,300px);padding-top:16px;}
@@ -625,7 +639,7 @@ a.btn{text-decoration:none;}
 <!-- TOAST CONTAINER -->
 <div class="tc" id="TC"></div>
 
-<script src="mc-demo.js?v=20261014t"></script>
+<script src="mc-demo.js?v=20261014u"></script>
 <script>
 const SB_URL='https://wtapyfgtwkjyjrjdnhkb.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind0YXB5Zmd0d2tqeWpyamRuaGtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0NDc3ODEsImV4cCI6MjA5NTAyMzc4MX0.y_-iPfb8Pcg9zh42h6RGVBsUVZm80LcA9sPlz_Gl_fA';
@@ -840,7 +854,7 @@ function renderQ(){
   if(nmF)data=data.filter(r=>(r.customer_name||'').toLowerCase().includes(nmF));
   const body=document.getElementById('qt-body');if(!body)return;
   if(!data.length){body.innerHTML='<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--muted);">Queue is clear — no active customers 🐼</td></tr>';return;}
-  body.innerHTML=data.map(row=>buildRow(row)).join('');
+  body.innerHTML=data.map(row=>buildRow(row)).join('');mcLabelCells(body);
 }
 
 function buildLoyaltyInCell(r){
@@ -1049,6 +1063,7 @@ function buildSrcLocDirect(heard_via, location){
   if(!bits.length)return'';
   return'<div style="display:flex;flex-direction:column;align-items:flex-start;gap:3px;margin-top:3px;width:100%;min-width:0;">'+bits.join('')+'</div>';
 }
+function mcLabelCells(tblBody){try{const t=tblBody.closest('table');const hs=[...t.querySelectorAll('thead th')].map(h=>h.textContent.trim());tblBody.querySelectorAll('tr').forEach(tr=>{[...tr.children].forEach((td,i)=>{if(!td.hasAttribute('colspan')&&hs[i])td.setAttribute('data-label',hs[i]);});});}catch(e){}}
 function renderHist(){
   const body=document.getElementById('hist-body');if(!body)return;
   const date=histGetDate();const isToday=date===today();
@@ -1118,6 +1133,7 @@ function renderHist(){
     +'</td>'
     +'<td colspan="3" style="padding:10px 14px;color:var(--muted);font-size:12px;">Combined: AED '+(totalRev+totalTips)+'</td>'
   +'</tr>';
+  mcLabelCells(body);
 }
 
 
@@ -2351,11 +2367,11 @@ function setDefaultExpiry() {
 setDefaultExpiry();
 
 </script>
-<script src="mc-common.js?v=20261014t"></script>
-<script src="mc-billing.js?v=20261014t"></script>
-<script src="mc-appointments.js?v=20261014t"></script>
-<script src="mc-reports.js?v=20261014t"></script>
-<script src="mc-customers.js?v=20261014t"></script>
-<script src="mc-insights.js?v=20261014t"></script>
+<script src="mc-common.js?v=20261014u"></script>
+<script src="mc-billing.js?v=20261014u"></script>
+<script src="mc-appointments.js?v=20261014u"></script>
+<script src="mc-reports.js?v=20261014u"></script>
+<script src="mc-customers.js?v=20261014u"></script>
+<script src="mc-insights.js?v=20261014u"></script>
 </body>
 </html>

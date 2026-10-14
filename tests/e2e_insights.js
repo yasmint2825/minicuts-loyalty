@@ -40,6 +40,18 @@ const { chromium } = require('playwright-core'); const path = require('path'); c
   await pg.click('#in-tabs [data-t="retention"]'); await pg.waitForTimeout(300); await pg.click('#in-rr [data-d="30"]'); await pg.waitForTimeout(400); ok(/last 30 days/i.test(await pg.innerText('#mc-insights-root')), 'return-rate window switches');
   // reports still work
   await pg.click('#side [data-p="t-reports"]'); await pg.waitForTimeout(300); ok(/Sales/.test(await pg.innerText('#t-reports')), 'reports page opens (PIN shared with insights)');
+  // no sideways scrolling anywhere (desktop + phone): history, queue, insights tabs
+  const noX = async (sel) => pg.evaluate(s => { const el = document.querySelector(s); return el ? el.scrollWidth - el.clientWidth : 0; }, sel);
+  for (const vw of [1360, 1000, 390]) {
+    await pg.setViewportSize({ width: vw, height: 860 });
+    await pg.evaluate(() => { showTab('t-history'); histSetDate(today()); }); await pg.evaluate(() => loadHist()); await pg.waitForTimeout(500);
+    ok((await noX('#t-history .tbl-wrap')) <= 1, 'history table has no horizontal scroll at ' + vw + 'px');
+    await pg.evaluate(() => showTab('t-queue')); await pg.waitForTimeout(200); ok((await noX('#t-queue .tbl-wrap')) <= 1, 'queue table has no horizontal scroll at ' + vw + 'px');
+    await pg.evaluate(() => showTab('t-insights')); for (const t of ['overview', 'ops', 'acq']) { await pg.evaluate(t => { MC.insights.st.tab = t; MC.insights.init(); }, t); await pg.waitForTimeout(500); ok((await noX('#mc-insights-root')) <= 1, 'insights ' + t + ' no horizontal scroll at ' + vw + 'px'); }
+  }
+  await pg.evaluate(() => { MC.insights.st.tab = 'overview'; MC.insights.init(); }); await pg.waitForTimeout(500); await shot('08-overview-mobile');
+  await pg.setViewportSize({ width: 1360, height: 860 }); await pg.evaluate(() => { MC.insights.st.preset = '90'; Object.assign(MC.insights.st, { from: MC.addDays(MC.today(), -90), to: MC.today() }); MC.insights.init(); }); await pg.waitForTimeout(600); await shot('09-overview-90d');
+  ok((await pg.locator('.in-dc .c').count()) > 8, 'per-day chart columns drawn');
   // mobile
   await pg.setViewportSize({ width: 390, height: 800 }); await pg.waitForTimeout(300); ok(!(await pg.isVisible('#side')) || true, 'mobile layout ok');
   await pg.click('#menuBtn'); await pg.waitForTimeout(350); ok(await pg.isVisible('#side'), 'hamburger opens the drawer'); await shot('06-mobile-drawer');

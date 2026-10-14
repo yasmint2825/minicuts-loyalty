@@ -107,10 +107,21 @@
   const PAL = ['#1565C0', '#EC4899', '#F59E0B', '#16A34A', '#7C3AED', '#0891B2', '#94A3B8'];
   const card = (title, body, sub, wide) => '<div class="in-card' + (wide ? ' wide' : '') + '"><div class="in-ct">' + title + '</div>' + (sub ? '<div class="in-cs">' + sub + '</div>' : '') + body + '</div>';
   const kpi = (l, v, s, c) => '<div class="in-kpi"><div class="n"' + (c ? ' style="color:' + c + '"' : '') + '>' + v + '</div><div class="l">' + l + '</div>' + (s ? '<div class="s">' + s + '</div>' : '') + '</div>';
-  const bars = (list, o) => { o = o || {}; const max = Math.max.apply(null, list.map(x => x[1]).concat([1])), tot = list.reduce((a, x) => a + x[1], 0);
+  const bars = (list, o) => { o = o || {}; const max = Math.max.apply(null, list.map(x => x[1]).concat([1])), tot = o.total || list.reduce((a, x) => a + x[1], 0);
     return list.length ? list.map((x, i) => '<div class="in-bar"><div class="t" title="' + e(x[0]) + '">' + e(x[0]) + '</div><div class="k"><i style="width:' + Math.max(2, x[1] / max * 100) + '%;background:' + (o.color || PAL[i % PAL.length]) + '"></i></div><div class="v">' + (o.fmt ? o.fmt(x[1]) : x[1]) + (o.pct && tot ? ' <span>' + Math.round(x[1] / tot * 100) + '%</span>' : '') + '</div></div>').join('') : '<div class="in-empty">No data for this period.</div>'; };
   const cols = (list, o) => { o = o || {}; const max = Math.max.apply(null, list.map(x => x.n).concat([1]));
     return '<div class="in-cols">' + list.map(x => '<div class="c" title="' + e(x.label) + ': ' + x.n + '"><i style="height:' + Math.round(x.n / max * 100) + '%;background:' + (x.color || '#1565C0') + '"></i>' + (o.labels === false ? '' : '<b>' + e(x.short || '') + '</b>') + '</div>').join('') + '</div>'; };
+  /* Day-by-day columns that stay readable for 7–90 days: ≤31 days = one column per day with its number on top;
+   * longer ranges are grouped by week so nothing gets squeezed. Gridlines + max label give a scale. */
+  const dayChart = (perDay) => {
+    const weekly = perDay.length > 31; let items;
+    if (!weekly) items = perDay.map(x => ({ n: x.n, label: MC.fmtDate(x.d), lab: x.d.slice(8), sub: ['S', 'M', 'T', 'W', 'T', 'F', 'S'][MC.parseYmd(x.d).getDay()] }));
+    else { items = []; for (let i = 0; i < perDay.length; i += 7) { const g = perDay.slice(i, i + 7); items.push({ n: g.reduce((a, x) => a + x.n, 0), label: MC.fmtDate(g[0].d) + ' – ' + MC.fmtDate(g[g.length - 1].d), lab: MC.fmtDate(g[0].d).replace(/ \d{4}$/, ''), sub: '' }); } }
+    const max = Math.max.apply(null, items.map(x => x.n).concat([1])), total = items.reduce((a, x) => a + x.n, 0);
+    const every = items.length > 20 ? 2 : 1, showNum = items.length <= 31;
+    return '<div class="in-dc"><div class="in-dc-y"><span>' + max + '</span><span>' + Math.round(max / 2) + '</span><span>0</span></div><div class="in-dc-plot">' +
+      items.map((x, i) => '<div class="c" title="' + e(x.label) + ': ' + x.n + ' visits"><em>' + (showNum && x.n && (items.length <= 16 || i % every === 0) ? x.n : '') + '</em><i style="height:' + (x.n ? Math.max(3, Math.round(x.n / max * 100)) : 0) + '%"></i><b>' + (i % every === 0 ? e(x.lab) : '') + '</b><u>' + e(items.length <= 16 || !weekly ? x.sub : '') + '</u></div>').join('') +
+      '</div></div><div class="in-note">' + (weekly ? 'Each column = one week (7 days), starting on the date shown. ' : 'Each column = one day. ') + total + ' visits in total.</div>'; };
   const heat = h => { const dn = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'], order = [1, 2, 3, 4, 5, 6, 0];
     let hd = '<div class="in-hr"><span></span>'; for (let x = h.H0; x < h.H1; x++) hd += '<b>' + (x > 12 ? x - 12 : x) + (x >= 12 ? 'p' : 'a') + '</b>'; hd += '</div>';
     return '<div class="in-heat">' + hd + order.map(d => '<div class="in-hr"><span>' + dn[d] + '</span>' + h.grid[d].map(n => '<i title="' + n + ' arrivals" style="background:' + (n ? 'rgba(21,101,192,' + (0.12 + 0.88 * n / Math.max(h.max, 1)).toFixed(2) + ')' : '#F1F5F9') + ';color:' + (n / Math.max(h.max, 1) > 0.55 ? '#fff' : '#334155') + '">' + (n || '') + '</i>').join('') + '</div>').join('') + '</div>'; };
@@ -132,10 +143,18 @@
   .in-bar .v{font-weight:800;min-width:34px;text-align:right;}.in-bar .v span{color:var(--muted);font-weight:700;font-size:11px;}
   .in-cols{display:flex;align-items:flex-end;gap:3px;height:120px;}.in-cols .c{flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;min-width:0;}
   .in-cols .c i{display:block;width:100%;max-width:26px;border-radius:5px 5px 0 0;min-height:2px;}.in-cols .c b{font-size:9.5px;color:var(--muted);font-weight:700;margin-top:4px;white-space:nowrap;}
-  .in-heat{overflow-x:auto;}.in-hr{display:flex;gap:3px;margin-bottom:3px;align-items:center;min-width:480px;}.in-hr span{width:34px;font-size:11px;font-weight:800;color:var(--muted);flex-shrink:0;}
-  .in-hr b{flex:1;font-size:9.5px;color:var(--muted);text-align:center;font-weight:700;}.in-hr i{flex:1;height:26px;border-radius:6px;font:800 10.5px var(--fb);font-style:normal;display:flex;align-items:center;justify-content:center;}
+  .in-dc{display:flex;gap:6px;height:190px;}.in-dc-y{display:flex;flex-direction:column;justify-content:space-between;font-size:10px;color:var(--muted);font-weight:700;text-align:right;padding-bottom:32px;min-width:22px;}
+  .in-dc-plot{flex:1;min-width:0;display:flex;align-items:stretch;gap:2px;background:repeating-linear-gradient(to bottom,transparent 0,transparent calc(50% - 1px),#EEF2F7 calc(50% - 1px),#EEF2F7 50%) ;background-size:100% calc((100% - 32px)/1);background-repeat:no-repeat;}
+  .in-dc .c{flex:1;min-width:0;display:grid;grid-template-rows:14px 1fr 14px 14px;justify-items:center;}
+  .in-dc .c em{font:800 9.5px var(--fb);font-style:normal;color:var(--bd);align-self:end;}
+  .in-dc .c i{display:block;align-self:end;width:min(100%,22px);background:#1565C0;border-radius:4px 4px 0 0;}
+  .in-dc .c:hover i{background:#0D47A1;}
+  .in-dc .c b{font:700 9.5px var(--fb);color:var(--muted);white-space:nowrap;}.in-dc .c u{font:700 9px var(--fb);color:#94A3B8;text-decoration:none;}
+  .in-heat{overflow:hidden;}.in-hr{display:flex;gap:2px;margin-bottom:3px;align-items:center;}.in-hr span{width:30px;font-size:11px;font-weight:800;color:var(--muted);flex-shrink:0;}
+  .in-hr b{flex:1;min-width:0;font-size:9px;color:var(--muted);text-align:center;font-weight:700;}.in-hr i{flex:1;min-width:0;height:26px;border-radius:6px;font:800 10.5px var(--fb);font-style:normal;display:flex;align-items:center;justify-content:center;}
+  @media (max-width:600px){.in-tbl th,.in-tbl td{padding:6px 3px;font-size:11.5px;}.in-tbl th{font-size:9.5px;}}
   .in-empty{color:var(--muted);font-size:12.5px;padding:10px 0;}
-  .in-tbl{width:100%;border-collapse:collapse;font-size:12.5px;}.in-tbl th{text-align:left;color:var(--muted);font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;padding:6px 8px;border-bottom:1px solid var(--border);}.in-tbl td{padding:8px;border-bottom:1px solid #F1F5F9;}
+  .in-tbl{width:100%;table-layout:auto;border-collapse:collapse;font-size:12.5px;}.in-tbl th{text-align:left;color:var(--muted);font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;padding:6px 8px;border-bottom:1px solid var(--border);}.in-tbl .pc{color:var(--muted);font-size:11px;font-weight:700;}.in-tbl th,.in-tbl td{overflow-wrap:anywhere;}.in-tbl td{padding:8px;border-bottom:1px solid #F1F5F9;}
   .in-lock{background:#FFFBEB;border:1px solid #FDE68A;border-radius:12px;padding:9px 12px;font-size:12.5px;color:#92400E;display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px;}
   .in-note{font-size:11.5px;color:var(--muted);margin-top:10px;line-height:1.5;}`;
 
@@ -145,7 +164,7 @@
   const rangeFor = p => { const n = new Date(), t = MC.today();
     if (p === 'month') return { from: MC.monthRange(n.getFullYear(), n.getMonth()).from, to: t };
     if (p === 'last') { const m = n.getMonth() === 0 ? 11 : n.getMonth() - 1, y = n.getMonth() === 0 ? n.getFullYear() - 1 : n.getFullYear(); return MC.monthRange(y, m); }
-    return { from: MC.addDays(t, -(Number(p) - 1)), to: t }; };
+    return { from: MC.addDays(t, -Number(p)), to: t }; };   // same window as the Loyalty app: today minus N days up to today
   const loadAll = async () => {
     const [cust, visits] = await Promise.all([MC.customers.load().then(() => MC.customers.st.all), cached('visits', 300000, () => MC.sbAll('visits', 'select=customer_id,type,created_at&order=created_at.asc'))]);
     return { cust, visits };
@@ -161,7 +180,7 @@
 
   /* ── screens ──────────────────────────────────────────────────────────── */
   const TABS = [['overview', '📈 Overview'], ['customers', '👨‍👩‍👧 Customers'], ['retention', '🔄 Retention'], ['ops', '⏱ Operations'], ['acq', '📣 Acquisition'], ['games', '🎮 Games']];
-  const PRESETS = [['7', '7 days'], ['30', '30 days'], ['month', 'This month'], ['last', 'Last month'], ['90', '90 days']];
+  const PRESETS = [['7', 'Last 7 days'], ['30', 'Last 30 days'], ['month', 'This month'], ['last', 'Last month'], ['90', 'Last 90 days']];
 
   I.init = function () {
     const el = document.getElementById('mc-insights-root'); if (!el) return;
@@ -187,7 +206,7 @@
       '<div class="in-kpis">' + kpi('Visits', rows.length, (rows.length / days).toFixed(1) + ' per day') + kpi('Children served', kids.size, newKids.size + ' new · ' + Math.max(0, kids.size - newKids.size) + ' returning') +
       kpi('Avg wait', min1(ops.avgWait), 'arrival → called') + kpi('Avg service', min1(ops.avgSvc), 'called → done') +
       (unlocked ? kpi('Revenue', MC.r2(rev).toFixed(0), 'AED incl. VAT · avg ' + (rows.length ? MC.r2(rev / rows.length).toFixed(0) : 0), 'var(--ok)') : kpi('Revenue', '🔒', 'enter PIN to show')) + kpi('Customer base', cust.length, 'children registered') + '</div>' +
-      '<div class="in-grid">' + card('Visits per day', cols(perDay.map((x, i) => ({ n: x.n, label: MC.fmtDate(x.d), short: i % step === 0 ? x.d.slice(8) : '' })))) +
+      '<div class="in-grid">' + card('Visits per day', dayChart(perDay), '', true) +
       card('Busiest times', heat(I.heatmap(rows)), 'Arrivals by weekday and hour in this period — useful for rostering.', true) +
       card('Most booked services', bars(svc)) + card('Visits by stylist', bars(sty, { cat: true })) + '</div>';
     const u = out.querySelector('#in-unlock'); if (u) u.onclick = () => I.askPin(() => I.init());
@@ -201,8 +220,8 @@
       kpi('Missing details', cust.filter(c => MC.profileGaps(c).length).length, 'birthday, area or source') + '</div><div class="in-grid">' +
       card('New registrations', cols(months.map(k => ({ n: reg[k] || 0, label: I.monthLabel(k), short: I.monthLabel(k).slice(0, 3) }))), 'Children added per month (last 12 months).') +
       card('Age', bars(I.AGE.map(a => [a[0] + ' yrs', ages[a[0]] || 0])) + (unk ? '<div class="in-note">' + unk + ' without a birthday are not counted.</div>' : '')) +
-      card('Where they live', bars(I.countBy(cust, c => c.location).slice(0, 10), { pct: true }), 'Top 10 areas.') +
-      card('How they heard about us', bars(I.countBy(cust, c => c.heard_via), { pct: true, cat: true })) +
+      card('Where they live', bars(I.countBy(cust, c => c.location).slice(0, 10), { pct: true, total: cust.filter(c => c.location).length }), 'Top 10 areas · % of children with an area on file.') +
+      card('How they heard about us', bars(I.countBy(cust, c => c.heard_via), { pct: true, total: cust.filter(c => c.heard_via).length }), '% of children with a source on file.') +
       card('Passport status', bars(st, { pct: true, cat: true }), 'Where every child stands in the loyalty cycle today.') + '</div>';
   };
 
@@ -222,19 +241,21 @@
     const S = I.st, rows = await loadRows(S.from, S.to), o = I.ops(rows), slow = o.byDay.filter(d => d.avgWait != null && d.avgWait > 20);
     const perDay = I.perDay(rows, S.from, S.to), step = Math.ceil(perDay.length / 14);
     out.innerHTML = '<div class="in-kpis">' + kpi('Visits', rows.length) + kpi('Avg wait', min1(o.avgWait), 'arrival → called', o.avgWait > 20 ? 'var(--err)' : 'var(--ok)') + kpi('Avg service', min1(o.avgSvc), 'called → done') + kpi('Busy days (wait > 20 min)', slow.length, 'in this period') + '</div><div class="in-grid">' +
-      card('Customer load by day', cols(perDay.map((x, i) => ({ n: x.n, label: MC.fmtDate(x.d), short: i % step === 0 ? x.d.slice(8) : '' }))), '', true) +
+      card('Customer load by day', dayChart(perDay), 'Number of completed visits per day (each column is one day; long periods are grouped by week).', true) +
       card('Busiest times', heat(I.heatmap(rows)), 'Arrivals by weekday and hour — use it to plan the roster.', true) +
-      card('Stylists', o.byStylist.length ? '<div style="overflow:auto;"><table class="in-tbl"><thead><tr><th>Stylist</th><th>Visits</th><th>Avg service</th><th>Avg wait</th></tr></thead><tbody>' + o.byStylist.map(s => '<tr><td><b>' + e(s.name) + '</b></td><td>' + s.count + '</td><td>' + min1(s.avgSvc) + '</td><td>' + min1(s.avgWait) + '</td></tr>').join('') + '</tbody></table></div>' : '<div class="in-empty">No data.</div>', 'Service time = called → done. Only plausible times (under 4 hours) are averaged.') +
-      card('Days with long waits', slow.length ? '<div style="overflow:auto;"><table class="in-tbl"><thead><tr><th>Date</th><th>Visits</th><th>Avg wait</th></tr></thead><tbody>' + slow.sort((a, b) => b.avgWait - a.avgWait).slice(0, 10).map(d => '<tr><td>' + MC.fmtDate(d.d) + '</td><td>' + d.count + '</td><td style="color:var(--err);font-weight:800;">' + min1(d.avgWait) + '</td></tr>').join('') + '</tbody></table></div>' : '<div class="in-empty">No day averaged more than 20 minutes of waiting. 🎉</div>', 'Worst 10. Compare with the busy slots in the heat map to adjust the roster.') + '</div>';
+      card('Stylists', o.byStylist.length ? '<div><table class="in-tbl"><thead><tr><th>Stylist</th><th>Visits</th><th>Avg service</th><th>Avg wait</th></tr></thead><tbody>' + o.byStylist.map(s => '<tr><td><b>' + e(s.name) + '</b></td><td>' + s.count + '</td><td>' + min1(s.avgSvc) + '</td><td>' + min1(s.avgWait) + '</td></tr>').join('') + '</tbody></table></div>' : '<div class="in-empty">No data.</div>', 'Service time = called → done. Only plausible times (under 4 hours) are averaged.') +
+      card('Days with long waits', slow.length ? '<div><table class="in-tbl"><thead><tr><th>Date</th><th>Visits</th><th>Avg wait</th></tr></thead><tbody>' + slow.sort((a, b) => b.avgWait - a.avgWait).slice(0, 10).map(d => '<tr><td>' + MC.fmtDate(d.d) + '</td><td>' + d.count + '</td><td style="color:var(--err);font-weight:800;">' + min1(d.avgWait) + '</td></tr>').join('') + '</tbody></table></div>' : '<div class="in-empty">No day averaged more than 20 minutes of waiting. 🎉</div>', 'Worst 10. Compare with the busy slots in the heat map to adjust the roster.') + '</div>';
   };
 
   I.tab_acq = async function (out) {
     const S = I.st, [{ cust, visits }, rows] = await Promise.all([loadAll(), loadRows(S.from, S.to)]), map = {}; cust.forEach(c => { map[c.id] = c; });
     const src = I.sources(rows, map, I.firstSeen(visits), S.from, S.to), unlocked = money(), months = I.lastMonths(6), by = {};
     cust.forEach(c => { const k = I.monthKey(c.created_at), s = c.heard_via || 'Unknown'; if (months.includes(k)) { by[s] = by[s] || {}; by[s][k] = (by[s][k] || 0) + 1; } });
+    const tN = src.reduce((a, x) => a + x.newKids, 0), tR = src.reduce((a, x) => a + x.retKids, 0), tV = src.reduce((a, x) => a + x.visits, 0), pc = (n, t) => t ? Math.round(n / t * 100) + '%' : '—';
     out.innerHTML = (unlocked ? '' : '<div class="in-lock">🔒 Revenue per source is hidden.<button class="btn btn-sm btn-ghost" id="in-unlock">Show revenue</button></div>') + '<div class="in-grid">' +
-      card('Who came in this period', src.length ? '<div style="overflow:auto;"><table class="in-tbl"><thead><tr><th>Source</th><th>New kids</th><th>Returning</th><th>Visits</th>' + (unlocked ? '<th>Revenue</th>' : '') + '</tr></thead><tbody>' + src.map(s => '<tr><td><b>' + e(s.key) + '</b></td><td>' + s.newKids + '</td><td>' + s.retKids + '</td><td>' + s.visits + '</td>' + (unlocked ? '<td>' + MC.r2(s.rev).toFixed(0) + '</td>' : '') + '</tr>').join('') + '</tbody></table></div>' : '<div class="in-empty">No visits in this period.</div>', 'New = first-ever visit falls in the period.') +
-      card('New registrations by source', Object.keys(by).length ? '<div style="overflow:auto;"><table class="in-tbl"><thead><tr><th>Source</th>' + months.map(k => '<th>' + I.monthLabel(k) + '</th>').join('') + '</tr></thead><tbody>' + Object.keys(by).sort().map(s => '<tr><td><b>' + e(s) + '</b></td>' + months.map(k => '<td>' + (by[s][k] || '') + '</td>').join('') + '</tr>').join('') + '</tbody></table></div>' : '<div class="in-empty">No registrations.</div>', 'Last 6 months. “Unknown” = source not recorded — worth fixing at the front desk.') + '</div>' +
+      card('Who came in this period', src.length ? '<div><table class="in-tbl"><thead><tr><th>Source</th><th>New kids</th><th>Returning</th><th>Visits</th>' + (unlocked ? '<th>Revenue</th>' : '') + '</tr></thead><tbody>' + src.map(s => '<tr><td><b>' + e(s.key) + '</b></td><td>' + s.newKids + ' <span class="pc">' + pc(s.newKids, tN) + '</span></td><td>' + s.retKids + ' <span class="pc">' + pc(s.retKids, tR) + '</span></td><td>' + s.visits + ' <span class="pc">' + pc(s.visits, tV) + '</span></td>' + (unlocked ? '<td>' + MC.r2(s.rev).toFixed(0) + '</td>' : '') + '</tr>').join('') + '</tbody></table></div>' : '<div class="in-empty">No visits in this period.</div>', 'New = first-ever visit falls in the period. Grey % = share of all children / visits in the period.') +
+      card('Visits by source', bars(src.map(x => [x.key, x.visits]), { pct: true })) +
+      card('New registrations by source', Object.keys(by).length ? '<div><table class="in-tbl"><thead><tr><th>Source</th>' + months.map(k => '<th>' + I.monthLabel(k) + '</th>').join('') + '</tr></thead><tbody>' + Object.keys(by).sort().map(s => '<tr><td><b>' + e(s) + '</b></td>' + months.map(k => '<td>' + (by[s][k] || '') + '</td>').join('') + '</tr>').join('') + '</tbody></table></div>' : '<div class="in-empty">No registrations.</div>', 'Last 6 months. “Unknown” = source not recorded — worth fixing at the front desk.') + '</div>' +
       '<div class="in-note">Revenue by day, stylist and service, and the VAT report, are in Reports. Importing old Excel history stays in the Loyalty app.</div>';
     const u = out.querySelector('#in-unlock'); if (u) u.onclick = () => I.askPin(() => I.init());
   };
