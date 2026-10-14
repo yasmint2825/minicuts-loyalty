@@ -151,33 +151,83 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
   .toast{min-width:0;width:100%;}
 }
 
+
+/* ═══ MODERN SHELL (2026-10) — sidebar navigation, softer surfaces. Page ids / handlers are unchanged. ═══ */
+:root{--bg:#F3F6FC;--r:14px;--side-w:236px;}
+body{background:var(--bg);}
+.top{background:#fff;border-bottom:1px solid var(--border);padding:8px 18px;box-shadow:0 1px 2px rgba(15,23,42,.03);position:relative;z-index:30;}
+.top-brand{color:var(--bd);font-size:18px;}.top-sub{font:800 11px var(--fb);background:var(--y);color:var(--bd);padding:2px 9px;border-radius:99px;margin-left:2px;letter-spacing:.04em;text-transform:uppercase;}
+#clk{color:var(--muted);font-size:12px;}
+.top-link{color:var(--b);font:800 12px var(--fb);text-decoration:none;padding:6px 11px;border:1px solid var(--border);border-radius:99px;}.top-link:hover{background:#F0F6FF;}
+.menu-btn{display:none;border:1px solid var(--border);background:#fff;border-radius:10px;font-size:18px;width:38px;height:38px;cursor:pointer;color:var(--bd);}
+.shell{display:flex;flex:1;min-height:0;}
+.side{width:var(--side-w);flex-shrink:0;background:#fff;border-right:1px solid var(--border);padding:10px 10px 24px;overflow-y:auto;}
+.nav-g{font:800 10.5px var(--fb);text-transform:uppercase;letter-spacing:.08em;color:#94A3B8;padding:14px 10px 5px;}
+.side .tab{display:flex;align-items:center;gap:10px;width:100%;padding:9px 10px;margin:1px 0;border:none;border-radius:11px;background:transparent;color:#475569;font:700 13.5px var(--fb);text-align:left;cursor:pointer;white-space:normal;border-bottom:none;}
+.side .tab i{font-style:normal;width:22px;text-align:center;font-size:16px;flex-shrink:0;}
+.side .tab:hover{background:#F1F5FD;color:var(--bd);}
+.side .tab.active{background:#E6EFFE;color:var(--bd);box-shadow:inset 3px 0 0 var(--b);}
+.main{flex:1;min-width:0;min-height:0;display:flex;flex-direction:column;overflow-y:auto;}
+.stats-strip{margin:14px 22px 0;border:1px solid var(--border);border-radius:14px;padding:10px 18px;box-shadow:0 1px 3px rgba(15,23,42,.04);}
+.page{padding:14px 22px 28px;overflow:visible;flex:none;}
+.page.active{display:block;}
+#t-queue.active,#t-history.active{display:flex;flex-direction:column;}
+.card{border-radius:16px;border:1px solid var(--border);box-shadow:0 1px 3px rgba(15,23,42,.04);}
+.filters{border-radius:14px;border:1px solid var(--border);box-shadow:none;}
+.tbl-wrap{border-radius:14px;border:1px solid var(--border);box-shadow:none;background:#fff;}
+.qt thead{background:#F5F8FE;}.qt thead th{color:#475569;border-bottom:1px solid var(--border);}
+.qt tbody tr:hover{background:#FAFCFF;}
+.fi{border-radius:10px;}.fi:focus{box-shadow:0 0 0 3px rgba(21,101,192,.12);}
+.btn{border-radius:10px;}
+a.btn{text-decoration:none;}
+.side-scrim{display:none;}
+#t-queue .tbl-wrap,#t-history .tbl-wrap{max-height:calc(100vh - 235px);min-height:260px;}
+@media (max-width:900px){
+  .menu-btn{display:inline-flex;align-items:center;justify-content:center;}
+  .side{position:fixed;top:0;bottom:0;left:0;z-index:60;transform:translateX(-102%);transition:transform .2s ease;box-shadow:6px 0 24px rgba(15,23,42,.18);width:min(86vw,300px);padding-top:16px;}
+  .side-open .side{transform:none;}
+  .side-open .side-scrim{display:block;position:fixed;inset:0;background:rgba(15,23,42,.35);z-index:50;}
+  .stats-strip{margin:10px 12px 0;padding:8px 12px;}
+  .page{padding:10px 12px 24px;}
+  .top-link{display:none;}
+}
 </style>
 </head>
 <body>
 
 <!-- TOPBAR -->
 <div class="top">
-  <div class="top-brand">🐼 MiniCuts <span style="opacity:.6;font-size:13px;font-weight:700;">Staff Panel</span></div>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <button class="menu-btn" id="menuBtn" onclick="toggleSide()" aria-label="Menu">☰</button>
+    <div class="top-brand">🐼 MiniCuts <span class="top-sub">Staff</span></div>
+  </div>
   <div class="top-right">
     <div id="clk"></div>
-    <div class="badge-staff">✂️ Staff</div>
-    <a href="./index.html" target="_blank" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);color:#fff;padding:5px 11px;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;">📋 Loyalty</a>
+    <a href="./index.html" target="_blank" class="top-link">Loyalty app ↗</a>
   </div>
 </div>
 
-<!-- TABS -->
-<div class="tabs">
-  <button class="tab active" onclick="showTab('t-queue',this)">📋 Queue</button>
-  <button class="tab" onclick="showTab('t-history',this);histSetDate(today());loadHist();">🕐 History</button>
-  <button class="tab" onclick="showTab('t-appt',this);MC.appt.init();">📅 Appointments</button>
-  <button class="tab" onclick="showTab('t-reports',this);MC.reports.init();">📊 Reports</button>
-  <button class="tab" onclick="showTab('t-prizes',this);loadPrizes();">🎁 Game Prizes</button>
-  <button class="tab" onclick="showTab('t-freewash',this);loadFreeWash();">🚿 Free Wash</button>
-  <button class="tab" onclick="showTab('t-vouchers',this);loadVouchers();">🎁 Gift Vouchers</button>
-  <button class="tab" onclick="showTab('t-kod',this);loadKod();">💜 KoD</button>
-  <button class="tab" onclick="window.open('./minicuts-staff-mgmt.html','_blank')">👥 Staff Mgmt ↗</button>
-  <button class="tab" onclick="showTab('t-config',this);loadCfgScreen();">⚙️ Settings</button>
-</div>
+<div class="shell">
+<div class="side-scrim" id="sideScrim" onclick="toggleSide(false)"></div>
+<aside class="side" id="side">
+  <div class="nav-g">Today</div>
+  <button class="tab active" data-p="t-queue" onclick="showTab('t-queue')"><i>📋</i>Queue</button>
+  <button class="tab" data-p="t-appt" onclick="showTab('t-appt');MC.appt.init();"><i>📅</i>Appointments</button>
+  <button class="tab" data-p="t-history" onclick="showTab('t-history');histSetDate(today());loadHist();"><i>🕐</i>History</button>
+  <div class="nav-g">Customers</div>
+  <button class="tab" data-p="t-customers" onclick="showTab('t-customers');MC.customers.init();"><i>🔍</i>Find customer</button>
+  <button class="tab" data-p="t-prizes" onclick="showTab('t-prizes');loadPrizes();"><i>🎮</i>Game prizes</button>
+  <button class="tab" data-p="t-freewash" onclick="showTab('t-freewash');loadFreeWash();"><i>🚿</i>Free wash</button>
+  <button class="tab" data-p="t-vouchers" onclick="showTab('t-vouchers');loadVouchers();"><i>🎁</i>Gift vouchers</button>
+  <button class="tab" data-p="t-kod" onclick="showTab('t-kod');loadKod();"><i>💜</i>Kids of Determination</button>
+  <div class="nav-g">Insights</div>
+  <button class="tab" data-p="t-insights" onclick="showTab('t-insights');MC.insights.init();"><i>📈</i>Insights</button>
+  <button class="tab" data-p="t-reports" onclick="showTab('t-reports');MC.reports.init();"><i>📊</i>Reports &amp; tax</button>
+  <div class="nav-g">Manage</div>
+  <button class="tab" onclick="window.open('./minicuts-staff-mgmt.html','_blank')"><i>👥</i>Staff management ↗</button>
+  <button class="tab" data-p="t-config" onclick="showTab('t-config');loadCfgScreen();"><i>⚙️</i>Settings</button>
+</aside>
+<div class="main">
 
 <!-- STATS STRIP -->
 <div class="stats-strip" style="flex-wrap:wrap;row-gap:6px;">
@@ -566,10 +616,16 @@ select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:imag
   </div>
 </div>
 
+<div class="page" id="t-customers"><div id="mc-customers-root"></div></div>
+<div class="page" id="t-insights"><div id="mc-insights-root"></div></div>
+
+</div><!-- /main -->
+</div><!-- /shell -->
+
 <!-- TOAST CONTAINER -->
 <div class="tc" id="TC"></div>
 
-<script src="mc-demo.js?v=20261014s"></script>
+<script src="mc-demo.js?v=20261014t"></script>
 <script>
 const SB_URL='https://wtapyfgtwkjyjrjdnhkb.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind0YXB5Zmd0d2tqeWpyamRuaGtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0NDc3ODEsImV4cCI6MjA5NTAyMzc4MX0.y_-iPfb8Pcg9zh42h6RGVBsUVZm80LcA9sPlz_Gl_fA';
@@ -682,11 +738,16 @@ function fmtT(iso){if(!iso)return'—';return new Date(iso).toLocaleTimeString('
 function toast(msg,t='ok'){const e=document.createElement('div');e.className='toast '+t;e.innerHTML=(t==='ok'?'✅':t==='err'?'❌':'ℹ️')+' '+msg;document.getElementById('TC').appendChild(e);setTimeout(()=>e.remove(),3500);}
 function showM(el,msg,t){if(!el)return;el.textContent=msg;el.className='sm '+t;el.style.display='block';}
 
-function showTab(id,btn){
+function showTab(id){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.p===id));
   document.getElementById(id).classList.add('active');
-  if(btn)btn.classList.add('active');
+  const m=document.querySelector('.main'); if(m)m.scrollTop=0;
+  toggleSide(false);
+}
+function toggleSide(force){
+  const on=typeof force==='boolean'?force:!document.body.classList.contains('side-open');
+  document.body.classList.toggle('side-open',on);
 }
 
 // QUEUE
@@ -2290,9 +2351,11 @@ function setDefaultExpiry() {
 setDefaultExpiry();
 
 </script>
-<script src="mc-common.js?v=20261014s"></script>
-<script src="mc-billing.js?v=20261014s"></script>
-<script src="mc-appointments.js?v=20261014s"></script>
-<script src="mc-reports.js?v=20261014s"></script>
+<script src="mc-common.js?v=20261014t"></script>
+<script src="mc-billing.js?v=20261014t"></script>
+<script src="mc-appointments.js?v=20261014t"></script>
+<script src="mc-reports.js?v=20261014t"></script>
+<script src="mc-customers.js?v=20261014t"></script>
+<script src="mc-insights.js?v=20261014t"></script>
 </body>
 </html>

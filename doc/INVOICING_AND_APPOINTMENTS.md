@@ -41,3 +41,13 @@
 ## Practice mode (test locally without touching production)
 
 Open `minicuts-staff.html?demo=1` (or `minicuts-checkin.html?demo=1`). `mc-demo.js` answers every Supabase call from a small database kept in the browser (localStorage); nothing reaches Supabase and no WhatsApp is sent. A red bar shows "PRACTICE MODE" with a reset button. Without `?demo=1` the file does nothing. Automated check: `node tests/e2e_demo.js`.
+
+## Staff app layout, Customers and Insights (v2026-10-14.21)
+
+The staff page now has a left sidebar (a drawer on phones): **Today** (Queue, Appointments, History) · **Customers** (Find customer, Game prizes, Free wash, Gift vouchers, Kids of Determination) · **Insights** (Insights, Reports & tax) · **Manage** (Staff management, Settings). Page ids and handlers are unchanged.
+
+**Find customer** (`mc-customers.js`): instant search by name, parent or mobile; filter chips (free wash ready, expiring, lapsed, missing details); profile with loyalty passport, visits, invoices, appointments, passport history, prizes/games, siblings; Book, WhatsApp, Edit. Stamps are never edited here. The only writes are Edit details (PATCH `customers`) and the existing "complete missing details" dialog.
+
+**Insights** (`mc-insights.js`, read-only): Overview, Customers (mix, ages, areas, sources, registrations), Retention (return rate by window, gender, age, needs-attention), Operations (load by day, busiest times, wait/service time per stylist, long-wait days), Acquisition (new vs returning per source), Games. Revenue figures sit behind the same PIN as Reports. Revenue by day/stylist/service and the VAT report stay in Reports; the one-off Excel history import stays in the Loyalty app.
+
+Notes: `queue.checkin_time` is a UTC timestamp, so busiest-times shifts it to Dubai (UTC+4). Return rate uses the `visits` log (paid + free washes), same source as the Loyalty app. Practice mode (`?demo=1`) now seeds about ten weeks of history so these screens have data (storage key `mc_demo_db_v2`).

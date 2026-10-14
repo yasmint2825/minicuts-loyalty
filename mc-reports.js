@@ -56,6 +56,7 @@
   };
 
   /* ── UI ───────────────────────────────────────────────────────────────── */
+  R.unlock = pin => { if (String(pin) === PIN) { R.st.unlocked = true; return true; } return false; };
   R.st = { unlocked: false, from: null, to: null, tab: 'sales' };
   const fmt = n => MC.r2(n).toFixed(2);
   const table = (heads, rows, foot) => '<div style="overflow:auto;"><table class="tbl" style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr>' + heads.map(h => '<th style="text-align:left;padding:8px;border-bottom:2px solid var(--border);">' + MC.esc(h) + '</th>').join('') + '</tr></thead><tbody>' +

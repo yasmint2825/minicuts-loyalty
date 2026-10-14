@@ -16,11 +16,11 @@ const { chromium } = require('playwright-core'); const path = require('path'); c
   await pg.fill('#mcc-svcname', 'Girls Hair'); await pg.waitForSelector('#mcc-list [data-i]');
   await pg.evaluate(() => { const i = MC.billing.services.findIndex(x => x.name === 'Girls Haircut'); document.querySelector('#mcc-list [data-i="' + i + '"]').dispatchEvent(new MouseEvent('mousedown', { bubbles: true })); });
   await pg.click('.mc-chip[data-p="10"]'); await pg.click('.mc-pay[data-v="Cash"]'); await pg.click('#mcc-issue'); await pg.waitForTimeout(1500);
-  const inv = await pg.evaluate(() => JSON.parse(localStorage.getItem('mc_demo_db_v1')).invoices[0]);
+  const inv = await pg.evaluate(() => JSON.parse(localStorage.getItem('mc_demo_db_v2')).invoices[0]);
   ok(inv && inv.invoice_number === 'MC/2026/00001' && inv.payable_amount === 54, 'practice invoice issued ' + (inv && inv.invoice_number + ' ' + inv.payable_amount));
   // reload: data persists
   await pg.reload(); await pg.waitForTimeout(1000);
-  ok((await pg.evaluate(() => JSON.parse(localStorage.getItem('mc_demo_db_v1')).invoices.length)) === 1, 'practice data survives reload');
+  ok((await pg.evaluate(() => JSON.parse(localStorage.getItem('mc_demo_db_v2')).invoices.length)) === 1, 'practice data survives reload');
   const demoLeaks = leaked;
   // without ?demo=1 the file is inert
   const p2 = await b.newPage(); await p2.route('**/*', r => { if (/supabase\.co/.test(r.request().url())) { leaked += 1000; return r.abort(); } return r.request().url().startsWith('file:') ? r.continue() : r.fulfill({ status: 200, body: '' }); });

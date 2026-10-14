@@ -148,7 +148,7 @@
   };
 
   /* ── new appointment ──────────────────────────────────────────────────── */
-  A.openNew = function (stylist, time) {
+  A.openNew = function (stylist, time, prefill) {
     const S = A.state;
     const svcOpts = S.services.map(s => '<option value="' + MC.esc(s.id) + '">' + MC.esc(s.name) + (s.gender ? ' (' + MC.esc(s.gender) + ')' : '') + ' · ' + A.svcDuration(s) + ' min</option>').join('');
     const ov = MC.modal(
@@ -277,8 +277,8 @@
         ov.close(); toast('Appointment booked'); await A.go($('ma-date').value);
       } catch (e) { btn.disabled = false; btn.textContent = 'Book'; fail(e.message); }
     };
-    renderSvc();
-    setTimeout(() => $('ma-q').focus(), 50);
+    if (prefill && prefill.id) { cust = prefill; showSel(); } else renderSvc();
+    setTimeout(() => { if (!cust) $('ma-q').focus(); }, 50);
   };
 
   /* ── manage one appointment ───────────────────────────────────────────── */
