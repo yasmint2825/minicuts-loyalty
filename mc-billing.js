@@ -564,7 +564,6 @@
         '<div style="display:flex;gap:8px;"><select class="fi" id="mcw-tplsel" style="flex:1;"><option value="">Loading your approved templates…</option></select><button class="btn btn-ghost" id="mcw-reload" title="Reload from WhatsApp">↻</button></div>' +
         '<input class="fi" id="mcw-tpl" value="' + MC.esc(S.waTemplateName) + '" style="margin-top:6px;display:none;" placeholder="template name"/><input type="hidden" id="mcw-lang" value="' + MC.esc(S.waTemplateLang || 'en') + '"/>' +
         '<div id="mcw-tplinfo" style="font-size:12px;color:var(--muted);margin-top:5px;line-height:1.5;"></div></div>' +
-      '<div class="fg" style="margin-bottom:10px;">' + MC.lbl('MiniCuts API key (optional fallback)') + '<input class="fi" type="password" id="mcw-key" placeholder="same key as in Loyalty ▸ Settings ▸ Platform connection" value="' + MC.esc(localStorage.getItem('mw_tenant_key') || '') + '"/><div style="font-size:11.5px;color:var(--muted);margin-top:3px;">' + (localStorage.getItem('mw_tenant_key') ? '✓ A key is already saved in this browser — it is shared with the Loyalty app on the same web address, so you may not need to enter anything.' : 'No key saved in this browser yet. The Loyalty app saves the same key under the same address, so enter it once in either place.') + ' Only needed if the Zen send function is not deployed. Stored only in this browser, never in the database.</div></div>' +
       '<div id="mcw-msg" class="sm"></div><div style="display:flex;gap:8px;"><button class="btn btn-y" id="mcw-save" style="flex:1;">Save WhatsApp Settings ✅</button><button class="btn btn-ghost" id="mcw-check">🔌 Check connection</button></div>' +
       '<div style="margin:16px 0 8px;padding-top:12px;border-top:1px solid var(--border);font-family:var(--fh);font-weight:800;color:var(--bd);font-size:13px;">🧪 Send a test message</div>' +
       '<p style="font-size:12.5px;color:var(--muted);margin:0 0 8px;">Sends the template above with sample values (invoice TEST/00000, a sample amount and a sample link) to the number you enter. No invoice is created and nothing is saved in the sales data.</p>' +
@@ -605,27 +604,14 @@
       try {
         const old = (await MC.getConfig('co_settings')) || {};
         await MC.setConfig('co_settings', Object.assign({}, old, { waTemplateName: $('tpl').value.trim() || DEFAULTS.waTemplateName, waTemplateLang: $('lang').value.trim() || 'en' }));
-        const k = $('key').value.trim().replace(/^["']|["']$/g, '').replace(/\s+/g, ''); $('key').value = k;
-        if (k && !/^mwk_[0-9a-f]{48}$/.test(k)) { m.className = 'sm err'; m.textContent = 'That does not look like a MiniCuts platform key. A real one is “mwk_” followed by 48 letters/digits (52 characters in all) — you pasted ' + k.length + ' characters' + (/^mwk_/.test(k) ? ' (maybe cut off or extra text)' : ' starting “' + k.slice(0, 4) + '”') + '. It is not the Meta token or a Supabase key. Saved anyway; use Check connection.'; }
-        if (k) localStorage.setItem('mw_tenant_key', k); else localStorage.removeItem('mw_tenant_key');
-        B.loaded = false; await B.load(true); if (!m.textContent || m.className.indexOf('err') < 0) { m.className = 'sm ok'; m.textContent = k ? 'Saved (key ending …' + k.slice(-4) + '). Now press Check connection.' : 'Saved — no key stored on this device.'; }
+        B.loaded = false; await B.load(true); m.className = 'sm ok'; m.textContent = 'Saved. Now press Send test.';
       } catch (e) { m.className = 'sm err'; m.textContent = 'Save failed: ' + e.message; }
     };
     $('check').onclick = async () => {
-      const m = $('msg'), k = $('key').value.trim(), c = MC.conf();
-      m.className = 'sm'; m.textContent = 'Checking…';
+      const m = $('msg'); m.className = 'sm'; m.textContent = 'Checking…';
       const zp = await B.viaZen({ ping: true });
-      if (zp && zp.ok) { m.className = 'sm ok'; m.textContent = '✓ Connected through Zen — no API key needed on this device. Use “Send test” below to confirm WhatsApp delivers.'; return; }
-      if (!k) { m.className = 'sm err'; m.textContent = 'Paste the MiniCuts API key first.'; return; }
-      m.className = 'sm'; m.textContent = 'Checking…';
-      try {
-        /* No mobile number on purpose: the platform checks the key first, then rejects the empty request, so nothing is sent or logged. */
-        const r = await fetch(c.url + '/functions/v1/send-whatsapp', { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: c.key, Authorization: 'Bearer ' + c.key, 'x-tenant-key': k }, body: JSON.stringify({ tenant_id: 'minicuts', template_name: 'connection_check' }) });
-        const j = await r.json().catch(() => ({}));
-        if (r.status === 401) { m.className = 'sm err'; m.textContent = '✗ The platform rejected this key (invalid or revoked). Copy it again from Loyalty ▸ Settings ▸ Platform connection.'; }
-        else if (r.status === 400 && /mobile and either/i.test(j.error || '')) { m.className = 'sm ok'; m.textContent = '✓ Key accepted by the platform. Use “Send test” below to confirm WhatsApp itself delivers.'; }
-        else { m.className = 'sm err'; m.textContent = 'Unexpected reply (' + r.status + '): ' + String(j.error || j.message || '').slice(0, 200); }
-      } catch (e) { m.className = 'sm err'; m.textContent = 'Could not reach the platform: ' + e.message; }
+      if (zp && zp.ok) { m.className = 'sm ok'; m.textContent = '✓ Connected through Zen. Use “Send test” below to confirm WhatsApp delivers.'; }
+      else { m.className = 'sm err'; m.textContent = '✗ Could not reach the Zen send function' + (zp && zp.error ? ' (' + String(zp.error).slice(0, 120) + ')' : ' — it may not be deployed') + '.'; }
     };
     $('test').onclick = async () => {
       const m = $('tmsg'), to = $('to').value.trim();

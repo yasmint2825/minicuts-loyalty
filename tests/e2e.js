@@ -110,10 +110,8 @@ const filt = (rows, qs) => { qs.forEach((v, k) => { if (['select', 'order', 'lim
   ok(await pg.isVisible('#mcs-save') && !(await pg.isVisible('#mcw-test')), 'settings: only Invoice section shown first');
   await pg.click('#cfg-nav [data-s="wa"]'); await pg.waitForSelector('#mcw-test'); ok(await pg.isVisible('#mcw-test') && !(await pg.isVisible('#mcs-save')), 'settings: WhatsApp tab shows test box');
   let waBody = null; await pg.route('**/functions/v1/send-whatsapp', r => { const b = JSON.parse(r.request().postData()); if (!b.mobile) return r.fulfill({ status: 400, contentType: 'application/json', body: '{"ok":false,"error":"mobile and either type or template_name are required"}' }); waBody = b; r.fulfill({ status: 200, contentType: 'application/json', body: '{"ok":true}' }); });
-  await pg.fill('#mcw-key', 'k123'); await pg.click('#mcw-check'); await pg.waitForTimeout(400); ok(/Key accepted/.test(await pg.innerText('#mcw-msg')), 'check connection ok'); await pg.fill('#mcw-to', '0501234567'); await pg.click('#mcw-test'); await pg.waitForTimeout(500);
-  ok(waBody && waBody.params.length === 5 && waBody.params[0] === 'Test' && waBody.params[1] === 'MiNiCUTS' && waBody.sent_by === 'staff-invoice-test', 'test message sends 5 sample params');
   // Zen-hosted sending (function deployed): no key needed in the browser
-  zenOn = true; await pg.evaluate(() => localStorage.removeItem('mw_tenant_key')); await pg.fill('#mcw-key', '');
+  zenOn = true; await pg.evaluate(() => localStorage.removeItem('mw_tenant_key'));
   await pg.click('#mcw-check'); await pg.waitForTimeout(400); ok(/through Zen/.test(await pg.innerText('#mcw-msg')), 'check connection: connected through Zen without a key');
   await pg.click('#mcw-reload'); await pg.waitForTimeout(500);
   ok(await pg.locator('#mcw-tplsel optgroup[label^="Fits"] option').count() === 1, 'picker lists the 5-variable template under "Fits invoices"');
