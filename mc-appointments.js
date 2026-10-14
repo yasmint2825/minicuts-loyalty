@@ -102,7 +102,19 @@
       el.innerHTML = '<div class="card"><b>Appointments not ready.</b><div style="font-size:13px;color:var(--muted);margin-top:6px;">' + MC.esc(/appointments|42P01|PGRST/.test(e.message) ? 'Run sql/001_billing_and_appointments.sql in Supabase, then reload the schema.' : e.message) + '</div></div>';
     }
   };
-  A.go = async function (d) { A.state.date = d; await A.loadDay(d); A.render(); };
+  /* Previous / next / pick a date. If the day fails to load, the page says so (and keeps the old day) instead of looking dead. */
+  A.go = async function (d) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(d || ''))) return;
+    const prev = A.state.date, prevAppts = A.state.appts;
+    try { A.state.date = d; await A.loadDay(d); A.render(); }
+    catch (e) {
+      console.error('Appointments: could not open ' + d, e);
+      A.state.date = prev; A.state.appts = prevAppts;
+      try { A.render(); } catch (x) { /* keep the error banner below */ }
+      const el = document.getElementById('mc-appt-root');
+      if (el) el.insertAdjacentHTML('afterbegin', '<div class="card" style="background:#FEF2F2;border-color:#FCA5A5;color:#991B1B;font-size:13px;margin-bottom:10px;">Could not open ' + MC.esc(MC.fmtDate(d)) + ': ' + MC.esc(e.message || e) + '</div>');
+    }
+  };
 
   A.render = function () {
     const S = A.state, cfg = S.cfg, el = document.getElementById('mc-appt-root');

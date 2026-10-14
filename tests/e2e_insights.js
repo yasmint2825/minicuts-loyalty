@@ -1,5 +1,6 @@
 // Run: node tests/e2e_insights.js — new sidebar shell, Customers screen and Insights (practice-mode data, no Supabase)
 const { chromium } = require('playwright-core'); const path = require('path'); const fs = require('fs'); const ROOT = path.resolve(__dirname, '..'); const SHOTS = process.env.SHOTS || '';
+const MC_add = (s, n) => { const d = new Date(s + 'T12:00:00'); d.setDate(d.getDate() + n); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
 (async () => {
   const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ['--no-sandbox'] }); const pg = await b.newPage({ viewport: { width: 1360, height: 860 } });
   const errs = []; pg.on('pageerror', e => errs.push(e.message));
@@ -97,6 +98,13 @@ const { chromium } = require('playwright-core'); const path = require('path'); c
   ok(await pg.evaluate(() => paidNeeded() === 7 && MC.customers.cfg().paid === 7), 'staff app applies the new rule immediately (paid stamps needed = 7)');
   await pg.evaluate(c => { _custMap[c].stamps = 5; renderQ(); }, cid); ok(!(await pg.evaluate(c => rewardsFor(_qdata.find(x => x.customer_id === c)).fw, cid)), 'with 8-visit rule, 5 stamps no longer counts as a free wash');
   await pg.evaluate(() => MC.setConfig('loyalty_config', { stampsNeeded: 6 })); await pg.evaluate(() => { LCFG = { stampsNeeded: 6 }; });
+  // Appointments: previous / next day
+  await pg.setViewportSize({ width: 1360, height: 860 }); await pg.click('#side [data-p="t-appt"]'); await pg.waitForTimeout(800);
+  const d0 = await pg.inputValue('#mc-appt-root input[type=date]'); await pg.click('#mc-appt-root button:has-text("▶")'); await pg.waitForTimeout(500); const d1 = await pg.inputValue('#mc-appt-root input[type=date]');
+  await pg.click('#mc-appt-root button:has-text("◀")'); await pg.click('#mc-appt-root button:has-text("◀")'); await pg.waitForTimeout(600); const d2 = await pg.inputValue('#mc-appt-root input[type=date]');
+  ok(d1 === MC_add(d0, 1) && d2 === MC_add(d0, -1), 'appointments ◀ ▶ move one day (' + d2 + ' ‹ ' + d0 + ' › ' + d1 + ')');
+  await pg.evaluate(() => { const o = MC.appt.loadDay; MC.appt.loadDay = async () => { throw new Error('network down'); }; window.__o = o; }); await pg.click('#mc-appt-root button:has-text("▶")'); await pg.waitForTimeout(500);
+  ok(/Could not open/.test(await pg.innerText('#mc-appt-root')) && (await pg.inputValue('#mc-appt-root input[type=date]')) === d2, 'a failed day load shows a message and keeps the current day'); await pg.evaluate(() => { MC.appt.loadDay = window.__o; });
   // mobile
   await pg.setViewportSize({ width: 390, height: 800 }); await pg.waitForTimeout(300); ok(!(await pg.isVisible('#side')) || true, 'mobile layout ok');
   await pg.click('#menuBtn'); await pg.waitForTimeout(350); ok(await pg.isVisible('#side'), 'hamburger opens the drawer'); await shot('06-mobile-drawer');
