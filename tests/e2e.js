@@ -17,13 +17,14 @@ const filt = (rows, qs) => { qs.forEach((v, k) => { if (['select', 'order', 'lim
 (async () => {
   const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ['--no-sandbox'] }); const pg = await b.newPage({ viewport: { width: 1280, height: 900 } });
   const errs = []; pg.on('pageerror', e => errs.push(e.message)); pg.on('console', m => { if (m.type() === 'error' && !/Failed to load resource/.test(m.text())) errs.push(m.text()); });
-  let waCall = null, pdfBytes = 0;
+  let waCall = null, pdfBytes = 0, zenOn = false, zenCall = null;
   await pg.route('**/*', async route => {
     const u = new URL(route.request().url()), m = route.request().method();
     if (u.hostname.endsWith('supabase.co')) {
       const j = (o, s) => route.fulfill({ status: s || 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify(o) });
       if (m === 'OPTIONS') return route.fulfill({ status: 204, headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': '*' } });
       if (u.pathname.startsWith('/storage/')) { pdfBytes = route.request().postDataBuffer().length; return j({ Key: 'x' }); }
+      if (u.pathname.includes('/functions/v1/mc-send-invoice')) { if (!zenOn) return j({ message: 'Requested function was not found' }, 404); zenCall = JSON.parse(route.request().postData()); return j({ ok: true }); }
       if (u.pathname.startsWith('/functions/')) { waCall = JSON.parse(route.request().postData()); return j({ ok: true }); }
       const t = u.pathname.split('/rest/v1/')[1]; if (process.env.NODB && /^invoices/.test(t)) return j({ message: 'relation "public.invoices" does not exist' }, 404);
       const rows = DB[t] || (DB[t] = []);
@@ -111,6 +112,12 @@ const filt = (rows, qs) => { qs.forEach((v, k) => { if (['select', 'order', 'lim
   let waBody = null; await pg.route('**/functions/v1/send-whatsapp', r => { const b = JSON.parse(r.request().postData()); if (!b.mobile) return r.fulfill({ status: 400, contentType: 'application/json', body: '{"ok":false,"error":"mobile and either type or template_name are required"}' }); waBody = b; r.fulfill({ status: 200, contentType: 'application/json', body: '{"ok":true}' }); });
   await pg.fill('#mcw-key', 'k123'); await pg.click('#mcw-check'); await pg.waitForTimeout(400); ok(/Key accepted/.test(await pg.innerText('#mcw-msg')), 'check connection ok'); await pg.fill('#mcw-to', '0501234567'); await pg.click('#mcw-test'); await pg.waitForTimeout(500);
   ok(waBody && waBody.params.length === 5 && waBody.params[1] === 'TEST/00000' && waBody.sent_by === 'staff-invoice-test', 'test message sends 5 sample params');
+  // Zen-hosted sending (function deployed): no key needed in the browser
+  zenOn = true; await pg.evaluate(() => localStorage.removeItem('mw_tenant_key')); await pg.fill('#mcw-key', '');
+  await pg.click('#mcw-check'); await pg.waitForTimeout(400); ok(/through Zen/.test(await pg.innerText('#mcw-msg')), 'check connection: connected through Zen without a key');
+  await pg.fill('#mcw-to', '0501234567'); await pg.click('#mcw-test'); await pg.waitForTimeout(400);
+  ok(zenCall && zenCall.test_mobile === '0501234567', 'test message goes through Zen function (no key)');
+  zenCall = null; zenOn = false;
   await pg.click('#cfg-nav [data-s="invoice"]');
   // Settings
   await pg.evaluate(() => { showTab('t-config', document.querySelectorAll('.tab')[8]); loadCfgScreen(); }); await pg.waitForSelector('#mcs-save');

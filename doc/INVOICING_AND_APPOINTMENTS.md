@@ -27,3 +27,12 @@
 - Queue rows no longer take AED / Tip / Pay typed in the grid. **✅ Stamp & Checkout** opens one window for service, price, discount %, tip and Cash/Card, issues the invoice, then stamps the visit ("Done — stamp visit").
 - Safety: until `sql/001_billing_and_appointments.sql` has run, the page detects it and the grid works exactly as before (typeable amounts, plain Stamp). `?freeze=1` in the page address previews the new layout without the database.
 - After an invoice exists, History ▸ Edit locks amount, tip and payment. Void the invoice to change them.
+
+
+## Sending WhatsApp through Zen (no key in the browser)
+
+`supabase/functions/mc-send-invoice/index.ts` lets the staff app send an invoice by passing only the **invoice id**. The function reads the phone number, amount, date, PDF link and template name from the database and calls Zen's existing `send-whatsapp` with service-role trust, so Zen's WhatsApp credentials, template handling and message log are used. Guard rails: only the configured invoice template, only to the phone stored on an existing non-void invoice, PDF link must be from the `invoices` bucket, max 2 sends per phone/template/10 min, 5 test messages/hour.
+
+- Not deployed yet (production change - needs approval after the SQL migration, because it reads `invoices`).
+- The staff app calls it first; if it answers 404 (not deployed) the app falls back to the browser-stored `mwk_` key.
+- Deploy: `supabase functions deploy mc-send-invoice` (verify_jwt on).

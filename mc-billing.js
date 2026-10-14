@@ -409,10 +409,34 @@
   /* ── WHATSAPP (utility template through the existing Zen `send-whatsapp` function) ── */
   /* Body variables: {{1}} name  {{2}} invoice no  {{3}} date  {{4}} amount  {{5}} PDF link
    * The deployed function supports text body/header parameters only, so the PDF goes in as a link in {{5}}. */
+  /* Preferred route: ask Zen (through the mc-send-invoice function) to send — no key needed in the browser.
+   * Returns null when that function is not deployed yet, so the caller can fall back to the key route. */
+  B.viaZen = async function (payload) {
+    const c = MC.conf();
+    try {
+      const r = await fetch(c.url + '/functions/v1/mc-send-invoice', { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: c.key, Authorization: 'Bearer ' + c.key }, body: JSON.stringify(payload) });
+      if (r.status === 404) return null;
+      const j = await r.json().catch(() => ({ ok: false, error: 'Unexpected reply (' + r.status + ')' }));
+      return j;
+    } catch (e) { return null; }
+  };
   B.sendWA = async function (inv, opts) {
     opts = opts || {};
+    if (!opts.noZen && (inv.id || opts.test) && !(opts.test ? false : !inv.pdf_url)) {
+      if (!hasPhone(inv.mobile)) return { ok: false, error: 'No phone number on this invoice.' };
+      const z = await B.viaZen(opts.test ? { test_mobile: inv.mobile } : { invoice_id: inv.id });
+      if (z) {
+        const okz = !!z.ok;
+        if (!opts.test) {
+          const patch = okz ? { whatsapp_sent: true, whatsapp_sent_at: new Date().toISOString(), wa_status: 'sent', wa_error: null } : { wa_status: 'failed', wa_error: String(z.error || 'send failed').slice(0, 300) };
+          try { await MC.sb('invoices', 'PATCH', patch, 'id=eq.' + inv.id, 'return=minimal'); } catch (e) {}
+          Object.assign(inv, patch);
+        }
+        return okz ? { ok: true } : { ok: false, error: String(z.error || 'send failed').slice(0, 300) };
+      }
+    }
     const key = localStorage.getItem('mw_tenant_key') || '';
-    if (!key) return { ok: false, error: 'WhatsApp is not connected on this device: paste the MiniCuts API key in Settings → Invoice & Tax.' };
+    if (!key) return { ok: false, error: 'WhatsApp sending is not set up yet: either deploy the Zen send function, or paste the MiniCuts API key in Settings → WhatsApp.' };
     if (!inv.pdf_url && !opts.test) return { ok: false, error: 'No PDF link yet — tap “Create PDF” first.' };
     if (!hasPhone(inv.mobile)) return { ok: false, error: 'No phone number on this invoice.' };
     const c = MC.conf(), S = B.S || DEFAULTS;
@@ -527,7 +551,7 @@
     el.innerHTML = '<div class="card"><div class="card-title">📲 WhatsApp invoice</div>' +
       '<p style="font-size:12.5px;color:var(--muted);margin:6px 0 12px;">Invoices go out through your approved <b>Utility</b> template with these 5 values in order: customer first name · invoice no. · date · amount · PDF link.</p>' +
       '<div class="fg" style="margin-bottom:10px;">' + MC.lbl('Approved template name') + '<input class="fi" id="mcw-tpl" value="' + MC.esc(S.waTemplateName) + '"/></div>' +
-      '<div class="fg" style="margin-bottom:10px;">' + MC.lbl('MiniCuts API key (this device only)') + '<input class="fi" type="password" id="mcw-key" placeholder="same key as in Loyalty ▸ Settings ▸ Platform connection" value="' + MC.esc(localStorage.getItem('mw_tenant_key') || '') + '"/><div style="font-size:11.5px;color:var(--muted);margin-top:3px;">' + (localStorage.getItem('mw_tenant_key') ? '✓ A key is already saved in this browser — it is shared with the Loyalty app on the same web address, so you may not need to enter anything.' : 'No key saved in this browser yet. The Loyalty app saves the same key under the same address, so enter it once in either place.') + ' Stored only in this browser, never in the database.</div></div>' +
+      '<div class="fg" style="margin-bottom:10px;">' + MC.lbl('MiniCuts API key (optional fallback)') + '<input class="fi" type="password" id="mcw-key" placeholder="same key as in Loyalty ▸ Settings ▸ Platform connection" value="' + MC.esc(localStorage.getItem('mw_tenant_key') || '') + '"/><div style="font-size:11.5px;color:var(--muted);margin-top:3px;">' + (localStorage.getItem('mw_tenant_key') ? '✓ A key is already saved in this browser — it is shared with the Loyalty app on the same web address, so you may not need to enter anything.' : 'No key saved in this browser yet. The Loyalty app saves the same key under the same address, so enter it once in either place.') + ' Only needed if the Zen send function is not deployed. Stored only in this browser, never in the database.</div></div>' +
       '<div id="mcw-msg" class="sm"></div><div style="display:flex;gap:8px;"><button class="btn btn-y" id="mcw-save" style="flex:1;">Save WhatsApp Settings ✅</button><button class="btn btn-ghost" id="mcw-check">🔌 Check connection</button></div>' +
       '<div style="margin:16px 0 8px;padding-top:12px;border-top:1px solid var(--border);font-family:var(--fh);font-weight:800;color:var(--bd);font-size:13px;">🧪 Send a test message</div>' +
       '<p style="font-size:12.5px;color:var(--muted);margin:0 0 8px;">Sends the template above with sample values (invoice TEST/00000, a sample amount and a sample link) to the number you enter. No invoice is created and nothing is saved in the sales data.</p>' +
@@ -546,6 +570,9 @@
     };
     $('check').onclick = async () => {
       const m = $('msg'), k = $('key').value.trim(), c = MC.conf();
+      m.className = 'sm'; m.textContent = 'Checking…';
+      const zp = await B.viaZen({ ping: true });
+      if (zp && zp.ok) { m.className = 'sm ok'; m.textContent = '✓ Connected through Zen — no API key needed on this device. Use “Send test” below to confirm WhatsApp delivers.'; return; }
       if (!k) { m.className = 'sm err'; m.textContent = 'Paste the MiniCuts API key first.'; return; }
       m.className = 'sm'; m.textContent = 'Checking…';
       try {
