@@ -446,7 +446,7 @@
     const dayRows = names.map(function (nm, d) {
       if (!c.days[d] || !c.days[d].appts) {
         return '<tr><td style="font-weight:700;width:40px;font-size:12.5px;color:var(--muted);padding:6px 4px;">' + nm + '</td>' +
-          '<td colspan="3" style="font-size:12px;color:var(--muted);font-style:italic;padding:6px 0;">Salon closed</td></tr>';
+          '<td colspan="3" style="font-size:12px;color:var(--muted);font-style:italic;padding:6px 0;">Walk-in only (no appointments)</td></tr>';
       }
       const isOff = (s.off_days || []).includes(d);
       const ov = shifts[d] || shifts[String(d)];
