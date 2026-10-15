@@ -100,6 +100,7 @@
     [['i1', 24, 20], ['i2', 12, 4], ['i3', 40, 30], ['i4', 30, 25], ['i5', 400, 250], ['i6', 120, 50]].forEach(r => { mv(B.id, r[0], 'opening', r[1], 40); mv(B.id, r[0], 'issue', -r[2], 10); });
     [['i1', 24], ['i2', 24], ['i3', 40], ['i4', 40], ['i5', 400], ['i6', 100]].forEach(r => mv(M.id, r[0], 'opening', r[1], 30));
     const po = { id: 'po1', po_number: 'PO/DSO/' + new Date().getFullYear() + '/0001', branch_id: B.id, supplier_id: 's1', status: 'submitted', order_date: today, currency: 'AED', tax_rate: 5, subtotal: 1200, tax_amount: 60, total: 1260, created_by: 'keeper.dso@minicuts.demo', created_at: iso(1), submitted_at: iso(1) };
+    (DB.queue || []).forEach((q, i) => { if (i % 3 === 0) q.branch_id = M.id; });   // practice: a third of the history happened at the second outlet
     return { branches: [B, M], rbac_roles: [], memberships: [
       mem('owner@minicuts.demo', 'Munir (Owner)', 'owner', true, []), mem('controller@minicuts.demo', 'Controller', 'controller', true, []),
       mem('manager.dso@minicuts.demo', 'Manager DSO', 'branch_manager', false, [B.id]), mem('manager.mir@minicuts.demo', 'Manager Mirdif', 'branch_manager', false, [M.id]),
@@ -147,6 +148,7 @@
       if (!DB.memberships.some(m => m.email === em)) return resp({ error: 'invalid_grant', error_description: 'Wrong e-mail or password' }, 400);
       return resp({ access_token: jwt(em), refresh_token: 'rt:' + em, expires_in: 3600, user: { email: em } });
     }
+    if (path.startsWith('/auth/v1/recover') || path.startsWith('/auth/v1/user')) return resp({});
     if (path.startsWith('/storage/')) return resp({ Key: 'demo' });                           // PDF upload: accepted, not stored
     if (path.startsWith('/functions/')) {                                                       // WhatsApp / Zen: pretend it worked
       let b = {}; try { b = JSON.parse(init.body || '{}'); } catch (e) {}

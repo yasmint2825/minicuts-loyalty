@@ -41,7 +41,7 @@
     { k: 'po.approve_own', g: 'Purchasing', l: 'Approve own purchase orders' },
     { k: 'po.receive', g: 'Purchasing', l: 'Receive goods' },
     { k: 'po.cancel', g: 'Purchasing', l: 'Cancel purchase orders' },
-    { k: 'chain.overview', g: 'Admin', l: 'Controller overview (all outlets)' },
+    { k: 'chain.overview', g: 'Admin', l: 'Group overview (all outlets)' },
     { k: 'audit.view', g: 'Admin', l: 'Audit trail' },
     { k: 'settings.branch', g: 'Admin', l: 'Outlet settings' },
     { k: 'settings.chain', g: 'Admin', l: 'Chain settings' },
@@ -132,8 +132,31 @@
     return true;
   };
   R.signOut = function (msg) {
-    clearTimeout(R._rt); R.st.session = null; R.st.member = null; R.st.role = null; MC.token = null; lsSet(SKEY, null);
+    clearInterval(R._idle); clearTimeout(R._rt); R.st.session = null; R.st.member = null; R.st.role = null; MC.token = null; lsSet(SKEY, null);
     R.showLogin(msg);
+  };
+
+  
+  /* ── login controls ───────────────────────────────────────────────────── */
+  R.SEC = { idleMinutes: 120, maxFails: 5, lockSeconds: 60 };      // idle sign-out (0 = never) is editable in Users & access → Security
+  R.fails = [];
+  R.lockedFor = function (now) { now = now || Date.now(); R.fails = R.fails.filter(t => now - t < 10 * 60000); return R.fails.length >= R.SEC.maxFails ? Math.max(0, Math.ceil((R.fails[R.fails.length - 1] + R.SEC.lockSeconds * 1000 - now) / 1000)) : 0; };
+  R.idleExpired = (last, now, minutes) => minutes > 0 && now - last > minutes * 60000;
+  R.startIdle = function () {
+    clearInterval(R._idle); R._act = Date.now(); if (!(R.SEC.idleMinutes > 0) || !root.document) return;
+    ['mousemove', 'keydown', 'click', 'touchstart'].forEach(ev => document.addEventListener(ev, () => { R._act = Date.now(); }, { passive: true }));
+    R._idle = setInterval(() => { if (R.st.session && R.idleExpired(R._act, Date.now(), R.SEC.idleMinutes)) R.signOut('Signed out after ' + R.SEC.idleMinutes + ' minutes of inactivity.'); }, 30000);
+  };
+  R.recover = async function (email) { const c = MC.conf(); await fetch(c.url + '/auth/v1/recover', { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: c.key }, body: JSON.stringify({ email: String(email || '').trim().toLowerCase() }) }); };
+  R.changePassword = async function (pw) {
+    if (String(pw).length < 8) throw new Error('Use at least 8 characters.');
+    const c = MC.conf(), r = await fetch(c.url + '/auth/v1/user', { method: 'PUT', headers: { 'Content-Type': 'application/json', apikey: c.key, Authorization: 'Bearer ' + MC.token }, body: JSON.stringify({ password: pw }) });
+    if (!r.ok) { const j = await r.json().catch(() => ({})); throw new Error(j.msg || j.message || 'Could not change the password'); }
+  };
+  R.passwordDialog = function () {
+    const ov = MC.modal('<div style="font:800 18px var(--fh);color:var(--bd);margin-bottom:10px">Change my password</div>' + MC.lbl('New password') + '<input id="pw1" class="fi" type="password" autocomplete="new-password" style="margin-bottom:8px"/>' + MC.lbl('Repeat it') + '<input id="pw2" class="fi" type="password" autocomplete="new-password"/><div id="pw-m" class="ch-err" style="display:none"></div><div style="display:flex;gap:8px;margin-top:14px"><button class="btn btn-ghost" id="pw-x">Cancel</button><button class="btn btn-y" id="pw-ok" style="flex:1">Save password</button></div>', { width: 360, sticky: true });
+    const $ = i => ov.querySelector('#' + i), m = t => { $('pw-m').textContent = t; $('pw-m').style.display = 'block'; }; $('pw-x').onclick = () => ov.close();
+    $('pw-ok').onclick = async () => { if ($('pw1').value !== $('pw2').value) return m('The two passwords do not match.'); $('pw-ok').disabled = true; try { await R.changePassword($('pw1').value); ov.close(); if (typeof toast === 'function') toast('Password changed'); } catch (e) { $('pw-ok').disabled = false; m(e.message); } };
   };
 
   /* load who I am: membership → role → outlets I may use */
@@ -158,7 +181,7 @@
     '.ch-chip{display:inline-block;border-radius:99px;padding:2px 9px;font:800 11px var(--fb);background:#EEF2F7;color:#475569;margin:1px 3px 1px 0;white-space:nowrap}.ch-chip.ok{background:#DCFCE7;color:#166534}.ch-chip.warn{background:#FEF3C7;color:#92400E}.ch-chip.err{background:#FEE2E2;color:#B91C1C}.ch-chip.info{background:#E0EEFF;color:#1D4ED8}' +
     '.ch-kpi{font:800 26px var(--fh);color:var(--bd);line-height:1.1}.ch-kl{font:800 10.5px var(--fb);text-transform:uppercase;letter-spacing:.05em;color:#94A3B8;margin-top:3px}' +
     '.ch-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}.ch-bar .fi{width:auto;min-width:150px}.ch-note{background:#F0F9FF;border:1.5px solid #BAE6FD;border-radius:12px;padding:10px 12px;font-size:12.5px;line-height:1.6;color:#0C4A6E;margin:10px 0}' +
-    '.ch-warn{background:#FFFBEB;border:1.5px solid #FDE68A;color:#92400E}.ch-err{color:var(--err);font-weight:700;font-size:12.5px;margin-top:8px}' +
+    '.ch-warn{background:#FFFBEB;border:1.5px solid #FDE68A;color:#92400E}.ch-ok{color:#15803D;font-weight:700;font-size:12.5px;margin-top:8px}.ch-err{color:var(--err);font-weight:700;font-size:12.5px;margin-top:8px}' +
     '#mc-top-chain{display:flex;align-items:center;gap:8px}#mc-top-chain select{border:1.5px solid var(--border);border-radius:99px;padding:5px 10px;font:800 12px var(--fb);color:var(--bd);background:#fff}' +
     '.ch-user{font:700 12px var(--fb);color:#475569;white-space:nowrap}.ch-user small{color:var(--muted);font-weight:600}' +
     '#mc-login{position:fixed;inset:0;z-index:9500;background:linear-gradient(160deg,#EEF5FF,#FFF8DB);display:flex;align-items:center;justify-content:center;padding:18px}' +
@@ -176,15 +199,17 @@
     d.innerHTML = '<div class="box"><div style="font:800 22px var(--fh);color:var(--bd);">🐼 MiniCuts</div><div style="color:var(--muted);font-size:13px;margin:2px 0 16px;">Sign in to continue</div>' +
       '<label class="ch-kl" for="lg-e">E-mail</label><input id="lg-e" class="fi" type="email" autocomplete="username" style="margin:4px 0 10px"/>' +
       '<label class="ch-kl" for="lg-p">Password</label><input id="lg-p" class="fi" type="password" autocomplete="current-password" style="margin:4px 0 12px"/>' +
-      '<button class="btn btn-y btn-full" id="lg-go" style="padding:12px">Sign in</button><div class="ch-err" id="lg-err" style="' + (msg ? '' : 'display:none') + '">' + esc(msg || '') + '</div>' +
+      '<button class="btn btn-y btn-full" id="lg-go" style="padding:12px">Sign in</button><div class="ch-err" id="lg-err" style="' + (msg ? '' : 'display:none') + '">' + esc(msg || '') + '</div><div style="text-align:center;margin-top:10px"><button type="button" class="ch-x" id="lg-forgot">Forgot password?</button></div><div class="ch-ok" id="lg-info" style="display:none"></div>' +
       (demo ? '<div class="ch-note" style="margin-top:14px"><b>Practice logins</b> (password <code>demo</code>) — tap one:<div id="lg-demo" style="margin-top:6px"></div></div>' : '') + '</div>';
     document.body.appendChild(d);
     const $ = id => d.querySelector('#' + id), go = async () => {
+      const wait = R.lockedFor(); if (wait) { $('lg-err').textContent = 'Too many wrong attempts. Try again in ' + wait + ' seconds.'; $('lg-err').style.display = 'block'; return; }
       $('lg-err').style.display = 'none'; $('lg-go').disabled = true; $('lg-go').textContent = 'Signing in…';
-      try { await R.signIn($('lg-e').value, $('lg-p').value); await R.afterLogin(); }
-      catch (e) { $('lg-err').textContent = e.message; $('lg-err').style.display = 'block'; R.st.session = null; MC.token = null; lsSet(SKEY, null); }
+      try { await R.signIn($('lg-e').value, $('lg-p').value); R.fails = []; await R.afterLogin(); }
+      catch (e) { if (!R.st.session) R.fails.push(Date.now()); $('lg-err').textContent = e.message; $('lg-err').style.display = 'block'; R.st.session = null; MC.token = null; lsSet(SKEY, null); }
       finally { if ($('lg-go')) { $('lg-go').disabled = false; $('lg-go').textContent = 'Sign in'; } }
     };
+    $('lg-forgot').onclick = async () => { const e = $('lg-e').value.trim(); if (!e) { $('lg-err').textContent = 'Type your e-mail first, then tap “Forgot password?”.'; $('lg-err').style.display = 'block'; return; } try { await R.recover(e); } catch (x) { /* never reveal whether the e-mail exists */ } $('lg-err').style.display = 'none'; $('lg-info').textContent = 'If that e-mail has an account, a reset link is on its way. Check your inbox.'; $('lg-info').style.display = 'block'; };
     $('lg-go').onclick = go; d.addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
     if (demo) MC.sb('memberships', 'GET', null, 'order=email').then(ms => { const h = $('lg-demo'); if (!h) return; h.innerHTML = ms.map(m => '<button type="button" class="btn btn-sm btn-ghost" style="margin:2px" data-e="' + esc(m.email) + '">' + esc(m.display_name || m.email) + ' · ' + esc((R.PRESETS[m.role_key] || {}).label || m.role_key) + '</button>').join('');
       h.querySelectorAll('[data-e]').forEach(b => b.onclick = () => { $('lg-e').value = b.dataset.e; $('lg-p').value = 'demo'; go(); }); }).catch(() => {});
@@ -192,8 +217,9 @@
   };
   R.afterLogin = async function () {
     await R.load();
+    try { const sc = await MC.getConfig('chain_security'); if (sc && Number.isFinite(Number(sc.idle_minutes))) R.SEC.idleMinutes = Number(sc.idle_minutes); } catch (e) { /* keep default */ }
     const l = document.getElementById('mc-login'); if (l) l.remove();
-    R.apply();
+    R.apply(); R.startIdle();
   };
 
   /* ── wire the staff page: pages, nav, gating, top bar ─────────────────── */
@@ -210,7 +236,7 @@
     const ins = find('Insights'); ins.parentNode.insertBefore(g, ins);
     const inv = mkTab('t-inventory', '📦', 'Stock', "showTab('t-inventory');MC.inventory.init();", ['nb-low', 'amber']), po = mkTab('t-po', '🧾', 'Purchase orders', "showTab('t-po');MC.purchasing.init();", ['nb-po', 'amber']);
     ins.parentNode.insertBefore(inv, ins); ins.parentNode.insertBefore(po, ins);
-    const rep = side.querySelector('[data-p="t-reports"]'); rep.after(mkTab('t-chain', '🏢', 'Controller overview', "showTab('t-chain');MC.chain.init();"));
+    const rep = side.querySelector('[data-p="t-reports"]'); rep.after(mkTab('t-chain', '🏢', 'Group overview', "showTab('t-chain');MC.chain.init();"));
     const cfg = side.querySelector('[data-p="t-config"]'); cfg.after(mkTab('t-users', '🔐', 'Users &amp; access', "showTab('t-users');MC.rbac.initUsers();"));
   };
   R.gate = function () {
@@ -226,8 +252,9 @@
     const m = R.st.member, role = (R.PRESETS[m.role_key] || {}).label || R.st.role.label || m.role_key;
     slot.innerHTML = (R.st.branches.length > 1 ? '<span class="ch-sw">📍 <select id="mc-branch">' + R.st.branches.map(b => '<option value="' + esc(b.id) + '"' + (b.id === R.st.branchId ? ' selected' : '') + '>' + esc(b.code) + ' · ' + esc(b.name.replace(/^MiNiCUTS\s*[—-]\s*/i, '')) + '</option>').join('') + '</select></span>'
       : '<span class="ch-chip info">📍 ' + esc((R.branch() || {}).code || 'no outlet') + '</span>') +
-      '<span class="ch-user">👤 ' + esc(m.display_name || m.email) + ' <small>· ' + esc(role) + '</small></span><button class="ch-x" id="mc-signout">Sign out</button>';
+      '<span class="ch-user">👤 ' + esc(m.display_name || m.email) + ' <small>· ' + esc(role) + '</small></span><button class="ch-x" id="mc-pw">Password</button><button class="ch-x" id="mc-signout">Sign out</button>';
     const sel = slot.querySelector('#mc-branch'); if (sel) sel.onchange = () => R.setBranch(sel.value);
+    slot.querySelector('#mc-pw').onclick = () => R.passwordDialog();
     slot.querySelector('#mc-signout').onclick = () => R.signOut();
   };
   R.setBranch = function (id) { R.st.branchId = id; lsSet(BKEY, id); document.dispatchEvent(new CustomEvent('mc-branch-change', { detail: id })); R.badges(true); };
@@ -249,12 +276,12 @@
     R.injectCss(); const el = document.getElementById('t-users-root'); if (!el) return;
     if (!MC.can('users.manage')) { el.innerHTML = '<div class="ch-card">You do not have access to this screen.</div>'; return; }
     el.innerHTML = '<div class="ch-wrap"><div class="ch-h">Users &amp; access</div><div class="ch-sub">Who can sign in, what they may do, and which outlets they can see.</div>' +
-      '<div class="ch-tabs">' + [['users', '👥 Users'], ['roles', '🔑 Roles'], ['outlets', '🏬 Outlets']].map(t => '<button class="ch-tab' + (U.tab === t[0] ? ' on' : '') + '" data-t="' + t[0] + '">' + t[1] + '</button>').join('') + '</div><div id="us-body">Loading…</div></div>';
+      '<div class="ch-tabs">' + [['users', '👥 Users'], ['roles', '🔑 Roles'], ['outlets', '🏬 Outlets'], ['security', '🛡 Sign-in security']].map(t => '<button class="ch-tab' + (U.tab === t[0] ? ' on' : '') + '" data-t="' + t[0] + '">' + t[1] + '</button>').join('') + '</div><div id="us-body">Loading…</div></div>';
     el.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { U.tab = b.dataset.t; R.initUsers(); });
     try {
       const [ms, roles, brs] = await Promise.all([MC.sb('memberships', 'GET', null, 'order=email'), MC.sb('rbac_roles', 'GET', null, 'order=key'), MC.sb('branches', 'GET', null, 'order=code')]);
       U.ms = ms; U.roles = roles; U.brs = brs;
-      ({ users: U.renderUsers, roles: U.renderRoles, outlets: U.renderOutlets })[U.tab]();
+      ({ users: U.renderUsers, roles: U.renderRoles, outlets: U.renderOutlets, security: U.renderSecurity })[U.tab]();
     } catch (e) { document.getElementById('us-body').innerHTML = '<div class="ch-note ch-warn">Could not load: ' + esc(e.message) + '<br>If this says a table does not exist, the SalonChain database script (sql/002) has not been applied yet.</div>'; }
   };
   const roleLabel = k => ((U.roles || []).find(r => r.key === k) || R.PRESETS[k] || {}).label || k;
@@ -301,6 +328,14 @@
       groups.map(g => '<tr class="grp"><td colspan="' + (roles.length + 1) + '">' + esc(g) + '</td></tr>' + R.PERMS.filter(p => p.g === g).map(p => '<tr><td>' + esc(p.l) + '</td>' + roles.map(r => '<td>' + ((r.permissions || []).includes('*') || (r.permissions || []).includes(p.k) ? '<span style="color:#16A34A;font-weight:800">✓</span>' : '<span style="color:#CBD5E1">·</span>') + '</td>').join('') + '</tr>').join('')).join('') +
       '<tr class="grp"><td colspan="' + (roles.length + 1) + '">Purchase-order approval limit</td></tr><tr><td>AED up to</td>' + roles.map(r => '<td>' + ((r.permissions || []).includes('*') || (r.permissions || []).includes('po.approve') ? (r.po_approval_limit == null ? 'No limit' : Number(r.po_approval_limit).toLocaleString()) : '—') + '</td>').join('') + '</tr></tbody></table></div>' +
       '<div class="ch-note">Roles are fixed presets in this version. A person’s <b>outlets</b> and an individual <b>approval limit</b> are set per user. Custom roles can be added later.</div>';
+  };
+  U.renderSecurity = function () {
+    const b = document.getElementById('us-body'), on = (U.ms || []).filter(m => m.active).length;
+    b.innerHTML = '<div class="ch-card"><b>How people sign in</b><div class="ch-sub" style="margin:6px 0 0">Each person has their own e-mail and password (Supabase Auth). The app then looks up their role and outlets. A person who is switched off under <b>Users</b> is refused at once, even with a correct password. Right now <b>' + on + '</b> of ' + (U.ms || []).length + ' users are active.</div></div>' +
+      '<div class="ch-card"><b>Automatic sign-out when idle</b><div class="ch-sub" style="margin:6px 0 8px">Protects an unattended screen. Use 0 to never sign out (front-desk tablet).</div><div style="display:flex;gap:8px;align-items:center"><input id="sc-idle" class="fi" type="number" min="0" step="5" style="width:110px" value="' + esc(R.SEC.idleMinutes) + '"/> minutes <button class="btn btn-y btn-sm" id="sc-save">Save</button><span id="sc-m" class="ch-ok"></span></div></div>' +
+      '<div class="ch-card"><b>Built in</b><ul style="margin:6px 0 0 18px;font-size:13px;line-height:1.7"><li>5 wrong passwords in 10 minutes pauses sign-in on that screen for a minute (Supabase also rate-limits on its side).</li><li>“Forgot password?” sends a reset e-mail; every user can change their own password from the top bar.</li><li>Every change to users, roles, stock and purchase orders is written to the audit trail.</li></ul></div>' +
+      '<div class="ch-card ch-warn"><b>Switch these on in the Supabase dashboard (Authentication)</b><ul style="margin:6px 0 0 18px;font-size:13px;line-height:1.7"><li><b>Turn OFF “Allow new users to sign up”</b> — so only people you create can ever have a login.</li><li>Minimum password length 10 and “Require leaked-password protection” if your plan offers it.</li><li>Turn on e-mail confirmation, and add multi-factor (authenticator app) for owners when you are ready.</li><li>Create each login there with the <b>same e-mail</b> you add under Users.</li></ul></div>';
+    b.querySelector('#sc-save').onclick = async () => { const v = Math.max(0, parseInt(b.querySelector('#sc-idle').value, 10) || 0); try { await MC.setConfig('chain_security', { idle_minutes: v }); R.SEC.idleMinutes = v; R.startIdle(); b.querySelector('#sc-m').textContent = 'Saved'; } catch (e) { b.querySelector('#sc-m').textContent = ''; if (typeof toast === 'function') toast('Could not save: ' + e.message, 'err'); } };
   };
   U.renderOutlets = function () {
     const body = document.getElementById('us-body'), can = MC.can('branches.manage');

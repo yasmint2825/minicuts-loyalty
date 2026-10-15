@@ -22,17 +22,36 @@ const { chromium } = require('playwright-core'); const path = require('path'); c
   await pg.fill('#lg-e', 'owner@minicuts.demo'); await pg.fill('#lg-p', 'nope'); await pg.click('#lg-go'); await pg.waitForTimeout(400);
   ok(/Wrong e-mail/.test(await pg.innerText('#lg-err')), 'wrong password is refused');
 
+  // forgot password + lockout
+  await pg.fill('#lg-e', 'owner@minicuts.demo'); await pg.click('#lg-forgot'); await pg.waitForTimeout(300); ok(/reset link is on its way/.test(await pg.innerText('#lg-info')), 'forgot password gives a neutral message');
+  for (let i = 0; i < 5; i++) { await pg.fill('#lg-p', 'bad' + i); await pg.click('#lg-go'); await pg.waitForTimeout(200); }
+  await pg.fill('#lg-p', 'demo'); await pg.click('#lg-go'); await pg.waitForTimeout(300); ok(/Too many wrong attempts/.test(await pg.innerText('#lg-err')), 'five wrong passwords pause sign-in (even a correct one)');
+  await pg.evaluate(() => { MC.rbac.fails = []; });
   // OWNER
   await login('owner@minicuts.demo');
   ok(await vis('.tab[data-p="t-chain"]') && await vis('.tab[data-p="t-users"]') && await vis('.tab[data-p="t-po"]') && await vis('.tab[data-p="t-inventory"]'), 'owner sees controller, users, stock and purchase-order menus');
   ok(await vis('#mc-branch'), 'owner has an outlet switcher');
-  await tab('t-chain'); let t = await pg.innerText('#t-chain-root');
+  await tab('t-chain'); await pg.click('[data-t="stock"]'); await pg.waitForSelector('#co-body .ch-tbl'); let t = await pg.innerText('#t-chain-root');
   ok(/DSO/.test(t) && /MIR/.test(t) && /PO\/DSO\/\d+\/0001/.test(t), 'controller overview lists both outlets and the order waiting');
   ok(/Waiting for you/.test(t), 'owner is told an order is waiting for them');
   const needs = await pg.evaluate(async () => MC.inventory.rows(await MC.inventory.loadBranch('b-dso')).filter(r => r.needs).map(r => r.item.id).sort().join(','));
   ok(needs === 'i2,i4,i5', 'reorder alerts: items at/below reorder point (shampoo already on order is not repeated) → ' + needs);
+  // group performance
+  await tab('t-chain'); await pg.click('[data-t="perf"]'); await pg.waitForSelector('#co-be'); t = await pg.innerText('#t-chain-root');
+  ok(/group revenue/i.test(t) && /DSO/.test(t) && /MIR/.test(t) && /Break-even/.test(t), 'group performance shows revenue, both outlets and break-even');
+  const shares = await pg.$$eval('#co-body .ch-tbl tbody tr', rs => rs.map(r => r.children[3].innerText)); ok(shares.length === 2 && shares.every(x => /%/.test(x)) && shares.reduce((a, x) => a + parseInt(x), 0) >= 99, 'revenue share per outlet adds up to ~100% (' + shares.join(' / ') + ')');
+  await pg.fill('[data-cost="b-dso"]', '32000'); await pg.dispatchEvent('[data-cost="b-dso"]', 'change'); await pg.waitForSelector('#co-be .ch-muted b'); ok(/32,000/.test(await pg.innerText('#co-be')), 'monthly cost saved and break-even shown');
+  await pg.click('[data-p="7"]'); await pg.waitForTimeout(700); ok(/7 days|previous 7/.test(await pg.innerText('#t-chain-root')), 'period switch works');
+  await pg.click('[data-t="stock"]'); await pg.waitForTimeout(700); ok(/Waiting for you|To reorder/.test(await pg.innerText('#t-chain-root')), 'stock & purchasing tab still available'); 
   await tab('t-users'); t = await pg.innerText('#t-users-root'); ok(/manager\.dso@minicuts\.demo/.test(t) && /Store keeper/.test(t), 'users & access lists the team');
 
+  await pg.click('[data-t="security"]'); await pg.waitForSelector('#sc-idle'); ok(/Allow new users to sign up/.test(await pg.innerText('#us-body')), 'sign-in security tab explains the Supabase switches');
+  await pg.fill('#sc-idle', '45'); await pg.click('#sc-save'); await pg.waitForTimeout(400); ok(await pg.evaluate(() => MC.rbac.SEC.idleMinutes) === 45, 'idle sign-out minutes can be changed by the owner');
+  await pg.evaluate(() => { MC.rbac.SEC.idleMinutes = 120; });
+  // password dialog
+  await pg.click('#mc-pw'); await pg.fill('#pw1', 'short'); await pg.fill('#pw2', 'short'); await pg.click('#pw-ok'); await pg.waitForTimeout(300); ok(/at least 8/.test(await pg.innerText('#pw-m')), 'weak password refused');
+  await pg.fill('#pw1', 'LongEnough1'); await pg.fill('#pw2', 'Different1'); await pg.click('#pw-ok'); await pg.waitForTimeout(200); ok(/do not match/.test(await pg.innerText('#pw-m')), 'mismatched passwords refused');
+  await pg.fill('#pw2', 'LongEnough1'); await pg.click('#pw-ok'); await pg.waitForTimeout(400); ok(!(await pg.$('#pw-ok')), 'valid password change accepted');
   // STOCK: record use, then a too-large use is refused
   await tab('t-inventory'); await pg.waitForTimeout(400);
   const before = await pg.evaluate(async () => MC.inventory.rows(await MC.inventory.loadBranch('b-dso')).find(r => r.item.id === 'i3').onHand);
