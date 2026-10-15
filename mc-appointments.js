@@ -147,12 +147,11 @@
     const nowMin = isToday ? (new Date().getHours() * 60 + new Date().getMinutes()) : null;
     A.updateNavBadge();
 
-    /* ── TODAY: show only the upcoming queue, no dead past rows ─────── */
+    /* ── TODAY: upcoming queue grouped by stylist ───────────────────── */
     if (isToday) {
-      const upcoming = S.appts.filter(a => a.status !== 'cancelled' && MC.toMin(a.end_time) > nowMin)
-        .sort((a, b) => a.start_time.localeCompare(b.start_time));
+      const cols = S.staff.map(st => ({ st, w: A.window(cfg, st, S.date, S.leaves, S.roster) }));
       const totalToday = S.appts.filter(a => a.status !== 'cancelled').length;
-      const allDone = totalToday > 0 && upcoming.length === 0;
+      const upcoming   = S.appts.filter(a => a.status !== 'cancelled' && MC.toMin(a.end_time) > nowMin);
       const banner = totalToday
         ? '<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:#EFF6FF;border-radius:10px;margin-bottom:12px;font-size:13px;flex-wrap:wrap;">' +
           '📅 <b>' + totalToday + '</b>&nbsp;appointment' + (totalToday !== 1 ? 's' : '') + ' today&nbsp;·&nbsp;' +
@@ -160,34 +159,50 @@
             ? '<span style="background:#3B82F6;color:#fff;border-radius:6px;padding:2px 9px;font-weight:800;">▶ ' + upcoming.length + ' remaining</span>'
             : '<span style="color:#16A34A;font-weight:700;">✅ All done for today</span>') +
           '</div>' : '';
-      if (allDone || !upcoming.length) {
-        el.innerHTML = head + banner + '<div class="card" style="text-align:center;padding:32px 20px;color:var(--muted);">' +
-          (allDone ? '<div style="font-size:32px;margin-bottom:8px;">✅</div><div style="font-weight:800;font-size:15px;color:#16A34A;">All appointments done for today!</div>' :
-            '<div style="font-size:32px;margin-bottom:8px;">📅</div><div style="font-weight:800;font-size:15px;">No appointments today</div><div style="font-size:13px;margin-top:6px;">Tap + New Appointment to add one</div>') +
+      const apptCard = function (a) {
+        const aStart = MC.toMin(a.start_time), aEnd = MC.toMin(a.end_time);
+        const isNow = aStart <= nowMin && nowMin < aEnd;
+        const minsAway = aStart - nowMin;
+        const timeBadge = isNow
+          ? '<span style="background:#16A34A;color:#fff;font-size:9px;border-radius:4px;padding:1px 6px;font-weight:800;white-space:nowrap;">NOW</span>'
+          : minsAway <= 15
+            ? '<span style="background:#F59E0B;color:#fff;font-size:9px;border-radius:4px;padding:1px 5px;font-weight:700;white-space:nowrap;">in&nbsp;' + minsAway + 'm</span>'
+            : '';
+        const borderCol = isNow ? '#16A34A' : a.status === 'arrived' ? '#10B981' : '#3B82F6';
+        const bgCol     = isNow ? '#F0FDF4' : a.status === 'arrived' ? '#ECFDF5' : '#EFF6FF';
+        return '<div style="background:' + bgCol + ';border:2px solid ' + borderCol + ';border-radius:10px;padding:9px 10px;margin-bottom:6px;cursor:pointer;" onclick="MC.appt.openAppt(\'' + a.id + '\')">' +
+          '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:4px;">' +
+          '<div style="font-weight:800;font-size:13px;line-height:1.2;">' + MC.esc(a.customer_name) + '</div>' +
+          '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex-shrink:0;">' + timeBadge +
+          '<span style="font-size:11px;font-weight:700;color:' + borderCol + ';">' + a.start_time.slice(0,5) + '–' + a.end_time.slice(0,5) + '</span></div></div>' +
+          '<div style="font-size:12px;color:var(--muted);margin-top:2px;">' + MC.esc(a.service) + '</div>' +
+          (a.status === 'arrived' ? '<div style="font-size:10.5px;color:#10B981;font-weight:700;margin-top:2px;">✓ arrived</div>' : '') +
+          (a.notes ? '<div style="font-size:11px;color:#B45309;margin-top:2px;">📝 ' + MC.esc(a.notes) + '</div>' : '') +
           '</div>';
-      } else {
-        const cards = upcoming.map(a => {
-          const aStart = MC.toMin(a.start_time);
-          const isNow = aStart <= nowMin && nowMin < MC.toMin(a.end_time);
-          const minsAway = aStart - nowMin;
-          const timeLabel = isNow
-            ? '<span style="background:#16A34A;color:#fff;font-size:10px;border-radius:4px;padding:2px 7px;font-weight:800;">NOW</span>'
-            : minsAway <= 15
-              ? '<span style="background:#F59E0B;color:#fff;font-size:10px;border-radius:4px;padding:2px 7px;font-weight:700;">in ' + minsAway + ' min</span>'
-              : '<span style="font-size:12px;color:var(--muted);">in ' + Math.floor(minsAway / 60) + 'h ' + (minsAway % 60) + 'min</span>';
-          const borderCol = isNow ? '#16A34A' : a.status === 'arrived' ? '#10B981' : '#3B82F6';
-          const bgCol = isNow ? '#F0FDF4' : a.status === 'arrived' ? '#ECFDF5' : '#EFF6FF';
-          return '<div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:' + bgCol + ';border:2px solid ' + borderCol + ';border-radius:12px;margin-bottom:8px;cursor:pointer;" onclick="MC.appt.openAppt(\'' + a.id + '\')">' +
-            '<div style="text-align:center;min-width:46px;"><div style="font-size:15px;font-weight:900;color:' + borderCol + ';">' + a.start_time.slice(0, 5) + '</div><div style="font-size:10px;color:var(--muted);">' + a.end_time.slice(0, 5) + '</div></div>' +
-            '<div style="flex:1;"><div style="font-weight:800;font-size:14px;">' + MC.esc(a.customer_name) + '</div><div style="font-size:12.5px;color:var(--muted);">' + MC.esc(a.service) + ' · <b style="color:var(--bd);">' + MC.esc(a.stylist) + '</b></div>' +
-            (a.notes ? '<div style="font-size:11.5px;color:#B45309;margin-top:2px;">📝 ' + MC.esc(a.notes) + '</div>' : '') + '</div>' +
-            '<div style="text-align:right;">' + timeLabel + (a.status === 'arrived' ? '<div style="font-size:10.5px;color:#10B981;font-weight:700;margin-top:4px;">arrived</div>' : '') + '</div></div>';
-        }).join('');
-        el.innerHTML = head + banner + cards;
-      }
+      };
+      const colsHtml = cols.map(function (c) {
+        const myUpcoming = upcoming.filter(a => a.stylist === c.st.name).sort((a, b) => a.start_time.localeCompare(b.start_time));
+        const myTotal    = S.appts.filter(a => a.status !== 'cancelled' && a.stylist === c.st.name).length;
+        const isOff = !c.w;
+        const headerBg = isOff ? '#F1F5F9' : myUpcoming.length ? '#EEF6FF' : '#F0FDF4';
+        const countBadge = isOff ? '<div style="font-size:10px;color:var(--muted);">off today</div>'
+          : myUpcoming.length
+            ? '<div style="font-size:10px;font-weight:700;color:#3B82F6;">' + myUpcoming.length + ' upcoming</div>'
+            : myTotal ? '<div style="font-size:10px;font-weight:700;color:#16A34A;">✓ all done</div>'
+              : '<div style="font-size:10px;color:var(--muted);">none today</div>';
+        const body = !isOff && myUpcoming.length
+          ? myUpcoming.map(apptCard).join('')
+          : '<div style="padding:18px 8px;text-align:center;color:var(--muted);font-size:12px;">' + (isOff ? '—' : myTotal ? '✅' : 'free') + '</div>';
+        return '<div style="flex:1;min-width:160px;max-width:260px;">' +
+          '<div style="background:' + headerBg + ';border-radius:10px;padding:8px 10px;margin-bottom:8px;text-align:center;">' +
+          '<div style="font-weight:800;font-size:13px;">' + MC.esc(c.st.name) + '</div>' + countBadge + '</div>' +
+          body + '</div>';
+      }).join('');
+      el.innerHTML = head + banner +
+        '<div style="display:flex;gap:10px;overflow-x:auto;align-items:flex-start;padding-bottom:4px;">' + colsHtml + '</div>';
       // auto-refresh every minute while viewing today
       if (!A._refreshTimer) A._refreshTimer = setInterval(function () {
-        if (MC.appt.state.date === MC.today()) { MC.appt.loadDay(MC.appt.state.date).then(() => MC.appt.render()).catch(() => MC.appt.render()); }
+        if (MC.appt.state.date === MC.today()) { MC.appt.loadDay(MC.appt.state.date).then(function () { MC.appt.render(); }).catch(function () { MC.appt.render(); }); }
         else { clearInterval(MC.appt._refreshTimer); MC.appt._refreshTimer = null; }
       }, 60000);
       return;
