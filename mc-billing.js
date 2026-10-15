@@ -72,14 +72,17 @@
   const waNum = m => (typeof toWANum === 'function' ? toWANum(m) : String(m || '').replace(/\D/g, ''));
   const hasPhone = m => !!m && !String(m).startsWith('GUEST') && String(m).replace(/\D/g, '').length > 6;
   const stylistsOf = r => [r.stylist, r.stylist2].filter(Boolean).join(' & ');
+  /* SalonChain: with chain mode off MC.can() is always true, so nothing changes for today's salon */
+  const can = p => !MC.can || MC.can(p);
 
   /* ── buttons injected into History / Queue rows ───────────────────────── */
   B.rowButton = function (r) {
     if (!r || r.status === 'cancelled') return '';
     if (r.invoice_id) {
       return '<button class="btn btn-sm" style="background:#EEF6FF;color:#1565C0;font-size:11px;white-space:nowrap;" title="' + MC.esc(r.invoice_number || '') + '" onclick="MC.billing.viewInvoiceForRow(\'' + r.id + '\')">🧾 Invoice</button>' +
-        '<button class="btn btn-sm" style="background:#FEF2F2;color:#DC2626;font-size:11px;white-space:nowrap;" onclick="MC.billing.voidForRow(\'' + r.id + '\')">✕ Void</button>';
+        (can('invoice.void') ? '<button class="btn btn-sm" style="background:#FEF2F2;color:#DC2626;font-size:11px;white-space:nowrap;" onclick="MC.billing.voidForRow(\'' + r.id + '\')">✕ Void</button>' : '');
     }
+    if (!can('checkout.create')) return '';
     return '<button class="btn btn-sm btn-y" style="font-size:11px;white-space:nowrap;" onclick="MC.billing.openCheckout(\'' + r.id + '\')">💳 Checkout</button>';
   };
 
@@ -144,7 +147,7 @@
           '<div>' + MC.lbl('Price (' + S.currency + ') · from price list') + '<input id="mcc-price" class="fi" type="text" readonly tabindex="-1" value="' + MC.esc(chosen ? chosen.price : '') + '" placeholder="Pick a service" style="background:#F1F5F9;font-weight:800;color:var(--bd);"/></div>' +
           '<div>' + MC.lbl('Tip (' + S.currency + ')') + '<input id="mcc-tip" class="fi" type="number" min="0" step="any" value="' + MC.esc(r.tip || '') + '" placeholder="0"/></div>' +
         '</div>' +
-        '<div>' + MC.lbl('Discount %') + '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">' + chips +
+        '<div>' + MC.lbl('Discount %') + '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">' + (can('discount.apply') ? chips : '<span style="font-size:12px;color:var(--muted);">Your role cannot give discounts</span>') +
           '<input id="mcc-disc" type="hidden" value="' + MC.esc(seedPct) + '"/></div></div>' +
         '<div>' + MC.lbl('Payment') + '<div style="display:flex;gap:8px;">' +
           '<button type="button" class="btn btn-ghost mc-pay" data-v="Cash" style="flex:1;padding:10px;">💵 Cash</button>' +
@@ -386,7 +389,7 @@
         '<div style="display:flex;gap:8px;"><button class="btn btn-ghost" id="mci-pdf" style="flex:1;padding:10px;">' + (inv.pdf_url || inv._blobUrl ? '👁 View PDF' : '📄 Create PDF') + '</button>' +
         (phone && !void_ ? '<button class="btn btn-ghost" id="mci-manual" style="flex:1;padding:10px;" title="Opens WhatsApp with a ready message; you press send">💬 Open in WhatsApp</button>' : '') + '</div>' +
       '</div>' +
-      '<div style="display:flex;gap:8px;margin-top:14px;">' + (void_ ? '' : '<button class="btn btn-ghost btn-sm" id="mci-void" style="color:var(--err);border-color:rgba(220,38,38,.3);">Void</button>') +
+      '<div style="display:flex;gap:8px;margin-top:14px;">' + (void_ || !can('invoice.void') ? '' : '<button class="btn btn-ghost btn-sm" id="mci-void" style="color:var(--err);border-color:rgba(220,38,38,.3);">Void</button>') +
         '<button class="btn btn-y" id="mci-close" style="flex:1;padding:10px;">' + (opts.onDone ? 'Done — stamp visit ✅' : 'Done') + '</button></div>', { width: 440, sticky: !!opts.onDone });
     const $ = id => ov.querySelector('#' + id);
     $('mci-close').onclick = () => { ov.close(); if (opts.onDone) opts.onDone(); };

@@ -40,7 +40,7 @@
   MC.conf = () => ({ url: (typeof SB_URL !== 'undefined' ? SB_URL : root.SB_URL), key: (typeof SB_KEY !== 'undefined' ? SB_KEY : root.SB_KEY) });
   MC.sb = async function (path, method, body, params, prefer) {
     const c = MC.conf();
-    const h = { 'Content-Type': 'application/json', apikey: c.key, Authorization: 'Bearer ' + c.key, Prefer: prefer || 'return=representation' };
+    const h = { 'Content-Type': 'application/json', apikey: c.key, Authorization: 'Bearer ' + (MC.token || c.key), Prefer: prefer || 'return=representation' };   // MC.token is only set in SalonChain mode
     const o = { method: method || 'GET', headers: h };
     if (body != null) o.body = JSON.stringify(body);
     const r = await fetch(c.url + '/rest/v1/' + path + (params ? '?' + params : ''), o);
