@@ -161,38 +161,44 @@
           : '<span style="color:#16A34A;font-weight:700;">✅ All done for today</span>') +
         '</div>' : '';
 
-    /* For today: start grid at current slot so past empty rows are hidden.
-       Appointments that started before the visible area (in-progress) are
-       captured by the earlyActive lookup and rendered in the first row. */
-    const loopStart = isToday && nowMin != null ? Math.floor(nowMin / step) * step : open;
-    const earlyActive = isToday && nowMin != null
-      ? S.appts.filter(a => a.status !== 'cancelled' && MC.toMin(a.start_time) < loopStart && MC.toMin(a.end_time) > loopStart)
-      : [];
-
+    /* Full day timeline — all slots from open to close.
+       Past empty slots are lightly dimmed; current slot gets a NOW marker;
+       upcoming slots look normal. Appointments render with rowspan as usual. */
     const covered = {};
     let rows = '';
-    for (let t = loopStart; t < close; t += step) {
-      rows += '<tr><td style="font-size:11px;color:var(--muted);white-space:nowrap;padding:2px 8px;vertical-align:top;">' + MC.fromMin(t) + '</td>';
+    for (let t = open; t < close; t += step) {
+      const isPast   = isToday && nowMin != null && t + step <= nowMin;
+      const isNowRow = isToday && nowMin != null && t <= nowMin && nowMin < t + step;
+      const timeStyle = isPast
+        ? 'font-size:11px;color:#CBD5E1;white-space:nowrap;padding:2px 8px;vertical-align:top;'
+        : 'font-size:11px;color:var(--muted);white-space:nowrap;padding:2px 8px;vertical-align:top;';
+      const nowMarker = isNowRow
+        ? '<span style="display:inline-block;background:#EF4444;color:#fff;font-size:9px;border-radius:3px;padding:0 4px;font-weight:800;margin-left:3px;vertical-align:middle;">NOW</span>'
+        : '';
+      rows += '<tr' + (isNowRow ? ' style="outline:2px solid #EF4444;outline-offset:-1px;"' : '') + '>' +
+        '<td style="' + timeStyle + '">' + MC.fromMin(t) + nowMarker + '</td>';
       cols.forEach(c => {
         if (covered[c.st.name + '|' + t]) return;
-        /* in-progress appointment that started before our visible window */
-        const early = t === loopStart ? earlyActive.find(a => a.stylist === c.st.name) : null;
-        const a = early || S.appts.find(x => x.stylist === c.st.name && x.status !== 'cancelled' && MC.toMin(x.start_time) >= t && MC.toMin(x.start_time) < t + step);
+        const a = S.appts.find(x => x.stylist === c.st.name && x.status !== 'cancelled' && MC.toMin(x.start_time) >= t && MC.toMin(x.start_time) < t + step);
         if (a) {
           const aStart = MC.toMin(a.start_time), aEnd = MC.toMin(a.end_time);
-          /* rowspan covers remaining visible slots for this appointment */
-          const span = Math.max(1, Math.ceil((aEnd - t) / step));
+          const span = Math.max(1, Math.ceil((aEnd - aStart) / step));
           for (let k = 1; k < span; k++) covered[c.st.name + '|' + (t + k * step)] = true;
-          const isNow = nowMin != null && aStart <= nowMin && nowMin < aEnd;
+          const apptIsNow = nowMin != null && aStart <= nowMin && nowMin < aEnd;
           let col, cellBorder;
-          if (isNow)   { col = '#DCFCE7'; cellBorder = '2px solid #16A34A'; }
-          else         { col = { booked: '#DBEAFE', arrived: '#DCFCE7', no_show: '#FEE2E2' }[a.status] || '#EEE';
-                         cellBorder = (a.status === 'booked') ? '2px solid #3B82F6' : '1px solid #ccc'; }
-          const nowBadge = isNow ? '<span style="display:inline-block;font-size:9px;background:#16A34A;color:#fff;border-radius:4px;padding:1px 5px;font-weight:800;margin-right:3px;vertical-align:middle;">NOW</span>' : '';
+          if (apptIsNow) { col = '#DCFCE7'; cellBorder = '2px solid #16A34A'; }
+          else if (isPast) { col = '#F8FAFC'; cellBorder = '1px solid #E2E8F0'; }
+          else { col = { booked: '#DBEAFE', arrived: '#DCFCE7', no_show: '#FEE2E2' }[a.status] || '#EEE';
+                 cellBorder = (a.status === 'booked') ? '2px solid #3B82F6' : '1px solid #ccc'; }
+          const nowBadge = apptIsNow ? '<span style="display:inline-block;font-size:9px;background:#16A34A;color:#fff;border-radius:4px;padding:1px 5px;font-weight:800;margin-right:3px;vertical-align:middle;">NOW</span>' : '';
           rows += '<td rowspan="' + span + '" style="background:' + col + ';border:' + cellBorder + ';border-radius:8px;padding:5px 7px;font-size:12px;cursor:pointer;vertical-align:top;" onclick="MC.appt.openAppt(\'' + a.id + '\')">' +
             nowBadge + '<b>' + MC.esc(a.customer_name) + '</b><br>' + MC.esc(a.service) + '<br><span style="color:var(--muted);">' + a.start_time.slice(0, 5) + '–' + a.end_time.slice(0, 5) + (a.status !== 'booked' ? ' · ' + a.status.replace('_', ' ') : '') + '</span></td>';
         } else if (c.w && t >= c.w[0] && t < c.w[1]) {
-          rows += '<td style="border:1px dashed #E5E7EB;cursor:pointer;text-align:center;color:#CBD5E1;font-size:12px;" onclick="MC.appt.openNew(\'' + c.st.name.replace(/'/g, "\\'") + '\',\'' + MC.fromMin(t) + '\')">+</td>';
+          const cellStyle = isPast
+            ? 'background:#FAFAFA;border:1px solid #F1F5F9;text-align:center;color:#E2E8F0;font-size:12px;'
+            : 'border:1px dashed #E5E7EB;cursor:pointer;text-align:center;color:#CBD5E1;font-size:12px;';
+          const click = isPast ? '' : ' onclick="MC.appt.openNew(\'' + c.st.name.replace(/'/g, "\\'") + '\',\'' + MC.fromMin(t) + '\')"';
+          rows += '<td style="' + cellStyle + '"' + click + '>' + (isPast ? '' : '+') + '</td>';
         } else rows += '<td style="background:#F1F5F9;"></td>';
       });
       rows += '</tr>';
