@@ -10,6 +10,13 @@
 --   yasmin1388@gmail.com   Owner (MiNiCUTS)   all outlets   runs the MiNiCUTS business
 --   mincutsfze@gmail.com   Branch manager     DSO only      the salon manager at Dubai Silicon Oasis
 -- ============================================================================
+do $$
+begin
+  if not exists (select 1 from public.rbac_roles where key = 'platform_admin') then
+    raise exception 'Role platform_admin is missing: run the LATEST sql/002_salonchain_core.sql first (it is safe to run again), then this file.';
+  end if;
+end $$;
+
 insert into public.memberships (email, display_name, role_key, all_branches, branch_ids)
 values
   ('munir20684@gmail.com', 'Munir',  'platform_admin', true,  '{}'),
