@@ -116,6 +116,19 @@
     }
   };
 
+  /* ── nav badge ───────────────────────────────────────────────────────── */
+  A.updateNavBadge = async function () {
+    const el = document.getElementById('nb-appt'); if (!el) return;
+    try {
+      const t = MC.today();
+      const rows = await MC.sb('appointments', 'GET', null, 'appt_date=eq.' + t + '&status=in.(booked,arrived)&limit=500');
+      const now = new Date().getHours() * 60 + new Date().getMinutes();
+      const rem = (rows || []).filter(a => MC.toMin(a.end_time) > now).length;
+      el.textContent = rem > 99 ? '99+' : rem;
+      el.classList.toggle('on', rem > 0);
+    } catch (e) { /* silent */ }
+  };
+
   A.render = function () {
     const S = A.state, cfg = S.cfg, el = document.getElementById('mc-appt-root');
     const dow = A.dow(S.date), day = cfg.days[dow];
@@ -132,10 +145,60 @@
     }
     const isToday = S.date === MC.today();
     const nowMin = isToday ? (new Date().getHours() * 60 + new Date().getMinutes()) : null;
+    A.updateNavBadge();
+
+    /* ── TODAY: show only the upcoming queue, no dead past rows ─────── */
+    if (isToday) {
+      const upcoming = S.appts.filter(a => a.status !== 'cancelled' && MC.toMin(a.end_time) > nowMin)
+        .sort((a, b) => a.start_time.localeCompare(b.start_time));
+      const totalToday = S.appts.filter(a => a.status !== 'cancelled').length;
+      const allDone = totalToday > 0 && upcoming.length === 0;
+      const banner = totalToday
+        ? '<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:#EFF6FF;border-radius:10px;margin-bottom:12px;font-size:13px;flex-wrap:wrap;">' +
+          '📅 <b>' + totalToday + '</b>&nbsp;appointment' + (totalToday !== 1 ? 's' : '') + ' today&nbsp;·&nbsp;' +
+          (upcoming.length > 0
+            ? '<span style="background:#3B82F6;color:#fff;border-radius:6px;padding:2px 9px;font-weight:800;">▶ ' + upcoming.length + ' remaining</span>'
+            : '<span style="color:#16A34A;font-weight:700;">✅ All done for today</span>') +
+          '</div>' : '';
+      if (allDone || !upcoming.length) {
+        el.innerHTML = head + banner + '<div class="card" style="text-align:center;padding:32px 20px;color:var(--muted);">' +
+          (allDone ? '<div style="font-size:32px;margin-bottom:8px;">✅</div><div style="font-weight:800;font-size:15px;color:#16A34A;">All appointments done for today!</div>' :
+            '<div style="font-size:32px;margin-bottom:8px;">📅</div><div style="font-weight:800;font-size:15px;">No appointments today</div><div style="font-size:13px;margin-top:6px;">Tap + New Appointment to add one</div>') +
+          '</div>';
+      } else {
+        const cards = upcoming.map(a => {
+          const aStart = MC.toMin(a.start_time);
+          const isNow = aStart <= nowMin && nowMin < MC.toMin(a.end_time);
+          const minsAway = aStart - nowMin;
+          const timeLabel = isNow
+            ? '<span style="background:#16A34A;color:#fff;font-size:10px;border-radius:4px;padding:2px 7px;font-weight:800;">NOW</span>'
+            : minsAway <= 15
+              ? '<span style="background:#F59E0B;color:#fff;font-size:10px;border-radius:4px;padding:2px 7px;font-weight:700;">in ' + minsAway + ' min</span>'
+              : '<span style="font-size:12px;color:var(--muted);">in ' + Math.floor(minsAway / 60) + 'h ' + (minsAway % 60) + 'min</span>';
+          const borderCol = isNow ? '#16A34A' : a.status === 'arrived' ? '#10B981' : '#3B82F6';
+          const bgCol = isNow ? '#F0FDF4' : a.status === 'arrived' ? '#ECFDF5' : '#EFF6FF';
+          return '<div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:' + bgCol + ';border:2px solid ' + borderCol + ';border-radius:12px;margin-bottom:8px;cursor:pointer;" onclick="MC.appt.openAppt(\'' + a.id + '\')">' +
+            '<div style="text-align:center;min-width:46px;"><div style="font-size:15px;font-weight:900;color:' + borderCol + ';">' + a.start_time.slice(0, 5) + '</div><div style="font-size:10px;color:var(--muted);">' + a.end_time.slice(0, 5) + '</div></div>' +
+            '<div style="flex:1;"><div style="font-weight:800;font-size:14px;">' + MC.esc(a.customer_name) + '</div><div style="font-size:12.5px;color:var(--muted);">' + MC.esc(a.service) + ' · <b style="color:var(--bd);">' + MC.esc(a.stylist) + '</b></div>' +
+            (a.notes ? '<div style="font-size:11.5px;color:#B45309;margin-top:2px;">📝 ' + MC.esc(a.notes) + '</div>' : '') + '</div>' +
+            '<div style="text-align:right;">' + timeLabel + (a.status === 'arrived' ? '<div style="font-size:10.5px;color:#10B981;font-weight:700;margin-top:4px;">arrived</div>' : '') + '</div></div>';
+        }).join('');
+        el.innerHTML = head + banner + cards;
+      }
+      // auto-refresh every minute while viewing today
+      if (!A._refreshTimer) A._refreshTimer = setInterval(function () {
+        if (MC.appt.state.date === MC.today()) { MC.appt.loadDay(MC.appt.state.date).then(() => MC.appt.render()).catch(() => MC.appt.render()); }
+        else { clearInterval(MC.appt._refreshTimer); MC.appt._refreshTimer = null; }
+      }, 60000);
+      return;
+    }
+
+    /* ── OTHER DAYS: full time-grid view ─────────────────────────────── */
+    if (A._refreshTimer) { clearInterval(A._refreshTimer); A._refreshTimer = null; }
     const open = MC.toMin(day.open), close = MC.toMin(day.close), step = cfg.slot;
     const cols = S.staff.map(st => ({ st, w: A.window(cfg, st, S.date, S.leaves, S.roster) }));
     if (!cols.length) { el.innerHTML = head + '<div class="card">No stylists found in Staff Mgmt.</div>'; return; }
-    const covered = {}; // "name|min" -> true for rows swallowed by a rowspan
+    const covered = {};
     let rows = '';
     for (let t = open; t < close; t += step) {
       rows += '<tr><td style="font-size:11px;color:var(--muted);white-space:nowrap;padding:2px 8px;vertical-align:top;">' + MC.fromMin(t) + '</td>';
@@ -145,45 +208,20 @@
         if (a) {
           const span = Math.max(1, Math.ceil((MC.toMin(a.end_time) - MC.toMin(a.start_time)) / step));
           for (let k = 1; k < span; k++) covered[c.st.name + '|' + (t + k * step)] = true;
-          const aStart = MC.toMin(a.start_time), aEnd = MC.toMin(a.end_time);
-          const isPast = nowMin != null && aEnd <= nowMin;
-          const isNow  = nowMin != null && aStart <= nowMin && nowMin < aEnd;
-          let col, cellBorder;
-          if (isPast)      { col = '#F3F4F6'; cellBorder = '1px solid #D1D5DB'; }
-          else if (isNow)  { col = '#DCFCE7'; cellBorder = '2px solid #16A34A'; }
-          else             { col = { booked: '#DBEAFE', arrived: '#DCFCE7', no_show: '#FEE2E2' }[a.status] || '#EEE';
-                             cellBorder = (a.status === 'booked') ? '2px solid #3B82F6' : '1px solid #fff'; }
-          const badge = isNow ? '<span style="display:inline-block;font-size:9px;background:#16A34A;color:#fff;border-radius:4px;padding:1px 5px;font-weight:800;margin-right:3px;vertical-align:middle;">NOW</span>' : '';
-          const nameDecor = isPast ? 'text-decoration:line-through;color:#9CA3AF;' : '';
-          const opacity = isPast ? 'opacity:0.6;' : '';
-          rows += '<td rowspan="' + span + '" style="background:' + col + ';border:' + cellBorder + ';' + opacity + 'border-radius:8px;padding:5px 7px;font-size:12px;cursor:pointer;vertical-align:top;" onclick="MC.appt.openAppt(\'' + a.id + '\')">' + badge + '<b style="' + nameDecor + '">' + MC.esc(a.customer_name) + '</b><br>' + MC.esc(a.service) + '<br><span style="color:var(--muted);">' + a.start_time.slice(0, 5) + '–' + a.end_time.slice(0, 5) + (a.status !== 'booked' ? ' · ' + a.status.replace('_', ' ') : '') + '</span></td>';
+          const col = { booked: '#DBEAFE', arrived: '#DCFCE7', no_show: '#FEE2E2' }[a.status] || '#EEE';
+          const cellBorder = (a.status === 'booked') ? '2px solid #3B82F6' : '1px solid #fff';
+          rows += '<td rowspan="' + span + '" style="background:' + col + ';border:' + cellBorder + ';border-radius:8px;padding:5px 7px;font-size:12px;cursor:pointer;vertical-align:top;" onclick="MC.appt.openAppt(\'' + a.id + '\')">' +
+            '<b>' + MC.esc(a.customer_name) + '</b><br>' + MC.esc(a.service) + '<br><span style="color:var(--muted);">' + a.start_time.slice(0, 5) + '–' + a.end_time.slice(0, 5) + (a.status !== 'booked' ? ' · ' + a.status.replace('_', ' ') : '') + '</span></td>';
         } else if (c.w && t >= c.w[0] && t < c.w[1]) {
           rows += '<td style="border:1px dashed #E5E7EB;cursor:pointer;text-align:center;color:#CBD5E1;font-size:12px;" onclick="MC.appt.openNew(\'' + c.st.name.replace(/'/g, "\\'") + '\',\'' + MC.fromMin(t) + '\')">+</td>';
         } else rows += '<td style="background:#F1F5F9;"></td>';
       });
       rows += '</tr>';
     }
-    const totalToday = S.appts.filter(a => a.status !== 'cancelled').length;
-    const remaining  = S.appts.filter(a => a.status !== 'cancelled' && (nowMin == null || MC.toMin(a.end_time) > nowMin)).length;
-    const banner = isToday && totalToday ? '<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:#EFF6FF;border-radius:10px;margin-bottom:10px;font-size:13px;flex-wrap:wrap;">' +
-      '📅 <b>' + totalToday + '</b>&nbsp;appointment' + (totalToday !== 1 ? 's' : '') + ' today&nbsp;·&nbsp;' +
-      (remaining > 0 ? '<span style="background:#3B82F6;color:#fff;border-radius:6px;padding:2px 9px;font-weight:800;">▶ ' + remaining + ' upcoming</span>' : '<span style="color:#16A34A;font-weight:700;">✅ All done for today</span>') +
-      '</div>' : '';
-    el.innerHTML = head + banner + '<div style="overflow:auto;"><table style="border-collapse:separate;border-spacing:2px;width:100%;min-width:' + (60 + cols.length * 130) + 'px;"><thead><tr><th></th>' +
-      cols.map(c => {
-        const rem = isToday ? S.appts.filter(a => a.stylist === c.st.name && a.status !== 'cancelled' && (nowMin == null || MC.toMin(a.end_time) > nowMin)).length : null;
-        const sub = c.w
-          ? (rem != null ? '<div style="font-size:10px;font-weight:700;color:' + (rem > 0 ? '#3B82F6' : '#16A34A') + ';">' + (rem > 0 ? rem + ' upcoming' : '✓ done') + '</div>' : '')
-          : '<div style="font-size:10px;color:var(--muted);font-weight:600;">off</div>';
-        return '<th style="font-size:13px;padding:6px;background:' + (c.w ? '#EEF6FF' : '#F1F5F9') + ';border-radius:8px;">' + MC.esc(c.st.name) + sub + '</th>';
-      }).join('') + '</tr></thead><tbody>' + rows + '</tbody></table></div>';
-    // auto-refresh every minute while viewing today so NOW badge stays accurate
-    if (isToday) {
-      if (!A._refreshTimer) A._refreshTimer = setInterval(function () {
-        if (MC.appt.state.date === MC.today()) { MC.appt.render(); }
-        else { clearInterval(MC.appt._refreshTimer); MC.appt._refreshTimer = null; }
-      }, 60000);
-    } else if (A._refreshTimer) { clearInterval(A._refreshTimer); A._refreshTimer = null; }
+    el.innerHTML = head + '<div style="overflow:auto;"><table style="border-collapse:separate;border-spacing:2px;width:100%;min-width:' + (60 + cols.length * 130) + 'px;"><thead><tr><th></th>' +
+      cols.map(c => '<th style="font-size:13px;padding:6px;background:' + (c.w ? '#EEF6FF' : '#F1F5F9') + ';border-radius:8px;">' + MC.esc(c.st.name) +
+        (!c.w ? '<div style="font-size:10px;color:var(--muted);font-weight:600;">off</div>' : '') + '</th>').join('') +
+      '</tr></thead><tbody>' + rows + '</tbody></table></div>';
   };
   A.listHtml = function () {
     const l = A.state.appts.filter(a => a.status !== 'cancelled');

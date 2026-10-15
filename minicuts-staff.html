@@ -241,7 +241,7 @@ a.btn{text-decoration:none;}
 <aside class="side" id="side">
   <div class="nav-g">Today</div>
   <button class="tab active" data-p="t-queue" onclick="showTab('t-queue')"><i>📋</i>Queue<span class="nb amber" id="nb-queue" title="Waiting or called customers with a reward to give"></span></button>
-  <button class="tab" data-p="t-appt" onclick="showTab('t-appt');MC.appt.init();"><i>📅</i>Appointments</button>
+  <button class="tab" data-p="t-appt" onclick="showTab('t-appt');MC.appt.init();"><i>📅</i>Appointments<span class="nb blue" id="nb-appt" title="Upcoming appointments today"></span></button>
   <button class="tab" data-p="t-history" onclick="showTab('t-history');histSetDate(today());loadHist();"><i>🕐</i>History</button>
   <div class="nav-g">Customers</div>
   <button class="tab" data-p="t-customers" onclick="showTab('t-customers');MC.customers.init();"><i>🔍</i>Find customer</button>
@@ -873,6 +873,9 @@ async function refreshRewardBadges(force){
   }catch(e){console.warn('badges:',e.message);}finally{_rbBusy=false;}
 }
 setInterval(()=>refreshRewardBadges(true),120000);
+setInterval(()=>{ if(window.MC&&MC.appt)MC.appt.updateNavBadge(); },60000);
+// initial appointment badge — runs after mc-appointments.js is loaded
+window.addEventListener('load',function(){setTimeout(function(){if(window.MC&&MC.appt)MC.appt.updateNavBadge();},1200);});
 /* A visit whose invoice was voided stays 'done' in the queue (the haircut happened, the bill was cancelled, amount cleared).
    It is NOT counted as served until it is checked out again — same rule on the strip, History and Insights. */
 let _voidedQ=new Set();
