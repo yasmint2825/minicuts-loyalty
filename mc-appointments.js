@@ -130,6 +130,8 @@
       el.innerHTML = head + '<div class="card" style="color:var(--muted);">Walk-in only on ' + MC.parseYmd(S.date).toLocaleDateString('en-GB', { weekday: 'long' }) + 's. Change this under Settings ▸ Appointments. Existing bookings for the day are listed below.</div>' + A.listHtml();
       return;
     }
+    const isToday = S.date === MC.today();
+    const nowMin = isToday ? (new Date().getHours() * 60 + new Date().getMinutes()) : null;
     const open = MC.toMin(day.open), close = MC.toMin(day.close), step = cfg.slot;
     const cols = S.staff.map(st => ({ st, w: A.window(cfg, st, S.date, S.leaves, S.roster) }));
     if (!cols.length) { el.innerHTML = head + '<div class="card">No stylists found in Staff Mgmt.</div>'; return; }
@@ -143,16 +145,45 @@
         if (a) {
           const span = Math.max(1, Math.ceil((MC.toMin(a.end_time) - MC.toMin(a.start_time)) / step));
           for (let k = 1; k < span; k++) covered[c.st.name + '|' + (t + k * step)] = true;
-          const col = { booked: '#DBEAFE', arrived: '#DCFCE7', no_show: '#FEE2E2' }[a.status] || '#EEE';
-          rows += '<td rowspan="' + span + '" style="background:' + col + ';border:1px solid #fff;border-radius:8px;padding:5px 7px;font-size:12px;cursor:pointer;vertical-align:top;" onclick="MC.appt.openAppt(\'' + a.id + '\')"><b>' + MC.esc(a.customer_name) + '</b><br>' + MC.esc(a.service) + '<br><span style="color:var(--muted);">' + a.start_time.slice(0, 5) + '–' + a.end_time.slice(0, 5) + (a.status !== 'booked' ? ' · ' + a.status.replace('_', ' ') : '') + '</span></td>';
+          const aStart = MC.toMin(a.start_time), aEnd = MC.toMin(a.end_time);
+          const isPast = nowMin != null && aEnd <= nowMin;
+          const isNow  = nowMin != null && aStart <= nowMin && nowMin < aEnd;
+          let col, cellBorder;
+          if (isPast)      { col = '#F3F4F6'; cellBorder = '1px solid #D1D5DB'; }
+          else if (isNow)  { col = '#DCFCE7'; cellBorder = '2px solid #16A34A'; }
+          else             { col = { booked: '#DBEAFE', arrived: '#DCFCE7', no_show: '#FEE2E2' }[a.status] || '#EEE';
+                             cellBorder = (a.status === 'booked') ? '2px solid #3B82F6' : '1px solid #fff'; }
+          const badge = isNow ? '<span style="display:inline-block;font-size:9px;background:#16A34A;color:#fff;border-radius:4px;padding:1px 5px;font-weight:800;margin-right:3px;vertical-align:middle;">NOW</span>' : '';
+          const nameDecor = isPast ? 'text-decoration:line-through;color:#9CA3AF;' : '';
+          const opacity = isPast ? 'opacity:0.6;' : '';
+          rows += '<td rowspan="' + span + '" style="background:' + col + ';border:' + cellBorder + ';' + opacity + 'border-radius:8px;padding:5px 7px;font-size:12px;cursor:pointer;vertical-align:top;" onclick="MC.appt.openAppt(\'' + a.id + '\')">' + badge + '<b style="' + nameDecor + '">' + MC.esc(a.customer_name) + '</b><br>' + MC.esc(a.service) + '<br><span style="color:var(--muted);">' + a.start_time.slice(0, 5) + '–' + a.end_time.slice(0, 5) + (a.status !== 'booked' ? ' · ' + a.status.replace('_', ' ') : '') + '</span></td>';
         } else if (c.w && t >= c.w[0] && t < c.w[1]) {
           rows += '<td style="border:1px dashed #E5E7EB;cursor:pointer;text-align:center;color:#CBD5E1;font-size:12px;" onclick="MC.appt.openNew(\'' + c.st.name.replace(/'/g, "\\'") + '\',\'' + MC.fromMin(t) + '\')">+</td>';
         } else rows += '<td style="background:#F1F5F9;"></td>';
       });
       rows += '</tr>';
     }
-    el.innerHTML = head + '<div style="overflow:auto;"><table style="border-collapse:separate;border-spacing:2px;width:100%;min-width:' + (60 + cols.length * 130) + 'px;"><thead><tr><th></th>' +
-      cols.map(c => '<th style="font-size:13px;padding:6px;background:' + (c.w ? '#EEF6FF' : '#F1F5F9') + ';border-radius:8px;">' + MC.esc(c.st.name) + (c.w ? '' : '<div style="font-size:10px;color:var(--muted);font-weight:600;">off</div>') + '</th>').join('') + '</tr></thead><tbody>' + rows + '</tbody></table></div>';
+    const totalToday = S.appts.filter(a => a.status !== 'cancelled').length;
+    const remaining  = S.appts.filter(a => a.status !== 'cancelled' && (nowMin == null || MC.toMin(a.end_time) > nowMin)).length;
+    const banner = isToday && totalToday ? '<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:#EFF6FF;border-radius:10px;margin-bottom:10px;font-size:13px;flex-wrap:wrap;">' +
+      '📅 <b>' + totalToday + '</b>&nbsp;appointment' + (totalToday !== 1 ? 's' : '') + ' today&nbsp;·&nbsp;' +
+      (remaining > 0 ? '<span style="background:#3B82F6;color:#fff;border-radius:6px;padding:2px 9px;font-weight:800;">▶ ' + remaining + ' upcoming</span>' : '<span style="color:#16A34A;font-weight:700;">✅ All done for today</span>') +
+      '</div>' : '';
+    el.innerHTML = head + banner + '<div style="overflow:auto;"><table style="border-collapse:separate;border-spacing:2px;width:100%;min-width:' + (60 + cols.length * 130) + 'px;"><thead><tr><th></th>' +
+      cols.map(c => {
+        const rem = isToday ? S.appts.filter(a => a.stylist === c.st.name && a.status !== 'cancelled' && (nowMin == null || MC.toMin(a.end_time) > nowMin)).length : null;
+        const sub = c.w
+          ? (rem != null ? '<div style="font-size:10px;font-weight:700;color:' + (rem > 0 ? '#3B82F6' : '#16A34A') + ';">' + (rem > 0 ? rem + ' upcoming' : '✓ done') + '</div>' : '')
+          : '<div style="font-size:10px;color:var(--muted);font-weight:600;">off</div>';
+        return '<th style="font-size:13px;padding:6px;background:' + (c.w ? '#EEF6FF' : '#F1F5F9') + ';border-radius:8px;">' + MC.esc(c.st.name) + sub + '</th>';
+      }).join('') + '</tr></thead><tbody>' + rows + '</tbody></table></div>';
+    // auto-refresh every minute while viewing today so NOW badge stays accurate
+    if (isToday) {
+      if (!A._refreshTimer) A._refreshTimer = setInterval(function () {
+        if (MC.appt.state.date === MC.today()) { MC.appt.render(); }
+        else { clearInterval(MC.appt._refreshTimer); MC.appt._refreshTimer = null; }
+      }, 60000);
+    } else if (A._refreshTimer) { clearInterval(A._refreshTimer); A._refreshTimer = null; }
   };
   A.listHtml = function () {
     const l = A.state.appts.filter(a => a.status !== 'cancelled');
