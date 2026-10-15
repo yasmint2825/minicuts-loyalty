@@ -249,6 +249,7 @@ a.btn{text-decoration:none;}
   <button class="tab" data-p="t-freewash" onclick="showTab('t-freewash');loadFreeWash();"><i>🚿</i>Free wash<span class="nb green" id="nb-fw" title="Children with a free hair wash waiting"></span></button>
   <button class="tab" data-p="t-vouchers" onclick="showTab('t-vouchers');loadVouchers();"><i>🎁</i>Gift vouchers</button>
   <button class="tab" data-p="t-kod" onclick="showTab('t-kod');loadKod();"><i>💜</i>KoD discount</button>
+  <button class="tab" data-p="t-coupons" onclick="showTab('t-coupons');cpnRender();"><i>🎟</i>Coupons</button>
   <div class="nav-g">Insights</div>
   <button class="tab" data-p="t-insights" onclick="showTab('t-insights');MC.insights.init();"><i>📈</i>Insights</button>
   <button class="tab" data-p="t-reports" onclick="showTab('t-reports');MC.reports.init();"><i>📊</i>Reports &amp; tax</button>
@@ -653,6 +654,22 @@ a.btn{text-decoration:none;}
 
 <div class="page" id="t-customers"><div id="mc-customers-root"></div></div>
 <div class="page" id="t-insights"><div id="mc-insights-root"></div></div>
+
+<!-- ── COUPONS PAGE ── -->
+<div class="page" id="t-coupons">
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
+    <div style="font-size:13px;color:var(--muted);">Discount codes with expiry dates and usage limits</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <select id="cpn-filter" class="fi" style="width:130px;padding:7px 10px;font-size:13px;" onchange="cpnRender()">
+        <option value="">All</option>
+        <option value="active">Active</option>
+        <option value="expired">Expired</option>
+      </select>
+      <button class="btn btn-y btn-sm" onclick="cpnOpenNew()">+ Add Coupon</button>
+    </div>
+  </div>
+  <div id="cpn-list"></div>
+</div>
 
 </div><!-- /main -->
 </div><!-- /shell -->
@@ -2668,6 +2685,163 @@ function setDefaultExpiry() {
   }
 }
 setDefaultExpiry();
+
+// ══════════════════════════════════════════════════════
+// COUPONS  (Supabase: salon_coupons)
+// ══════════════════════════════════════════════════════
+const _cpnFmtAED = n => 'AED ' + (parseFloat(n) || 0).toFixed(2);
+const _cpnFmtDate = iso => { if (!iso) return '—'; return new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }); };
+const _cpnUID = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const _cpnIsExpired = iso => { if (!iso) return false; return new Date(iso) < new Date(); };
+
+let _cpnCache = null;
+
+async function cpnGet() {
+  if (_cpnCache !== null) return _cpnCache;
+  try { _cpnCache = (await MC.sb('salon_coupons', 'GET', null, 'select=*&order=created_at.desc')) || []; }
+  catch (e) { console.warn('salon_coupons:', e.message); _cpnCache = []; }
+  return _cpnCache;
+}
+
+async function cpnRender() {
+  const el = document.getElementById('cpn-list'); if (!el) return;
+  el.innerHTML = '<div style="padding:40px;text-align:center;color:var(--muted);">Loading coupons…</div>';
+  let coupons = [...(await cpnGet())];
+  const filter = document.getElementById('cpn-filter')?.value || '';
+  if (filter === 'active') coupons = coupons.filter(c => c.status === 'active' && !_cpnIsExpired(c.expiry));
+  else if (filter === 'expired') coupons = coupons.filter(c => c.status === 'expired' || _cpnIsExpired(c.expiry));
+  coupons.sort((a, b) => {
+    const aE = _cpnIsExpired(a.expiry) || a.status !== 'active';
+    const bE = _cpnIsExpired(b.expiry) || b.status !== 'active';
+    if (aE !== bE) return aE ? 1 : -1;
+    return (a.expiry || '').localeCompare(b.expiry || '');
+  });
+  if (!coupons.length) {
+    el.innerHTML = '<div style="text-align:center;padding:60px 20px;"><div style="font-size:40px;margin-bottom:10px;">🎟</div><div style="font-size:17px;font-weight:800;margin-bottom:6px;">No coupons yet</div><div style="color:var(--muted);font-size:13px;margin-bottom:16px;">Create discount codes for promotions, EID offers, and retention campaigns</div><button class="btn btn-y btn-sm" onclick="cpnOpenNew()">+ Create First Coupon</button></div>';
+    return;
+  }
+  el.innerHTML = coupons.map(c => {
+    const expired = _cpnIsExpired(c.expiry) || c.status === 'expired';
+    const paused = c.status === 'paused';
+    const daysLeft = c.expiry ? Math.ceil((new Date(c.expiry) - new Date()) / 864e5) : null;
+    const urgency = daysLeft !== null && daysLeft <= 7 && !expired;
+    const discLabel = c.type === 'pct' ? c.value + '% Off' : c.type === 'flat' ? 'AED ' + c.value + ' Off' : 'Free Service';
+    return '<div class="card" style="margin-bottom:10px;' + (expired ? 'opacity:.6;border-style:dashed;' : '') + '">' +
+      '<div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:10px;">' +
+      '<div style="display:flex;align-items:center;gap:12px;">' +
+      '<div style="background:' + (expired ? '#F1F5F9' : paused ? '#FEF9C3' : '#EFF6FF') + ';border-radius:8px;padding:8px 14px;font-size:18px;font-weight:900;color:' + (expired ? 'var(--muted)' : paused ? '#92400E' : 'var(--b)') + ';letter-spacing:.05em;">' + MC.esc(c.code) + '</div>' +
+      '<div><div style="font-weight:800;font-size:14px;">' + MC.esc(discLabel) + '</div><div style="font-size:12px;color:var(--muted);">' + MC.esc(c.description || 'No description') + '</div></div></div>' +
+      '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">' +
+      (expired ? '<span class="badge" style="background:#FEE2E2;color:#DC2626;">Expired</span>' :
+        paused ? '<span class="badge" style="background:#FEF9C3;color:#92400E;">Paused</span>' :
+          urgency ? '<span class="badge" style="background:#FEF9C3;color:#92400E;">⚠️ Expires in ' + daysLeft + 'd</span>' :
+            '<span class="badge" style="background:#DCFCE7;color:#16A34A;">Active</span>') +
+      '<button class="btn btn-ghost btn-sm" onclick="cpnOpenEdit(\'' + c.id + '\')">✏️ Edit</button>' +
+      '<button class="btn btn-sm" style="background:#FEE2E2;color:#DC2626;" onclick="cpnDelete(\'' + c.id + '\')">🗑</button></div></div>' +
+      '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">' +
+      '<div><div style="font-size:10.5px;font-weight:700;color:var(--muted);text-transform:uppercase;">Applies To</div><div style="font-size:12.5px;font-weight:700;margin-top:2px;">' + MC.esc(c.applies === 'all' ? 'All Services' : c.applies || 'All') + '</div></div>' +
+      '<div><div style="font-size:10.5px;font-weight:700;color:var(--muted);text-transform:uppercase;">Min. Purchase</div><div style="font-size:12.5px;font-weight:700;margin-top:2px;">' + (parseFloat(c.min || 0) > 0 ? _cpnFmtAED(c.min) : 'None') + '</div></div>' +
+      '<div><div style="font-size:10.5px;font-weight:700;color:var(--muted);text-transform:uppercase;">Valid Until</div><div style="font-size:12.5px;font-weight:700;margin-top:2px;color:' + (expired ? 'var(--err,#DC2626)' : urgency ? '#92400E' : 'inherit') + ';">' + _cpnFmtDate(c.expiry) + '</div></div>' +
+      '<div><div style="font-size:10.5px;font-weight:700;color:var(--muted);text-transform:uppercase;">Uses / Max</div><div style="font-size:12.5px;font-weight:700;margin-top:2px;">' + (c.uses || 0) + ' / ' + (c.maxuse || 'Unlimited') + '</div></div>' +
+      '</div></div>';
+  }).join('');
+}
+
+function cpnOpenNew() { _cpnOpenModal(null); }
+async function cpnOpenEdit(id) { const all = await cpnGet(); _cpnOpenModal(all.find(x => x.id === id) || null); }
+
+function _cpnOpenModal(c) {
+  const isEdit = !!c;
+  const ov = document.createElement('div');
+  ov.id = 'cpn-modal-ov';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9000;display:flex;align-items:center;justify-content:center;padding:16px;';
+  ov.innerHTML = '<div style="background:var(--bg,#fff);border-radius:14px;padding:22px 20px;width:100%;max-width:460px;max-height:90vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,.3);">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">' +
+    '<div style="font-size:16px;font-weight:800;">🎟 ' + (isEdit ? 'Edit Coupon' : 'New Coupon') + '</div>' +
+    '<button class="btn btn-ghost btn-sm" id="cpn-m-close">✕</button></div>' +
+    '<div style="display:grid;gap:11px;">' +
+    '<div><label class="fl">Coupon Code *</label><input class="fi" id="cpn-m-code" type="text" placeholder="WELCOME20" style="text-transform:uppercase;font-weight:800;letter-spacing:.05em;" oninput="this.value=this.value.toUpperCase().replace(/\\s/g,\'\');" value="' + MC.esc(c ? c.code : '') + '"/></div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">' +
+    '<div><label class="fl">Type</label><select class="fi" id="cpn-m-type" onchange="_cpnTypeChg()"><option value="pct"' + ((!c || c.type === 'pct') ? ' selected' : '') + '>% Off</option><option value="flat"' + (c && c.type === 'flat' ? ' selected' : '') + '>AED Off</option><option value="free"' + (c && c.type === 'free' ? ' selected' : '') + '>Free Service</option></select></div>' +
+    '<div id="cpn-m-val-wrap"><label class="fl" id="cpn-m-val-lbl">Discount Value *</label><input class="fi" id="cpn-m-value" type="number" min="0" step="0.5" value="' + MC.esc(c ? (c.value || '') : '') + '"/></div></div>' +
+    '<div><label class="fl">Min. Purchase (AED)</label><input class="fi" id="cpn-m-min" type="number" min="0" step="0.5" placeholder="0 = no minimum" value="' + MC.esc(c ? (c.min || '') : '') + '"/></div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;"><div><label class="fl">Valid From</label><input class="fi" id="cpn-m-from" type="date" value="' + (c ? (c.from_date || '') : new Date().toISOString().split('T')[0]) + '"/></div>' +
+    '<div><label class="fl">Expiry Date *</label><input class="fi" id="cpn-m-expiry" type="date" value="' + (c ? (c.expiry || '') : (() => { const d = new Date(); d.setMonth(d.getMonth() + 3); return d.toISOString().split('T')[0]; })()) + '"/></div></div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;"><div><label class="fl">Max Uses</label><input class="fi" id="cpn-m-maxuse" type="number" min="1" step="1" placeholder="Unlimited" value="' + MC.esc(c ? (c.maxuse || '') : '') + '"/></div>' +
+    '<div><label class="fl">Applies To</label><select class="fi" id="cpn-m-applies"><option value="all"' + ((!c || c.applies === 'all') ? ' selected' : '') + '>All Services</option><option value="boy"' + (c && c.applies === 'boy' ? ' selected' : '') + '>Boy services</option><option value="girl"' + (c && c.applies === 'girl' ? ' selected' : '') + '>Girl services</option></select></div></div>' +
+    '<div><label class="fl">Description</label><input class="fi" id="cpn-m-desc" type="text" placeholder="e.g. EID discount, back-to-school promo" value="' + MC.esc(c ? (c.description || '') : '') + '"/></div>' +
+    '<div><label class="fl">Status</label><select class="fi" id="cpn-m-status"><option value="active"' + ((!c || c.status === 'active') ? ' selected' : '') + '>Active</option><option value="paused"' + (c && c.status === 'paused' ? ' selected' : '') + '>Paused</option><option value="expired"' + (c && c.status === 'expired' ? ' selected' : '') + '>Expired</option></select></div>' +
+    '<input type="hidden" id="cpn-m-id" value="' + MC.esc(c ? c.id : '') + '">' +
+    '<div id="cpn-m-err" style="font-size:12.5px;color:var(--err,#DC2626);min-height:16px;"></div>' +
+    '<div style="display:flex;gap:8px;margin-top:4px;"><button class="btn btn-ghost" id="cpn-m-cancel">Cancel</button><button class="btn btn-y" id="cpn-m-save" style="flex:1;">' + (isEdit ? 'Update Coupon' : 'Save Coupon') + '</button></div>' +
+    '</div></div>';
+  document.body.appendChild(ov);
+  ov.addEventListener('click', e => { if (e.target === ov) ov.remove(); });
+  ov.querySelector('#cpn-m-close').onclick = () => ov.remove();
+  ov.querySelector('#cpn-m-cancel').onclick = () => ov.remove();
+  ov.querySelector('#cpn-m-save').onclick = () => _cpnSave(ov);
+  _cpnTypeChg();
+}
+
+function _cpnTypeChg() {
+  const type = document.getElementById('cpn-m-type')?.value;
+  const wrap = document.getElementById('cpn-m-val-wrap');
+  const lbl = document.getElementById('cpn-m-val-lbl');
+  if (!wrap) return;
+  if (type === 'free') { wrap.style.display = 'none'; }
+  else { wrap.style.display = ''; lbl.textContent = type === 'pct' ? 'Discount % *' : 'Discount Amount (AED) *'; }
+}
+
+async function _cpnSave(ov) {
+  const $ = id => ov.querySelector('#' + id);
+  const err = $('cpn-m-err');
+  const code = $('cpn-m-code').value.trim().toUpperCase();
+  const type = $('cpn-m-type').value;
+  const expiry = $('cpn-m-expiry').value;
+  const existingId = $('cpn-m-id').value;
+  if (!code) { err.textContent = 'Coupon code is required.'; return; }
+  if (!expiry) { err.textContent = 'Expiry date is required.'; return; }
+  if (type !== 'free' && !$('cpn-m-value').value) { err.textContent = 'Discount value is required.'; return; }
+  if (!existingId) {
+    const all = await cpnGet();
+    if (all.find(c => c.code === code)) { err.textContent = 'That code already exists.'; return; }
+  }
+  const btn = $('cpn-m-save'); btn.disabled = true; btn.textContent = 'Saving…';
+  const now = new Date().toISOString();
+  const data = {
+    id: existingId || _cpnUID(), code, type,
+    value: type !== 'free' ? parseFloat($('cpn-m-value').value) : null,
+    min: parseFloat($('cpn-m-min').value) || 0,
+    from_date: $('cpn-m-from').value,
+    expiry,
+    maxuse: $('cpn-m-maxuse').value ? parseInt($('cpn-m-maxuse').value) : null,
+    applies: $('cpn-m-applies').value,
+    description: $('cpn-m-desc').value.trim(),
+    status: $('cpn-m-status').value,
+    updated_at: now
+  };
+  if (!existingId) { data.created_at = now; data.uses = 0; }
+  try {
+    if (existingId) { await MC.sb('salon_coupons', 'PATCH', data, 'id=eq.' + existingId); }
+    else { await MC.sb('salon_coupons', 'POST', data); }
+    _cpnCache = null;
+    ov.remove();
+    toast(existingId ? 'Coupon updated ✅' : 'Coupon created ✅', 'ok');
+    cpnRender();
+  } catch (e) { err.textContent = 'Save failed: ' + e.message; btn.disabled = false; btn.textContent = (existingId ? 'Update' : 'Save') + ' Coupon'; }
+}
+
+async function cpnDelete(id) {
+  const all = await cpnGet();
+  const c = all.find(x => x.id === id);
+  if (!confirm('Delete coupon "' + (c ? c.code : 'this coupon') + '"?')) return;
+  try {
+    await MC.sb('salon_coupons', 'DELETE', null, 'id=eq.' + id);
+    _cpnCache = null;
+    toast('Coupon deleted', 'ok');
+    cpnRender();
+  } catch (e) { toast('Delete failed: ' + e.message, 'err'); }
+}
 
 </script>
 <script src="mc-common.js?v=20261015d"></script>
