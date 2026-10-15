@@ -393,6 +393,144 @@
       try { await MC.setConfig('booking_config', { slot: +g('mca-slot').value || 15, buffer: +g('mca-buf').value || 0, leadMin: +g('mca-lead').value || 0, windowDays: c.windowDays, days, shifts: c.shifts }); A.state.cfg = null; m.className = 'sm ok'; m.textContent = 'Saved.'; }
       catch (e) { m.className = 'sm err'; m.textContent = 'Save failed: ' + e.message; }
     };
+    // ── Staff working hours card ─────────────────────────────────────────
+    el.insertAdjacentHTML('beforeend', '<div id="sf-card-wrap"><div class="card" style="margin-top:16px;"><div class="card-title">👥 Staff Working Hours</div><div style="font-size:13px;color:var(--muted);padding:8px 0;">Loading stylists…</div></div></div>');
+    try {
+      const raw = await MC.sb('staff', 'GET', null, 'select=id,name,role,status,active,off_days&order=name.asc&limit=500');
+      const ok = x => (!x.role || /stylist|barber|hair/i.test(x.role)) && x.status !== 'inactive' && x.active !== false;
+      const sfList = (raw || []).filter(ok).map(x => Object.assign({}, x, {
+        off_days: Array.isArray(x.off_days) ? x.off_days.map(Number)
+          : (typeof x.off_days === 'string' ? JSON.parse(x.off_days || '[]').map(Number) : [])
+      }));
+      A._sfState = { staff: sfList, cfg: c, names };
+      const wrap = document.getElementById('sf-card-wrap');
+      if (wrap) wrap.outerHTML = A._sfCardHtml(sfList, c, names);
+    } catch (e) {
+      const wrap = document.getElementById('sf-card-wrap');
+      if (wrap) wrap.innerHTML = '<div class="card" style="margin-top:16px;"><div class="card-title">👥 Staff Working Hours</div><div style="font-size:13px;color:var(--err,#dc2626);">Could not load staff: ' + MC.esc(String(e.message || e)) + '</div></div>';
+    }
+  };
+
+  /* ── staff shift helpers ──────────────────────────────────────────────── */
+  A._sfState = {};
+
+  A._sfCardHtml = function (staff, c, names) {
+    if (!staff.length) return '<div id="sf-card-wrap"><div class="card" style="margin-top:16px;"><div class="card-title">👥 Staff Working Hours</div><p style="font-size:13px;color:var(--muted);">No active stylists found. Add stylists in Staff Mgmt first.</p></div></div>';
+    const rows = staff.map(s => '<div style="display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--border);flex-wrap:wrap;">' +
+      '<div style="font-size:13px;font-weight:700;min-width:90px;">' + MC.esc(s.name) + '</div>' +
+      '<div style="font-size:11.5px;color:var(--muted);flex:1;">' + A._sfSummary(s, c, names) + '</div>' +
+      '<button class="btn btn-sm btn-ghost" onclick="MC.appt._openShiftEditor(\'' + MC.esc(String(s.id)) + '\')">Edit ✏️</button></div>').join('');
+    return '<div id="sf-card-wrap"><div class="card" style="margin-top:16px;">' +
+      '<div class="card-title">👥 Staff Working Hours</div>' +
+      '<p style="font-size:12px;color:var(--muted);margin:4px 0 10px;">Set each stylist\'s daily start and end times. Appointments are only offered within these windows.</p>' +
+      rows + '</div></div>';
+  };
+
+  A._sfSummary = function (staff, c, names) {
+    const shifts = (c.shifts || {})[staff.name] || {};
+    const parts = [];
+    for (let d = 0; d < 7; d++) {
+      if (!c.days[d] || !c.days[d].appts) continue;
+      if ((staff.off_days || []).includes(d)) { parts.push(names[d] + ': Off'); continue; }
+      const ov = shifts[d] || shifts[String(d)];
+      parts.push(names[d] + ' ' + ((ov && ov[0]) || c.days[d].open) + '–' + ((ov && ov[1]) || c.days[d].close));
+    }
+    return parts.length ? parts.join(' · ') : '<em>No bookable days configured</em>';
+  };
+
+  A._openShiftEditor = function (staffId) {
+    const s = (A._sfState.staff || []).find(x => String(x.id) === String(staffId));
+    if (!s) return;
+    const c = A._sfState.cfg, names = A._sfState.names;
+    const shifts = (c.shifts || {})[s.name] || {};
+    const dayRows = names.map(function (nm, d) {
+      if (!c.days[d] || !c.days[d].appts) {
+        return '<tr><td style="font-weight:700;width:40px;font-size:12.5px;color:var(--muted);padding:6px 4px;">' + nm + '</td>' +
+          '<td colspan="3" style="font-size:12px;color:var(--muted);font-style:italic;padding:6px 0;">Salon closed</td></tr>';
+      }
+      const isOff = (s.off_days || []).includes(d);
+      const ov = shifts[d] || shifts[String(d)];
+      const sv = (ov && ov[0]) || c.days[d].open, ev = (ov && ov[1]) || c.days[d].close;
+      return '<tr style="border-bottom:1px solid var(--border);">' +
+        '<td style="font-weight:700;width:40px;font-size:12.5px;padding:8px 4px 8px 0;">' + nm + '</td>' +
+        '<td style="padding:8px 8px 8px 0;"><label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:12.5px;white-space:nowrap;">' +
+        '<input type="checkbox" id="sfed-w' + d + '"' + (!isOff ? ' checked' : '') + '> Working</label></td>' +
+        '<td style="padding:8px 4px;"><input class="fi" id="sfed-s' + d + '" type="time" value="' + sv + '" style="width:auto;font-size:12px;"' + (isOff ? ' disabled' : '') + '></td>' +
+        '<td style="padding:8px 0 8px 4px;"><input class="fi" id="sfed-e' + d + '" type="time" value="' + ev + '" style="width:auto;font-size:12px;"' + (isOff ? ' disabled' : '') + '></td></tr>';
+    }).join('');
+    const old = document.getElementById('sfed-overlay'); if (old) old.remove();
+    const ov = document.createElement('div');
+    ov.id = 'sfed-overlay';
+    ov.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.5);padding:16px;';
+    ov.innerHTML = '<div style="background:var(--bg,#fff);border-radius:14px;padding:22px 20px;width:100%;max-width:420px;max-height:90vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,.3);">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">' +
+      '<span style="font-size:15px;font-weight:800;">✂️ ' + MC.esc(s.name) + '</span>' +
+      '<button class="btn btn-sm btn-ghost" id="sfed-close">✕</button></div>' +
+      '<p style="font-size:12px;color:var(--muted);margin:0 0 12px;">Set daily working hours. Appointments are only offered within these windows.</p>' +
+      '<table style="width:100%;border-collapse:collapse;">' + dayRows + '</table>' +
+      '<div id="sfed-err" style="font-size:12.5px;color:var(--err,#dc2626);min-height:18px;margin-top:8px;"></div>' +
+      '<div style="display:flex;gap:8px;margin-top:14px;justify-content:flex-end;">' +
+      '<button class="btn btn-ghost btn-sm" id="sfed-cancel">Cancel</button>' +
+      '<button class="btn btn-y btn-sm" id="sfed-savebtn">Save Schedule ✅</button></div></div>';
+    document.body.appendChild(ov);
+    ov.addEventListener('click', function (e) { if (e.target === ov) ov.remove(); });
+    ov.querySelector('#sfed-close').onclick = function () { ov.remove(); };
+    ov.querySelector('#sfed-cancel').onclick = function () { ov.remove(); };
+    ov.querySelector('#sfed-savebtn').onclick = function () { A._saveStaffShift(staffId, ov); };
+    for (var i = 0; i < 7; i++) {
+      (function (day) {
+        var wEl = ov.querySelector('#sfed-w' + day);
+        if (!wEl) return;
+        wEl.addEventListener('change', function () {
+          var on = wEl.checked;
+          ['sfed-s', 'sfed-e'].forEach(function (p) { var inp = ov.querySelector('#' + p + day); if (inp) inp.disabled = !on; });
+        });
+      })(i);
+    }
+  };
+
+  A._saveStaffShift = async function (staffId, ov) {
+    const s = (A._sfState.staff || []).find(x => String(x.id) === String(staffId));
+    if (!s) return;
+    const c = A._sfState.cfg;
+    const btn = ov.querySelector('#sfed-savebtn'), err = ov.querySelector('#sfed-err');
+    if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+    if (err) err.textContent = '';
+    try {
+      const newOffDays = [], newShifts = {};
+      for (let d = 0; d < 7; d++) {
+        const wEl = ov.querySelector('#sfed-w' + d); if (!wEl) continue; // salon closed day
+        const working = wEl.checked;
+        const start = (ov.querySelector('#sfed-s' + d) || {}).value || c.days[d].open;
+        const end   = (ov.querySelector('#sfed-e' + d) || {}).value || c.days[d].close;
+        if (!working) {
+          newOffDays.push(d);
+        } else if (start !== c.days[d].open || end !== c.days[d].close) {
+          if (MC.toMin(start) >= MC.toMin(end)) {
+            if (err) err.textContent = 'End time must be after start on ' + A._sfState.names[d] + '.';
+            if (btn) { btn.disabled = false; btn.textContent = 'Save Schedule ✅'; }
+            return;
+          }
+          newShifts[String(d)] = [start, end];
+        }
+      }
+      // 1. Update staff off_days
+      await MC.sb('staff', 'PATCH', { off_days: newOffDays }, 'id=eq.' + staffId);
+      // 2. Update booking_config shifts
+      const allShifts = Object.assign({}, c.shifts || {});
+      if (Object.keys(newShifts).length) allShifts[s.name] = newShifts; else delete allShifts[s.name];
+      await MC.setConfig('booking_config', Object.assign({}, c, { shifts: allShifts }));
+      // Update local state so the card redraws correctly
+      s.off_days = newOffDays;
+      c.shifts = allShifts;
+      A.state.cfg = null; // force reload on next calendar open
+      ov.remove();
+      const wrap = document.getElementById('sf-card-wrap');
+      if (wrap) wrap.outerHTML = A._sfCardHtml(A._sfState.staff, c, A._sfState.names);
+    } catch (e) {
+      if (err) err.textContent = 'Save failed: ' + String(e.message || e);
+      if (btn) { btn.disabled = false; btn.textContent = 'Save Schedule ✅'; }
+    }
   };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = A;
