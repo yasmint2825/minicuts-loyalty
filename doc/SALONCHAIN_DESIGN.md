@@ -133,3 +133,43 @@ The rule is **expand → switch → contract**, one reversible step at a time.
 4. **Same prices everywhere?** One price list for the chain, or per-branch prices?
 5. **Sandbox project:** OK to create a separate Supabase sandbox for rehearsals? (Production and DEV stay untouched.)
 6. **Scope:** is this for MiNiCUTS only, or should it be designed from day one as the product sold to other salon chains through Zen? (The model above works for both; the second adds onboarding, billing and stricter isolation earlier.)
+
+---
+
+## 11. Built on this branch: outlets, access control, stock and purchasing
+
+**Nothing here is live.** It all sits behind a switch (`?chain=1`); with the switch off the staff app behaves exactly as today. The database script `sql/002_salonchain_core.sql` has **not been applied anywhere** — applying it to production needs Munir's explicit approval, after a rehearsal on a sandbox project.
+
+### Try it without touching anything
+Open `minicuts-staff.html?demo=1&chain=1` (practice data lives only in your browser). Tap a practice login (password `demo`): Owner, Controller, Manager DSO, Manager Mirdif, Store keeper, Stylist, Auditor. `?chain=0` switches it off again.
+
+### Who sees what (roles)
+| Role | Outlets | Can |
+|---|---|---|
+| Owner | all | everything, including users and roles |
+| Controller | all | oversee stock, suppliers, purchase orders (unlimited approval), audit trail; **not** manage users |
+| Area manager | assigned | run the outlets; approve POs up to AED 2,000 |
+| Branch manager | own | run the outlet; approve POs up to AED 500 |
+| Store keeper | own | receive and issue stock, draft POs, receive goods |
+| Receptionist / Stylist | own | queue, appointments, checkout (receptionist), record stock used |
+| Auditor | all | read-only |
+
+Each login is a **membership** (e-mail → role → outlets, optional personal PO limit). Owners manage them in *Users & access* (Users, Roles matrix, Outlets).
+
+### Stock
+Stock is never typed in directly. Every change is a line in an **append-only ledger**: *incoming* (opening, receipt from a PO, transfer in, adjustment +) and *outgoing* (used in a service, gift, damaged, expired, transfer out, adjustment −). On hand = sum of the ledger; it cannot go below zero. Per outlet and item you set a **reorder point** and **reorder quantity** (optional max level); the screen shows days of cover and a *suggested* reorder point from the last 30 days of use and the supplier lead time. An item is flagged for reorder when **on hand + already on order** ≤ reorder point, so the same thing is never ordered twice.
+
+### Purchase orders
+Draft → submitted → approved → ordered → part received / received (or rejected, cancelled, closed short). Numbers are `PO/<outlet>/<year>/<seq>`, assigned by the database. Rules: only people with *approve* rights for that outlet can approve; **never your own order**; never above your limit (the order waits for someone higher — the controller sees a "waiting for you" list). Receiving goods adds the stock to the ledger tied to the PO line, so the order status updates by itself. From the low-stock list one click creates a draft PO per supplier. Print / WhatsApp the order to the supplier once approved.
+
+### Controller overview
+One row per outlet: items to reorder / out of stock, stock value, open POs and value, spend this month, orders waiting for approval, and the recent audit trail. Revenue and visits per outlet join this screen once the queue and invoices carry an outlet (Phase 0 migration).
+
+### Honest limits
+- **Real protection needs the database step.** Until `sql/002` is applied and staff log in with Supabase Auth, the menus hide things but the database still accepts the shared key. The SQL contains the row-level-security rules, rehearsed in `tests/sql_salonchain.test.mjs` (61 checks).
+- Queue, appointments and billing are **not yet per outlet** (they need `branch_id`, a separate approved migration). Discount / void / checkout are hidden by role in the app only.
+- Adding a person = create their login in Supabase Auth with the same e-mail, then add them in Users & access.
+- Branch managers can transfer stock only between outlets they hold.
+
+### Tests
+`node tests/e2e_chain.js` (30 checks, practice mode), `node tests/chain.test.js` (41: rules, reorder maths, PO totals, app roles = database roles), `tests/sql_salonchain.test.mjs` (61, Postgres in WASM). Existing suites unchanged and green.

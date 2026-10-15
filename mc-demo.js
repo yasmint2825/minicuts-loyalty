@@ -86,6 +86,52 @@
   const uid = () => 'd' + Math.random().toString(16).slice(2, 10);
   const resp = (o, s) => new Response(JSON.stringify(o), { status: s || 200, headers: { 'Content-Type': 'application/json' } });
 
+
+  /* ── SalonChain practice data (only read when the page is opened with ?chain=1) ───────────────── */
+  const chainSeed = () => {
+    const iso = n => new Date(Date.now() - n * 864e5).toISOString(), day = n => ymd(new Date(Date.now() - n * 864e5));
+    const B = { id: 'b-dso', code: 'DSO', name: 'MiNiCUTS — Dubai Silicon Oasis', address: 'Dubai Silicon Oasis', currency: 'AED', timezone: 'Asia/Dubai', active: true }, M = { id: 'b-mir', code: 'MIR', name: 'MiNiCUTS — Mirdif (practice)', address: 'Mirdif', currency: 'AED', timezone: 'Asia/Dubai', active: true };
+    const mem = (email, name, role, all, br, lim) => ({ id: 'm-' + role + '-' + email.split('@')[0], email, display_name: name, role_key: role, all_branches: all, branch_ids: br, po_approval_limit: lim == null ? null : lim, active: true });
+    const items = [['i1', 'Kids shampoo 1L', 'Hair care', 'bottle', 6, 20, 's1'], ['i2', 'Detangler spray 500ml', 'Hair care', 'bottle', 6, 18, 's1'], ['i3', 'Neck strips (roll)', 'Disposables', 'roll', 10, 8, 's2'], ['i4', 'Disposable capes', 'Disposables', 'pack', 10, 12, 's2'], ['i5', 'Lollipops', 'Kids gifts', 'pcs', 100, 0.4, 's3'], ['i6', 'Small gift toys', 'Kids gifts', 'pcs', 50, 2.5, 's3']]
+      .map(x => ({ id: x[0], name: x[1], category: x[2], unit: x[3], pack_size: x[4], last_cost: x[5], supplier_id: x[6], active: true, sku: null }));
+    const sets = [], moves = [], mv = (b, i, t, q, d, extra) => moves.push(Object.assign({ id: uid(), branch_id: b, item_id: i, move_type: t, qty_delta: q, moved_on: day(d), created_at: iso(d), created_by: 'owner@minicuts.demo' }, extra || {}));
+    items.forEach(it => { [B, M].forEach(b => sets.push({ id: uid(), branch_id: b.id, item_id: it.id, reorder_point: it.id === 'i5' ? 150 : 8, reorder_qty: it.pack_size * 2, max_level: null, lead_time_days: 3 })); });
+    /* DSO: shampoo low, detangler out, lollipops fine; Mirdif: all stocked */
+    [['i1', 24, 20], ['i2', 12, 4], ['i3', 40, 30], ['i4', 30, 25], ['i5', 400, 250], ['i6', 120, 50]].forEach(r => { mv(B.id, r[0], 'opening', r[1], 40); mv(B.id, r[0], 'issue', -r[2], 10); });
+    [['i1', 24], ['i2', 24], ['i3', 40], ['i4', 40], ['i5', 400], ['i6', 100]].forEach(r => mv(M.id, r[0], 'opening', r[1], 30));
+    const po = { id: 'po1', po_number: 'PO/DSO/' + new Date().getFullYear() + '/0001', branch_id: B.id, supplier_id: 's1', status: 'submitted', order_date: today, currency: 'AED', tax_rate: 5, subtotal: 1200, tax_amount: 60, total: 1260, created_by: 'keeper.dso@minicuts.demo', created_at: iso(1), submitted_at: iso(1) };
+    return { branches: [B, M], rbac_roles: [], memberships: [
+      mem('owner@minicuts.demo', 'Munir (Owner)', 'owner', true, []), mem('controller@minicuts.demo', 'Controller', 'controller', true, []),
+      mem('manager.dso@minicuts.demo', 'Manager DSO', 'branch_manager', false, [B.id]), mem('manager.mir@minicuts.demo', 'Manager Mirdif', 'branch_manager', false, [M.id]),
+      mem('keeper.dso@minicuts.demo', 'Store keeper DSO', 'store_keeper', false, [B.id]), mem('stylist.dso@minicuts.demo', 'Stylist DSO', 'stylist', false, [B.id]),
+      mem('auditor@minicuts.demo', 'Auditor', 'auditor', true, [])],
+      suppliers: [{ id: 's1', name: 'Gulf Salon Supplies', contact_name: 'Rashid', phone: '97144000001', whatsapp: '97150000001', lead_time_days: 3, payment_terms: '30 days', active: true }, { id: 's2', name: 'Paper & Care Trading', phone: '97144000002', lead_time_days: 2, active: true }, { id: 's3', name: 'Sweet Corner', phone: '97144000003', lead_time_days: 2, active: true }],
+      inventory_items: items, item_branch_settings: sets, stock_movements: moves, purchase_orders: [po],
+      purchase_order_lines: [{ id: 'pl1', po_id: 'po1', item_id: 'i1', description: 'Kids shampoo 1L', qty_ordered: 60, unit_cost: 20, line_total: 1200 }], po_receipts: [], audit_log: [] };
+  };
+  const b64 = o => btoa(JSON.stringify(o)).replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_');
+  const jwt = email => b64({ alg: 'none' }) + '.' + b64({ email, exp: Math.floor(Date.now() / 1000) + 3600, role: 'authenticated' }) + '.demo';
+  const emailOf = init => { const h = (init && init.headers) || {}, a = String(h.Authorization || h.authorization || '').replace(/^Bearer /, ''); try { return JSON.parse(atob(a.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).email || null; } catch (e) { return null; } };
+  /* tiny stand-in for the database triggers, so the screens behave like the real thing */
+  const serverRules = (t, method, rows, body, who, err) => {
+    const poSeq = {};
+    if (t === 'purchase_orders' && method === 'POST') rows.forEach(x => { const b = DB.branches.find(k => k.id === x.branch_id) || {}, y = new Date().getFullYear(), n = DB.purchase_orders.filter(p => p.branch_id === x.branch_id).length + 1; x.po_number = 'PO/' + (b.code || 'X') + '/' + y + '/' + String(n).padStart(4, '0'); x.created_by = who; x.order_date = x.order_date || today; x.status = 'draft'; x.subtotal = x.subtotal || 0; x.tax_amount = x.tax_amount || 0; x.total = x.total || 0; });
+    if (t === 'purchase_order_lines' && method === 'POST') rows.forEach(x => { x.line_total = Math.round(x.qty_ordered * x.unit_cost * 100) / 100; });
+    if (t === 'stock_movements' && method === 'POST') {
+      rows.forEach(x => { x.created_by = who; x.moved_on = x.moved_on || today; });
+      const net = {}; rows.forEach(x => { const k = x.branch_id + '|' + x.item_id; net[k] = (net[k] || 0) + Number(x.qty_delta); });
+      for (const k in net) { const cur = DB.stock_movements.filter(m => m.branch_id + '|' + m.item_id === k).reduce((a, m) => a + Number(m.qty_delta), 0); if (cur + net[k] < -1e-9) return err('Not enough stock: this would take the item below zero.'); }
+    }
+    return null;
+  };
+  const afterPoPatch = (r, body, who) => {
+    const now = new Date().toISOString();
+    if (body.status === 'submitted') r.submitted_at = now; if (body.status === 'approved') { r.approved_by = who; r.approved_at = now; } if (body.status === 'ordered') r.ordered_at = now;
+  };
+  const syncReceipt = ids => { const po = DB.purchase_orders.find(p => DB.purchase_order_lines.some(l => ids.includes(l.id) && l.po_id === p.id)); if (!po) return;
+    const ls = DB.purchase_order_lines.filter(l => l.po_id === po.id), got = l => DB.stock_movements.filter(m => m.po_line_id === l.id).reduce((a, m) => a + Number(m.qty_delta), 0);
+    po.status = ls.every(l => got(l) >= l.qty_ordered - 1e-9) ? 'received' : 'partial'; };
+
   const realFetch = window.fetch.bind(window);
   window.fetch = async function (input, init) {
     const url = typeof input === 'string' ? input : input.url;
@@ -93,6 +139,14 @@
     init = init || {};
     const method = (init.method || (typeof input !== 'string' && input.method) || 'GET').toUpperCase();
     const u = new URL(url), path = u.pathname;
+    if (path.startsWith('/auth/v1/token')) {
+      let b = {}; try { b = JSON.parse(init.body || '{}'); } catch (e) {}
+      if (!DB.branches) Object.assign(DB, chainSeed(), { _chain: 1 }), save(DB);
+      const g = u.searchParams.get('grant_type'), em = g === 'refresh_token' ? String(b.refresh_token || '').replace(/^rt:/, '') : String(b.email || '').toLowerCase();
+      if (g === 'password' && b.password !== 'demo') return resp({ error: 'invalid_grant', error_description: 'Wrong e-mail or password' }, 400);
+      if (!DB.memberships.some(m => m.email === em)) return resp({ error: 'invalid_grant', error_description: 'Wrong e-mail or password' }, 400);
+      return resp({ access_token: jwt(em), refresh_token: 'rt:' + em, expires_in: 3600, user: { email: em } });
+    }
     if (path.startsWith('/storage/')) return resp({ Key: 'demo' });                           // PDF upload: accepted, not stored
     if (path.startsWith('/functions/')) {                                                       // WhatsApp / Zen: pretend it worked
       let b = {}; try { b = JSON.parse(init.body || '{}'); } catch (e) {}
@@ -101,6 +155,8 @@
     }
     const t = (path.split('/rest/v1/')[1] || '').split('/')[0];
     if (!t) return resp([]);
+    if (!DB.branches && /[?&]chain=1/.test(location.search + (localStorage.getItem('mc_chain') === '1' ? '&chain=1' : ''))) { Object.assign(DB, chainSeed()); save(DB); }
+    if (t === 'rbac_roles' && DB.branches && !(DB.rbac_roles || []).length && window.MC && MC.rbac) DB.rbac_roles = Object.keys(MC.rbac.PRESETS).map(k => { const p = MC.rbac.PRESETS[k]; return { key: k, label: p.label, description: p.desc, permissions: p.perms, po_approval_limit: p.limit, default_all_branches: !!p.all, is_system: true }; });
     const rows = DB[t] || (DB[t] = []);
     const minimal = /return=minimal/.test((init.headers && (init.headers.Prefer || init.headers.prefer)) || '');
     if (method === 'GET') {
@@ -112,9 +168,10 @@
     if (method === 'POST') {
       const arr = [].concat(body).map(x => Object.assign({ id: uid(), created_at: new Date().toISOString() }, x));
       if (t === 'invoices' && arr.some(x => DB.invoices.some(i => i.fy && i.fy === x.fy && i.seq === x.seq))) return resp({ code: '23505', message: 'duplicate key value violates unique constraint' }, 409);
-      rows.push(...arr); save(DB); return minimal ? new Response('', { status: 201 }) : resp(arr, 201);
+      const who = emailOf(init), bad = serverRules(t, method, arr, body, who, m => resp({ message: m }, 400)); if (bad) return bad;
+      rows.push(...arr); if (t === 'stock_movements') syncReceipt(arr.map(x => x.po_line_id).filter(Boolean)); save(DB); return minimal ? new Response('', { status: 201 }) : resp(arr, 201);
     }
-    if (method === 'PATCH') { const r = filt(rows, u.searchParams); r.forEach(x => Object.assign(x, body)); save(DB); return minimal ? new Response(null, { status: 204 }) : resp(r); }
+    if (method === 'PATCH') { const r = filt(rows, u.searchParams); const who = emailOf(init); r.forEach(x => { Object.assign(x, body); if (t === 'purchase_orders') afterPoPatch(x, body, who); }); save(DB); return minimal ? new Response(null, { status: 204 }) : resp(r); }
     if (method === 'DELETE') { const del = filt(rows, u.searchParams); DB[t] = rows.filter(x => !del.includes(x)); save(DB); return minimal ? new Response(null, { status: 204 }) : resp(del); }
     return resp([]);
   };
