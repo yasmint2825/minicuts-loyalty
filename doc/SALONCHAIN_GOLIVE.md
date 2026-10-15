@@ -9,7 +9,8 @@ The admin screens (Users & access, Group overview) exist only in chain mode and 
 1. **Sandbox project:** create a new Supabase project (or use an agreed copy). Load the current schema into it.
 2. **Run `sql/002_salonchain_core.sql`** in the SQL editor. It creates the tables, security rules and the DSO outlet. It changes no existing salon table.
 3. **Authentication → Providers → Email:** turn **OFF "Allow new users to sign up"**; set minimum password length 10; keep e-mail confirmation on.
-4. **Authentication → Users → Add user:** e-mail `munir20684@gmail.com`, a strong password, tick **Auto confirm** (this is the application admin's login).
+4. **Authentication → URL Configuration:** set **Site URL** to the address the staff app is served from (for example `https://yasmint2825.github.io/minicuts-loyalty/minicuts-staff.html`, or `http://localhost:8000/minicuts-staff.html` while testing) and add the same address, with `?chain=1`, under **Redirect URLs**. Without this, password-reset and invite e-mails send people to `http://localhost:3000` (the Supabase default) and the link fails. A file opened straight from disk (`file://`) cannot receive these links — serve it with `python3 -m http.server 8000`.
+4b. **Authentication → Users → Add user:** e-mail `munir20684@gmail.com`, a strong password, tick **Auto confirm** (this is the application admin's login).
 5. **Add the first three people** — run `sql/003_seed_users.sql` (it only adds rows to `memberships`; it creates no logins):
    - `munir20684@gmail.com` → **Application admin** (every permission, onboards client businesses)
    - `yasmin1388@gmail.com` → **Owner** of MiNiCUTS (everything for the business, not onboarding other clients)

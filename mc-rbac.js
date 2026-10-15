@@ -149,7 +149,21 @@
     ['mousemove', 'keydown', 'click', 'touchstart'].forEach(ev => document.addEventListener(ev, () => { R._act = Date.now(); }, { passive: true }));
     R._idle = setInterval(() => { if (R.st.session && R.idleExpired(R._act, Date.now(), R.SEC.idleMinutes)) R.signOut('Signed out after ' + R.SEC.idleMinutes + ' minutes of inactivity.'); }, 30000);
   };
-  R.recover = async function (email) { const c = MC.conf(); await fetch(c.url + '/auth/v1/recover', { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: c.key }, body: JSON.stringify({ email: String(email || '').trim().toLowerCase() }) }); };
+  R.appUrl = () => root.location.origin + root.location.pathname + '?chain=1';      // where e-mail links bring people back to (must be in Supabase → Authentication → URL Configuration → Redirect URLs)
+  R.recover = async function (email) { const c = MC.conf(); await fetch(c.url + '/auth/v1/recover?redirect_to=' + encodeURIComponent(R.appUrl()), { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: c.key }, body: JSON.stringify({ email: String(email || '').trim().toLowerCase() }) }); };
+  /* the link in a reset / invite e-mail lands here with the session in the address (#access_token=…&type=recovery) */
+  R.readLinkHash = function () {
+    const h = String((root.location && root.location.hash) || '').replace(/^#/, ''); if (!/(access_token|error)=/.test(h)) return null;
+    const q = {}; h.split('&').forEach(x => { const i = x.indexOf('='); if (i > 0) q[decodeURIComponent(x.slice(0, i))] = decodeURIComponent(x.slice(i + 1).replace(/\+/g, ' ')); });
+    try { root.history.replaceState(null, '', root.location.pathname + root.location.search); } catch (e) { /* ignore */ }          // never leave the token in the address bar
+    if (q.error) return { error: q.error_code === 'otp_expired' ? 'That link has expired or was already used. Tap “Forgot password?” to get a new one.' : (q.error_description || 'The link could not be used.') };
+    return q.access_token ? { token: q, type: q.type || 'recovery' } : null;
+  };
+  R.setPasswordFlow = function (type) {
+    const invite = type === 'invite', ov = MC.modal('<div style="font:800 18px var(--fh);color:var(--bd);margin-bottom:6px">' + (invite ? 'Welcome — choose your password' : 'Set a new password') + '</div><div class="ch-sub">Use at least 10 characters.</div>' + MC.lbl('New password') + '<input id="sp1" class="fi" type="password" autocomplete="new-password" style="margin-bottom:8px"/>' + MC.lbl('Repeat it') + '<input id="sp2" class="fi" type="password" autocomplete="new-password"/><div id="sp-m" class="ch-err" style="display:none"></div><button class="btn btn-y btn-full" id="sp-ok" style="margin-top:14px">Save and continue</button>', { width: 380, sticky: true });
+    ov.style.zIndex = 10001; const $ = i => ov.querySelector('#' + i), m = t => { $('sp-m').textContent = t; $('sp-m').style.display = 'block'; };
+    return new Promise(res => { $('sp-ok').onclick = async () => { if ($('sp1').value.length < 10) return m('Use at least 10 characters.'); if ($('sp1').value !== $('sp2').value) return m('The two passwords do not match.'); $('sp-ok').disabled = true; try { await R.changePassword($('sp1').value); ov.close(); res(true); } catch (e) { $('sp-ok').disabled = false; m(e.message); } }; });
+  };
   R.changePassword = async function (pw) {
     if (String(pw).length < 8) throw new Error('Use at least 8 characters.');
     const c = MC.conf(), r = await fetch(c.url + '/auth/v1/user', { method: 'PUT', headers: { 'Content-Type': 'application/json', apikey: c.key, Authorization: 'Bearer ' + MC.token }, body: JSON.stringify({ password: pw }) });
@@ -338,7 +352,7 @@
       try {
         if (isNew) await MC.sb('memberships', 'POST', Object.assign({ email }, row), null, 'return=minimal'); else await MC.sb('memberships', 'PATCH', row, 'id=eq.' + m.id, 'return=minimal');
         let info = '', pw = null, bad = '';
-        if (mode === 'invite') { const r = await R.adminCall({ action: 'invite', email, redirect_to: root.location.origin + root.location.pathname }); info = r.ok ? 'Invite e-mail sent to ' + email + '.' : (bad = r.missing ? 'Saved, but the logins service is not set up yet — create the login in Supabase → Authentication → Users (same e-mail).' : 'Saved, but the invite failed: ' + r.error); }
+        if (mode === 'invite') { const r = await R.adminCall({ action: 'invite', email, redirect_to: R.appUrl() }); info = r.ok ? 'Invite e-mail sent to ' + email + '.' : (bad = r.missing ? 'Saved, but the logins service is not set up yet — create the login in Supabase → Authentication → Users (same e-mail).' : 'Saved, but the invite failed: ' + r.error); }
         else if (mode === 'temp') { pw = R.tempPassword(); const r = await R.adminCall({ action: 'create', email, password: pw }); if (r.ok) info = 'Login created.'; else { pw = null; bad = r.missing ? 'Saved, but the logins service is not set up yet — create the login in Supabase → Authentication → Users (same e-mail).' : 'Saved, but creating the login failed: ' + r.error; } }
         else if (!isNew && m.active !== row.active) { const r = await R.adminCall({ action: 'set_banned', email: m.email, banned: !row.active }); if (!r.ok && !r.missing) bad = 'Saved, but blocking the login failed: ' + r.error; }
         ov.close(); await R.initUsers();
@@ -392,6 +406,9 @@
   R.boot = async function () {
     if (!R.enabled() || !root.document) return;
     R.injectCss(); document.body.classList.add('body-chain'); R.showLogin();
+    const link = R.readLinkHash();
+    if (link && link.error) { R.showLogin(link.error); return; }
+    if (link && link.token) { try { setSession(link.token); await R.load(); await R.setPasswordFlow(link.type); await R.afterLogin(); } catch (e) { R.signOut(e.message); } return; }
     try { if (await R.restore()) await R.afterLogin(); } catch (e) { R.signOut(e.message); }
   };
   if (root.document) { if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(R.boot, 0)); else setTimeout(R.boot, 0); }

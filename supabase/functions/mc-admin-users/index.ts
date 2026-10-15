@@ -59,7 +59,7 @@ Deno.serve(async (req) => {
   if (!target) return json({ error: "Add this person under Users first" }, 400);
 
   if (b.action === "invite") {
-    const redirectTo = typeof b.redirect_to === "string" && b.redirect_to.startsWith("https://") ? b.redirect_to : undefined;
+    const redirectTo = typeof b.redirect_to === "string" && (b.redirect_to.startsWith("https://") || b.redirect_to.startsWith("http://localhost")) ? b.redirect_to : undefined;
     const { error } = await admin.auth.admin.inviteUserByEmail(email, redirectTo ? { redirectTo } : undefined);
     if (error) return json({ error: error.message }, 400);
     return json({ ok: true });

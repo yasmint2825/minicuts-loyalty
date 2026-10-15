@@ -22,6 +22,17 @@ const { chromium } = require('playwright-core'); const path = require('path'); c
   await pg.fill('#lg-e', 'owner@minicuts.demo'); await pg.fill('#lg-p', 'nope'); await pg.click('#lg-go'); await pg.waitForTimeout(400);
   ok(/Wrong e-mail/.test(await pg.innerText('#lg-err')), 'wrong password is refused');
 
+  // e-mail link (reset / invite) lands with the session in the address bar
+  const b64 = o => Buffer.from(JSON.stringify(o)).toString('base64').replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_');
+  const linkTok = b64({ alg: 'none' }) + '.' + b64({ email: 'owner@minicuts.demo', exp: Math.floor(Date.now() / 1000) + 3600 }) + '.x';
+  const p3 = await ctx.newPage(); await p3.route('**/*', r => { const u = r.request().url(); if (/cdnjs.*jspdf/.test(u)) return r.fulfill({ status: 200, contentType: 'text/javascript', body: fs.readFileSync(process.env.JSPDF) }); return u.startsWith('file:') ? r.continue() : r.fulfill({ status: 200, body: '' }); });
+  await p3.goto('file://' + ROOT + '/minicuts-staff.html?demo=1&chain=1#access_token=' + linkTok + '&refresh_token=rt:owner@minicuts.demo&expires_in=3600&token_type=bearer&type=recovery');
+  await p3.waitForSelector('#sp-ok'); ok(!/access_token/.test(await p3.evaluate(() => location.href)), 'token is removed from the address bar at once');
+  await p3.fill('#sp1', 'short'); await p3.fill('#sp2', 'short'); await p3.click('#sp-ok'); ok(/at least 10/.test(await p3.innerText('#sp-m')), 'reset page refuses a short password');
+  await p3.fill('#sp1', 'A-long-password-1'); await p3.fill('#sp2', 'A-long-password-1'); await p3.click('#sp-ok'); await p3.waitForSelector('#mc-signout'); ok(true, 'new password saved and the person is signed in');
+  const p4 = await ctx.newPage(); await p4.route('**/*', r => r.request().url().startsWith('file:') ? r.continue() : r.fulfill({ status: 200, body: '' }));
+  await p4.goto('file://' + ROOT + '/minicuts-staff.html?demo=1&chain=1#error=access_denied&error_code=otp_expired&error_description=expired'); await p4.waitForSelector('#lg-err'); ok(/expired or was already used/.test(await p4.innerText('#lg-err')), 'an expired link shows a clear message and the sign-in screen');
+  await p3.close(); await p4.close();
   // forgot password + lockout
   await pg.fill('#lg-e', 'owner@minicuts.demo'); await pg.click('#lg-forgot'); await pg.waitForTimeout(300); ok(/reset link is on its way/.test(await pg.innerText('#lg-info')), 'forgot password gives a neutral message');
   for (let i = 0; i < 5; i++) { await pg.fill('#lg-p', 'bad' + i); await pg.click('#lg-go'); await pg.waitForTimeout(200); }
