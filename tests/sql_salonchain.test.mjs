@@ -115,4 +115,11 @@ r = await asUser('aud@x', `select count(*)::int n from purchase_orders`); ok(r.r
 r = await asUser('aud@x', `insert into suppliers(name) values ('x')`); ok(!!r.err, 'auditor cannot change anything');
 r = await asUser('mgr.dso@x', `insert into suppliers(name) values ('x')`); ok(!!r.err, 'branch manager cannot add suppliers (controller/owner only)');
 r = await asUser('ctrl@x', `insert into suppliers(name) values ('New supplier')`); ok(!r.err, 'controller can add suppliers');
+// seed file for the first three people
+await db.exec(fs.readFileSync(path.join(root, 'sql/003_seed_users.sql'), 'utf8')); await db.exec(fs.readFileSync(path.join(root, 'sql/003_seed_users.sql'), 'utf8'));   // idempotent
+r = await db.query(`select email, role_key, all_branches, array_length(branch_ids,1) nb from memberships where email in ('munir20684@gmail.com','yasmin1388@gmail.com','mincutsfze@gmail.com') order by email`);
+ok(r.rows.length === 3 && r.rows.find(x => x.email === 'munir20684@gmail.com').role_key === 'platform_admin' && r.rows.find(x => x.email === 'yasmin1388@gmail.com').role_key === 'owner' && r.rows.find(x => x.email === 'mincutsfze@gmail.com').nb === 1, 'seed file adds application admin, owner and DSO salon manager (and can be re-run)');
+r = await asUser('munir20684@gmail.com', `select rbac_has('clients.manage', null) a, rbac_has('users.manage', null) b`); ok(r.rows[0].a === true && r.rows[0].b === true, 'application admin holds every permission, including onboarding clients');
+r = await asUser('yasmin1388@gmail.com', `select rbac_has('clients.manage', null) a, rbac_has('users.manage', null) b, rbac_has('po.approve', null) c`); ok(r.rows[0].a === false && r.rows[0].b === true && r.rows[0].c === true, 'business owner manages users and purchasing but cannot onboard other client businesses');
+r = await asUser('mincutsfze@gmail.com', `select rbac_has('po.approve', (select id from branches where code='DSO')) a, rbac_has('users.manage', null) b`); ok(r.rows[0].a === true && r.rows[0].b === false, 'salon manager runs DSO but cannot manage users');
 console.log(`\n${pass} passed, ${fail} failed`); process.exitCode = fail ? 1 : 0;

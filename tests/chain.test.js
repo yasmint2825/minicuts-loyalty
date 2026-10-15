@@ -5,7 +5,8 @@ for (const f of ['mc-rbac.js', 'mc-inventory.js', 'mc-purchasing.js', 'mc-chain.
 const R = MC.rbac, I = MC.inventory, P = MC.purchasing; let n = 0, bad = 0;
 const t = (c, m) => { n++; if (!c) { bad++; console.log('FAIL ' + m); } else console.log('PASS ' + m); };
 const ctx = (role, o) => Object.assign({ active: true, perms: R.PRESETS[role].perms, all: R.PRESETS[role].all, branches: [], limit: R.PRESETS[role].limit }, o || {});
-t(R.has(ctx('owner'), 'users.manage') && R.has(ctx('owner'), 'anything.at.all', 'x'), 'owner has every permission');
+t(R.has(ctx('owner'), 'users.manage') && R.has(ctx('owner'), 'po.approve') && !R.has(ctx('owner'), 'clients.manage'), 'business owner: everything except onboarding clients');
+t(R.has(ctx('platform_admin'), 'clients.manage') && R.has(ctx('platform_admin'), 'anything.at.all', 'x'), 'application admin has every permission');
 t(!R.has(ctx('stylist'), 'po.create') && R.has(ctx('stylist'), 'inventory.issue'), 'stylist: usage yes, ordering no');
 t(R.has(ctx('branch_manager', { branches: ['a'] }), 'po.create', 'a') && !R.has(ctx('branch_manager', { branches: ['a'] }), 'po.create', 'b'), 'branch manager limited to own outlet');
 t(!R.has(Object.assign(ctx('owner'), { active: false }), 'po.view'), 'inactive user has nothing');

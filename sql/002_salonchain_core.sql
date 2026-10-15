@@ -55,9 +55,12 @@ create table if not exists public.rbac_roles (
 --   inventory.view inventory.receive inventory.issue inventory.adjust inventory.transfer inventory.items
 --   suppliers.manage  po.view po.create po.approve po.approve_own po.receive po.cancel
 --   users.manage roles.manage branches.manage  settings.branch settings.chain  chain.overview  audit.view
+--   clients.manage (application admin only: onboarding client businesses)
 
 insert into public.rbac_roles (key, label, description, permissions, po_approval_limit, default_all_branches) values
- ('owner', 'Owner', 'Everything, every outlet.', array['*'], null, true),
+ ('platform_admin', 'Application admin', 'Runs the platform: onboards client businesses and manages users and outlets. Every permission.', array['*'], null, true),
+ ('owner', 'Owner', 'Everything for the business, every outlet (but not onboarding other client businesses).',
+   array['queue.operate','appointments.manage','customers.view','customers.edit','checkout.create','discount.apply','invoice.void','history.view','insights.view','reports.view','reports.view_all','inventory.view','inventory.receive','inventory.issue','inventory.adjust','inventory.transfer','inventory.items','suppliers.manage','po.view','po.create','po.approve','po.approve_own','po.receive','po.cancel','chain.overview','audit.view','settings.branch','settings.chain','branches.manage','users.manage','roles.manage'], null, true),
  ('controller', 'Controller', 'Sees every outlet, approves purchase orders, oversees stock and the audit trail. Cannot manage users.',
    array['history.view','customers.view','reports.view','reports.view_all','insights.view','inventory.view','inventory.adjust','inventory.transfer','inventory.items','suppliers.manage','po.view','po.create','po.approve','po.receive','po.cancel','chain.overview','audit.view'], null, true),
  ('area_manager', 'Area manager', 'Runs the outlets assigned to them; approves purchase orders up to a limit.',
@@ -94,7 +97,7 @@ create unique index if not exists memberships_email_uq on public.memberships (em
 
 -- FIRST OWNER (run once, by hand, after reviewing):
 -- insert into public.memberships (email, display_name, role_key, all_branches)
--- values ('munir20684@gmail.com', 'Munir', 'owner', true) on conflict (email) do nothing;
+-- values ('munir20684@gmail.com', 'Munir', 'platform_admin', true) on conflict (email) do nothing;   -- see sql/003_seed_users.sql
 
 -- helpers used by every policy and trigger ------------------------------------
 create or replace function public.rbac_email() returns text

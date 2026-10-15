@@ -9,9 +9,12 @@ The admin screens (Users & access, Group overview) exist only in chain mode and 
 1. **Sandbox project:** create a new Supabase project (or use an agreed copy). Load the current schema into it.
 2. **Run `sql/002_salonchain_core.sql`** in the SQL editor. It creates the tables, security rules and the DSO outlet. It changes no existing salon table.
 3. **Authentication → Providers → Email:** turn **OFF "Allow new users to sign up"**; set minimum password length 10; keep e-mail confirmation on.
-4. **Authentication → Users → Add user:** e-mail `munir20684@gmail.com`, a strong password, tick **Auto confirm**.
-5. **Make that e-mail the first owner** — run in the SQL editor (this is the commented line at the bottom of section 3 of `002`):
-   `insert into public.memberships (email, display_name, role_key, all_branches) values ('munir20684@gmail.com','Munir','owner',true);`
+4. **Authentication → Users → Add user:** e-mail `munir20684@gmail.com`, a strong password, tick **Auto confirm** (this is the application admin's login).
+5. **Add the first three people** — run `sql/003_seed_users.sql` (it only adds rows to `memberships`; it creates no logins):
+   - `munir20684@gmail.com` → **Application admin** (every permission, onboards client businesses)
+   - `yasmin1388@gmail.com` → **Owner** of MiNiCUTS (everything for the business, not onboarding other clients)
+   - `mincutsfze@gmail.com` → **Branch manager**, DSO only (the salon manager)
+   Then create a login for each under Authentication → Users with the **same e-mail** (Auto confirm), or let the application admin invite the other two from the app after step 6.
 6. **Deploy the logins service** (lets the app create logins for you): `supabase functions deploy mc-admin-users` (source: `supabase/functions/mc-admin-users/index.ts`). Without it, the app still saves the user and tells you to create the login in Supabase by hand.
 7. Open the staff app with `?chain=1`, sign in as the owner → **Users & access**.
 

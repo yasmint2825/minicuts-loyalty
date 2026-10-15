@@ -102,7 +102,7 @@
     const po = { id: 'po1', po_number: 'PO/DSO/' + new Date().getFullYear() + '/0001', branch_id: B.id, supplier_id: 's1', status: 'submitted', order_date: today, currency: 'AED', tax_rate: 5, subtotal: 1200, tax_amount: 60, total: 1260, created_by: 'keeper.dso@minicuts.demo', created_at: iso(1), submitted_at: iso(1) };
     (DB.queue || []).forEach((q, i) => { if (i % 3 === 0) q.branch_id = M.id; });   // practice: a third of the history happened at the second outlet
     return { branches: [B, M], rbac_roles: [], memberships: [
-      mem('owner@minicuts.demo', 'Munir (Owner)', 'owner', true, []), mem('controller@minicuts.demo', 'Controller', 'controller', true, []),
+      mem('platform@minicuts.demo', 'Munir (App admin)', 'platform_admin', true, []), mem('owner@minicuts.demo', 'Yasmin (Owner)', 'owner', true, []), mem('controller@minicuts.demo', 'Controller', 'controller', true, []),
       mem('manager.dso@minicuts.demo', 'Manager DSO', 'branch_manager', false, [B.id]), mem('manager.mir@minicuts.demo', 'Manager Mirdif', 'branch_manager', false, [M.id]),
       mem('keeper.dso@minicuts.demo', 'Store keeper DSO', 'store_keeper', false, [B.id]), mem('stylist.dso@minicuts.demo', 'Stylist DSO', 'stylist', false, [B.id]),
       mem('auditor@minicuts.demo', 'Auditor', 'auditor', true, [])],

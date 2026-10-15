@@ -146,7 +146,8 @@ Open `minicuts-staff.html?demo=1&chain=1` (practice data lives only in your brow
 ### Who sees what (roles)
 | Role | Outlets | Can |
 |---|---|---|
-| Owner | all | everything, including users and roles |
+| Application admin | all | every permission, plus onboarding client businesses (`clients.manage`) |
+| Owner | all | everything for the business, including users and roles — not onboarding other clients |
 | Controller | all | oversee stock, suppliers, purchase orders (unlimited approval), audit trail; **not** manage users |
 | Area manager | assigned | run the outlets; approve POs up to AED 2,000 |
 | Branch manager | own | run the outlet; approve POs up to AED 500 |

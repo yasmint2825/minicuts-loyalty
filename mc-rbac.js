@@ -47,12 +47,14 @@
     { k: 'settings.chain', g: 'Admin', l: 'Chain settings' },
     { k: 'branches.manage', g: 'Admin', l: 'Manage outlets' },
     { k: 'users.manage', g: 'Admin', l: 'Manage users & access' },
-    { k: 'roles.manage', g: 'Admin', l: 'Manage roles' }
+    { k: 'roles.manage', g: 'Admin', l: 'Manage roles' },
+    { k: 'clients.manage', g: 'Platform', l: 'Onboard & manage client businesses (application admin only)' }
   ];
   /* same presets as the SQL seed (a test keeps the two in step) */
   const MGR = ['queue.operate', 'appointments.manage', 'customers.view', 'customers.edit', 'checkout.create', 'invoice.void', 'discount.apply', 'history.view', 'reports.view', 'insights.view', 'inventory.view', 'inventory.receive', 'inventory.issue', 'inventory.adjust', 'inventory.transfer', 'inventory.items', 'po.view', 'po.create', 'po.approve', 'po.receive', 'po.cancel', 'settings.branch'];
   R.PRESETS = {
-    owner: { label: 'Owner', desc: 'Everything, every outlet.', perms: ['*'], limit: null, all: true },
+    platform_admin: { label: 'Application admin', desc: 'Runs the platform: onboards client businesses and manages users and outlets. Every permission.', perms: ['*'], limit: null, all: true },
+    owner: { label: 'Owner', desc: 'Everything for the business, every outlet (but not onboarding other client businesses).', perms: R.PERMS.map(p => p.k).filter(k => k !== 'clients.manage'), limit: null, all: true },
     controller: { label: 'Controller', desc: 'Sees every outlet, approves purchase orders, oversees stock and the audit trail. Cannot manage users.', perms: ['history.view', 'customers.view', 'reports.view', 'reports.view_all', 'insights.view', 'inventory.view', 'inventory.adjust', 'inventory.transfer', 'inventory.items', 'suppliers.manage', 'po.view', 'po.create', 'po.approve', 'po.receive', 'po.cancel', 'chain.overview', 'audit.view'], limit: null, all: true },
     area_manager: { label: 'Area manager', desc: 'Runs the outlets assigned to them; approves purchase orders up to a limit.', perms: MGR.concat(['chain.overview']), limit: 2000, all: false },
     branch_manager: { label: 'Branch manager', desc: 'Runs one outlet: queue, billing, stock, purchase orders (approves small ones).', perms: MGR, limit: 500, all: false },
@@ -301,6 +303,7 @@
       '<div class="ch-note"><b>How to add someone:</b> tap <b>Add user</b>, fill in the e-mail, role and outlets, and choose how they get their login (an invite e-mail, a temporary password, or one you create yourself in Supabase). They sign in with that e-mail. Staff without a personal e-mail can use a made-up address such as <code>lester@minicuts.ae</code> with the temporary-password option.</div>';
     body.querySelector('#us-add').onclick = () => U.edit(null); body.querySelectorAll('[data-e]').forEach(b => b.onclick = () => U.edit(U.ms.find(m => m.id === b.dataset.e)));
   };
+  const ADM = k => k === 'owner' || k === 'platform_admin';
   U.edit = function (m) {
     const isNew = !m; m = m || { email: '', display_name: '', role_key: 'stylist', all_branches: false, branch_ids: [], po_approval_limit: null, active: true };
     const ov = MC.modal('<div style="font:800 18px var(--fh);color:var(--bd);margin-bottom:10px">' + (isNew ? 'Add user' : 'Edit user') + '</div>' +
@@ -328,8 +331,8 @@
       if (!all && !brs.length) return fail('Pick at least one outlet, or tick “All outlets”.');
       const lim = $('ue-lim').value === '' ? null : Number($('ue-lim').value); if (lim != null && (isNaN(lim) || lim < 0)) return fail('Limit must be a positive number.');
       const row = { display_name: $('ue-name').value.trim() || null, role_key: $('ue-role').value, all_branches: all, branch_ids: all ? [] : brs, po_approval_limit: lim, active: $('ue-act').checked };
-      if (m.email === R.email() && (!row.active || (m.role_key === 'owner' && row.role_key !== 'owner'))) return fail('You cannot switch off or demote your own login.');
-      if (row.role_key === 'owner' || m.role_key === 'owner') { const owners = U.ms.filter(x => x.role_key === 'owner' && x.active && x.email !== m.email).length + (row.role_key === 'owner' && row.active ? 1 : 0); if (!owners) return fail('There must always be at least one active owner.'); }
+      if (m.email === R.email() && (!row.active || (ADM(m.role_key) && !ADM(row.role_key)))) return fail('You cannot switch off or demote your own login.');
+      if (ADM(row.role_key) || ADM(m.role_key)) { const owners = U.ms.filter(x => ADM(x.role_key) && x.active && x.email !== m.email).length + (ADM(row.role_key) && row.active ? 1 : 0); if (!owners) return fail('There must always be at least one active owner or application admin.'); }
       $('ue-save').disabled = true;
       const mode = isNew ? (ov.querySelector('[name="ue-lg"]:checked') || {}).value : null;
       try {
