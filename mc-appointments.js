@@ -430,10 +430,11 @@
     const shifts = (c.shifts || {})[staff.name] || {};
     const parts = [];
     for (let d = 0; d < 7; d++) {
-      if (!c.days[d] || !c.days[d].appts) continue;
+      if (!c.days[d]) continue;
       if ((staff.off_days || []).includes(d)) { parts.push(names[d] + ': Off'); continue; }
       const ov = shifts[d] || shifts[String(d)];
-      parts.push(names[d] + ' ' + ((ov && ov[0]) || c.days[d].open) + '–' + ((ov && ov[1]) || c.days[d].close));
+      const label = !c.days[d].appts ? names[d] + '(WI)' : names[d];
+      parts.push(label + ' ' + ((ov && ov[0]) || c.days[d].open) + '–' + ((ov && ov[1]) || c.days[d].close));
     }
     return parts.length ? parts.join(' · ') : '<em>No bookable days configured</em>';
   };
@@ -444,15 +445,17 @@
     const c = A._sfState.cfg, names = A._sfState.names;
     const shifts = (c.shifts || {})[s.name] || {};
     const dayRows = names.map(function (nm, d) {
-      if (!c.days[d] || !c.days[d].appts) {
+      if (!c.days[d]) {
         return '<tr><td style="font-weight:700;width:40px;font-size:12.5px;color:var(--muted);padding:6px 4px;">' + nm + '</td>' +
-          '<td colspan="3" style="font-size:12px;color:var(--muted);font-style:italic;padding:6px 0;">Walk-in only (no appointments)</td></tr>';
+          '<td colspan="3" style="font-size:12px;color:var(--muted);font-style:italic;padding:6px 0;">Salon closed</td></tr>';
       }
+      const isWalkIn = !c.days[d].appts;
       const isOff = (s.off_days || []).includes(d);
       const ov = shifts[d] || shifts[String(d)];
       const sv = (ov && ov[0]) || c.days[d].open, ev = (ov && ov[1]) || c.days[d].close;
       return '<tr style="border-bottom:1px solid var(--border);">' +
-        '<td style="font-weight:700;width:40px;font-size:12.5px;padding:8px 4px 8px 0;">' + nm + '</td>' +
+        '<td style="font-weight:700;width:40px;font-size:12.5px;padding:8px 4px 8px 0;">' + nm +
+        (isWalkIn ? '<div style="font-size:9.5px;font-weight:400;color:var(--muted);">walk-in</div>' : '') + '</td>' +
         '<td style="padding:8px 8px 8px 0;"><label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:12.5px;white-space:nowrap;">' +
         '<input type="checkbox" id="sfed-w' + d + '"' + (!isOff ? ' checked' : '') + '> Working</label></td>' +
         '<td style="padding:8px 4px;"><input class="fi" id="sfed-s' + d + '" type="time" value="' + sv + '" style="width:auto;font-size:12px;"' + (isOff ? ' disabled' : '') + '></td>' +
