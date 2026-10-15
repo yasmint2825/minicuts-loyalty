@@ -396,7 +396,7 @@
     // ── Staff working hours card ─────────────────────────────────────────
     el.insertAdjacentHTML('beforeend', '<div id="sf-card-wrap"><div class="card" style="margin-top:16px;"><div class="card-title">👥 Staff Working Hours</div><div style="font-size:13px;color:var(--muted);padding:8px 0;">Loading stylists…</div></div></div>');
     try {
-      const raw = await MC.sb('staff', 'GET', null, 'select=id,name,role,status,active,off_days&order=name.asc&limit=500');
+      const raw = await MC.sb('staff', 'GET', null, 'select=*&order=name.asc&limit=500');
       const ok = x => (!x.role || /stylist|barber|hair/i.test(x.role)) && x.status !== 'inactive' && x.active !== false;
       const sfList = (raw || []).filter(ok).map(x => Object.assign({}, x, {
         off_days: Array.isArray(x.off_days) ? x.off_days.map(Number)
