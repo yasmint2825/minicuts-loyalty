@@ -402,7 +402,7 @@ a.btn{text-decoration:none;}
 <!-- ══ TAB: SETTINGS ══ -->
 <div class="page" id="t-config">
   <div id="cfg-nav" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;position:sticky;top:0;z-index:5;background:var(--bg,#fff);padding:6px 0;"></div>
-  <div id="cfg-top" style="display:grid;grid-template-columns:minmax(0,720px);gap:20px;margin-bottom:20px;align-items:start;"><div id="mc-settings-billing" data-sec="invoice"></div><div id="mc-settings-loyalty" data-sec="loyalty"></div><div id="mc-settings-appt" data-sec="appt"></div><div id="mc-settings-wa" data-sec="wa"></div></div>
+  <div id="cfg-top" style="display:grid;grid-template-columns:minmax(0,720px);gap:20px;margin-bottom:20px;align-items:start;"><div id="mc-settings-billing" data-sec="invoice"></div><div id="mc-settings-loyalty" data-sec="loyalty"></div><div id="mc-settings-appt" data-sec="appt"></div><div id="mc-settings-wa" data-sec="wa"></div><div id="mc-settings-services" data-sec="services"></div></div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
     <div>
       <div class="card">
@@ -1538,9 +1538,187 @@ function showWAPrompt(name,stamps,mobile,parent,gender,stylist,stylist2,remark,t
   document.body.appendChild(ov);
 }
 
+// ─── SALON SERVICES SETTINGS ────────────────────────────────────────────────
+let _svAll=[];
+
+async function renderServicesSettings(){
+  const el=document.getElementById('mc-settings-services');
+  if(!el)return;
+  if(!window.MC||!MC.sb){
+    el.innerHTML='<div class="card"><div class="card-title">✂️ Service Catalog</div><p style="font-size:13px;color:var(--muted);">App not ready — refresh and try again.</p></div>';
+    return;
+  }
+  el.innerHTML='<div class="card"><div class="card-title">✂️ Service Catalog</div><div style="text-align:center;padding:22px;color:var(--muted);font-size:13px;">Loading services…</div></div>';
+  try{
+    _svAll=await MC.sb('salon_services','GET',null,'select=id,name,code,cat,gender,price,duration,status&order=cat.asc,gender.asc,name.asc&limit=1000');
+    _svAll=_svAll||[];
+    if(window.MC&&MC.billing)MC.billing.loaded=false; // invalidate billing cache so checkout picks up edits
+  }catch(e){
+    el.innerHTML='<div class="card"><div class="card-title">✂️ Service Catalog</div><p style="font-size:13px;color:var(--err,#dc2626);">Failed to load: '+svEsc(e.message||String(e))+'</p></div>';
+    return;
+  }
+  _svDraw(el);
+}
+
+function _svDraw(el){
+  if(!el)el=document.getElementById('mc-settings-services');
+  if(!el)return;
+  const q=((document.getElementById('svc-q')||{}).value||'').toLowerCase();
+  const flt=_svAll.filter(s=>!q||svEsc(s.name||'').toLowerCase().includes(q)||(s.cat||'').toLowerCase().includes(q));
+  const cats=[...new Set(flt.map(s=>s.cat||'General'))].sort();
+  let rows='';
+  for(const cat of cats){
+    const items=flt.filter(s=>(s.cat||'General')===cat);
+    rows+='<div style="margin-bottom:14px;"><div style="font-size:10.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;padding:4px 0 6px;">'+svEsc(cat)+'</div>';
+    for(const s of items){
+      const active=String(s.status||'active').toLowerCase()!=='inactive';
+      const gLabel=s.gender==='F'?'👧 Girl':s.gender==='M'?'👦 Boy':'👶 Any';
+      rows+='<div style="display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:8px;background:var(--bg2,#f4f4f5);margin-bottom:5px;'+(active?'':'opacity:.55;')+'">'
+        +'<div style="flex:1;min-width:0;">'
+        +'<div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+svEsc(s.name)+'</div>'
+        +'<div style="font-size:11px;color:var(--muted);margin-top:1px;">'+gLabel+(s.duration?' · '+s.duration+' min':'')+'</div>'
+        +'</div>'
+        +'<div style="font-size:13px;font-weight:700;white-space:nowrap;">AED '+(+(s.price||0)).toFixed(0)+'</div>'
+        +'<button class="btn btn-sm btn-ghost" onclick="_svEdit('+s.id+')" title="Edit" style="padding:4px 8px;">✏️</button>'
+        +'<button class="btn btn-sm btn-ghost" onclick="_svToggle('+s.id+')" title="'+(active?'Deactivate':'Activate')+'" style="padding:4px 8px;color:'+(active?'var(--ok2,#16a34a)':'var(--muted)')+';">'+(active?'✅':'⭕')+'</button>'
+        +'<button class="btn btn-sm btn-ghost" onclick="_svDel('+s.id+',this)" title="Delete" style="padding:4px 8px;color:var(--err,#dc2626);">🗑</button>'
+        +'</div>';
+    }
+    rows+='</div>';
+  }
+  if(!flt.length)rows='<p style="text-align:center;padding:18px;font-size:13px;color:var(--muted);">'+(q?'No services match that search.':'No services yet — tap ＋ Add Service to create one.')+'</p>';
+  el.innerHTML='<div class="card">'
+    +'<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:14px;">'
+    +'<span class="card-title" style="margin:0;">✂️ Service Catalog</span>'
+    +'<button class="btn btn-sm btn-b" onclick="_svEdit(0)">＋ Add Service</button>'
+    +'</div>'
+    +'<div class="fg" style="margin-bottom:12px;"><input class="fi" id="svc-q" placeholder="🔍 Search by name or category…" oninput="_svDraw()" value="'+svEsc(q)+'"></div>'
+    +'<div id="svc-rows">'+rows+'</div>'
+    +'<p style="font-size:11px;color:var(--muted);margin-top:10px;">'+_svAll.length+' service'+(_svAll.length===1?'':'s')+' total · Active services appear at checkout</p>'
+    +'</div>';
+}
+
+function svEsc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+function _svEdit(id){
+  const s=id?_svAll.find(x=>x.id===id):null;
+  const v=s||{name:'',code:'',cat:'',gender:'',price:'',duration:30,status:'active'};
+  const existingCats=[...new Set(_svAll.map(x=>x.cat||'').filter(Boolean))];
+  const overlay=document.createElement('div');
+  overlay.id='sv-overlay';
+  overlay.style.cssText='position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.5);padding:16px;';
+  overlay.innerHTML='<div style="background:var(--bg,#fff);border-radius:14px;padding:22px 24px;width:100%;max-width:420px;max-height:90vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,.3);">'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">'
+    +'<span style="font-size:15px;font-weight:700;">'+(id?'Edit Service':'New Service')+'</span>'
+    +'<button class="btn btn-sm btn-ghost" onclick="document.getElementById(\'sv-overlay\').remove()">✕</button>'
+    +'</div>'
+    +'<div class="fg"><label class="fl">Service Name <span style="color:var(--err,#dc2626);">*</span></label>'
+    +'<input class="fi" id="sv-fname" value="'+svEsc(v.name)+'" placeholder="e.g. Boys Haircut" autocomplete="off"></div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">'
+    +'<div class="fg"><label class="fl">Category</label>'
+    +'<input class="fi" id="sv-fcat" value="'+svEsc(v.cat||'')+'" placeholder="e.g. Haircut" list="sv-cats-list">'
+    +'<datalist id="sv-cats-list">'+existingCats.map(c=>'<option>'+svEsc(c)+'</option>').join('')+'</datalist></div>'
+    +'<div class="fg"><label class="fl">Code</label>'
+    +'<input class="fi" id="sv-fcode" value="'+svEsc(v.code||'')+'" placeholder="BHC" style="text-transform:uppercase;" maxlength="10"></div>'
+    +'</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">'
+    +'<div class="fg"><label class="fl">Gender</label>'
+    +'<select class="fi" id="sv-fgender">'
+    +'<option value=""'+(!v.gender?' selected':'')+'>Any</option>'
+    +'<option value="M"'+(v.gender==='M'?' selected':'')+'>Boy</option>'
+    +'<option value="F"'+(v.gender==='F'?' selected':'')+'>Girl</option>'
+    +'</select></div>'
+    +'<div class="fg"><label class="fl">Status</label>'
+    +'<select class="fi" id="sv-fstatus">'
+    +'<option value="active"'+(String(v.status||'active')!=='inactive'?' selected':'')+'>Active</option>'
+    +'<option value="inactive"'+(v.status==='inactive'?' selected':'')+'>Inactive</option>'
+    +'</select></div>'
+    +'</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">'
+    +'<div class="fg"><label class="fl">Price (AED) <span style="color:var(--err,#dc2626);">*</span></label>'
+    +'<input class="fi" id="sv-fprice" type="number" min="0" step="1" value="'+(v.price||'')+'" placeholder="50"></div>'
+    +'<div class="fg"><label class="fl">Duration (min)</label>'
+    +'<input class="fi" id="sv-fdur" type="number" min="5" step="5" value="'+(v.duration||'')+'" placeholder="30"></div>'
+    +'</div>'
+    +'<div id="sv-ferr" style="font-size:12px;color:var(--err,#dc2626);min-height:16px;margin-top:2px;"></div>'
+    +'<div style="display:flex;gap:8px;margin-top:18px;justify-content:flex-end;">'
+    +'<button class="btn btn-sm btn-ghost" onclick="document.getElementById(\'sv-overlay\').remove()">Cancel</button>'
+    +'<button class="btn btn-sm btn-b" id="sv-fsave" onclick="_svSave('+id+')">Save</button>'
+    +'</div></div>';
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove();});
+  setTimeout(()=>{const n=document.getElementById('sv-fname');if(n)n.focus();},80);
+}
+
+async function _svSave(id){
+  const nameEl=document.getElementById('sv-fname');
+  const priceEl=document.getElementById('sv-fprice');
+  const name=(nameEl||{}).value.trim();
+  const priceRaw=(priceEl||{}).value;
+  const price=priceRaw===''?null:parseFloat(priceRaw);
+  const err=document.getElementById('sv-ferr');
+  if(!name){if(err)err.textContent='Service name is required.';if(nameEl)nameEl.focus();return;}
+  if(price===null||isNaN(price)||price<0){if(err)err.textContent='Enter a valid price (0 or more).';if(priceEl)priceEl.focus();return;}
+  const payload={
+    name,
+    code:(document.getElementById('sv-fcode').value.trim().toUpperCase())||null,
+    cat:(document.getElementById('sv-fcat').value.trim())||null,
+    gender:(document.getElementById('sv-fgender').value)||null,
+    price,
+    duration:parseInt(document.getElementById('sv-fdur').value)||null,
+    status:document.getElementById('sv-fstatus').value||'active'
+  };
+  const btn=document.getElementById('sv-fsave');
+  if(btn){btn.disabled=true;btn.textContent='Saving…';}
+  if(err)err.textContent='';
+  try{
+    if(id){
+      await MC.sb('salon_services','PATCH',payload,'id=eq.'+id);
+    }else{
+      await MC.sb('salon_services','POST',payload,null,'return=representation');
+    }
+    document.getElementById('sv-overlay').remove();
+    _svAll=await MC.sb('salon_services','GET',null,'select=id,name,code,cat,gender,price,duration,status&order=cat.asc,gender.asc,name.asc&limit=1000');
+    _svAll=_svAll||[];
+    if(window.MC&&MC.billing)MC.billing.loaded=false;
+    _svDraw();
+  }catch(e){
+    if(err)err.textContent='Save failed: '+svEsc(String(e.message||e));
+    if(btn){btn.disabled=false;btn.textContent='Save';}
+  }
+}
+
+async function _svToggle(id){
+  const s=_svAll.find(x=>x.id===id);
+  if(!s)return;
+  const next=String(s.status||'active').toLowerCase()==='inactive'?'active':'inactive';
+  try{
+    await MC.sb('salon_services','PATCH',{status:next},'id=eq.'+id);
+    s.status=next;
+    if(window.MC&&MC.billing)MC.billing.loaded=false;
+    _svDraw();
+  }catch(e){alert('Toggle failed: '+String(e.message||e));}
+}
+
+async function _svDel(id,btn){
+  const s=_svAll.find(x=>x.id===id);
+  if(!s)return;
+  if(!confirm('Delete "'+s.name+'"?\n\nThis cannot be undone.'))return;
+  if(btn){btn.disabled=true;btn.textContent='…';}
+  try{
+    await MC.sb('salon_services','DELETE',null,'id=eq.'+id);
+    _svAll=_svAll.filter(x=>x.id!==id);
+    if(window.MC&&MC.billing)MC.billing.loaded=false;
+    _svDraw();
+  }catch(e){
+    alert('Delete failed: '+String(e.message||e));
+    if(btn){btn.disabled=false;btn.textContent='🗑';}
+  }
+}
+
 // CONFIG
 
-const CFG_SECS=[['invoice','🧾 Invoice & Tax'],['loyalty','🎯 Loyalty'],['appt','📅 Appointments'],['wa','📲 WhatsApp'],['team','✂️ Team'],['vouchers','🎁 Vouchers'],['tools','🔧 Tools']];
+const CFG_SECS=[['invoice','🧾 Invoice & Tax'],['loyalty','🎯 Loyalty'],['appt','📅 Appointments'],['wa','📲 WhatsApp'],['services','✂️ Services'],['team','👥 Team'],['vouchers','🎁 Vouchers'],['tools','🔧 Tools']];
 function cfgSecOf(card){
   if(card.parentElement&&card.parentElement.dataset&&card.parentElement.dataset.sec)return card.parentElement.dataset.sec;
   const t=((card.querySelector('.card-title')||{}).textContent||'');
@@ -1564,8 +1742,8 @@ function cfgInitNav(){
 }
 /* each settings block loads on its own: one failing block must never blank the whole Settings page */
 function cfgSafe(label,fn){try{const r=fn();if(r&&r.catch)r.catch(e=>{console.error('Settings: '+label,e);cfgBlockError(label,e);});}catch(e){console.error('Settings: '+label,e);cfgBlockError(label,e);}}
-function cfgBlockError(label,e){const ids={invoice:'mc-settings-billing',loyalty:'mc-settings-loyalty',appointments:'mc-settings-appt',whatsapp:'mc-settings-wa'};const el=document.getElementById(ids[label]);if(el)el.innerHTML='<div class="card"><div class="card-title">⚠️ '+label+' settings could not load</div><p style="font-size:12.5px;color:var(--muted);">'+String(e&&e.message||e).replace(/</g,'&lt;')+' — refresh the page (Ctrl+Shift+R). If it stays, make sure all app files were uploaded together.</p></div>';}
-function loadCfgScreen(){cfgSafe('vouchers',()=>loadGvSetup());cfgSafe('invoice',()=>window.MC&&MC.billing&&MC.billing.renderSettings());cfgSafe('loyalty',()=>window.MC&&MC.loyalty&&MC.loyalty.render());cfgSafe('appointments',()=>window.MC&&MC.appt&&MC.appt.renderSettings());cfgSafe('whatsapp',()=>window.MC&&MC.billing&&MC.billing.renderWaSettings());cfgInitNav();
+function cfgBlockError(label,e){const ids={invoice:'mc-settings-billing',loyalty:'mc-settings-loyalty',appointments:'mc-settings-appt',whatsapp:'mc-settings-wa',services:'mc-settings-services'};const el=document.getElementById(ids[label]);if(el)el.innerHTML='<div class="card"><div class="card-title">⚠️ '+label+' settings could not load</div><p style="font-size:12.5px;color:var(--muted);">'+String(e&&e.message||e).replace(/</g,'&lt;')+' — refresh the page (Ctrl+Shift+R). If it stays, make sure all app files were uploaded together.</p></div>';}
+function loadCfgScreen(){cfgSafe('vouchers',()=>loadGvSetup());cfgSafe('invoice',()=>window.MC&&MC.billing&&MC.billing.renderSettings());cfgSafe('loyalty',()=>window.MC&&MC.loyalty&&MC.loyalty.render());cfgSafe('appointments',()=>window.MC&&MC.appt&&MC.appt.renderSettings());cfgSafe('whatsapp',()=>window.MC&&MC.billing&&MC.billing.renderWaSettings());cfgSafe('services',()=>renderServicesSettings());cfgInitNav();
   const ta=document.getElementById('cfg-sty');
   if(ta)ta.value=STYLISTS.join('\n');
   const tmpl=document.getElementById('cfg-wa-tmpl');
