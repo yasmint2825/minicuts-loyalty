@@ -144,12 +144,16 @@
       let b = {}; try { b = JSON.parse(init.body || '{}'); } catch (e) {}
       if (!DB.branches) Object.assign(DB, chainSeed(), { _chain: 1 }), save(DB);
       const g = u.searchParams.get('grant_type'), em = g === 'refresh_token' ? String(b.refresh_token || '').replace(/^rt:/, '') : String(b.email || '').toLowerCase();
-      if (g === 'password' && b.password !== 'demo') return resp({ error: 'invalid_grant', error_description: 'Wrong e-mail or password' }, 400);
+      if (g === 'password' && b.password !== 'demo' && (DB.demo_pw || {})[em] !== b.password) return resp({ error: 'invalid_grant', error_description: 'Wrong e-mail or password' }, 400);
       if (!DB.memberships.some(m => m.email === em)) return resp({ error: 'invalid_grant', error_description: 'Wrong e-mail or password' }, 400);
       return resp({ access_token: jwt(em), refresh_token: 'rt:' + em, expires_in: 3600, user: { email: em } });
     }
     if (path.startsWith('/auth/v1/recover') || path.startsWith('/auth/v1/user')) return resp({});
     if (path.startsWith('/storage/')) return resp({ Key: 'demo' });                           // PDF upload: accepted, not stored
+    if (path.startsWith('/functions/v1/mc-admin-users')) {
+      let b = {}; try { b = JSON.parse(init.body || '{}'); } catch (e) {}
+      (DB.fn_calls = DB.fn_calls || []).push({ action: b.action, email: b.email, banned: b.banned }); if (b.action === 'create') (DB.demo_pw = DB.demo_pw || {})[b.email] = b.password; save(DB); return resp({ ok: true });
+    }
     if (path.startsWith('/functions/')) {                                                       // WhatsApp / Zen: pretend it worked
       let b = {}; try { b = JSON.parse(init.body || '{}'); } catch (e) {}
       console.info('[DEMO] WhatsApp not really sent:', path.split('/').pop(), b);

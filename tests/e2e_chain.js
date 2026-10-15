@@ -45,6 +45,19 @@ const { chromium } = require('playwright-core'); const path = require('path'); c
   await pg.click('[data-t="stock"]'); await pg.waitForTimeout(700); ok(/Waiting for you|To reorder/.test(await pg.innerText('#t-chain-root')), 'stock & purchasing tab still available'); 
   await tab('t-users'); t = await pg.innerText('#t-users-root'); ok(/manager\.dso@minicuts\.demo/.test(t) && /Store keeper/.test(t), 'users & access lists the team');
 
+  // add users from the admin screen
+  await pg.click('[data-t="users"]'); await pg.waitForSelector('#us-add'); await pg.click('#us-add'); await pg.waitForSelector('#ue-email');
+  await pg.fill('#ue-email', 'new.keeper@minicuts.demo'); await pg.fill('#ue-name', 'New Keeper'); await pg.selectOption('#ue-role', 'store_keeper'); await pg.check('[data-b="b-mir"]'); await pg.click('#ue-save'); await pg.waitForTimeout(700);
+  let dbx = await pg.evaluate(() => JSON.parse(localStorage.getItem('mc_demo_db_v2')));
+  ok(dbx.memberships.some(m => m.email === 'new.keeper@minicuts.demo' && m.role_key === 'store_keeper' && m.branch_ids.join() === 'b-mir') && (dbx.fn_calls || []).some(c => c.action === 'invite' && c.email === 'new.keeper@minicuts.demo'), 'owner adds a user in the admin screen and an invite e-mail is requested');
+  await pg.click('#us-add'); await pg.waitForSelector('#ue-email'); await pg.fill('#ue-email', 'lester@minicuts.demo'); await pg.selectOption('#ue-role', 'stylist'); await pg.check('[data-b="b-dso"]'); await pg.check('[name="ue-lg"][value="temp"]'); await pg.click('#ue-save'); await pg.waitForSelector('#tp');
+  const tp = await pg.innerText('#tp'); ok(tp.length >= 12 && /[A-Z]/.test(tp) && /[0-9]/.test(tp), 'temporary password generated and shown once (' + tp.length + ' characters)'); await pg.click('#tp-x');
+  dbx = await pg.evaluate(() => JSON.parse(localStorage.getItem('mc_demo_db_v2'))); ok((dbx.fn_calls || []).some(c => c.action === 'create' && c.email === 'lester@minicuts.demo') && dbx.demo_pw['lester@minicuts.demo'] === tp, 'login created through the logins service with that password');
+  await pg.click('[data-e]:has-text("Edit") >> nth=0').catch(() => {});
+  await pg.evaluate(() => document.querySelectorAll('.mc-ov').forEach(o => o.remove()));
+  await pg.evaluate(async () => { const m = (await MC.sb('memberships', 'GET', null, 'email=eq.lester@minicuts.demo'))[0]; MC.rbac.users.edit(m); }); await pg.waitForSelector('#ue-act'); await pg.uncheck('#ue-act'); await pg.click('#ue-save'); await pg.waitForTimeout(700);
+  dbx = await pg.evaluate(() => JSON.parse(localStorage.getItem('mc_demo_db_v2'))); ok((dbx.fn_calls || []).some(c => c.action === 'set_banned' && c.email === 'lester@minicuts.demo' && c.banned === true), 'switching a user off also blocks their login');
+  await pg.evaluate(async () => { const m = (await MC.sb('memberships', 'GET', null, 'email=eq.lester@minicuts.demo'))[0]; MC.rbac.users.edit(m); }); await pg.waitForSelector('#ue-reset'); await pg.click('#ue-reset'); await pg.waitForTimeout(300); ok(/Sent/.test(await pg.innerText('#ue-resetm')), 'admin can send a password-reset e-mail for a user'); await pg.evaluate(() => document.querySelectorAll('.mc-ov').forEach(o => o.remove()));
   await pg.click('[data-t="security"]'); await pg.waitForSelector('#sc-idle'); ok(/Allow new users to sign up/.test(await pg.innerText('#us-body')), 'sign-in security tab explains the Supabase switches');
   await pg.fill('#sc-idle', '45'); await pg.click('#sc-save'); await pg.waitForTimeout(400); ok(await pg.evaluate(() => MC.rbac.SEC.idleMinutes) === 45, 'idle sign-out minutes can be changed by the owner');
   await pg.evaluate(() => { MC.rbac.SEC.idleMinutes = 120; });

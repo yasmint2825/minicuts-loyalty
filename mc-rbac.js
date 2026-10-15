@@ -153,6 +153,13 @@
     const c = MC.conf(), r = await fetch(c.url + '/auth/v1/user', { method: 'PUT', headers: { 'Content-Type': 'application/json', apikey: c.key, Authorization: 'Bearer ' + MC.token }, body: JSON.stringify({ password: pw }) });
     if (!r.ok) { const j = await r.json().catch(() => ({})); throw new Error(j.msg || j.message || 'Could not change the password'); }
   };
+  /* owner-only logins service (Supabase edge function mc-admin-users). Returns {ok} or {ok:false, missing:true} when it is not deployed yet. */
+  R.adminCall = async function (body) {
+    const c = MC.conf(); let r; try { r = await fetch(c.url + '/functions/v1/mc-admin-users', { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: c.key, Authorization: 'Bearer ' + MC.token }, body: JSON.stringify(body) }); } catch (e) { return { ok: false, missing: true, error: 'Could not reach the logins service' }; }
+    const j = await r.json().catch(() => ({})); if (r.status === 404) return { ok: false, missing: true, error: 'Logins service is not set up yet' };
+    return r.ok ? { ok: true } : { ok: false, error: j.error || j.message || 'Could not complete' };
+  };
+  R.tempPassword = () => { const a = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789', g = new Uint32Array(12); (root.crypto || {}).getRandomValues ? root.crypto.getRandomValues(g) : g.forEach((_, i) => { g[i] = Math.random() * 4e9; }); return Array.from(g, x => a[x % a.length]).join('') + '#7'; };
   R.passwordDialog = function () {
     const ov = MC.modal('<div style="font:800 18px var(--fh);color:var(--bd);margin-bottom:10px">Change my password</div>' + MC.lbl('New password') + '<input id="pw1" class="fi" type="password" autocomplete="new-password" style="margin-bottom:8px"/>' + MC.lbl('Repeat it') + '<input id="pw2" class="fi" type="password" autocomplete="new-password"/><div id="pw-m" class="ch-err" style="display:none"></div><div style="display:flex;gap:8px;margin-top:14px"><button class="btn btn-ghost" id="pw-x">Cancel</button><button class="btn btn-y" id="pw-ok" style="flex:1">Save password</button></div>', { width: 360, sticky: true });
     const $ = i => ov.querySelector('#' + i), m = t => { $('pw-m').textContent = t; $('pw-m').style.display = 'block'; }; $('pw-x').onclick = () => ov.close();
@@ -291,7 +298,7 @@
       U.ms.map(m => '<tr><td><b>' + esc(m.display_name || m.email) + '</b><div class="ch-muted" style="font-size:11.5px">' + esc(m.email) + (m.email === me ? ' · you' : '') + '</div></td><td>' + esc(roleLabel(m.role_key)) + '</td><td>' +
         (m.all_branches ? '<span class="ch-chip info">All outlets</span>' : (m.branch_ids || []).map(id => '<span class="ch-chip">' + esc(((U.brs.find(b => b.id === id)) || {}).code || '?') + '</span>').join('') || '<span class="ch-muted">none</span>') + '</td><td class="ch-r">' + (m.po_approval_limit != null ? 'AED ' + Number(m.po_approval_limit).toLocaleString() : '<span class="ch-muted">role default</span>') + '</td><td>' +
         (m.active ? '<span class="ch-chip ok">Active</span>' : '<span class="ch-chip err">Off</span>') + '</td><td class="ch-r"><button class="btn btn-ghost btn-sm" data-e="' + esc(m.id) + '">Edit</button></td></tr>').join('') + '</tbody></table></div>' +
-      '<div class="ch-note"><b>How to add someone:</b> add them here (e-mail + role + outlets), then create their login in Supabase → <i>Authentication → Users → Add user</i> using the <b>same e-mail</b> (tick “Auto confirm”). They then sign in with that e-mail and password.<br>Staff without a personal e-mail can use a made-up address such as <code>lester@minicuts.ae</code>.</div>';
+      '<div class="ch-note"><b>How to add someone:</b> tap <b>Add user</b>, fill in the e-mail, role and outlets, and choose how they get their login (an invite e-mail, a temporary password, or one you create yourself in Supabase). They sign in with that e-mail. Staff without a personal e-mail can use a made-up address such as <code>lester@minicuts.ae</code> with the temporary-password option.</div>';
     body.querySelector('#us-add').onclick = () => U.edit(null); body.querySelectorAll('[data-e]').forEach(b => b.onclick = () => U.edit(U.ms.find(m => m.id === b.dataset.e)));
   };
   U.edit = function (m) {
@@ -303,9 +310,15 @@
       '<div>' + MC.lbl('Outlets they can use') + '<label style="display:flex;gap:6px;font-size:13px;margin-bottom:4px"><input type="checkbox" id="ue-all"' + (m.all_branches ? ' checked' : '') + '/> All outlets (including new ones)</label><div id="ue-brs" style="display:flex;gap:10px;flex-wrap:wrap">' +
         U.brs.map(b => '<label style="font-size:13px"><input type="checkbox" data-b="' + esc(b.id) + '"' + ((m.branch_ids || []).includes(b.id) ? ' checked' : '') + '/> ' + esc(b.code) + '</label>').join('') + '</div></div>' +
       '<div>' + MC.lbl('Purchase-order approval limit (AED) — blank = use the role’s limit') + '<input id="ue-lim" class="fi" type="number" min="0" step="50" value="' + (m.po_approval_limit != null ? esc(m.po_approval_limit) : '') + '"/></div>' +
-      '<label style="display:flex;gap:6px;font-size:13px"><input type="checkbox" id="ue-act"' + (m.active ? ' checked' : '') + '/> Active (untick to switch off their access)</label></div>' +
+      '<label style="display:flex;gap:6px;font-size:13px"><input type="checkbox" id="ue-act"' + (m.active ? ' checked' : '') + '/> Active (untick to switch off their access)</label>' +
+      (isNew ? '<div class="ch-card" style="margin:0"><b style="font-size:13px">Their login</b>' +
+        '<label style="display:flex;gap:6px;font-size:13px;margin-top:6px"><input type="radio" name="ue-lg" value="invite" checked/> E-mail them an invite — they choose their own password</label>' +
+        '<label style="display:flex;gap:6px;font-size:13px;margin-top:4px"><input type="radio" name="ue-lg" value="temp"/> Create it now with a temporary password (for staff without e-mail access)</label>' +
+        '<label style="display:flex;gap:6px;font-size:13px;margin-top:4px"><input type="radio" name="ue-lg" value="none"/> I will create the login in Supabase myself</label></div>'
+      : '<div><button type="button" class="btn btn-ghost btn-sm" id="ue-reset">✉️ Send password-reset e-mail</button> <span id="ue-resetm" class="ch-ok"></span></div>') + '</div>' +
       '<div id="ue-msg" class="ch-err" style="display:none"></div><div style="display:flex;gap:8px;margin-top:14px"><button class="btn btn-ghost" id="ue-x">Cancel</button><button class="btn btn-y" id="ue-save" style="flex:1">Save</button></div>', { width: 460, sticky: true });
     const $ = id => ov.querySelector('#' + id), paint = () => { const r = U.roles.find(x => x.key === $('ue-role').value) || {}; $('ue-desc').textContent = r.description || ''; $('ue-brs').style.opacity = $('ue-all').checked ? .4 : 1; };
+    if ($('ue-reset')) $('ue-reset').onclick = async () => { try { await R.recover(m.email); $('ue-resetm').textContent = 'Sent (if the login exists)'; } catch (e) { $('ue-resetm').textContent = ''; } };
     $('ue-role').onchange = () => { const p = R.PRESETS[$('ue-role').value]; if (p && isNew) $('ue-all').checked = !!p.all; paint(); }; $('ue-all').onchange = paint; paint(); $('ue-x').onclick = () => ov.close();
     $('ue-save').onclick = async () => {
       const msg = $('ue-msg'), fail = t => { msg.textContent = t; msg.style.display = 'block'; };
@@ -318,7 +331,18 @@
       if (m.email === R.email() && (!row.active || (m.role_key === 'owner' && row.role_key !== 'owner'))) return fail('You cannot switch off or demote your own login.');
       if (row.role_key === 'owner' || m.role_key === 'owner') { const owners = U.ms.filter(x => x.role_key === 'owner' && x.active && x.email !== m.email).length + (row.role_key === 'owner' && row.active ? 1 : 0); if (!owners) return fail('There must always be at least one active owner.'); }
       $('ue-save').disabled = true;
-      try { if (isNew) await MC.sb('memberships', 'POST', Object.assign({ email }, row), null, 'return=minimal'); else await MC.sb('memberships', 'PATCH', row, 'id=eq.' + m.id, 'return=minimal'); ov.close(); R.initUsers(); }
+      const mode = isNew ? (ov.querySelector('[name="ue-lg"]:checked') || {}).value : null;
+      try {
+        if (isNew) await MC.sb('memberships', 'POST', Object.assign({ email }, row), null, 'return=minimal'); else await MC.sb('memberships', 'PATCH', row, 'id=eq.' + m.id, 'return=minimal');
+        let info = '', pw = null, bad = '';
+        if (mode === 'invite') { const r = await R.adminCall({ action: 'invite', email, redirect_to: root.location.origin + root.location.pathname }); info = r.ok ? 'Invite e-mail sent to ' + email + '.' : (bad = r.missing ? 'Saved, but the logins service is not set up yet — create the login in Supabase → Authentication → Users (same e-mail).' : 'Saved, but the invite failed: ' + r.error); }
+        else if (mode === 'temp') { pw = R.tempPassword(); const r = await R.adminCall({ action: 'create', email, password: pw }); if (r.ok) info = 'Login created.'; else { pw = null; bad = r.missing ? 'Saved, but the logins service is not set up yet — create the login in Supabase → Authentication → Users (same e-mail).' : 'Saved, but creating the login failed: ' + r.error; } }
+        else if (!isNew && m.active !== row.active) { const r = await R.adminCall({ action: 'set_banned', email: m.email, banned: !row.active }); if (!r.ok && !r.missing) bad = 'Saved, but blocking the login failed: ' + r.error; }
+        ov.close(); await R.initUsers();
+        if (pw) MC.modal('<div style="font:800 18px var(--fh);color:var(--bd);margin-bottom:8px">Login created</div><div style="font-size:13px;margin-bottom:8px">Give <b>' + esc(email) + '</b> this temporary password. It is shown <b>only once</b>; they should change it after signing in (top bar → Password).</div><div id="tp" style="font:800 20px monospace;background:#F1F5F9;border-radius:10px;padding:12px;text-align:center;user-select:all">' + esc(pw) + '</div><button class="btn btn-y btn-full" id="tp-x" style="margin-top:12px">Done</button>', { width: 380, sticky: true }).querySelector('#tp-x').onclick = e => e.target.closest('.mc-ov').remove();
+        else if (bad) MC.modal('<div class="ch-note ch-warn">' + esc(bad) + '</div><button class="btn btn-y btn-full" id="tp-x" style="margin-top:12px">OK</button>', { width: 400, sticky: true }).querySelector('#tp-x').onclick = e => e.target.closest('.mc-ov').remove();
+        else if (info && typeof toast === 'function') toast(info);
+      }
       catch (e) { $('ue-save').disabled = false; fail(e.message); }
     };
   };
