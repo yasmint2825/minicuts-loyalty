@@ -2503,5 +2503,13 @@ setDefaultExpiry();
 <script src="mc-inventory.js?v=20261015d"></script>
 <script src="mc-purchasing.js?v=20261015d"></script>
 <script src="mc-chain.js?v=20261015d"></script>
+<script>
+/* visible error bar: if any screen fails to draw, the reason is shown here (tap to hide) instead of a blank page */
+(function(){
+  function bar(msg){var b=document.getElementById('mc-errbar');if(!b){b=document.createElement('div');b.id='mc-errbar';b.style.cssText='position:fixed;left:0;right:0;bottom:0;z-index:99999;background:#7F1D1D;color:#fff;font:12px/1.4 monospace;padding:8px 12px;cursor:pointer;white-space:pre-wrap;max-height:30vh;overflow:auto;';b.onclick=function(){b.remove();};document.body.appendChild(b);}b.textContent='Build 20261015d - screen error: '+msg+'  (tap to hide)';}
+  window.addEventListener('error',function(e){bar((e.message||'error')+(e.filename?' @ '+e.filename.split('/').pop()+':'+e.lineno:''));});
+  window.addEventListener('unhandledrejection',function(e){var r=e.reason;bar('async: '+((r&&r.message)||r));});
+})();
+</script>
 </body>
 </html>
