@@ -147,96 +147,71 @@
     const nowMin = isToday ? (new Date().getHours() * 60 + new Date().getMinutes()) : null;
     A.updateNavBadge();
 
-    /* ── TODAY: upcoming queue grouped by stylist ───────────────────── */
-    if (isToday) {
-      const cols = S.staff.map(st => ({ st, w: A.window(cfg, st, S.date, S.leaves, S.roster) }));
-      const totalToday = S.appts.filter(a => a.status !== 'cancelled').length;
-      const upcoming   = S.appts.filter(a => a.status !== 'cancelled' && MC.toMin(a.end_time) > nowMin);
-      const banner = totalToday
-        ? '<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:#EFF6FF;border-radius:10px;margin-bottom:12px;font-size:13px;flex-wrap:wrap;">' +
-          '📅 <b>' + totalToday + '</b>&nbsp;appointment' + (totalToday !== 1 ? 's' : '') + ' today&nbsp;·&nbsp;' +
-          (upcoming.length > 0
-            ? '<span style="background:#3B82F6;color:#fff;border-radius:6px;padding:2px 9px;font-weight:800;">▶ ' + upcoming.length + ' remaining</span>'
-            : '<span style="color:#16A34A;font-weight:700;">✅ All done for today</span>') +
-          '</div>' : '';
-      const apptCard = function (a) {
-        const aStart = MC.toMin(a.start_time), aEnd = MC.toMin(a.end_time);
-        const isNow = aStart <= nowMin && nowMin < aEnd;
-        const minsAway = aStart - nowMin;
-        const timeBadge = isNow
-          ? '<span style="background:#16A34A;color:#fff;font-size:9px;border-radius:4px;padding:1px 6px;font-weight:800;white-space:nowrap;">NOW</span>'
-          : minsAway <= 15
-            ? '<span style="background:#F59E0B;color:#fff;font-size:9px;border-radius:4px;padding:1px 5px;font-weight:700;white-space:nowrap;">in&nbsp;' + minsAway + 'm</span>'
-            : '';
-        const borderCol = isNow ? '#16A34A' : a.status === 'arrived' ? '#10B981' : '#3B82F6';
-        const bgCol     = isNow ? '#F0FDF4' : a.status === 'arrived' ? '#ECFDF5' : '#EFF6FF';
-        return '<div style="background:' + bgCol + ';border:2px solid ' + borderCol + ';border-radius:10px;padding:9px 10px;margin-bottom:6px;cursor:pointer;" onclick="MC.appt.openAppt(\'' + a.id + '\')">' +
-          '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:4px;">' +
-          '<div style="font-weight:800;font-size:13px;line-height:1.2;">' + MC.esc(a.customer_name) + '</div>' +
-          '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex-shrink:0;">' + timeBadge +
-          '<span style="font-size:11px;font-weight:700;color:' + borderCol + ';">' + a.start_time.slice(0,5) + '–' + a.end_time.slice(0,5) + '</span></div></div>' +
-          '<div style="font-size:12px;color:var(--muted);margin-top:2px;">' + MC.esc(a.service) + '</div>' +
-          (a.status === 'arrived' ? '<div style="font-size:10.5px;color:#10B981;font-weight:700;margin-top:2px;">✓ arrived</div>' : '') +
-          (a.notes ? '<div style="font-size:11px;color:#B45309;margin-top:2px;">📝 ' + MC.esc(a.notes) + '</div>' : '') +
-          '</div>';
-      };
-      const colsHtml = cols.map(function (c) {
-        const myUpcoming = upcoming.filter(a => a.stylist === c.st.name).sort((a, b) => a.start_time.localeCompare(b.start_time));
-        const myTotal    = S.appts.filter(a => a.status !== 'cancelled' && a.stylist === c.st.name).length;
-        const isOff = !c.w;
-        const headerBg = isOff ? '#F1F5F9' : myUpcoming.length ? '#EEF6FF' : '#F0FDF4';
-        const countBadge = isOff ? '<div style="font-size:10px;color:var(--muted);">off today</div>'
-          : myUpcoming.length
-            ? '<div style="font-size:10px;font-weight:700;color:#3B82F6;">' + myUpcoming.length + ' upcoming</div>'
-            : myTotal ? '<div style="font-size:10px;font-weight:700;color:#16A34A;">✓ all done</div>'
-              : '<div style="font-size:10px;color:var(--muted);">none today</div>';
-        const body = !isOff && myUpcoming.length
-          ? myUpcoming.map(apptCard).join('')
-          : '<div style="padding:18px 8px;text-align:center;color:var(--muted);font-size:12px;">' + (isOff ? '—' : myTotal ? '✅' : 'free') + '</div>';
-        return '<div style="flex:1;min-width:160px;max-width:260px;">' +
-          '<div style="background:' + headerBg + ';border-radius:10px;padding:8px 10px;margin-bottom:8px;text-align:center;">' +
-          '<div style="font-weight:800;font-size:13px;">' + MC.esc(c.st.name) + '</div>' + countBadge + '</div>' +
-          body + '</div>';
-      }).join('');
-      el.innerHTML = head + banner +
-        '<div style="display:flex;gap:10px;overflow-x:auto;align-items:flex-start;padding-bottom:4px;">' + colsHtml + '</div>';
-      // auto-refresh every minute while viewing today
-      if (!A._refreshTimer) A._refreshTimer = setInterval(function () {
-        if (MC.appt.state.date === MC.today()) { MC.appt.loadDay(MC.appt.state.date).then(function () { MC.appt.render(); }).catch(function () { MC.appt.render(); }); }
-        else { clearInterval(MC.appt._refreshTimer); MC.appt._refreshTimer = null; }
-      }, 60000);
-      return;
-    }
-
-    /* ── OTHER DAYS: full time-grid view ─────────────────────────────── */
-    if (A._refreshTimer) { clearInterval(A._refreshTimer); A._refreshTimer = null; }
     const open = MC.toMin(day.open), close = MC.toMin(day.close), step = cfg.slot;
     const cols = S.staff.map(st => ({ st, w: A.window(cfg, st, S.date, S.leaves, S.roster) }));
     if (!cols.length) { el.innerHTML = head + '<div class="card">No stylists found in Staff Mgmt.</div>'; return; }
+
+    const totalToday = isToday ? S.appts.filter(a => a.status !== 'cancelled').length : 0;
+    const remaining  = isToday ? S.appts.filter(a => a.status !== 'cancelled' && MC.toMin(a.end_time) > nowMin).length : 0;
+    const banner = isToday && totalToday
+      ? '<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:#EFF6FF;border-radius:10px;margin-bottom:10px;font-size:13px;flex-wrap:wrap;">' +
+        '📅 <b>' + totalToday + '</b>&nbsp;appointment' + (totalToday !== 1 ? 's' : '') + ' today&nbsp;·&nbsp;' +
+        (remaining > 0
+          ? '<span style="background:#3B82F6;color:#fff;border-radius:6px;padding:2px 9px;font-weight:800;">▶ ' + remaining + ' remaining</span>'
+          : '<span style="color:#16A34A;font-weight:700;">✅ All done for today</span>') +
+        '</div>' : '';
+
+    /* For today: start grid at current slot so past empty rows are hidden.
+       Appointments that started before the visible area (in-progress) are
+       captured by the earlyActive lookup and rendered in the first row. */
+    const loopStart = isToday && nowMin != null ? Math.floor(nowMin / step) * step : open;
+    const earlyActive = isToday && nowMin != null
+      ? S.appts.filter(a => a.status !== 'cancelled' && MC.toMin(a.start_time) < loopStart && MC.toMin(a.end_time) > loopStart)
+      : [];
+
     const covered = {};
     let rows = '';
-    for (let t = open; t < close; t += step) {
+    for (let t = loopStart; t < close; t += step) {
       rows += '<tr><td style="font-size:11px;color:var(--muted);white-space:nowrap;padding:2px 8px;vertical-align:top;">' + MC.fromMin(t) + '</td>';
       cols.forEach(c => {
         if (covered[c.st.name + '|' + t]) return;
-        const a = S.appts.find(x => x.stylist === c.st.name && x.status !== 'cancelled' && MC.toMin(x.start_time) >= t && MC.toMin(x.start_time) < t + step);
+        /* in-progress appointment that started before our visible window */
+        const early = t === loopStart ? earlyActive.find(a => a.stylist === c.st.name) : null;
+        const a = early || S.appts.find(x => x.stylist === c.st.name && x.status !== 'cancelled' && MC.toMin(x.start_time) >= t && MC.toMin(x.start_time) < t + step);
         if (a) {
-          const span = Math.max(1, Math.ceil((MC.toMin(a.end_time) - MC.toMin(a.start_time)) / step));
+          const aStart = MC.toMin(a.start_time), aEnd = MC.toMin(a.end_time);
+          /* rowspan covers remaining visible slots for this appointment */
+          const span = Math.max(1, Math.ceil((aEnd - t) / step));
           for (let k = 1; k < span; k++) covered[c.st.name + '|' + (t + k * step)] = true;
-          const col = { booked: '#DBEAFE', arrived: '#DCFCE7', no_show: '#FEE2E2' }[a.status] || '#EEE';
-          const cellBorder = (a.status === 'booked') ? '2px solid #3B82F6' : '1px solid #fff';
+          const isNow = nowMin != null && aStart <= nowMin && nowMin < aEnd;
+          let col, cellBorder;
+          if (isNow)   { col = '#DCFCE7'; cellBorder = '2px solid #16A34A'; }
+          else         { col = { booked: '#DBEAFE', arrived: '#DCFCE7', no_show: '#FEE2E2' }[a.status] || '#EEE';
+                         cellBorder = (a.status === 'booked') ? '2px solid #3B82F6' : '1px solid #ccc'; }
+          const nowBadge = isNow ? '<span style="display:inline-block;font-size:9px;background:#16A34A;color:#fff;border-radius:4px;padding:1px 5px;font-weight:800;margin-right:3px;vertical-align:middle;">NOW</span>' : '';
           rows += '<td rowspan="' + span + '" style="background:' + col + ';border:' + cellBorder + ';border-radius:8px;padding:5px 7px;font-size:12px;cursor:pointer;vertical-align:top;" onclick="MC.appt.openAppt(\'' + a.id + '\')">' +
-            '<b>' + MC.esc(a.customer_name) + '</b><br>' + MC.esc(a.service) + '<br><span style="color:var(--muted);">' + a.start_time.slice(0, 5) + '–' + a.end_time.slice(0, 5) + (a.status !== 'booked' ? ' · ' + a.status.replace('_', ' ') : '') + '</span></td>';
+            nowBadge + '<b>' + MC.esc(a.customer_name) + '</b><br>' + MC.esc(a.service) + '<br><span style="color:var(--muted);">' + a.start_time.slice(0, 5) + '–' + a.end_time.slice(0, 5) + (a.status !== 'booked' ? ' · ' + a.status.replace('_', ' ') : '') + '</span></td>';
         } else if (c.w && t >= c.w[0] && t < c.w[1]) {
           rows += '<td style="border:1px dashed #E5E7EB;cursor:pointer;text-align:center;color:#CBD5E1;font-size:12px;" onclick="MC.appt.openNew(\'' + c.st.name.replace(/'/g, "\\'") + '\',\'' + MC.fromMin(t) + '\')">+</td>';
         } else rows += '<td style="background:#F1F5F9;"></td>';
       });
       rows += '</tr>';
     }
-    el.innerHTML = head + '<div style="overflow:auto;"><table style="border-collapse:separate;border-spacing:2px;width:100%;min-width:' + (60 + cols.length * 130) + 'px;"><thead><tr><th></th>' +
-      cols.map(c => '<th style="font-size:13px;padding:6px;background:' + (c.w ? '#EEF6FF' : '#F1F5F9') + ';border-radius:8px;">' + MC.esc(c.st.name) +
-        (!c.w ? '<div style="font-size:10px;color:var(--muted);font-weight:600;">off</div>' : '') + '</th>').join('') +
-      '</tr></thead><tbody>' + rows + '</tbody></table></div>';
+    el.innerHTML = head + banner + '<div style="overflow:auto;"><table style="border-collapse:separate;border-spacing:2px;width:100%;min-width:' + (60 + cols.length * 130) + 'px;"><thead><tr><th></th>' +
+      cols.map(c => {
+        const rem = isToday ? S.appts.filter(a => a.stylist === c.st.name && a.status !== 'cancelled' && (nowMin == null || MC.toMin(a.end_time) > nowMin)).length : null;
+        const sub = c.w
+          ? (rem != null ? '<div style="font-size:10px;font-weight:700;color:' + (rem > 0 ? '#3B82F6' : '#16A34A') + ';">' + (rem > 0 ? rem + ' upcoming' : '✓ done') + '</div>' : '')
+          : '<div style="font-size:10px;color:var(--muted);font-weight:600;">off</div>';
+        return '<th style="font-size:13px;padding:6px;background:' + (c.w ? '#EEF6FF' : '#F1F5F9') + ';border-radius:8px;">' + MC.esc(c.st.name) + sub + '</th>';
+      }).join('') + '</tr></thead><tbody>' + rows + '</tbody></table></div>';
+
+    if (isToday) {
+      if (!A._refreshTimer) A._refreshTimer = setInterval(function () {
+        if (MC.appt.state.date === MC.today()) { MC.appt.loadDay(MC.appt.state.date).then(function () { MC.appt.render(); }).catch(function () { MC.appt.render(); }); }
+        else { clearInterval(MC.appt._refreshTimer); MC.appt._refreshTimer = null; }
+      }, 60000);
+    } else if (A._refreshTimer) { clearInterval(A._refreshTimer); A._refreshTimer = null; }
   };
   A.listHtml = function () {
     const l = A.state.appts.filter(a => a.status !== 'cancelled');
