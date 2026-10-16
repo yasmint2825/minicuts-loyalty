@@ -847,11 +847,73 @@ function toggleSide(force){
 let _custMap={};   // customer_id -> customer data
 let _prizesMap={}; // customer_id -> array of prizes_given rows
 
+// Staff availability for today: populated by _loadStyAvail() called inside loadQ()
+let _sfStaff=[], _sfLeaves=[], _sfRoster=[];
+let _styAvail={}; // name -> {off:bool, partial:bool, offFrom:'', offTo:''}
+
+async function _loadStyAvail(){
+  const t=today(), dow=new Date().getDay();
+  try{
+    const [sfraw,lv,ro]=await Promise.all([
+      sb('staff','GET',null,'select=id,name,off_days&status=neq.inactive&limit=200').catch(()=>[]),
+      sb('staff_leaves','GET',null,'select=staff_id,from_date,to_date,status&from_date=lte.'+t+'&to_date=gte.'+t+'&status=not.in.(rejected,cancelled)&limit=500').catch(()=>[]),
+      sb('staff_roster','GET',null,'select=staff_id,from_date,to_date,type,from_time,to_time&from_date=lte.'+t+'&to_date=gte.'+t+'&limit=500').catch(()=>[])
+    ]);
+    _sfStaff=sfraw; _sfLeaves=lv; _sfRoster=ro;
+    const idMap={}, avail={};
+    sfraw.forEach(s=>{
+      idMap[s.id]=s;
+      avail[s.name]={off:false,partial:false,offFrom:'',offTo:''};
+      // Weekly off_days
+      const od=Array.isArray(s.off_days)?s.off_days.map(Number):(typeof s.off_days==='string'?JSON.parse(s.off_days||'[]').map(Number):[]);
+      if(od.includes(dow)) avail[s.name].off=true;
+    });
+    // Seed any STYLISTS names not in staff table
+    (STYLISTS||[]).forEach(n=>{if(!avail[n])avail[n]={off:false,partial:false,offFrom:'',offTo:''};});
+    // Approved leaves
+    lv.forEach(l=>{const s=idMap[l.staff_id];if(s&&avail[s.name])avail[s.name].off=true;});
+    // Roster events
+    ro.forEach(e=>{
+      if(!e.staff_id){
+        // Salon-wide event
+        if(e.type==='vacation'||e.type==='public_holiday'||(e.type==='compoff'&&!e.from_time))
+          Object.values(avail).forEach(a=>{a.off=true;});
+        return;
+      }
+      const s=idMap[e.staff_id]; if(!s||!avail[s.name]) return;
+      if(e.type==='vacation'||e.type==='public_holiday'||(e.type==='compoff'&&!e.from_time)){
+        avail[s.name].off=true;
+      } else if(e.type==='compoff'&&e.from_time&&e.to_time){
+        avail[s.name].partial=true;
+        avail[s.name].offFrom=e.from_time.slice(0,5);
+        avail[s.name].offTo=e.to_time.slice(0,5);
+      }
+    });
+    _styAvail=avail;
+  }catch(e){console.warn('_loadStyAvail:',e.message);}
+}
+
+// Build <option> tags for a stylist select, respecting availability labels
+function _styOpts(selected, placeholder){
+  let opts='<option value="">'+placeholder+'</option>';
+  (STYLISTS||[]).forEach(s=>{
+    const a=_styAvail[s];
+    let label=s;
+    if(a&&a.partial) label=s+' ⏸ (out '+a.offFrom+'–'+a.offTo+')';
+    else if(a&&a.off) label=s+' (off today)';
+    opts+='<option value="'+s+'"'+(selected===s?' selected':'')+'>'+label+'</option>';
+  });
+  return opts;
+}
+
 async function loadQ(){
   const body=document.getElementById('qt-body');
   if(body)body.innerHTML='<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--muted);">Loading...</td></tr>';
   try{
-    const rows=await sb('queue','GET',null,'select=*&checkin_date=eq.'+today()+'&order=token_number.asc&limit=200');
+    const [rows]=await Promise.all([
+      sb('queue','GET',null,'select=*&checkin_date=eq.'+today()+'&order=token_number.asc&limit=200'),
+      _loadStyAvail()
+    ]);
     _qdata=rows||[];
     await loadVoidedSet(today(),today());
     const custIds=_qdata.map(r=>r.customer_id).filter(Boolean);
@@ -885,9 +947,23 @@ async function loadQ(){
 function populateStyFilter(){
   const sel=document.getElementById('f-sty');if(!sel)return;
   const cur=sel.value;sel.innerHTML='<option value="">All Stylists</option>';
-  STYLISTS.forEach(s=>{const o=document.createElement('option');o.value=s;o.textContent=s;sel.appendChild(o);});
+  // Split stylists: available → partial comp-off → off
+  const avail=[], partial=[], off=[];
+  (STYLISTS||[]).forEach(s=>{
+    const a=_styAvail[s];
+    if(a&&a.off) off.push(s);
+    else if(a&&a.partial) partial.push(s);
+    else avail.push(s);
+  });
+  const addO=(s,label,style)=>{const o=document.createElement('option');o.value=s;o.textContent=label;if(style)o.setAttribute('style',style);sel.appendChild(o);};
+  avail.forEach(s=>addO(s,s));
+  partial.forEach(s=>{const a=_styAvail[s];addO(s,s+' ⏸ (out '+a.offFrom+'–'+a.offTo+')','color:#92400E;');});
+  if(off.length){
+    const sep=document.createElement('option');sep.disabled=true;sep.textContent='── Off today ──';sel.appendChild(sep);
+    off.forEach(s=>addO(s,s+' (off today)','color:#94A3B8;'));
+  }
   const used=new Set(_qdata.map(r=>r.stylist).filter(Boolean));
-  used.forEach(s=>{if(!STYLISTS.includes(s)){const o=document.createElement('option');o.value=s;o.textContent=s+'*';sel.appendChild(o);}});
+  used.forEach(s=>{if(!STYLISTS.includes(s)){addO(s,s+'*');}});
   sel.value=cur;
 }
 
@@ -1018,8 +1094,8 @@ function buildRow(r){
   const done=r.status==='done';const called=r.status==='called';const cancelled=r.status==='cancelled';
   const guest=r.is_guest||!r.customer_id;const locked=done||cancelled;
   const sp=done?'<span class="sp sp-d">✅ Done</span>':called?'<span class="sp sp-c">📢 Called</span>':cancelled?'<span class="sp" style="background:#F3F4F6;color:var(--muted);">✕ Cancelled</span>':'<span class="sp sp-w">⏳ Waiting</span>';
-  const sty1Opts='<option value="">— Stylist 1 —</option>'+STYLISTS.map(s=>'<option value="'+s+'"'+(r.stylist===s?' selected':'')+'>'+s+'</option>').join('');
-  const sty2Opts='<option value="">— Stylist 2 —</option>'+STYLISTS.map(s=>'<option value="'+s+'"'+(r.stylist2===s?' selected':'')+'>'+s+'</option>').join('');
+  const sty1Opts=_styOpts(r.stylist,'— Stylist 1 —');
+  const sty2Opts=_styOpts(r.stylist2,'— Stylist 2 —');
   const svcOpts=SVCS.map(s=>'<option'+(r.service===s?' selected':'')+'>'+s+'</option>').join('');
   const remark=escQ(r.remark||'');
   const tip=r.tip||'';
@@ -1367,8 +1443,8 @@ function showHistWA(id){
 
 function editHistRow(id){
   const r=_histData.find(x=>x.id===id)||_qdata.find(x=>x.id===id);if(!r)return;
-  const sty1Opts=STYLISTS.map(s=>'<option value="'+s+'"'+(r.stylist===s?' selected':'')+'>'+s+'</option>').join('');
-  const sty2Opts=STYLISTS.map(s=>'<option value="'+s+'"'+(r.stylist2===s?' selected':'')+'>'+s+'</option>').join('');
+  const sty1Opts=_styOpts(r.stylist,'— Stylist 1 —');
+  const sty2Opts=_styOpts(r.stylist2,'— Stylist 2 —');
   const svcOpts=SVCS.map(s=>'<option'+(r.service===s?' selected':'')+'>'+s+'</option>').join('');
   const ov=document.createElement('div');
   ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9000;display:flex;align-items:center;justify-content:center;padding:20px;';
