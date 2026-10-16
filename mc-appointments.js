@@ -31,7 +31,10 @@
     if (!day || !day.appts) return null;
     if ((stylist.off_days || []).map(Number).includes(dow)) return null;
     if ((leaves || []).some(l => l.staff_id === stylist.id && l.status !== 'rejected' && l.status !== 'cancelled' && ymd >= l.from_date && ymd <= l.to_date)) return null;
-    if ((roster || []).some(e => (e.staff_id === stylist.id || !e.staff_id) && ymd >= e.from_date && ymd <= (e.to_date || e.from_date) && ['vacation', 'public_holiday', 'compoff'].includes(e.type))) return null;
+    // Full-day blocks: vacation, public_holiday, OR compoff with no from_time (full day)
+    if ((roster || []).some(e => (e.staff_id === stylist.id || !e.staff_id) && ymd >= e.from_date && ymd <= (e.to_date || e.from_date) &&
+      (e.type === 'vacation' || e.type === 'public_holiday' || (e.type === 'compoff' && !e.from_time)))) return null;
+    // Partial compoff (has from_time/to_time) does NOT block the whole day — slots() handles it
     let s = MC.toMin(day.open), e = MC.toMin(day.close);
     const ov = (cfg.shifts[stylist.name] || {})[dow];
     if (ov && ov.length === 2) { s = Math.max(s, MC.toMin(ov[0])); e = Math.min(e, MC.toMin(ov[1])); }
@@ -41,16 +44,28 @@
     .map(a => [MC.toMin(a.start_time), MC.toMin(a.end_time)]);
   A.overlaps = (busy, s, e) => busy.some(b => s < b[1] && e > b[0]);
 
+  /* Return partial comp-off [fromMin,toMin] ranges for a stylist on a given date */
+  A.partialCompoff = function (stylist, ymd, roster) {
+    return (roster || [])
+      .filter(e => (e.staff_id === stylist.id || !e.staff_id) &&
+                   ymd >= e.from_date && ymd <= (e.to_date || e.from_date) &&
+                   e.type === 'compoff' && e.from_time && e.to_time)
+      .map(e => [MC.toMin(e.from_time.slice(0, 5)), MC.toMin(e.to_time.slice(0, 5))]);
+  };
+
   /* free start times for one stylist */
   A.stylistSlots = function (o) {
     const w = A.window(o.cfg, o.stylist, o.date, o.leaves, o.roster);
     if (!w) return [];
     const busy = A.busy(o.appts, o.stylist.name, o.date).filter(b => !(o.ignoreId && b.id === o.ignoreId));
+    // Add partial comp-off windows — stylist is unavailable during these hours
+    const partialBlocked = A.partialCompoff(o.stylist, o.date, o.roster);
+    const allBusy = busy.concat(partialBlocked);
     const out = [];
     const minStart = o.nowMin != null ? o.nowMin + o.cfg.leadMin : -1;
     for (let t = w[0]; t + o.durationMin <= w[1]; t += o.cfg.slot) {
       if (t < minStart) continue;
-      if (!A.overlaps(busy, t, t + o.durationMin)) out.push(t);
+      if (!A.overlaps(allBusy, t, t + o.durationMin)) out.push(t);
     }
     return out;
   };
@@ -148,7 +163,11 @@
     A.updateNavBadge();
 
     const open = MC.toMin(day.open), close = MC.toMin(day.close), step = cfg.slot;
-    const cols = S.staff.map(st => ({ st, w: A.window(cfg, st, S.date, S.leaves, S.roster) }));
+    const cols = S.staff.map(st => ({
+      st,
+      w: A.window(cfg, st, S.date, S.leaves, S.roster),
+      partialBlocked: A.partialCompoff(st, S.date, S.roster)
+    }));
     if (!cols.length) { el.innerHTML = head + '<div class="card">No stylists found in Staff Mgmt.</div>'; return; }
 
     const totalToday = isToday ? S.appts.filter(a => a.status !== 'cancelled').length : 0;
@@ -194,11 +213,16 @@
           rows += '<td rowspan="' + span + '" style="background:' + col + ';border:' + cellBorder + ';border-radius:8px;padding:5px 7px;font-size:12px;cursor:pointer;vertical-align:top;" onclick="MC.appt.openAppt(\'' + a.id + '\')">' +
             nowBadge + '<b>' + MC.esc(a.customer_name) + '</b><br>' + MC.esc(a.service) + '<br><span style="color:var(--muted);">' + a.start_time.slice(0, 5) + '–' + a.end_time.slice(0, 5) + (a.status !== 'booked' ? ' · ' + a.status.replace('_', ' ') : '') + '</span></td>';
         } else if (c.w && t >= c.w[0] && t < c.w[1]) {
-          const cellStyle = isPast
-            ? 'background:#FAFAFA;border:1px solid #F1F5F9;text-align:center;color:#E2E8F0;font-size:12px;'
-            : 'border:1px dashed #E5E7EB;cursor:pointer;text-align:center;color:#CBD5E1;font-size:12px;';
-          const click = isPast ? '' : ' onclick="MC.appt.openNew(\'' + c.st.name.replace(/'/g, "\\'") + '\',\'' + MC.fromMin(t) + '\')"';
-          rows += '<td style="' + cellStyle + '"' + click + '>' + (isPast ? '' : '+') + '</td>';
+          const isCompoff = (c.partialBlocked || []).some(pb => t < pb[1] && t + step > pb[0]);
+          if (isCompoff) {
+            rows += '<td style="background:#FEF9C3;border:1px solid #FDE68A;text-align:center;font-size:10px;color:#92400E;" title="Comp-off">🕐</td>';
+          } else {
+            const cellStyle = isPast
+              ? 'background:#FAFAFA;border:1px solid #F1F5F9;text-align:center;color:#E2E8F0;font-size:12px;'
+              : 'border:1px dashed #E5E7EB;cursor:pointer;text-align:center;color:#CBD5E1;font-size:12px;';
+            const click = isPast ? '' : ' onclick="MC.appt.openNew(\'' + c.st.name.replace(/'/g, "\\'") + '\',\'' + MC.fromMin(t) + '\')"';
+            rows += '<td style="' + cellStyle + '"' + click + '>' + (isPast ? '' : '+') + '</td>';
+          }
         } else rows += '<td style="background:#F1F5F9;"></td>';
       });
       rows += '</tr>';
@@ -206,9 +230,14 @@
     el.innerHTML = head + banner + '<div style="overflow:auto;"><table style="border-collapse:separate;border-spacing:2px;width:100%;min-width:' + (60 + cols.length * 130) + 'px;"><thead><tr><th></th>' +
       cols.map(c => {
         const rem = isToday ? S.appts.filter(a => a.stylist === c.st.name && a.status !== 'cancelled' && (nowMin == null || MC.toMin(a.end_time) > nowMin)).length : null;
-        const sub = c.w
-          ? (rem != null ? '<div style="font-size:10px;font-weight:700;color:' + (rem > 0 ? '#3B82F6' : '#16A34A') + ';">' + (rem > 0 ? rem + ' upcoming' : '✓ done') + '</div>' : '')
-          : '<div style="font-size:10px;color:var(--muted);font-weight:600;">off</div>';
+        let sub;
+        if (!c.w) {
+          sub = '<div style="font-size:10px;color:var(--muted);font-weight:600;">off</div>';
+        } else {
+          const coRange = (c.partialBlocked || []).map(pb => MC.fromMin(pb[0]) + '–' + MC.fromMin(pb[1])).join(', ');
+          const coLabel = coRange ? '<div style="font-size:9px;background:#FEF9C3;border-radius:4px;padding:1px 4px;color:#92400E;font-weight:700;margin-top:2px;">🕐 out ' + coRange + '</div>' : '';
+          sub = (rem != null ? '<div style="font-size:10px;font-weight:700;color:' + (rem > 0 ? '#3B82F6' : '#16A34A') + ';">' + (rem > 0 ? rem + ' upcoming' : '✓ done') + '</div>' : '') + coLabel;
+        }
         return '<th style="font-size:13px;padding:6px;background:' + (c.w ? '#EEF6FF' : '#F1F5F9') + ';border-radius:8px;">' + MC.esc(c.st.name) + sub + '</th>';
       }).join('') + '</tr></thead><tbody>' + rows + '</tbody></table></div>';
 
