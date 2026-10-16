@@ -43,20 +43,20 @@ body{display:flex;flex-direction:column;overflow:hidden;}
 .bg2{background:transparent;color:var(--b);border:1.5px solid var(--b);}.bg2:hover{background:var(--bl);}
 .bd2{background:var(--err);color:#fff;}.bd2:hover{background:#b91c1c;}
 .bsm{padding:5px 10px;font-size:12px;border-radius:6px;}
-.card{background:#fff;border-radius:var(--r);padding:18px;margin-bottom:14px;box-shadow:var(--sh);}
+.card{background:#fff;border-radius:var(--r);padding:18px;margin-bottom:14px;box-shadow:0 1px 3px rgba(15,23,42,.04);border:1px solid var(--border);}
 .fg{margin-bottom:12px;}
 .fl{display:block;font-size:12px;font-weight:700;color:var(--text);margin-bottom:4px;}
 .fi{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:var(--rs);font-family:var(--fb);font-size:13.5px;color:var(--text);background:#fff;outline:none;transition:border-color .15s;}
 .fi:focus{border-color:var(--b);box-shadow:0 0 0 3px rgba(21,101,192,.1);}
 select.fi{appearance:none;-webkit-appearance:none;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236B7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 10px center;padding-right:28px;cursor:pointer;}
 .fr{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-.tw{overflow-x:auto;border-radius:var(--r);box-shadow:var(--sh);}
+.tw{overflow-x:auto;border-radius:var(--r);border:1px solid var(--border);}
 table{width:100%;border-collapse:collapse;background:#fff;}
-thead{background:var(--bd);}
-thead th{color:#fff;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:11px 12px;text-align:left;white-space:nowrap;}
+thead{background:#F5F8FE;}
+thead th{color:#475569;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:11px 12px;text-align:left;white-space:nowrap;border-bottom:1px solid var(--border);}
 tbody tr{border-bottom:1px solid var(--border);}
 tbody tr:last-child{border-bottom:none;}
-tbody tr:hover{background:var(--bl);}
+tbody tr:hover{background:#FAFCFF;}
 tbody td{padding:10px 12px;font-size:13px;vertical-align:middle;}
 .badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:700;}
 .bg-ok{background:var(--okl);color:var(--ok);}
@@ -95,7 +95,7 @@ tbody td{padding:10px 12px;font-size:13px;vertical-align:middle;}
 .ph-r{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
 
 /* ─── CARD TITLE ─── */
-.card-title{font-family:var(--fh);font-size:16px;font-weight:800;margin-bottom:4px;}
+.card-title{font-family:var(--fh);font-size:16px;font-weight:800;color:var(--bd);margin-bottom:4px;}
 </style>
 </head>
 <body>
@@ -1083,9 +1083,9 @@ function smRenderRoster(){
   }
   const dayNums=Array.from({length:daysInMonth},(_,i)=>i+1);
   const DS=['Su','Mo','Tu','We','Th','Fr','Sa'];
-  let html='<table style="border-collapse:collapse;min-width:100%;font-size:12px;"><thead><tr><th style="background:var(--bd);color:#fff;padding:8px 12px;text-align:left;position:sticky;left:0;z-index:2;min-width:120px;white-space:nowrap;">Staff</th>';
-  dayNums.forEach(d=>{const dow=new Date(y,m,d).getDay();html+=`<th style="background:${dow===5||dow===6?'#1e3a5f':'var(--bd)'};color:#fff;padding:5px 2px;text-align:center;min-width:34px;font-size:10px;">${d}<br><span style="opacity:.7;">${DS[dow]}</span></th>`;});
-  html+='<th style="background:var(--bd);color:#fff;padding:8px;text-align:center;min-width:70px;">Summary</th></tr></thead><tbody>';
+  let html='<table style="border-collapse:collapse;min-width:100%;font-size:12px;border:1px solid var(--border);border-radius:var(--r);overflow:hidden;"><thead><tr><th style="background:#F5F8FE;color:#475569;padding:8px 12px;text-align:left;position:sticky;left:0;z-index:2;min-width:120px;white-space:nowrap;border-bottom:1px solid var(--border);">STAFF</th>';
+  dayNums.forEach(d=>{const dow=new Date(y,m,d).getDay();html+=`<th style="background:${dow===5||dow===6?'#EFF4FF':'#F5F8FE'};color:${dow===5||dow===6?'var(--b)':'#475569'};padding:5px 2px;text-align:center;min-width:34px;font-size:10px;border-bottom:1px solid var(--border);">${d}<br><span style="opacity:.7;">${DS[dow]}</span></th>`;});
+  html+='<th style="background:#F5F8FE;color:#475569;padding:8px;text-align:center;min-width:70px;border-bottom:1px solid var(--border);">SUMMARY</th></tr></thead><tbody>';
   staff.forEach(s=>{
     let wd=0,ld=0,otd=0;
     html+=`<tr><td style="padding:7px 12px;font-weight:700;font-size:12.5px;background:#fff;position:sticky;left:0;z-index:1;border-bottom:1px solid var(--border);white-space:nowrap;">${s.name}</td>`;
@@ -1133,7 +1133,7 @@ function smLoadAttendance(){
       const mins=sRecs.reduce((acc,a)=>acc+Math.max(0,smTimeToMins(a.check_out)-smTimeToMins(a.check_in)),0);
       const hrs=mins/60;const pct=Math.min(100,Math.round((hrs/62)*100));
       const color=hrs>=62?'var(--ok)':hrs>=40?'var(--warn)':'var(--err)';
-      return`<div style="background:#fff;border-radius:var(--r);padding:12px 14px;box-shadow:var(--sh);display:flex;flex-direction:column;gap:4px;">
+      return`<div style="background:#fff;border-radius:var(--r);padding:12px 14px;box-shadow:0 1px 3px rgba(15,23,42,.04);border:1px solid var(--border);display:flex;flex-direction:column;gap:4px;">
         <div style="font-size:12.5px;font-weight:800;">${s.name}</div>
         <div style="width:100%;height:6px;background:var(--border);border-radius:99px;overflow:hidden;"><div style="width:${pct}%;height:100%;background:${color};border-radius:99px;"></div></div>
         <div style="font-size:11px;color:${color};font-weight:700;">${smMinsToHrs(mins)} this week <span style="color:var(--muted);font-weight:600;">/ 62h target</span></div>
@@ -1353,7 +1353,7 @@ function smLoadLeaves(){
     const cards=staff.map(s=>{
       const yr=leaves.filter(l=>l.staff_id===s.id&&l.from_date.startsWith(curYear)&&l.status!=='rejected');
       const pills=leaveTypes.map(t=>{const total=yr.filter(l=>l.type===t.key).reduce((a,l)=>a+(parseFloat(l.days)||0),0);return total?`<span style="background:${t.bg||'#F0F4FF'};padding:2px 7px;border-radius:99px;font-size:11px;font-weight:700;">${t.code}:${total}d</span>`:''}).filter(Boolean).join(' ');
-      return`<div style="background:#fff;border-radius:var(--r);padding:12px 14px;box-shadow:var(--sh);"><div style="font-size:12.5px;font-weight:800;margin-bottom:6px;">${s.name}</div><div style="display:flex;gap:6px;flex-wrap:wrap;">${pills||'<span style="color:var(--muted);font-size:12px;">No leaves</span>'}</div></div>`;
+      return`<div style="background:#fff;border-radius:var(--r);padding:12px 14px;box-shadow:0 1px 3px rgba(15,23,42,.04);border:1px solid var(--border);"><div style="font-size:12.5px;font-weight:800;margin-bottom:6px;">${s.name}</div><div style="display:flex;gap:6px;flex-wrap:wrap;">${pills||'<span style="color:var(--muted);font-size:12px;">No leaves</span>'}</div></div>`;
     }).join('');
     summaryEl.innerHTML=`<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">${curYear} Leave Balances</div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;">${cards}</div>`;
   }
@@ -1405,7 +1405,7 @@ function smLoadOT(){
       const total=m.reduce((a,o)=>a+(parseFloat(o.hours)||0),0);
       const pending=m.filter(o=>o.status==='pending').reduce((a,o)=>a+(parseFloat(o.hours)||0),0);
       const settled=m.filter(o=>o.status==='adjusted').reduce((a,o)=>a+(parseFloat(o.hours)||0),0);
-      return`<div style="background:#fff;border-radius:var(--r);padding:12px 14px;box-shadow:var(--sh);"><div style="font-size:12.5px;font-weight:800;margin-bottom:4px;">${s.name}</div><div style="display:flex;gap:8px;font-size:11px;font-weight:700;"><span style="color:var(--warn);">OT:${total}h</span><span style="color:var(--err);">Pending:${pending}h</span><span style="color:var(--ok);">Settled:${settled}h</span></div></div>`;
+      return`<div style="background:#fff;border-radius:var(--r);padding:12px 14px;box-shadow:0 1px 3px rgba(15,23,42,.04);border:1px solid var(--border);"><div style="font-size:12.5px;font-weight:800;margin-bottom:4px;">${s.name}</div><div style="display:flex;gap:8px;font-size:11px;font-weight:700;"><span style="color:var(--warn);">OT:${total}h</span><span style="color:var(--err);">Pending:${pending}h</span><span style="color:var(--ok);">Settled:${settled}h</span></div></div>`;
     }).join('');
     summaryEl.innerHTML=`<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">This Month OT Summary</div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;">${cards}</div>`;
   }
