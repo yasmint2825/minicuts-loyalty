@@ -520,16 +520,26 @@ tbody td{padding:10px 12px;font-size:13px;vertical-align:middle;}
       <select class="fi" id="sm-re-staff"><option value="">All Staff (Salon-wide)</option></select>
     </div>
     <div class="fg"><label class="fl">Event Type *</label>
-      <select class="fi" id="sm-re-type">
+      <select class="fi" id="sm-re-type" onchange="smRosterTypeChange()">
         <option value="vacation">Vacation / Annual Leave</option>
         <option value="adjusted">Roster Adjustment</option>
         <option value="public_holiday">Public Holiday</option>
-        <option value="compoff">Comp Off Day</option>
+        <option value="compoff">Comp Off</option>
       </select>
     </div>
     <div class="fr">
       <div class="fg"><label class="fl">From Date *</label><input class="fi" type="date" id="sm-re-from"></div>
-      <div class="fg"><label class="fl">To Date *</label><input class="fi" type="date" id="sm-re-to"></div>
+      <div class="fg" id="sm-re-to-wrap"><label class="fl">To Date *</label><input class="fi" type="date" id="sm-re-to"></div>
+    </div>
+    <!-- Partial comp-off time row — shown only when type=compoff -->
+    <div id="sm-re-partial-wrap" style="display:none;">
+      <div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:12px;color:#1D4ED8;">
+        🕐 <strong>Partial comp-off</strong> — stylist is available outside these hours. Leave times blank for a full-day comp-off.
+      </div>
+      <div class="fr">
+        <div class="fg"><label class="fl">Off From (time)</label><input class="fi" type="time" id="sm-re-from-time" placeholder="e.g. 13:00"></div>
+        <div class="fg"><label class="fl">Off Until (time)</label><input class="fi" type="time" id="sm-re-to-time" placeholder="e.g. 15:00"></div>
+      </div>
     </div>
     <div class="fg"><label class="fl">Notes</label><input class="fi" type="text" id="sm-re-notes" placeholder="e.g. Eid Al Fitr holidays"></div>
     <div class="mf">
@@ -1099,20 +1109,49 @@ function smRenderRoster(){
   html+='</tbody></table>';el.innerHTML=html;
 }
 
+function smRosterTypeChange(){
+  const t=document.getElementById('sm-re-type').value;
+  const pw=document.getElementById('sm-re-partial-wrap');
+  const tw=document.getElementById('sm-re-to-wrap');
+  if(pw)pw.style.display=(t==='compoff')?'block':'none';
+  // For comp-off the to-date defaults to the from-date (single day); keep it visible
+  if(t!=='compoff'){document.getElementById('sm-re-from-time').value='';document.getElementById('sm-re-to-time').value='';}
+  // Auto-fill to-date = from-date when switching to compoff
+  if(t==='compoff'){const f=document.getElementById('sm-re-from').value;if(f&&!document.getElementById('sm-re-to').value)document.getElementById('sm-re-to').value=f;}
+}
 function smOpenRosterEvent(){
   smPopulateDropdowns(['sm-re-staff']);
   const el=document.getElementById('sm-re-staff');if(el)el.insertAdjacentHTML('afterbegin','<option value="">All Staff (Salon-wide)</option>');
   document.getElementById('sm-re-id').value='';document.getElementById('sm-re-type').value='vacation';
-  document.getElementById('sm-re-from').value='';document.getElementById('sm-re-to').value='';document.getElementById('sm-re-notes').value='';
+  document.getElementById('sm-re-from').value='';document.getElementById('sm-re-to').value='';
+  document.getElementById('sm-re-from-time').value='';document.getElementById('sm-re-to-time').value='';
+  document.getElementById('sm-re-notes').value='';
+  const pw=document.getElementById('sm-re-partial-wrap');if(pw)pw.style.display='none';
   openM('sm-roster-modal');
 }
 function smSaveRosterEvent(){
-  const from=document.getElementById('sm-re-from').value,to=document.getElementById('sm-re-to').value;
-  if(!from||!to){toast('Please select date range','error');return;}
-  const data={id:document.getElementById('sm-re-id').value||smUID(),staff_id:document.getElementById('sm-re-staff').value||null,type:document.getElementById('sm-re-type').value,from_date:from,to_date:to,notes:document.getElementById('sm-re-notes').value.trim(),created_at:new Date().toISOString()};
+  const type=document.getElementById('sm-re-type').value;
+  const from=document.getElementById('sm-re-from').value;
+  let to=document.getElementById('sm-re-to').value;
+  if(!from){toast('Please select a start date','error');return;}
+  if(!to)to=from; // comp-off defaults to single day
+  const fromTime=document.getElementById('sm-re-from-time').value||null;
+  const toTime=document.getElementById('sm-re-to-time').value||null;
+  if(type==='compoff'&&fromTime&&toTime&&fromTime>=toTime){toast('Off-until time must be after Off-from time','error');return;}
+  const data={
+    id:document.getElementById('sm-re-id').value||smUID(),
+    staff_id:document.getElementById('sm-re-staff').value||null,
+    type,from_date:from,to_date:to,
+    from_time:(type==='compoff'?fromTime:null),
+    to_time:(type==='compoff'?toTime:null),
+    notes:document.getElementById('sm-re-notes').value.trim(),
+    created_at:new Date().toISOString()
+  };
   const list=smLS(SM_ROSTER_KEY);const idx=list.findIndex(r=>r.id===data.id);
   if(idx>=0)list[idx]=data;else list.push(data);
-  _smCache[SM_ROSTER_KEY]=list;_smSyncToDB(SM_ROSTER_KEY,[data]);closeM('sm-roster-modal');toast('Roster event saved ✅');smRenderRoster();
+  _smCache[SM_ROSTER_KEY]=list;_smSyncToDB(SM_ROSTER_KEY,[data]);closeM('sm-roster-modal');
+  const label=data.from_time?`Partial comp-off saved (${data.from_time.slice(0,5)}–${data.to_time.slice(0,5)}) ✅`:'Roster event saved ✅';
+  toast(label);smRenderRoster();
 }
 
 // ══ ATTENDANCE ══
