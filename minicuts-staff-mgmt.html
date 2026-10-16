@@ -86,6 +86,15 @@ tbody td{padding:10px 12px;font-size:13px;vertical-align:middle;}
 .toast.info{border-left:4px solid var(--b);}
 
 @media(max-width:600px){.fr{grid-template-columns:1fr;}.content{padding:12px 14px;}}
+
+/* ─── PAGE HEADER — shared across all sub-tabs ─── */
+.ph{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px;flex-shrink:0;}
+.ph-t{font-family:var(--fh);font-size:17px;font-weight:800;color:var(--bd);}
+.ph-s{font-size:12px;color:var(--muted);margin-top:2px;}
+.ph-r{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+
+/* ─── CARD TITLE ─── */
+.card-title{font-family:var(--fh);font-size:16px;font-weight:800;margin-bottom:4px;}
 </style>
 </head>
 <body>
@@ -115,13 +124,13 @@ tbody td{padding:10px 12px;font-size:13px;vertical-align:middle;}
 
   <!-- ROSTER -->
   <div id="smtab-roster" class="tab-pane" style="display:block;">
-    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
+    <div class="ph">
       <div style="display:flex;align-items:center;gap:10px;">
         <button class="btn bg2 bsm" onclick="smRosterPrevMonth()">‹ Prev</button>
-        <span id="sm-roster-title" style="font-family:var(--fh);font-size:16px;font-weight:800;min-width:160px;text-align:center;"></span>
+        <span id="sm-roster-title" class="ph-t" style="min-width:160px;text-align:center;"></span>
         <button class="btn bg2 bsm" onclick="smRosterNextMonth()">Next ›</button>
       </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <div class="ph-r">
         <button class="btn bg2 bsm" onclick="smOpenRosterEvent()">+ Add Vacation/Adjustment</button>
         <button class="btn bp bsm" onclick="smRenderRoster()">↻ Refresh</button>
       </div>
@@ -139,15 +148,18 @@ tbody td{padding:10px 12px;font-size:13px;vertical-align:middle;}
 
   <!-- ATTENDANCE -->
   <div id="smtab-attendance" class="tab-pane">
-    <!-- Quick action bar -->
-    <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
-      <button class="btn bsm" onclick="smOpenQuickCheckin()" style="background:var(--ok);color:#fff;font-size:14px;padding:10px 20px;border-radius:10px;font-weight:800;gap:7px;">🟢 Check In</button>
-      <button class="btn bsm" onclick="smOpenQuickCheckout()" style="background:var(--err);color:#fff;font-size:14px;padding:10px 20px;border-radius:10px;font-weight:800;gap:7px;">🔴 Check Out</button>
-      <div style="flex:1;min-width:120px;display:flex;align-items:center;gap:8px;justify-content:flex-end;flex-wrap:wrap;">
-        <input type="date" id="sm-att-date" class="fi" style="width:150px;padding:7px 10px;font-size:13px;">
+    <div class="ph">
+      <div><div class="ph-t">🕐 Attendance</div><div class="ph-s">Track daily check-in and check-out</div></div>
+      <div class="ph-r">
+        <input type="date" id="sm-att-date" class="fi" style="width:150px;">
         <button class="btn bg2 bsm" onclick="smOpenCheckin()" title="Add full attendance record">+ Full Record</button>
         <button class="btn bg2 bsm" onclick="smLoadAttendance()">↻ Refresh</button>
       </div>
+    </div>
+    <!-- Quick check in / out -->
+    <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
+      <button class="btn bsm" onclick="smOpenQuickCheckin()" style="background:var(--ok);color:#fff;font-size:14px;padding:10px 20px;border-radius:10px;font-weight:800;gap:7px;">🟢 Check In</button>
+      <button class="btn bsm" onclick="smOpenQuickCheckout()" style="background:var(--err);color:#fff;font-size:14px;padding:10px 20px;border-radius:10px;font-weight:800;gap:7px;">🔴 Check Out</button>
     </div>
     <div id="sm-att-summary" style="margin-bottom:14px;"></div>
     <div id="sm-att-list"><div class="load"><div class="spin"></div>Loading…</div></div>
@@ -155,9 +167,9 @@ tbody td{padding:10px 12px;font-size:13px;vertical-align:middle;}
 
   <!-- LEAVES -->
   <div id="smtab-leaves" class="tab-pane">
-    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
-      <div style="font-size:13px;color:var(--muted);">Leave records — configure types under the Leave Types tab</div>
-      <button class="btn bp bsm" onclick="smOpenLeave()">+ Add Leave</button>
+    <div class="ph">
+      <div><div class="ph-t">🌴 Leaves</div><div class="ph-s">Leave records — configure types under the Leave Types tab</div></div>
+      <div class="ph-r"><button class="btn bp bsm" onclick="smOpenLeave()">+ Add Leave</button></div>
     </div>
     <div id="sm-leaves-summary" style="margin-bottom:14px;"></div>
     <div id="sm-leaves-list"><div class="load"><div class="spin"></div>Loading…</div></div>
@@ -165,9 +177,9 @@ tbody td{padding:10px 12px;font-size:13px;vertical-align:middle;}
 
   <!-- OVERTIME -->
   <div id="smtab-overtime" class="tab-pane">
-    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
-      <div style="font-size:13px;color:var(--muted);">Overtime logs and adjustments</div>
-      <button class="btn bp bsm" onclick="smOpenOT()">+ Log Overtime</button>
+    <div class="ph">
+      <div><div class="ph-t">⏱ Overtime</div><div class="ph-s">Overtime logs and adjustments</div></div>
+      <div class="ph-r"><button class="btn bp bsm" onclick="smOpenOT()">+ Log Overtime</button></div>
     </div>
     <div id="sm-ot-summary" style="margin-bottom:14px;"></div>
     <div id="sm-ot-list"><div class="load"><div class="spin"></div>Loading…</div></div>
@@ -175,9 +187,9 @@ tbody td{padding:10px 12px;font-size:13px;vertical-align:middle;}
 
   <!-- DOCUMENTS -->
   <div id="smtab-docs" class="tab-pane">
-    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
-      <div style="font-size:13px;color:var(--muted);">Visa · EID · Health Certificate · Insurance · Renewal reminders 30 days before expiry</div>
-      <div style="display:flex;gap:8px;align-items:center;">
+    <div class="ph">
+      <div><div class="ph-t">📋 Documents</div><div class="ph-s">Visa · EID · Health Certificate · Insurance · Renewal reminders 30 days before expiry</div></div>
+      <div class="ph-r">
         <select class="fi" id="sm-docs-filter" style="width:160px;" onchange="smLoadDocs()"><option value="">All Staff</option></select>
         <button class="btn bg2 bsm" onclick="smLoadDocs()">↻ Refresh</button>
       </div>
@@ -187,19 +199,22 @@ tbody td{padding:10px 12px;font-size:13px;vertical-align:middle;}
 
   <!-- TEAM -->
   <div id="smtab-team" class="tab-pane">
-    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
-      <div style="font-size:13px;color:var(--muted);">Add and manage your salon team members</div>
-      <button class="btn bp bsm" onclick="smOpenAddStaff()">+ Add Staff Member</button>
+    <div class="ph">
+      <div><div class="ph-t">👤 Team Members</div><div class="ph-s">Add and manage your salon team members</div></div>
+      <div class="ph-r"><button class="btn bp bsm" onclick="smOpenAddStaff()">+ Add Staff Member</button></div>
     </div>
     <div id="sm-team-list"><div class="load"><div class="spin"></div>Loading…</div></div>
   </div>
 
   <!-- LEAVE TYPES SETTINGS -->
   <div id="smtab-settings" class="tab-pane">
+    <div class="ph">
+      <div><div class="ph-t">⚙️ Leave Types & Settings</div><div class="ph-s">Configure leave types, sync data with Supabase, and manage staff records</div></div>
+    </div>
 
     <!-- Supabase Migration Card -->
     <div class="card" style="max-width:600px;margin-bottom:16px;border-color:var(--b);">
-      <div style="font-family:var(--fh);font-size:16px;font-weight:800;margin-bottom:4px;">☁️ Supabase Sync</div>
+      <div class="card-title">☁️ Supabase Sync</div>
       <div style="font-size:13px;color:var(--muted);margin-bottom:14px;">
         Supabase is the source of truth. Every time this page loads, it pulls the latest data from the cloud and overwrites what's on this device. Every save is pushed to Supabase immediately and auto-retried if the connection drops — watch the ☁️ status badge (top right) to confirm everything's synced. If you have old data that was only ever saved locally and never made it to the cloud, push it up once below.
       </div>
@@ -213,7 +228,7 @@ tbody td{padding:10px 12px;font-size:13px;vertical-align:middle;}
 
     <!-- Duplicate Staff Cleanup Card -->
     <div class="card" style="max-width:600px;margin-bottom:16px;border-color:var(--warn);">
-      <div style="font-family:var(--fh);font-size:16px;font-weight:800;margin-bottom:4px;">🧹 Duplicate Staff Cleanup</div>
+      <div class="card-title">🧹 Duplicate Staff Cleanup</div>
       <div style="font-size:13px;color:var(--muted);margin-bottom:14px;">
         If the same staff member got seeded independently on two devices before they ever synced, Supabase can end up with two rows for one person. This checks for that and, if found, safely reassigns every attendance/leave/overtime/roster/document record to the older copy before deleting the duplicate — nothing gets orphaned.
       </div>
@@ -226,7 +241,7 @@ tbody td{padding:10px 12px;font-size:13px;vertical-align:middle;}
 
     <!-- Document Storage Migration Card -->
     <div class="card" style="max-width:600px;margin-bottom:16px;border-color:var(--pink);">
-      <div style="font-family:var(--fh);font-size:16px;font-weight:800;margin-bottom:4px;">📁 Document Storage</div>
+      <div class="card-title">📁 Document Storage</div>
       <div style="font-size:13px;color:var(--muted);margin-bottom:14px;">
         Staff documents (visas, Emirates IDs, passports etc) now upload straight to a private Supabase Storage bucket instead of being embedded as text in the database. Older documents saved before this change are still stored as base64 text — this moves them over, then clears the old bloated data from the table. Requires the <code>staff-documents</code> bucket to already exist (see setup instructions).
       </div>
@@ -238,7 +253,7 @@ tbody td{padding:10px 12px;font-size:13px;vertical-align:middle;}
     </div>
 
     <div class="card" style="max-width:600px;">
-      <div style="font-family:var(--fh);font-size:16px;font-weight:800;margin-bottom:4px;">🌴 Leave Types</div>
+      <div class="card-title">🌴 Leave Types</div>
       <div style="font-size:13px;color:var(--muted);margin-bottom:16px;">Configure leave types used when logging staff leaves. Changes apply immediately.</div>
       <div id="leave-types-list" style="margin-bottom:14px;"></div>
       <div style="display:flex;gap:8px;align-items:flex-end;padding:12px;background:var(--bg);border-radius:var(--rs);border:1.5px dashed var(--border);">
