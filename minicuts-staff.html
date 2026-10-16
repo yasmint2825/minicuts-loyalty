@@ -219,6 +219,26 @@ a.btn{text-decoration:none;}
   .page{padding:10px 12px 24px;}
   .top-link{display:none;}
 }
+
+/* ─── DESIGN TOKENS (additions) ─── */
+:root{--kod:#7C3AED;--kodbg:#F5F3FF;--kodbrd:#C4B5FD;}
+
+/* ─── PAGE HEADER — shared across all sub-tabs ─── */
+.ph{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px;flex-shrink:0;}
+.ph-t{font-family:var(--fh);font-size:17px;font-weight:800;color:var(--bd);}
+.ph-s{font-size:12px;color:var(--muted);margin-top:2px;}
+.ph-r{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+
+/* ─── STATUS BADGE — used in JS-rendered lists ─── */
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:99px;font-size:10.5px;font-weight:800;white-space:nowrap;}
+
+/* ─── LIST ROW — consistent card-style row for KoD / voucher logs ─── */
+.list-row{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:start;background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:11px 14px;margin-bottom:8px;}
+.list-row:last-child{margin-bottom:0;}
+.list-row-meta{font-size:11.5px;color:var(--muted);margin-top:2px;}
+
+/* ─── SUMMARY PILL — prizes / free-wash header count ─── */
+.sum-pill{padding:5px 12px;border-radius:8px;font-size:12.5px;font-weight:700;}
 </style>
 </head>
 <body>
@@ -302,12 +322,12 @@ a.btn{text-decoration:none;}
 
 <!-- ══ TAB: HISTORY ══ -->
 <div class="page" id="t-history">
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-shrink:0;flex-wrap:wrap;gap:10px;">
+  <div class="ph">
     <div>
-      <div style="font-family:var(--fh);font-size:17px;font-weight:800;color:var(--bd);">🕐 History</div>
-      <div style="font-size:12px;color:var(--muted);margin-top:2px;">Browse a day or a date range — totals at the top</div>
+      <div class="ph-t">🕐 History</div>
+      <div class="ph-s">Browse a day or a date range — totals at the top</div>
     </div>
-    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+    <div class="ph-r">
       <div style="display:flex;gap:6px;align-items:center;background:#fff;border:1.5px solid var(--border);border-radius:9px;padding:6px 10px;">
         <span style="font-size:12px;font-weight:700;color:var(--muted);">📅 Date:</span>
         <input type="date" id="hist-date" style="border:none;outline:none;font-family:var(--fb);font-size:13px;color:var(--text);background:transparent;cursor:pointer;" onchange="loadHist()"/>
@@ -338,20 +358,20 @@ a.btn{text-decoration:none;}
 <div class="page" id="t-reports"><div id="mc-reports-root"></div></div>
 
 <div class="page" id="t-prizes">
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-shrink:0;flex-wrap:wrap;gap:8px;">
+  <div class="ph">
     <div>
-      <div style="font-family:var(--fh);font-size:17px;font-weight:800;color:var(--bd);">🎁 Game Prize Tracker</div>
-      <div style="font-size:12px;color:var(--muted);margin-top:2px;">Players who have crossed prize levels — mark prizes as given</div>
+      <div class="ph-t">🎁 Game Prize Tracker</div>
+      <div class="ph-s">Players who have crossed prize levels — mark prizes as given</div>
     </div>
-    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-      <input type="text" id="pz-search" placeholder="🔍 Search player..." oninput="renderPrizes()" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:9px;font-family:var(--fb);font-size:13px;outline:none;width:180px;"/>
-      <select id="pz-filter" onchange="renderPrizes()" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:9px;font-family:var(--fb);font-size:13px;outline:none;background:#fff;cursor:pointer;">
+    <div class="ph-r">
+      <input type="text" id="pz-search" class="fi" placeholder="🔍 Search player..." oninput="renderPrizes()" style="width:180px;"/>
+      <select id="pz-filter" class="fi" onchange="renderPrizes()" style="width:auto;">
         <option value="pending">🔔 Prize Pending</option>
         <option value="all">All Players</option>
         <option value="given">✅ All Given</option>
       </select>
       <button class="btn btn-b" onclick="loadPrizes()">↻ Refresh</button>
-      <div id="pz-summary" style="background:#FEF3C7;color:#92400E;padding:6px 12px;border-radius:8px;font-size:12.5px;font-weight:700;display:none;"></div>
+      <div id="pz-summary" class="sum-pill" style="background:#FEF3C7;color:#92400E;display:none;"></div>
     </div>
   </div>
 
@@ -371,28 +391,28 @@ a.btn{text-decoration:none;}
 
 <!-- ══ TAB: FREE WASH ══ -->
 <div class="page" id="t-freewash">
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+  <div class="ph">
     <div>
-      <div style="font-family:var(--fh);font-size:17px;font-weight:800;color:var(--bd);">🚿 Free Hair Wash Tracker</div>
-      <div style="font-size:12px;color:var(--muted);margin-top:2px;">Customers who have earned their free wash — mark as given when redeemed</div>
+      <div class="ph-t">🚿 Free Hair Wash Tracker</div>
+      <div class="ph-s">Customers who have earned their free wash — mark as given when redeemed</div>
     </div>
-    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-      <input type="text" id="fw-search" placeholder="🔍 Search..." oninput="renderFreeWash()" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:9px;font-family:var(--fb);font-size:13px;outline:none;width:160px;"/>
-      <select id="fw-filter" onchange="renderFreeWash()" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:9px;font-family:var(--fb);font-size:13px;outline:none;background:#fff;cursor:pointer;">
+    <div class="ph-r">
+      <input type="text" id="fw-search" class="fi" placeholder="🔍 Search..." oninput="renderFreeWash()" style="width:160px;"/>
+      <select id="fw-filter" class="fi" onchange="renderFreeWash()" style="width:auto;">
         <option value="ready">🚿 Ready to Claim</option>
         <option value="expiring">⏰ Expiring Soon</option>
         <option value="all">All</option>
       </select>
       <button class="btn btn-b" onclick="loadFreeWash()">↻ Refresh</button>
-      <div id="fw-summary" style="padding:6px 12px;border-radius:8px;font-size:12.5px;font-weight:700;display:none;"></div>
+      <div id="fw-summary" class="sum-pill" style="display:none;"></div>
     </div>
   </div>
 
   <!-- Info box about expiry -->
-  <div style="background:#FEF3C7;border:1px solid #FCD34D;border-radius:10px;padding:11px 14px;margin-bottom:14px;font-size:12.5px;color:#92400E;font-weight:700;display:flex;gap:10px;align-items:flex-start;">
+  <div style="background:#FEF3C7;border:1.5px solid #FCD34D;border-radius:12px;padding:11px 14px;margin-bottom:14px;font-size:12.5px;color:#92400E;display:flex;gap:10px;align-items:flex-start;">
     <span style="font-size:18px;flex-shrink:0;">⚠️</span>
     <div>
-      <div style="margin-bottom:3px;">Free wash must be claimed before passport expiry — Boys: <span id="fw-boy-months">12</span> months · Girls: <span id="fw-girl-months">15</span> months from first stamp.</div>
+      <div style="font-weight:700;margin-bottom:3px;">Free wash must be claimed before passport expiry — Boys: <span id="fw-boy-months">12</span> months · Girls: <span id="fw-girl-months">15</span> months from first stamp.</div>
       <div style="font-weight:600;">If customer reaches 5 stamps in month 11 but doesn't claim by month 12 → the free wash is lost and cycle resets.</div>
     </div>
   </div>
@@ -497,6 +517,15 @@ a.btn{text-decoration:none;}
 
 <!-- ══ TAB: GIFT VOUCHERS ══ -->
 <div class="page" id="t-vouchers">
+  <div class="ph">
+    <div>
+      <div class="ph-t">🎁 Gift Vouchers</div>
+      <div class="ph-s">Generate vouchers for gifting and redeem them when customers visit</div>
+    </div>
+    <div class="ph-r">
+      <button class="btn btn-ghost btn-sm" onclick="loadVouchers()">↻ Refresh Log</button>
+    </div>
+  </div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;">
 
     <!-- LEFT: Generate -->
@@ -590,6 +619,15 @@ a.btn{text-decoration:none;}
 
 <!-- ══ TAB: KIDS OF DETERMINATION ══ -->
 <div class="page" id="t-kod">
+  <div class="ph">
+    <div>
+      <div class="ph-t">💜 Kids of Determination</div>
+      <div class="ph-s">Register families and manage ongoing KoD discounts — 50% first visit, 25% always after</div>
+    </div>
+    <div class="ph-r">
+      <span class="sp" style="background:var(--kodbg);color:var(--kod);border:1.5px solid var(--kodbrd);">💜 KoD Programme</span>
+    </div>
+  </div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;">
 
     <!-- LEFT: Register / Lookup -->
@@ -622,17 +660,17 @@ a.btn{text-decoration:none;}
         <div id="kod-lookup-msg" class="sm"></div>
         <button class="btn btn-b btn-full" onclick="lookupKod()">🔍 Look Up Family</button>
         <div id="kod-result" style="display:none;margin-top:14px;">
-          <div style="background:#F5F3FF;border:1.5px solid #C4B5FD;border-radius:10px;padding:14px;margin-bottom:12px;">
-            <div style="font-size:11px;font-weight:700;color:#7C3AED;letter-spacing:1px;margin-bottom:8px;">💜 KOD MEMBER</div>
+          <div style="background:var(--kodbg);border:1.5px solid var(--kodbrd);border-radius:12px;padding:14px;margin-bottom:12px;">
+            <div style="font-size:11px;font-weight:700;color:var(--kod);letter-spacing:1px;margin-bottom:8px;">💜 KOD MEMBER</div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:13px;">
               <div><span style="color:var(--muted);font-size:11px;">CHILD</span><br/><strong id="kod-r-child"></strong></div>
               <div><span style="color:var(--muted);font-size:11px;">VISITS</span><br/><strong id="kod-r-visits"></strong></div>
               <div><span style="color:var(--muted);font-size:11px;">FIRST VISIT 50%</span><br/><strong id="kod-r-first"></strong></div>
-              <div><span style="color:var(--muted);font-size:11px;">ONGOING</span><br/><strong style="color:#7C3AED;">25% always</strong></div>
+              <div><span style="color:var(--muted);font-size:11px;">ONGOING</span><br/><strong style="color:var(--kod);">25% always</strong></div>
             </div>
             <div id="kod-r-notes" style="margin-top:8px;font-size:12px;color:var(--muted);"></div>
           </div>
-          <button class="btn btn-full" style="background:#7C3AED;color:#fff;" onclick="logKodVisit()">💜 Log Visit (25% applied)</button>
+          <button class="btn btn-full" style="background:var(--kod);color:#fff;" onclick="logKodVisit()">💜 Log Visit (25% applied)</button>
         </div>
       </div>
     </div>
@@ -657,10 +695,13 @@ a.btn{text-decoration:none;}
 
 <!-- ── COUPONS PAGE ── -->
 <div class="page" id="t-coupons">
-  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
-    <div style="font-size:13px;color:var(--muted);">Discount codes with expiry dates and usage limits</div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;">
-      <select id="cpn-filter" class="fi" style="width:130px;padding:7px 10px;font-size:13px;" onchange="cpnRender()">
+  <div class="ph">
+    <div>
+      <div class="ph-t">🎟️ Discount Coupons</div>
+      <div class="ph-s">Discount codes with expiry dates and usage limits</div>
+    </div>
+    <div class="ph-r">
+      <select id="cpn-filter" class="fi" style="width:130px;" onchange="cpnRender()">
         <option value="">All</option>
         <option value="active">Active</option>
         <option value="expired">Expired</option>
@@ -1185,7 +1226,7 @@ function histTiles(st,per){
   return '<div id="hist-tiles" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:10px;">'
     +tile(st.visits,'Visits served',days>1?(st.visits/days).toFixed(1)+' per day':(st.open?st.open+' still open':''))
     +tile(kids,'Children',kids?'new + returning':'')
-    +tile(st.newKids,'New customers',pct(st.newKids)+' of children','#7C3AED')
+    +tile(st.newKids,'New customers',pct(st.newKids)+' of children','var(--kod)')
     +tile(st.retKids,'Returning',pct(st.retKids)+' of children','#1565C0')
     +tile(st.guests,'Guests','walk-ins without a profile','#64748B')
     +tile('AED '+Math.round(st.rev),'Revenue',st.visits?'avg AED '+Math.round(st.rev/st.visits)+' / visit':'','var(--ok)')
@@ -1200,7 +1241,7 @@ function buildSrcLocLine(custId){
 }
 function buildSrcLocDirect(heard_via, location){
   const bits=[];
-  if(heard_via)bits.push('<span title="'+escQ(heard_via)+'" style="background:#F3E8FF;color:#7C3AED;padding:1px 6px;border-radius:99px;font-size:10px;font-weight:700;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;vertical-align:middle;">📣 '+heard_via+'</span>');
+  if(heard_via)bits.push('<span title="'+escQ(heard_via)+'" style="background:var(--kodbg);color:var(--kod);padding:1px 6px;border-radius:99px;font-size:10px;font-weight:700;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;vertical-align:middle;">📣 '+heard_via+'</span>');
   if(location)bits.push('<span title="'+escQ(location)+'" style="background:#EEF6FF;color:var(--b);padding:1px 6px;border-radius:99px;font-size:10px;font-weight:700;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;vertical-align:middle;">📍 '+location+'</span>');
   if(!bits.length)return'';
   return'<div style="display:flex;flex-direction:column;align-items:flex-start;gap:3px;margin-top:3px;width:100%;min-width:0;">'+bits.join('')+'</div>';
@@ -2435,11 +2476,11 @@ async function loadVouchers() {
     const cancelBtn = v.status !== 'redeemed'
       ? '<button class="btn btn-ghost btn-sm" style="font-size:11px;padding:3px 8px;border-color:var(--err);color:var(--err);" onclick="cancelVoucher(\'' + v.id + '\')">✕ Cancel</button>'
       : '';
-    return '<div style="border-bottom:1px solid var(--border);padding:8px 0;display:grid;grid-template-columns:1fr auto;gap:6px;align-items:start;">'
+    return '<div class="list-row">'
       + '<div>'
-      + '<div style="font-weight:700;font-size:13px;">' + v.code + '</div>'
-      + '<div style="color:var(--muted);font-size:11.5px;">' + (v.type||'') + ' · ' + (v.child_name||'—') + '</div>'
-      + '<div style="color:var(--muted);font-size:11px;">' + (v.package_name ? v.package_name + (v.discount_pct ? ' · <span style="color:var(--ok);font-weight:700;">'+v.discount_pct+'% off</span>' : '') + '<br/>' : '') + '📱 ' + (v.buyer_phone||'—') + ' · Exp: ' + fmtDate(v.expires_at) + '</div>'
+      + '<div style="font-weight:700;font-size:13px;color:var(--bd);">' + v.code + '</div>'
+      + '<div class="list-row-meta">' + (v.type||'') + ' · ' + (v.child_name||'—') + '</div>'
+      + '<div class="list-row-meta">' + (v.package_name ? v.package_name + (v.discount_pct ? ' · <span style="color:var(--ok);font-weight:700;">'+v.discount_pct+'% off</span>' : '') + ' · ' : '') + '📱 ' + (v.buyer_phone||'—') + ' · Exp: ' + fmtDate(v.expires_at) + '</div>'
       + '</div>'
       + '<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;">' + badge + resendBtn + editBtn + cancelBtn + '</div>'
       + '</div>';
@@ -2594,15 +2635,15 @@ function renderKodList(members) {
   members.forEach(m => { window._kodMap[m.id] = m; });
 
   el.innerHTML = members.map(m =>
-    '<div style="border-bottom:1px solid var(--border);padding:10px 0;display:grid;grid-template-columns:1fr auto;gap:6px;align-items:start;">'
+    '<div class="list-row">'
     + '<div>'
-    + '<div style="font-weight:700;font-size:13px;">💜 ' + (m.child_name||'—') + '</div>'
-    + '<div style="color:var(--muted);font-size:11.5px;">📱 ' + m.phone + '</div>'
-    + '<div style="color:var(--muted);font-size:11px;">Visits: ' + (m.visit_count||0) + ' · ' + fmtDate(m.created_at) + '</div>'
-    + (m.notes ? '<div style="color:var(--muted);font-size:11px;font-style:italic;">📝 ' + m.notes + '</div>' : '')
+    + '<div style="font-weight:700;font-size:13px;color:var(--kod);">💜 ' + (m.child_name||'—') + '</div>'
+    + '<div class="list-row-meta">📱 ' + m.phone + '</div>'
+    + '<div class="list-row-meta">Visits: ' + (m.visit_count||0) + ' · Joined ' + fmtDate(m.created_at) + '</div>'
+    + (m.notes ? '<div class="list-row-meta" style="font-style:italic;">📝 ' + m.notes + '</div>' : '')
     + '</div>'
     + '<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;">'
-    + '<span class="sp" style="background:#F5F3FF;color:#7C3AED;">25% always</span>'
+    + '<span class="sp" style="background:var(--kodbg);color:var(--kod);border:1px solid var(--kodbrd);">25% always</span>'
     + (m.first_visit_used ? '<span class="sp sp-d" style="font-size:10px;">50% used</span>' : '<span class="sp sp-w" style="font-size:10px;">50% pending</span>')
     + '<button class="btn btn-ghost btn-sm" style="font-size:11px;padding:3px 8px;" onclick="editKod(\'' + m.id + '\')">✏️ Edit</button>'
     + '<button class="btn btn-ghost btn-sm" style="font-size:11px;padding:3px 8px;border-color:var(--err);color:var(--err);" onclick="deleteKod(\'' + m.id + '\')">✕ Delete</button>'
@@ -2735,10 +2776,10 @@ async function cpnRender() {
       '<div style="background:' + (expired ? '#F1F5F9' : paused ? '#FEF9C3' : '#EFF6FF') + ';border-radius:8px;padding:8px 14px;font-size:18px;font-weight:900;color:' + (expired ? 'var(--muted)' : paused ? '#92400E' : 'var(--b)') + ';letter-spacing:.05em;">' + MC.esc(c.code) + '</div>' +
       '<div><div style="font-weight:800;font-size:14px;">' + MC.esc(discLabel) + '</div><div style="font-size:12px;color:var(--muted);">' + MC.esc(c.description || 'No description') + '</div></div></div>' +
       '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">' +
-      (expired ? '<span class="badge" style="background:#FEE2E2;color:#DC2626;">Expired</span>' :
-        paused ? '<span class="badge" style="background:#FEF9C3;color:#92400E;">Paused</span>' :
-          urgency ? '<span class="badge" style="background:#FEF9C3;color:#92400E;">⚠️ Expires in ' + daysLeft + 'd</span>' :
-            '<span class="badge" style="background:#DCFCE7;color:#16A34A;">Active</span>') +
+      (expired ? '<span class="sp sp-d">Expired</span>' :
+        paused ? '<span class="sp sp-w">Paused</span>' :
+          urgency ? '<span class="sp" style="background:#FEF9C3;color:#92400E;">⚠️ ' + daysLeft + 'd left</span>' :
+            '<span class="sp sp-g" style="background:#DCFCE7;color:#16A34A;">Active</span>') +
       '<button class="btn btn-ghost btn-sm" onclick="cpnOpenEdit(\'' + c.id + '\')">✏️ Edit</button>' +
       '<button class="btn btn-sm" style="background:#FEE2E2;color:#DC2626;" onclick="cpnDelete(\'' + c.id + '\')">🗑</button></div></div>' +
       '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">' +
