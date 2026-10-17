@@ -2204,7 +2204,10 @@ async function markFreeWashGiven(id,name,btn){
 setInterval(()=>{if(document.getElementById('t-queue').classList.contains('active'))loadQ();},120000);
 
 // INIT — config first (sets STYLISTS/LCFG), then queue + gv in parallel
-loadAllConfig().then(()=>{ Promise.all([loadQ(), loadGvSetup()]); });
+function mcStartData(){ return loadAllConfig().then(()=>Promise.all([loadQ(), loadGvSetup()])).catch(e=>console.warn('start-up load failed:',e.message)); }
+// Signed-in (SalonChain, ?chain=1) mode: wait for the sign-in — mc-rbac.js calls mcStartData() once someone is signed in
+function mcChainOn(){ try{ const m=/[?&]chain=(\d)/.exec(location.search); return m?m[1]==='1':localStorage.getItem('mc_chain')==='1'; }catch(e){ return false; } }
+if(!mcChainOn()) mcStartData();
 
 // ═══════════════════════════════════════════════
 // GIFT VOUCHER SETUP CONFIG
@@ -2963,7 +2966,7 @@ async function cpnDelete(id) {
 
 </script>
 <script src="mc-common.js?v=20261015d"></script>
-<script src="mc-rbac.js?v=20261015d"></script>
+<script src="mc-rbac.js?v=20261017a"></script>
 <script src="mc-billing.js?v=20261015d"></script>
 <script src="mc-appointments.js?v=20261015d"></script>
 <script src="mc-reports.js?v=20261015d"></script>
