@@ -243,6 +243,9 @@
     try { const sc = await MC.getConfig('chain_security'); if (sc && Number.isFinite(Number(sc.idle_minutes))) R.SEC.idleMinutes = Number(sc.idle_minutes); } catch (e) { /* keep default */ }
     const l = document.getElementById('mc-login'); if (l) l.remove();
     R.apply(); R.startIdle();
+    // the staff page waits for the sign-in before loading (the database answers only signed-in staff): load now
+    if (typeof root.mcStartData === 'function') root.mcStartData();
+    if (MC.billing && typeof MC.billing.probe === 'function') MC.billing.probe();
   };
 
   /* ── wire the staff page: pages, nav, gating, top bar ─────────────────── */
