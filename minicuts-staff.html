@@ -1451,8 +1451,14 @@ function editHistRow(id){
   ov.innerHTML=`
     <div style="background:#fff;border-radius:18px;padding:24px;max-width:420px;width:100%;">
       <div style="font-family:var(--fh);font-size:18px;font-weight:800;color:var(--bd);margin-bottom:4px;">✏️ Edit Record</div>
-      <div style="font-size:13px;color:var(--muted);margin-bottom:18px;">${r.customer_name} · Token ${String(r.token_number).padStart(2,'0')}</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:18px;">Token ${String(r.token_number).padStart(2,'0')}</div>
       <div style="display:grid;gap:12px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div><label style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px;">👤 Customer Name</label>
+            <input id="eh-cname" class="fi" type="text" maxlength="60" value="${escQ(r.customer_name||'')}" placeholder="Name" style="font-size:13px;"/></div>
+          <div><label style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px;">📱 Phone</label>
+            <input id="eh-cphone" class="fi" type="tel" maxlength="20" value="${escQ(r.customer_phone||'')}" placeholder="e.g. 0501234567" style="font-size:13px;"/></div>
+        </div>
         <div><label style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px;">Service</label>
           <select id="eh-svc" class="fi" style="font-size:13px;">${svcOpts}</select></div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
@@ -1462,12 +1468,12 @@ function editHistRow(id){
             <select id="eh-sty2" class="fi" style="font-size:13px;"><option value="">— None —</option>${sty2Opts}</select></div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
-          <div><label style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px;">💵 Service Value (AED) 🔒</label>
-            <input id="eh-val" class="fi" type="number" min="0" step="5" disabled title="Revenue cannot be changed here — void the invoice and check out again" value="${r.service_value||''}" placeholder="0" style="font-size:13px;"/></div>
-          <div><label style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px;">💰 Tip (AED) 🔒</label>
-            <input id="eh-tip" class="fi" type="number" min="0" step="5" disabled title="Revenue cannot be changed here — void the invoice and check out again" value="${r.tip||''}" placeholder="0" style="font-size:13px;"/></div>
-          <div><label style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px;">💳 Payment 🔒</label>
-            <select id="eh-pmt" class="fi" style="font-size:13px;" disabled title="Revenue cannot be changed here — void the invoice and check out again">
+          <div><label style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px;">💵 Service Value (AED)</label>
+            <input id="eh-val" class="fi" type="number" min="0" step="5" value="${r.service_value||''}" placeholder="0" style="font-size:13px;"/></div>
+          <div><label style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px;">💰 Tip (AED)</label>
+            <input id="eh-tip" class="fi" type="number" min="0" step="5" value="${r.tip||''}" placeholder="0" style="font-size:13px;"/></div>
+          <div><label style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px;">💳 Payment</label>
+            <select id="eh-pmt" class="fi" style="font-size:13px;">
               <option value="">— Select —</option>
               <option value="Cash"${r.payment_type==='Cash'?' selected':''}>💵 Cash</option>
               <option value="Credit"${r.payment_type==='Credit'?' selected':''}>💳 Credit</option>
@@ -1476,7 +1482,6 @@ function editHistRow(id){
         <div><label style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px;">📝 Remark</label>
           <input id="eh-rem" class="fi" type="text" maxlength="120" value="${escQ(r.remark||'')}" placeholder="Optional note..." style="font-size:13px;"/></div>
       </div>
-      <div style="margin-top:10px;font-size:11.5px;color:var(--muted);">🔒 Revenue, tip and payment are locked. To correct them, void the invoice and check out again.</div>
       <div id="eh-msg" style="display:none;margin-top:10px;padding:8px 12px;border-radius:8px;font-size:12.5px;font-weight:700;"></div>
       <div style="display:flex;gap:9px;margin-top:18px;">
         <button style="flex:0;padding:10px 16px;border:1.5px solid var(--border);border-radius:9px;background:transparent;cursor:pointer;font-family:var(--fh);font-size:14px;font-weight:700;" onclick="this.closest('[style*=fixed]').remove()">Cancel</button>
@@ -1488,16 +1493,21 @@ function editHistRow(id){
 }
 
 async function saveHistEdit(id,btn){
+  const cname=document.getElementById('eh-cname')?.value.trim()||null;
+  const cphone=document.getElementById('eh-cphone')?.value.trim()||null;
   const svc=document.getElementById('eh-svc')?.value;
   const sty1=document.getElementById('eh-sty1')?.value||null;
   const sty2=document.getElementById('eh-sty2')?.value||null;
+  const val=parseFloat(document.getElementById('eh-val')?.value)||null;
+  const tip=parseFloat(document.getElementById('eh-tip')?.value)||null;
+  const pmt=document.getElementById('eh-pmt')?.value||null;
   const rem=document.getElementById('eh-rem')?.value.trim()||null;
   const msg=document.getElementById('eh-msg');
   if(btn){btn.disabled=true;btn.textContent='Saving...';}
   try{
-    await sb('queue','PATCH',{service:svc,stylist:sty1,stylist2:sty2,remark:rem},'id=eq.'+id);
+    await sb('queue','PATCH',{customer_name:cname,customer_phone:cphone,service:svc,stylist:sty1,stylist2:sty2,service_value:val,tip,payment_type:pmt,remark:rem},'id=eq.'+id);
     const r=_histData.find(x=>x.id===id)||_qdata.find(x=>x.id===id);
-    if(r){r.service=svc;r.stylist=sty1;r.stylist2=sty2;r.remark=rem;}
+    if(r){r.customer_name=cname;r.customer_phone=cphone;r.service=svc;r.stylist=sty1;r.stylist2=sty2;r.service_value=val;r.tip=tip;r.payment_type=pmt;r.remark=rem;}
     renderHist();
     toast('Record updated ✅');
     btn.closest('[style*=fixed]').remove();
