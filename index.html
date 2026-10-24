@@ -5440,6 +5440,16 @@ async function acqInit(){
 }
 
 // ── Helpers ──
+/* Visits whose bill was voided and never re-billed are not services (same rule as the staff app's
+   isVoidedVisit): status done, no invoice, no value, and a void invoice points at the visit. */
+async function acqDropVoided(rows, from, to){
+  try{
+    const v=await sb('invoices','GET',null,'select=queue_id&status=eq.void&checkin_date=gte.'+from+'&checkin_date=lte.'+to+'&limit=1000');
+    const voided=new Set((v||[]).map(x=>x.queue_id).filter(Boolean));
+    if(!voided.size) return rows;
+    return rows.filter(r=>!(voided.has(r.id)&&!r.invoice_id&&!((parseFloat(r.service_value)||0)>0)));
+  }catch(e){console.warn('[ACQ] voided list:',e.message);return rows;}
+}
 function acqNormalizePhone(ph){
   if(!ph)return'';
   return String(ph).replace(/\D/g,'').replace(/^971/,'').replace(/^0/,'').slice(-9);
@@ -5525,7 +5535,7 @@ async function acqRender(){
       let off=0,g=0;
       while(true){
         const b = await sb('queue','GET',null,
-          `select=id,customer_id,mobile,service_value,tip,checkin_date,status,called_at,checkin_time,is_guest`
+          `select=id,customer_id,mobile,service_value,tip,checkin_date,status,called_at,checkin_time,is_guest,invoice_id`
           +`&checkin_date=gte.${qFromDate}&checkin_date=lte.${qToDate}`
           +`&status=eq.done`
           +`&order=checkin_date.asc&limit=1000&offset=${off}`);
@@ -5534,6 +5544,7 @@ async function acqRender(){
         if(b.length<1000) break;
         off+=1000; if(++g>50) break;
       }
+      queueRows = await acqDropVoided(queueRows, qFromDate, qToDate);
       console.log('[ACQ] queue rows (done) this month:',queueRows.length);
     }catch(e){console.warn('[ACQ] queue fetch failed:',e.message);}
 
@@ -5920,10 +5931,11 @@ async function acqValidate(){
     {let off=0,g=0;
       while(true){
         const b=await sb('queue','GET',null,
-          `select=id,customer_id,mobile,checkin_date,is_guest,service_value&status=eq.done&checkin_date=gte.${vFromDate}&checkin_date=lte.${vToDate}&order=checkin_date.asc&limit=1000&offset=${off}`);
+          `select=id,customer_id,mobile,checkin_date,is_guest,service_value,invoice_id&status=eq.done&checkin_date=gte.${vFromDate}&checkin_date=lte.${vToDate}&order=checkin_date.asc&limit=1000&offset=${off}`);
         if(!b||!b.length)break;qRows=[...qRows,...b];if(b.length<1000)break;off+=1000;if(++g>50)break;
       }
     }
+    qRows = await acqDropVoided(qRows, vFromDate, vToDate);
     if(!qRows.length){
       el.innerHTML=`<div style="color:var(--muted);font-size:13px;padding:12px;">No services done in ${mLabel}.</div>`;return;
     }
