@@ -1457,7 +1457,7 @@ function editHistRow(id){
           <div><label style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px;">👤 Customer Name</label>
             <input id="eh-cname" class="fi" type="text" maxlength="60" value="${escQ(r.customer_name||'')}" placeholder="Name" style="font-size:13px;"/></div>
           <div><label style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px;">📱 Phone</label>
-            <input id="eh-cphone" class="fi" type="tel" maxlength="20" value="${escQ(r.customer_phone||'')}" placeholder="e.g. 0501234567" style="font-size:13px;"/></div>
+            <input id="eh-cphone" class="fi" type="tel" maxlength="20" value="${escQ(r.mobile||'')}" placeholder="e.g. 0501234567" style="font-size:13px;"/></div>
         </div>
         <div><label style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px;">Service</label>
           <select id="eh-svc" class="fi" style="font-size:13px;">${svcOpts}</select></div>
@@ -1494,7 +1494,14 @@ function editHistRow(id){
 
 async function saveHistEdit(id,btn){
   const cname=document.getElementById('eh-cname')?.value.trim()||null;
-  const cphone=document.getElementById('eh-cphone')?.value.trim()||null;
+  // The column is queue.mobile, not customer_phone - and every one of the
+  // 2,481 numbers already in it is 971XXXXXXXXX. Lookups elsewhere (invoices,
+  // WhatsApp, the customer match) key off the last 9 digits, so a number typed
+  // here as "0501234567" or "+971 50 123 4567" has to be normalised to the
+  // same shape or it saves fine and silently stops matching that customer.
+  const cphoneRaw=document.getElementById('eh-cphone')?.value.trim()||'';
+  const d9=window.MC&&MC.last9?MC.last9(cphoneRaw):String(cphoneRaw).replace(/\D/g,'').replace(/^971/,'').replace(/^0/,'').slice(-9);
+  const cphone=cphoneRaw?('971'+d9):null;
   const svc=document.getElementById('eh-svc')?.value;
   const sty1=document.getElementById('eh-sty1')?.value||null;
   const sty2=document.getElementById('eh-sty2')?.value||null;
@@ -1503,11 +1510,18 @@ async function saveHistEdit(id,btn){
   const pmt=document.getElementById('eh-pmt')?.value||null;
   const rem=document.getElementById('eh-rem')?.value.trim()||null;
   const msg=document.getElementById('eh-msg');
+  // Caught before saving rather than after: a half-typed number would be
+  // stored as a valid-looking 971… and nobody would notice until a message
+  // to that customer quietly went nowhere.
+  if(cphoneRaw&&d9.length!==9){
+    if(msg){msg.textContent='That phone number doesn’t look right — a UAE mobile has 9 digits after the 0 or +971, e.g. 0501234567.';msg.style.display='block';msg.style.background='#FEE2E2';msg.style.color='var(--err)';}
+    return;
+  }
   if(btn){btn.disabled=true;btn.textContent='Saving...';}
   try{
-    await sb('queue','PATCH',{customer_name:cname,customer_phone:cphone,service:svc,stylist:sty1,stylist2:sty2,service_value:val,tip,payment_type:pmt,remark:rem},'id=eq.'+id);
+    await sb('queue','PATCH',{customer_name:cname,mobile:cphone,service:svc,stylist:sty1,stylist2:sty2,service_value:val,tip,payment_type:pmt,remark:rem},'id=eq.'+id);
     const r=_histData.find(x=>x.id===id)||_qdata.find(x=>x.id===id);
-    if(r){r.customer_name=cname;r.customer_phone=cphone;r.service=svc;r.stylist=sty1;r.stylist2=sty2;r.service_value=val;r.tip=tip;r.payment_type=pmt;r.remark=rem;}
+    if(r){r.customer_name=cname;r.mobile=cphone;r.service=svc;r.stylist=sty1;r.stylist2=sty2;r.service_value=val;r.tip=tip;r.payment_type=pmt;r.remark=rem;}
     renderHist();
     toast('Record updated ✅');
     btn.closest('[style*=fixed]').remove();
