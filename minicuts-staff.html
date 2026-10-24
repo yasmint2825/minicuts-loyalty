@@ -1446,6 +1446,8 @@ function editHistRow(id){
   const sty1Opts=_styOpts(r.stylist,'— Stylist 1 —');
   const sty2Opts=_styOpts(r.stylist2,'— Stylist 2 —');
   const svcOpts=SVCS.map(s=>'<option'+(r.service===s?' selected':'')+'>'+s+'</option>').join('');
+  // An invoiced visit keeps its amount (the invoice and VAT report show it); tip and payment can still be corrected.
+  const invoiced=!!r.invoice_id;
   const ov=document.createElement('div');
   ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9000;display:flex;align-items:center;justify-content:center;padding:20px;';
   ov.innerHTML=`
@@ -1468,8 +1470,8 @@ function editHistRow(id){
             <select id="eh-sty2" class="fi" style="font-size:13px;"><option value="">— None —</option>${sty2Opts}</select></div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
-          <div><label style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px;">💵 Service Value (AED)</label>
-            <input id="eh-val" class="fi" type="number" min="0" step="5" value="${r.service_value||''}" placeholder="0" style="font-size:13px;"/></div>
+          <div><label style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px;">💵 Service Value (AED)${invoiced?' 🔒':''}</label>
+            <input id="eh-val" class="fi" type="number" min="0" step="5"${invoiced?' disabled title="Invoiced: to change the amount, void the invoice and check out again"':''} value="${r.service_value||''}" placeholder="0" style="font-size:13px;"/></div>
           <div><label style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px;">💰 Tip (AED)</label>
             <input id="eh-tip" class="fi" type="number" min="0" step="5" value="${r.tip||''}" placeholder="0" style="font-size:13px;"/></div>
           <div><label style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px;">💳 Payment</label>
@@ -1482,6 +1484,7 @@ function editHistRow(id){
         <div><label style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px;">📝 Remark</label>
           <input id="eh-rem" class="fi" type="text" maxlength="120" value="${escQ(r.remark||'')}" placeholder="Optional note..." style="font-size:13px;"/></div>
       </div>
+      ${invoiced?'<div style="margin-top:10px;font-size:11.5px;color:var(--muted);">🔒 This visit has invoice '+escQ(r.invoice_number||'')+', so the amount is fixed. To change it, void the invoice and check out again. A new tip or payment type is also saved on the invoice.</div>':''}
       <div id="eh-msg" style="display:none;margin-top:10px;padding:8px 12px;border-radius:8px;font-size:12.5px;font-weight:700;"></div>
       <div style="display:flex;gap:9px;margin-top:18px;">
         <button style="flex:0;padding:10px 16px;border:1.5px solid var(--border);border-radius:9px;background:transparent;cursor:pointer;font-family:var(--fh);font-size:14px;font-weight:700;" onclick="this.closest('[style*=fixed]').remove()">Cancel</button>
@@ -1517,11 +1520,25 @@ async function saveHistEdit(id,btn){
     if(msg){msg.textContent='That phone number doesn’t look right — a UAE mobile has 9 digits after the 0 or +971, e.g. 0501234567.';msg.style.display='block';msg.style.background='#FEE2E2';msg.style.color='var(--err)';}
     return;
   }
+  const r0=_histData.find(x=>x.id===id)||_qdata.find(x=>x.id===id);
+  const invId=r0&&r0.invoice_id;
   if(btn){btn.disabled=true;btn.textContent='Saving...';}
   try{
-    await sb('queue','PATCH',{customer_name:cname,mobile:cphone,service:svc,stylist:sty1,stylist2:sty2,service_value:val,tip,payment_type:pmt,remark:rem},'id=eq.'+id);
-    const r=_histData.find(x=>x.id===id)||_qdata.find(x=>x.id===id);
-    if(r){r.customer_name=cname;r.mobile=cphone;r.service=svc;r.stylist=sty1;r.stylist2=sty2;r.service_value=val;r.tip=tip;r.payment_type=pmt;r.remark=rem;}
+    const patch={customer_name:cname,mobile:cphone,service:svc,stylist:sty1,stylist2:sty2,tip,payment_type:pmt,remark:rem};
+    if(!invId)patch.service_value=val;   // invoiced: the amount stays as invoiced
+    await sb('queue','PATCH',patch,'id=eq.'+id);
+    if(invId&&(Number(tip||0)!==Number(r0.tip||0)||(pmt||null)!==(r0.payment_type||null))){
+      // keep the invoice in step: same tip and payment type, total = amount payable + tip, and a fresh PDF
+      const inv=(await sb('invoices','GET',null,'id=eq.'+invId+'&limit=1'))[0];
+      if(inv&&inv.status!=='void'){
+        const ip={tip:tip||0,payment_type:pmt,total_amount:Math.round((Number(inv.payable_amount||0)+Number(tip||0))*100)/100};
+        await sb('invoices','PATCH',ip,'id=eq.'+invId);
+        Object.assign(inv,ip);
+        try{if(window.MC&&MC.billing&&MC.billing.attachPdf)await MC.billing.attachPdf(inv);}catch(e){console.warn('PDF refresh:',e.message);}
+      }
+    }
+    const r=r0;
+    if(r){Object.assign(r,patch);}
     renderHist();
     toast('Record updated ✅');
     btn.closest('[style*=fixed]').remove();
@@ -2996,7 +3013,7 @@ async function cpnDelete(id) {
 <script src="mc-reports.js?v=20261015d"></script>
 <script src="mc-customers.js?v=20261015d"></script>
 <script src="mc-loyalty.js?v=20261015d"></script>
-<script src="mc-insights.js?v=20261015d"></script>
+<script src="mc-insights.js?v=20261024a"></script>
 <script src="mc-inventory.js?v=20261015d"></script>
 <script src="mc-purchasing.js?v=20261015d"></script>
 <script src="mc-chain.js?v=20261015d"></script>

@@ -25,6 +25,11 @@
     return Object.entries(m).sort((a, b) => b[1] - a[1]);
   };
   I.monthKey = s => String(s || '').slice(0, 7);
+  I.monthsBetween = function (from, to, n) {
+    const out = []; let y = +from.slice(0, 4), m = +from.slice(5, 7); const ty = +to.slice(0, 4), tm = +to.slice(5, 7);
+    while (y < ty || (y === ty && m <= tm)) { out.push(y + '-' + String(m).padStart(2, '0')); m++; if (m > 12) { m = 1; y++; } }
+    return out.slice(-(n || 12));
+  };
   I.lastMonths = function (n, now) {
     now = now || new Date(); const out = [];
     for (let i = n - 1; i >= 0; i--) { const d = new Date(now.getFullYear(), now.getMonth() - i, 1); out.push(d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0')); }
@@ -69,10 +74,13 @@
       byDay: Object.values(day).map(o => ({ d: o.d, count: o.count, avgWait: avg(o.w) })).sort((a, b) => a.d < b.d ? -1 : 1) };
   };
   /* Same idea as the Loyalty app: of the children seen in the last N days, how many had visited before (returners). */
-  I.returnRate = function (customers, visits, days, now) {
+  I.returnRate = function (customers, visits, days, now, range) {
     now = now || new Date(); const cut = new Date(now.getTime() - days * DAY).toISOString();
     const all = {}, win = {};
-    visits.forEach(v => { if (!v.customer_id || v.type === 'expired') return; all[v.customer_id] = (all[v.customer_id] || 0) + 1; if (String(v.created_at) >= cut) win[v.customer_id] = (win[v.customer_id] || 0) + 1; });
+    // range {from,to}: children seen between those dates (inclusive); "returning" = more than one visit up to the end date
+    const inWin = range ? (v => { const d = MC.ymd(new Date(v.created_at)); return d >= range.from && d <= range.to; }) : (v => String(v.created_at) >= cut);
+    const upTo = range ? (v => MC.ymd(new Date(v.created_at)) <= range.to) : (() => true);
+    visits.forEach(v => { if (!v.customer_id || v.type === 'expired' || !upTo(v)) return; all[v.customer_id] = (all[v.customer_id] || 0) + 1; if (inWin(v)) win[v.customer_id] = (win[v.customer_id] || 0) + 1; });
     const seen = customers.filter(c => win[c.id] > 0), ret = seen.filter(c => all[c.id] > 1);
     const rate = (a, b) => a ? Math.round(b / a * 100) : 0, g = k => { const s = seen.filter(c => c.gender === k), r = ret.filter(c => c.gender === k); return { visited: s.length, returners: r.length, rate: rate(s.length, r.length) }; };
     const age = I.AGE.map(a => { const s = seen.filter(c => I.ageBand(c.dob, now) === a[0]), r = ret.filter(c => I.ageBand(c.dob, now) === a[0]); return { label: a[0], visited: s.length, returners: r.length, rate: rate(s.length, r.length) }; }).filter(a => a.visited);
@@ -162,6 +170,7 @@
   I.st = { tab: 'overview', preset: '30', from: null, to: null, rrDays: 90, cache: {} };
   const cached = async (key, ttl, fn) => { const c = I.st.cache[key]; if (c && Date.now() - c.t < ttl) return c.v; const v = await fn(); I.st.cache[key] = { t: Date.now(), v }; return v; };
   const rangeFor = p => { const n = new Date(), t = MC.today();
+    if (p === 'custom') return { from: I.st.from || MC.addDays(t, -30), to: I.st.to || t };
     if (p === 'month') return { from: MC.monthRange(n.getFullYear(), n.getMonth()).from, to: t };
     if (p === 'last') { const m = n.getMonth() === 0 ? 11 : n.getMonth() - 1, y = n.getMonth() === 0 ? n.getFullYear() - 1 : n.getFullYear(); return MC.monthRange(y, m); }
     return { from: MC.addDays(t, -Number(p)), to: t }; };   // same window as the Loyalty app: today minus N days up to today
@@ -187,7 +196,7 @@
 
   /* ── screens ──────────────────────────────────────────────────────────── */
   const TABS = [['overview', '📈 Overview'], ['customers', '👨‍👩‍👧 Customers'], ['retention', '🔄 Retention'], ['ops', '⏱ Operations'], ['acq', '📣 Acquisition'], ['games', '🎮 Games']];
-  const PRESETS = [['3', 'Last 3 days'], ['7', 'Last 7 days'], ['30', 'Last 30 days'], ['month', 'This month'], ['last', 'Last month'], ['90', 'Last 90 days']];
+  const PRESETS = [['3', 'Last 3 days'], ['7', 'Last 7 days'], ['30', 'Last 30 days'], ['month', 'This month'], ['last', 'Last month'], ['90', 'Last 90 days'], ['custom', 'Custom dates']];
 
   /* full-page lock: same security code as Reports (and the Loyalty app's Analytics) */
   I.lockScreen = function (el) {
@@ -207,10 +216,14 @@
     const needsRange = true;
     el.innerHTML = '<div class="in-top"><div class="in-seg" id="in-tabs">' + TABS.map(t => '<button data-t="' + t[0] + '" class="' + (S.tab === t[0] ? 'on' : '') + '">' + t[1] + '</button>').join('') + '</div>' +
       '<button class="btn btn-ghost btn-sm" id="in-lock" title="Hide Insights and Reports until the code is entered again" style="margin-left:auto;">🔒 Lock</button>' +
-      (needsRange ? '<div class="in-seg" id="in-pre">' + PRESETS.map(p => '<button data-p="' + p[0] + '" class="' + (S.preset === p[0] ? 'on' : '') + '">' + p[1] + '</button>').join('') + '</div><span class="in-cs" style="margin:0;">' + MC.fmtDate(S.from) + ' → ' + MC.fmtDate(S.to) + '</span>' : '') + '</div><div id="in-out"><div class="in-empty">Loading…</div></div>';
+      (needsRange ? '<div class="in-seg" id="in-pre">' + PRESETS.map(p => '<button data-p="' + p[0] + '" class="' + (S.preset === p[0] ? 'on' : '') + '">' + p[1] + '</button>').join('') + '</div>' + (S.preset === 'custom'
+        ? '<span class="in-cs in-dates" style="margin:0;display:flex;gap:6px;align-items:center;flex-wrap:wrap;"><label>From <input type="date" id="in-from" class="fi" style="width:auto;padding:5px 8px;font-size:12.5px;" value="' + S.from + '" max="' + S.to + '"/></label><label>To <input type="date" id="in-to" class="fi" style="width:auto;padding:5px 8px;font-size:12.5px;" value="' + S.to + '" min="' + S.from + '" max="' + MC.today() + '"/></label></span>'
+        : '<span class="in-cs" style="margin:0;">' + MC.fmtDate(S.from) + ' → ' + MC.fmtDate(S.to) + '</span>') : '') + '</div><div id="in-out"><div class="in-empty">Loading…</div></div>';
     el.querySelector('#in-lock').onclick = () => { if (MC.reports) MC.reports.st.unlocked = false; I.st.cache = {}; I.init(); };
     el.querySelectorAll('#in-tabs [data-t]').forEach(b => b.onclick = () => { S.tab = b.dataset.t; I.init(); });
     el.querySelectorAll('#in-pre [data-p]').forEach(b => b.onclick = () => { S.preset = b.dataset.p; Object.assign(S, rangeFor(S.preset)); I.init(); });
+    const setDates = () => { const f = el.querySelector('#in-from').value, t = el.querySelector('#in-to').value; if (!f || !t) return; S.from = f <= t ? f : t; S.to = f <= t ? t : f; I.init(); };
+    ['#in-from', '#in-to'].forEach(q => { const i = el.querySelector(q); if (i) i.onchange = setDates; });
     const out = el.querySelector('#in-out'), my = S.run = (S.run || 0) + 1;
     I['tab_' + S.tab](out).then(() => {}, err => { if (my === S.run) out.innerHTML = '<div style="color:var(--err);padding:14px;">Could not load: ' + e(err.message) + '</div>'; });
   };
@@ -265,15 +278,13 @@
   };
 
   I.tab_retention = async function (out) {
-    const S = I.st, { cust, visits } = await loadAll(), r = I.returnRate(cust, visits, S.rrDays), now = new Date(), cfg = MC.customers.cfg();
+    const S = I.st, { cust, visits } = await loadAll(), r = I.returnRate(cust, visits, 0, null, { from: S.from, to: S.to }), now = new Date(), cfg = MC.customers.cfg();
     const risk = { expiring: 0, lapsed: 0, ready: 0 }; cust.forEach(c => { const k = MC.customers.status(c, cfg, now).key; if (risk[k] != null) risk[k]++; });
-    out.innerHTML = '<div class="in-top"><div class="in-seg" id="in-rr">' + [30, 60, 90, 120, 180, 270, 360].map(d => '<button data-d="' + d + '" class="' + (S.rrDays === d ? 'on' : '') + '">' + d + ' days</button>').join('') + '</div></div>' +
-      '<div class="in-kpis">' + kpi('Return rate', r.rate + '%', 'of children seen in the last ' + S.rrDays + ' days who had visited before', 'var(--ok)') + kpi('Children seen', r.visited) + kpi('Returning', r.returners, 'avg ' + r.avgVisits.toFixed(1) + ' visits each') + kpi('First-timers', r.first) + '</div><div class="in-grid">' +
+    out.innerHTML = '<div class="in-kpis">' + kpi('Return rate', r.rate + '%', 'of children seen in this period who had visited before', 'var(--ok)') + kpi('Children seen', r.visited) + kpi('Returning', r.returners, 'avg ' + r.avgVisits.toFixed(1) + ' visits each') + kpi('First-timers', r.first) + '</div><div class="in-grid">' +
       card('Boys vs girls', bars([['Boys', r.boy.rate], ['Girls', r.girl.rate]].map(x => x), { fmt: v => v + '%', color: '#1565C0' }) + '<div class="in-note">Boys: ' + r.boy.returners + ' of ' + r.boy.visited + ' · Girls: ' + r.girl.returners + ' of ' + r.girl.visited + '</div>') +
       card('By age', r.age.length ? bars(r.age.map(a => [a.label + ' yrs', a.rate]), { fmt: v => v + '%' }) + '<div class="in-note">Only children with a birthday on file.</div>' : '<div class="in-empty">No birthdays on file for these children.</div>') +
-      card('Needs attention', bars([['Free wash ready', risk.ready], ['Passport expiring soon', risk.expiring], ['Lapsed', risk.lapsed]], { color: '#F59E0B' }), 'Message these from the Customers screen (filters at the top) or the Loyalty app’s Miss You list.') + '</div>' +
+      card('Needs attention (today)', bars([['Free wash ready', risk.ready], ['Passport expiring soon', risk.expiring], ['Lapsed', risk.lapsed]], { color: '#F59E0B' }), 'Where things stand today, whatever the dates above. Message these from the Customers screen (filters at the top) or the Loyalty app’s Miss You list.') + '</div>' +
       '<div class="in-note">Visits counted = paid haircuts and free washes from the loyalty log, the same source as the Loyalty app.</div>';
-    out.querySelectorAll('#in-rr [data-d]').forEach(b => b.onclick = () => { S.rrDays = Number(b.dataset.d); I.init(); });
   };
 
   I.tab_ops = async function (out) {
@@ -288,13 +299,13 @@
 
   I.tab_acq = async function (out) {
     const S = I.st, [{ cust, visits }, rows] = await Promise.all([loadAll(), loadRows(S.from, S.to)]), map = {}; cust.forEach(c => { map[c.id] = c; });
-    const src = I.sources(rows, map, I.firstSeen(visits), S.from, S.to), unlocked = money(), months = I.lastMonths(6), by = {};
-    cust.forEach(c => { const k = I.monthKey(c.created_at), s = c.heard_via || 'Unknown'; if (months.includes(k)) { by[s] = by[s] || {}; by[s][k] = (by[s][k] || 0) + 1; } });
+    const src = I.sources(rows, map, I.firstSeen(visits), S.from, S.to), unlocked = money(), months = I.monthsBetween(S.from, S.to, 12), by = {};
+    cust.forEach(c => { const d = c.created_at ? MC.ymd(new Date(c.created_at)) : '', k = I.monthKey(c.created_at), s = c.heard_via || 'Unknown'; if (d >= S.from && d <= S.to && months.includes(k)) { by[s] = by[s] || {}; by[s][k] = (by[s][k] || 0) + 1; } });
     const tN = src.reduce((a, x) => a + x.newKids, 0), tR = src.reduce((a, x) => a + x.retKids, 0), tV = src.reduce((a, x) => a + x.visits, 0), pc = (n, t) => t ? Math.round(n / t * 100) + '%' : '—';
     out.innerHTML = (unlocked ? '' : '<div class="in-lock">🔒 Revenue per source is hidden.<button class="btn btn-sm btn-ghost" id="in-unlock">Show revenue</button></div>') + '<div class="in-grid">' +
       card('Who came in this period', src.length ? '<div><table class="in-tbl"><thead><tr><th>Source</th><th>New kids</th><th>Returning</th><th>Visits</th>' + (unlocked ? '<th>Revenue</th>' : '') + '</tr></thead><tbody>' + src.map(s => '<tr><td><b>' + e(s.key) + '</b></td><td>' + s.newKids + ' <span class="pc">' + pc(s.newKids, tN) + '</span></td><td>' + s.retKids + ' <span class="pc">' + pc(s.retKids, tR) + '</span></td><td>' + s.visits + ' <span class="pc">' + pc(s.visits, tV) + '</span></td>' + (unlocked ? '<td>' + MC.r2(s.rev).toFixed(0) + '</td>' : '') + '</tr>').join('') + '</tbody></table></div>' : '<div class="in-empty">No visits in this period.</div>', 'New = first-ever visit falls in the period. Grey % = share of that column.', true) +
       card('Visits by source', bars(src.map(x => [x.key, x.visits]), { pct: true })) +
-      card('New registrations by source', Object.keys(by).length ? '<div><table class="in-tbl"><thead><tr><th>Source</th>' + months.map((k, i) => '<th' + (i < 3 ? ' class="hm"' : '') + '>' + I.monthLabel(k) + '</th>').join('') + '</tr></thead><tbody>' + Object.keys(by).sort().map(s => '<tr><td><b>' + e(s) + '</b></td>' + months.map((k, i) => '<td' + (i < 3 ? ' class="hm"' : '') + '>' + (by[s][k] || '–') + '</td>').join('') + '</tr>').join('') + '</tbody></table></div>' : '<div class="in-empty">No registrations.</div>', 'Last 6 months. “Unknown” = source not recorded — worth fixing at the front desk.') + '</div>' +
+      card('New registrations by source', Object.keys(by).length ? '<div><table class="in-tbl"><thead><tr><th>Source</th>' + months.map((k, i) => '<th' + (i < months.length - 3 ? ' class="hm"' : '') + '>' + I.monthLabel(k) + '</th>').join('') + '</tr></thead><tbody>' + Object.keys(by).sort().map(s => '<tr><td><b>' + e(s) + '</b></td>' + months.map((k, i) => '<td' + (i < months.length - 3 ? ' class="hm"' : '') + '>' + (by[s][k] || '–') + '</td>').join('') + '</tr>').join('') + '</tbody></table></div>' : '<div class="in-empty">No registrations in this period.</div>', 'Children registered in this period, by month (up to 12 months). “Unknown” = source not recorded — worth fixing at the front desk.') + '</div>' +
       '<div class="in-note">Revenue by day, stylist and service, and the VAT report, are in Reports. Importing old Excel history stays in the Loyalty app.</div>';
     const u = out.querySelector('#in-unlock'); if (u) u.onclick = () => I.askPin(() => I.init());
   };

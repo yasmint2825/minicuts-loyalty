@@ -1,4 +1,4 @@
-// Run: node tests/e2e_edit_lock.js — History "Edit" must not change revenue, tip or payment
+// Run: node tests/e2e_edit_lock.js — History "Edit": an invoiced visit keeps its amount (tip and payment can change); without an invoice everything can be corrected
 const { chromium } = require('playwright-core'); const path = require('path'); const fs = require('fs'); const ROOT = path.resolve(__dirname, '..');
 (async () => {
   const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ['--no-sandbox'] }); const pg = await b.newPage({ viewport: { width: 1280, height: 900 } });
@@ -10,9 +10,15 @@ const { chromium } = require('playwright-core'); const path = require('path'); c
   await pg.evaluate(async () => { await MC.sb('queue', 'PATCH', { status: 'done', service_value: 60, tip: 5, payment_type: 'Cash', invoice_id: null }, 'id=eq.q2'); });
   await pg.evaluate(() => { _histData = [Object.assign({}, _qdata.find(x => x.id === 'q2'), { status: 'done', service_value: 60, tip: 5, payment_type: 'Cash', invoice_id: null })]; editHistRow('q2'); });
   await pg.waitForSelector('#eh-val');
-  ok(await pg.$eval('#eh-val', e => e.disabled) && await pg.$eval('#eh-tip', e => e.disabled) && await pg.$eval('#eh-pmt', e => e.disabled), 'value, tip and payment are locked even without an invoice');
+  ok(!(await pg.$eval('#eh-val', e => e.disabled)) && !(await pg.$eval('#eh-tip', e => e.disabled)) && !(await pg.$eval('#eh-pmt', e => e.disabled)), 'without an invoice, amount, tip and payment can be corrected');
   await pg.fill('#eh-rem', 'note only'); await pg.evaluate(() => saveHistEdit('q2', document.querySelector('button[onclick^="saveHistEdit"]'))); await pg.waitForTimeout(600);
   const row = await pg.evaluate(() => JSON.parse(localStorage.getItem('mc_demo_db_v2')).queue.find(x => x.id === 'q2'));
   ok(row.remark === 'note only' && row.service_value === 60 && row.tip === 5 && row.payment_type === 'Cash', 'remark saved; revenue 60, tip 5, Cash unchanged');
+  await pg.evaluate(() => { document.querySelectorAll('[style*=fixed]').forEach(x => x.remove()); _histData[0].invoice_id = 'inv-1'; _histData[0].invoice_number = 'MC/26/0001'; editHistRow('q2'); });
+  await pg.waitForSelector('#eh-val');
+  ok(await pg.$eval('#eh-val', e => e.disabled) && !(await pg.$eval('#eh-tip', e => e.disabled)) && !(await pg.$eval('#eh-pmt', e => e.disabled)), 'with an invoice: amount locked, tip and payment open');
+  await pg.evaluate(() => { document.getElementById('eh-val').disabled = false; document.getElementById('eh-val').value = '999'; saveHistEdit('q2', document.querySelector('button[onclick^="saveHistEdit"]')); }); await pg.waitForTimeout(600);
+  const row2 = await pg.evaluate(() => JSON.parse(localStorage.getItem('mc_demo_db_v2')).queue.find(x => x.id === 'q2'));
+  ok(row2.service_value === 60, 'an invoiced amount is not saved even if the field is forced open');
   ok(errs.length === 0, 'no page errors ' + JSON.stringify(errs)); await b.close();
 })();

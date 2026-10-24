@@ -35,10 +35,22 @@ const MC_add = (s, n) => { const d = new Date(s + 'T12:00:00'); d.setDate(d.getD
   await pg.fill('#in-pin', '8065'); await pg.press('#in-pin', 'Enter'); await pg.waitForSelector('.in-kpi'); ok(/Visits/.test(await pg.innerText('#mc-insights-root')), 'correct code opens the overview'); await shot('04-insights-overview');
   ok((await pg.locator('.in-heat .in-hr i').count()) > 50, 'busiest-times heat map drawn');
   ok(/AED incl\. VAT/.test(await pg.innerText('.in-kpis')), 'revenue shows once unlocked');
-  for (const [t, re] of [['customers', /registered children/i], ['retention', /return rate/i], ['ops', /avg wait/i], ['acq', /who came in/i], ['games', /plays/i]]) {
+  for (const [t, re] of [['customers', /kids visited/i], ['retention', /return rate/i], ['ops', /avg wait/i], ['acq', /who came in/i], ['games', /plays/i]]) {
     await pg.click('#in-tabs [data-t="' + t + '"]'); await pg.waitForTimeout(500); ok(re.test(await pg.innerText('#mc-insights-root')), 'insights tab ' + t); await shot('05-insights-' + t);
   }
-  await pg.click('#in-tabs [data-t="retention"]'); await pg.waitForTimeout(300); await pg.click('#in-rr [data-d="30"]'); await pg.waitForTimeout(400); ok(/last 30 days/i.test(await pg.innerText('#mc-insights-root')), 'return-rate window switches');
+  // every tab has the date bar, including Custom dates; Retention follows the chosen dates
+  for (const t of ['overview', 'customers', 'retention', 'ops', 'acq', 'games']) { await pg.click('#in-tabs [data-t="' + t + '"]'); await pg.waitForTimeout(300); ok((await pg.locator('#in-pre [data-p="custom"]').count()) === 1 && (await pg.locator('#in-pre [data-p="3"]').count()) === 1, 'date range bar on ' + t); }
+  await pg.click('#in-tabs [data-t="retention"]'); await pg.waitForTimeout(300); ok(/seen in this period/i.test(await pg.innerText('#mc-insights-root')), 'retention is for the chosen period');
+  const seen90 = await pg.evaluate(async () => { MC.insights.st.preset = '90'; Object.assign(MC.insights.st, { from: MC.addDays(MC.today(), -90), to: MC.today() }); MC.insights.init(); await new Promise(r => setTimeout(r, 500)); return document.querySelector('#mc-insights-root').innerText; });
+  await pg.click('#in-pre [data-p="custom"]'); await pg.waitForSelector('#in-from'); ok(await pg.isVisible('#in-to'), 'Custom dates shows From and To');
+  const y = await pg.evaluate(() => MC.addDays(MC.today(), -1)); await pg.fill('#in-from', y); await pg.dispatchEvent('#in-from', 'change'); await pg.waitForTimeout(500);
+  await pg.fill('#in-to', y); await pg.dispatchEvent('#in-to', 'change'); await pg.waitForTimeout(500);
+  ok(await pg.evaluate(y => MC.insights.st.from === y && MC.insights.st.to === y, y) && (await pg.inputValue('#in-from')) === y, 'custom dates are kept (' + y + ')');
+  const seen1 = await pg.innerText('#mc-insights-root'); ok(seen1 !== seen90 && /return rate/i.test(seen1), 'retention figures change with the dates'); await shot('05b-custom-dates');
+  await pg.click('#in-tabs [data-t="ops"]'); await pg.waitForTimeout(400); ok((await pg.inputValue('#in-from')) === y, 'custom dates stay when switching tabs');
+  ok(await pg.evaluate(() => { const r = MC.insights.returnRate([{ id: 'a' }, { id: 'b' }], [{ customer_id: 'a', created_at: '2026-01-05T08:00:00Z' }, { customer_id: 'a', created_at: '2026-03-05T08:00:00Z' }, { customer_id: 'b', created_at: '2026-03-06T08:00:00Z' }, { customer_id: 'b', created_at: '2026-05-01T08:00:00Z' }], 0, null, { from: '2026-03-01', to: '2026-03-31' }); return r.visited === 2 && r.returners === 1 && r.rate === 50; }), 'return rate for a range: later visits are not counted');
+  ok(await pg.evaluate(() => JSON.stringify(MC.insights.monthsBetween('2025-11-20', '2026-02-03')) === '["2025-11","2025-12","2026-01","2026-02"]'), 'months between two dates');
+  await pg.evaluate(() => { MC.insights.st.preset = '30'; Object.assign(MC.insights.st, { from: MC.addDays(MC.today(), -30), to: MC.today() }); MC.insights.init(); }); await pg.waitForTimeout(400);
   await pg.click('#in-lock'); await pg.waitForSelector('#in-pin'); ok(!(await pg.locator('.in-kpi').count()), 'Lock button hides Insights again');
   await pg.click('#side [data-p="t-reports"]'); await pg.waitForTimeout(300); ok(/PIN/.test(await pg.innerText('#t-reports')) || /Unlock/.test(await pg.innerText('#t-reports')), 'locking also locks Reports');
   await pg.evaluate(() => MC.reports.unlock('8065'));
@@ -121,6 +133,20 @@ const MC_add = (s, n) => { const d = new Date(s + 'T12:00:00'); d.setDate(d.getD
   ok(/voided/i.test(after.summary) && /Voided/.test(await pg.innerText('#hist-body')), 'History says how many were voided and marks the row'); await shot('14-history-voided');
   await pg.evaluate(id => { const r = _histData.find(x => x.id === id); r.invoice_id = 'inv-again'; }, victim); ok(await pg.evaluate(id => !isVoidedVisit(_histData.find(x => x.id === id)), victim), 'a re-issued bill counts as served again');
   await pg.evaluate(id => { const r = _histData.find(x => x.id === id); r.invoice_id = null; r.service_value = 42; }, victim); ok(await pg.evaluate(id => !isVoidedVisit(_histData.find(x => x.id === id)), victim), 'voided but amount typed back in (billed another way) counts as served');
+  // History edit: an invoiced visit keeps its amount; tip and payment are saved on the visit and its invoice
+  await pg.evaluate(() => { showTab('t-history'); histSetDate(today()); }); await pg.evaluate(() => loadHist()); await pg.waitForTimeout(500);
+  const inv = await pg.evaluate(async () => { const r = _histData.find(x => x.status === 'done' && Number(x.service_value) > 0); const i = (await MC.sb('invoices', 'POST', { invoice_number: 'MC/TEST/2', status: 'paid', queue_id: r.id, checkin_date: today(), payable_amount: Number(r.service_value), tip: 0, total_amount: Number(r.service_value), payment_type: 'Cash' }))[0];
+    await MC.sb('queue', 'PATCH', { invoice_id: i.id, invoice_number: 'MC/TEST/2', tip: null, payment_type: 'Cash' }, 'id=eq.' + r.id); MC.billing.attachPdf = async () => 'x'; return { q: r.id, i: i.id, val: Number(r.service_value) }; });
+  await pg.evaluate(() => loadHist()); await pg.waitForTimeout(500); await pg.evaluate(id => editHistRow(id), inv.q); await pg.waitForSelector('#eh-val');
+  ok(await pg.isDisabled('#eh-val') && /amount is fixed/.test(await pg.innerText('body')), 'invoiced visit: amount locked, with a note'); await shot('15-history-edit-invoiced');
+  await pg.fill('#eh-tip', '10'); await pg.selectOption('#eh-pmt', 'Credit'); await pg.click('text=Save Changes'); await pg.waitForTimeout(700);
+  const after2 = await pg.evaluate(async x => ({ q: (await MC.sb('queue', 'GET', null, 'id=eq.' + x.q))[0], i: (await MC.sb('invoices', 'GET', null, 'id=eq.' + x.i))[0] }), inv);
+  ok(Number(after2.q.service_value) === inv.val && Number(after2.q.tip) === 10 && after2.q.payment_type === 'Credit', 'visit: amount unchanged, new tip and payment saved');
+  ok(Number(after2.i.tip) === 10 && after2.i.payment_type === 'Credit' && Number(after2.i.total_amount) === inv.val + 10, 'invoice: same tip and payment, total = amount + tip');
+  const free = await pg.evaluate(() => { const r = _histData.find(x => x.status === 'done' && !x.invoice_id && Number(x.service_value) > 0); return r && r.id; });
+  await pg.evaluate(id => editHistRow(id), free); await pg.waitForSelector('#eh-val'); ok(!(await pg.isDisabled('#eh-val')), 'visit without an invoice: amount can still be changed');
+  await pg.fill('#eh-val', '77'); await pg.click('text=Save Changes'); await pg.waitForTimeout(600);
+  ok(Number((await pg.evaluate(id => MC.sb('queue', 'GET', null, 'id=eq.' + id), free))[0].service_value) === 77, 'amount saved on a visit without an invoice');
   // mobile
   await pg.setViewportSize({ width: 390, height: 800 }); await pg.waitForTimeout(300); ok(!(await pg.isVisible('#side')) || true, 'mobile layout ok');
   await pg.click('#menuBtn'); await pg.waitForTimeout(350); ok(await pg.isVisible('#side'), 'hamburger opens the drawer'); await shot('06-mobile-drawer');
