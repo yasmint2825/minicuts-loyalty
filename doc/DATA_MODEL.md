@@ -90,5 +90,6 @@ The constant `DB_CUTOFF = '2026-06-09'` in `index.html` controls this split. Ana
 
 ## RLS Status
 
-> ⚠️ Row Level Security is **DISABLED** on all tables. The anon key has full read/write access.
-> See [KNOWN_RISKS_AND_TECHNICAL_DEBT.md](./KNOWN_RISKS_AND_TECHNICAL_DEBT.md).
+> ⚠️ Row Level Security is **on** for every table, but most salon tables still have open rules for the public key.
+> Lockdown step 1 (25 Oct 2026) removed public-key deletes on core tables and closed the WhatsApp log and unused tables.
+> See [AUTHENTICATION_AND_SECURITY.md](./AUTHENTICATION_AND_SECURITY.md#row-level-security-rls).

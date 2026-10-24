@@ -1,15 +1,15 @@
 # Known Risks and Technical Debt — MiNiCUTS Loyalty
 
-> **Last verified:** 2026-09-01 · **Source:** code review + Supabase inspection
+> **Last verified:** 2026-10-25 (security rows) · **Source:** code review + live database rules
 
 ## Security Risks
 
 | Risk | Severity | Detail |
 |---|---|---|
-| Anon key in browser source | High | Supabase anon key hardcoded in all HTML files. Anyone with the URL can read/write the database. Acceptable for single-tenant private kiosk; unacceptable for SaaS. |
-| RLS disabled on all tables | High | No row-level access control. See [AUTHENTICATION_AND_SECURITY.md](./AUTHENTICATION_AND_SECURITY.md) |
+| Anon key in browser source | High | Supabase anon key hardcoded in all HTML files. Anyone with it can still read customers, queue, visits and invoices, and add or change most rows. Since 25 Oct 2026 it can no longer delete core records or read the WhatsApp log (lockdown step 1). Full fix: staff sign-in, then lockdown steps 2–3. |
+| Open RLS rules on most salon tables | High | RLS is on everywhere, but most salon tables allow the public key. See [AUTHENTICATION_AND_SECURITY.md](./AUTHENTICATION_AND_SECURITY.md#row-level-security-rls). |
 | PIN auth for management | Medium | `MGMT_PASS = '8065'` is visible in page source |
-| No staff auth | Medium | Staff queue URL is public — anyone with the link can access |
+| No staff auth on the plain link | Medium | Staff queue URL is public. Signed-in mode (`?chain=1`, Supabase Auth + `memberships`) exists but is optional. |
 
 ## Technical Debt Register
 
