@@ -187,7 +187,7 @@
 
   /* ── screens ──────────────────────────────────────────────────────────── */
   const TABS = [['overview', '📈 Overview'], ['customers', '👨‍👩‍👧 Customers'], ['retention', '🔄 Retention'], ['ops', '⏱ Operations'], ['acq', '📣 Acquisition'], ['games', '🎮 Games']];
-  const PRESETS = [['7', 'Last 7 days'], ['30', 'Last 30 days'], ['month', 'This month'], ['last', 'Last month'], ['90', 'Last 90 days']];
+  const PRESETS = [['3', 'Last 3 days'], ['7', 'Last 7 days'], ['30', 'Last 30 days'], ['month', 'This month'], ['last', 'Last month'], ['90', 'Last 90 days']];
 
   /* full-page lock: same security code as Reports (and the Loyalty app's Analytics) */
   I.lockScreen = function (el) {
@@ -204,7 +204,7 @@
     if (!document.getElementById('in-style')) { const s = document.createElement('style'); s.id = 'in-style'; s.textContent = style; document.head.appendChild(s); }
     if (!money()) return I.lockScreen(el);                       // nothing is fetched or drawn until the security code is entered
     const S = I.st; if (!S.from) Object.assign(S, rangeFor(S.preset));
-    const needsRange = ['overview', 'ops', 'acq'].includes(S.tab);
+    const needsRange = true;
     el.innerHTML = '<div class="in-top"><div class="in-seg" id="in-tabs">' + TABS.map(t => '<button data-t="' + t[0] + '" class="' + (S.tab === t[0] ? 'on' : '') + '">' + t[1] + '</button>').join('') + '</div>' +
       '<button class="btn btn-ghost btn-sm" id="in-lock" title="Hide Insights and Reports until the code is entered again" style="margin-left:auto;">🔒 Lock</button>' +
       (needsRange ? '<div class="in-seg" id="in-pre">' + PRESETS.map(p => '<button data-p="' + p[0] + '" class="' + (S.preset === p[0] ? 'on' : '') + '">' + p[1] + '</button>').join('') + '</div><span class="in-cs" style="margin:0;">' + MC.fmtDate(S.from) + ' → ' + MC.fmtDate(S.to) + '</span>' : '') + '</div><div id="in-out"><div class="in-empty">Loading…</div></div>';
@@ -233,16 +233,35 @@
   };
 
   I.tab_customers = async function (out) {
-    const { cust } = await loadAll(), now = new Date(), months = I.lastMonths(12, now), reg = {}; cust.forEach(c => { const k = I.monthKey(c.created_at); reg[k] = (reg[k] || 0) + 1; });
-    const boys = cust.filter(c => c.gender === 'boy').length, girls = cust.filter(c => c.gender === 'girl').length, ages = {}; cust.forEach(c => { const b = I.ageBand(c.dob, now); if (b) ages[b] = (ages[b] || 0) + 1; });
-    const unk = cust.filter(c => !c.dob).length, cfg = MC.customers.cfg(), st = I.countBy(cust, c => MC.customers.status(c, cfg, now).label.replace(/ \S*[🚿⏰😴]$/u, ''));
-    out.innerHTML = '<div class="in-kpis">' + kpi('Registered children', cust.length) + kpi('Boys', boys, cust.length ? Math.round(boys / cust.length * 100) + '%' : '', '#1565C0') + kpi('Girls', girls, cust.length ? Math.round(girls / cust.length * 100) + '%' : '', '#EC4899') +
-      kpi('Missing details', cust.filter(c => MC.profileGaps(c).length).length, 'birthday, area or source') + '</div><div class="in-grid">' +
-      card('New registrations', cols(months.map(k => ({ n: reg[k] || 0, label: I.monthLabel(k), short: I.monthLabel(k).slice(0, 3) }))), 'Children added per month (last 12 months).') +
-      card('Age', bars(I.AGE.map(a => [a[0] + ' yrs', ages[a[0]] || 0])) + (unk ? '<div class="in-note">' + unk + ' without a birthday are not counted.</div>' : '')) +
-      card('Where they live', bars(I.countBy(cust, c => c.location).slice(0, 10), { pct: true, total: cust.filter(c => c.location).length }), 'Top 10 areas · % of children with an area on file.') +
-      card('How they heard about us', bars(I.countBy(cust, c => c.heard_via), { pct: true, total: cust.filter(c => c.heard_via).length }), '% of children with a source on file.') +
-      card('Passport status', bars(st, { pct: true, cat: true }), 'Where every child stands in the loyalty cycle today.') + '</div>';
+    const S = I.st, [{ cust, visits }, rows] = await Promise.all([loadAll(), loadRows(S.from, S.to)]);
+    const now = new Date(), cfg = MC.customers.cfg();
+    // Customers who had a visit in the selected period
+    const custMap = {}; cust.forEach(c => { custMap[c.id] = c; });
+    const visitedIds = new Set(rows.map(r => r.customer_id).filter(Boolean));
+    const visited = [...visitedIds].map(id => custMap[id]).filter(Boolean);
+    const first = I.firstSeen(visits);
+    const newKids = visited.filter(c => first[c.id] && first[c.id] >= S.from && first[c.id] <= S.to);
+    // Visit-period breakdowns
+    const boys = visited.filter(c => c.gender === 'boy').length, girls = visited.filter(c => c.gender === 'girl').length;
+    const ages = {}; visited.forEach(c => { const b = I.ageBand(c.dob, now); if (b) ages[b] = (ages[b] || 0) + 1; });
+    const unk = visited.filter(c => !c.dob).length;
+    const st = I.countBy(visited, c => MC.customers.status(c, cfg, now).label.replace(/ \S*[🚿⏰😴]$/u, ''));
+    // All-time registrations chart
+    const months = I.lastMonths(12, now), reg = {}; cust.forEach(c => { const k = I.monthKey(c.created_at); reg[k] = (reg[k] || 0) + 1; });
+    out.innerHTML = '<div class="in-kpis">' +
+      kpi('Kids visited', visitedIds.size, rows.length + ' total visits in period') +
+      kpi('New kids', newKids.length, 'first visit ever in this period') +
+      kpi('Boys', boys, visited.length ? Math.round(boys / visited.length * 100) + '%' : '', '#1565C0') +
+      kpi('Girls', girls, visited.length ? Math.round(girls / visited.length * 100) + '%' : '', '#EC4899') +
+      '</div><div class="in-grid">' +
+      (visited.length ? (
+        card('Age groups', bars(I.AGE.map(a => [a[0] + ' yrs', ages[a[0]] || 0])) + (unk ? '<div class="in-note">' + unk + ' without a birthday are not counted.</div>' : ''), 'Kids who visited in this period.') +
+        card('Where they live', bars(I.countBy(visited, c => c.location).slice(0, 10), { pct: true, total: visited.filter(c => c.location).length }), 'Top 10 areas · % with area on file.') +
+        card('How they heard about us', bars(I.countBy(visited, c => c.heard_via), { pct: true, total: visited.filter(c => c.heard_via).length })) +
+        card('Passport status', bars(st, { pct: true }), 'Where every child who visited stands in the loyalty cycle today.')
+      ) : '<div class="in-card"><div class="in-empty">No visits recorded in this period.</div></div>') +
+      card('New registrations (all time)', cols(months.map(k => ({ n: reg[k] || 0, label: I.monthLabel(k), short: I.monthLabel(k).slice(0, 3) }))), 'Children added per month — last 12 months, regardless of the date filter above.') +
+      '</div>';
   };
 
   I.tab_retention = async function (out) {
@@ -281,7 +300,9 @@
   };
 
   I.tab_games = async function (out) {
-    const ss = await cached('games', 300000, () => MC.sbAll('game_sessions', 'select=customer_id,customer_name,game_type,points_earned,created_at&order=created_at.asc').catch(() => [])), g = I.games(ss);
+    const S = I.st;
+    const ss = await cached('games' + S.from + S.to, 300000, () => MC.sbAll('game_sessions', 'select=customer_id,customer_name,game_type,points_earned,created_at&created_at=gte.' + S.from + 'T00:00:00&created_at=lte.' + S.to + 'T23:59:59&order=created_at.asc').catch(() => []));
+    const g = I.games(ss);
     out.innerHTML = '<div class="in-kpis">' + kpi('Plays', g.plays) + kpi('Players', g.players) + kpi('Points earned', g.points) + kpi('Possible double-taps', g.dupes, 'same game within 20 s', g.dupes ? 'var(--warn)' : '') + '</div><div class="in-grid">' +
       card('Plays by game', bars(g.byGame.map(x => [x.game, x.plays]), { pct: true })) + card('Points by game', bars(g.byGame.map(x => [x.game, x.points]), { color: '#F59E0B' })) +
       card('Most active players', bars(g.top, { color: '#7C3AED' })) + '</div>';
