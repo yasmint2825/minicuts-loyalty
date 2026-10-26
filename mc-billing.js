@@ -1,5 +1,5 @@
 /* ============================================================================
- * mc-billing.js — Checkout (with % discount) -> Invoice -> PDF -> WhatsApp utility message
+ * mc-billing.js — Checkout (with % or flat AED discount) -> Invoice -> PDF -> WhatsApp utility message
  * Hooks into minicuts-staff.html:  History rows and done Queue rows get a 💳 Checkout / 🧾 Invoice button.
  * Settings card "🧾 Invoice & Tax" is rendered into #mc-settings-billing.
  * ========================================================================== */
@@ -135,7 +135,8 @@
     let chosen = byName || null;                       // the service MUST come from the Salon Setup price list
     const seedPct = S.discounts.includes(seed.pct) ? seed.pct : 0;
 
-    const chips = [0].concat(S.discounts).map(p => '<button type="button" class="btn btn-ghost btn-sm mc-chip" data-p="' + p + '" style="padding:6px 10px;">' + (p ? p + '%' : 'None') + '</button>').join('');
+    const allPctChips = [...new Set([0].concat(S.discounts).concat([100]))].sort((a, b) => a - b);
+    const chips = allPctChips.map(p => '<button type="button" class="btn btn-ghost btn-sm mc-chip" data-p="' + p + '" style="padding:6px 10px;">' + (p === 0 ? 'None' : p === 100 ? '100% Free' : p + '%') + '</button>').join('');
     const ov = MC.modal(
       '<div style="font-family:var(--fh);font-size:19px;font-weight:800;color:var(--bd);">💳 Checkout <span style="font-size:10px;font-weight:600;color:var(--muted);">' + MC.esc(MC.version) + '</span></div>' +
       '<div style="font-size:13px;color:var(--muted);margin:2px 0 14px;">' + MC.esc(r.customer_name || 'Guest') + ' · Token ' + MC.pad(r.token_number || 0) + (stylistsOf(r) ? ' · ' + MC.esc(stylistsOf(r)) : '') + '</div>' +
@@ -147,8 +148,20 @@
           '<div>' + MC.lbl('Price (' + S.currency + ') · from price list') + '<input id="mcc-price" class="fi" type="text" readonly tabindex="-1" value="' + MC.esc(chosen ? chosen.price : '') + '" placeholder="Pick a service" style="background:#F1F5F9;font-weight:800;color:var(--bd);"/></div>' +
           '<div>' + MC.lbl('Tip (' + S.currency + ')') + '<input id="mcc-tip" class="fi" type="number" min="0" step="any" value="' + MC.esc(r.tip || '') + '" placeholder="0"/></div>' +
         '</div>' +
-        '<div>' + MC.lbl('Discount %') + '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">' + (can('discount.apply') ? chips : '<span style="font-size:12px;color:var(--muted);">Your role cannot give discounts</span>') +
-          '<input id="mcc-disc" type="hidden" value="' + MC.esc(seedPct) + '"/></div></div>' +
+        '<div>' + MC.lbl('Discount') +
+          (can('discount.apply') ? (
+            '<div style="display:flex;gap:6px;margin-bottom:6px;">' +
+              '<button type="button" id="mcc-dm-pct" class="btn btn-b btn-sm" style="padding:4px 10px;">% Off</button>' +
+              '<button type="button" id="mcc-dm-aed" class="btn btn-ghost btn-sm" style="padding:4px 10px;">AED Off</button>' +
+            '</div>' +
+            '<div id="mcc-disc-pct-wrap" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">' + chips + '</div>' +
+            '<div id="mcc-disc-aed-wrap" style="display:none;margin-top:4px;">' +
+              '<input id="mcc-disc-aed-val" class="fi" type="number" min="0" step="0.01" placeholder="Enter AED amount off (e.g. 10)" style="max-width:220px;"/>' +
+            '</div>'
+          ) : '<span style="font-size:12px;color:var(--muted);">Your role cannot give discounts</span>') +
+          '<input id="mcc-disc" type="hidden" value="' + MC.esc(seedPct) + '"/>' +
+          '<input id="mcc-disc-flat" type="hidden" value="0"/>' +
+        '</div>' +
         '<div>' + MC.lbl('Payment') + '<div style="display:flex;gap:8px;">' +
           '<button type="button" class="btn btn-ghost mc-pay" data-v="Cash" style="flex:1;padding:10px;">💵 Cash</button>' +
           '<button type="button" class="btn btn-ghost mc-pay" data-v="Credit" style="flex:1;padding:10px;">💳 Card</button></div></div>' +
@@ -162,17 +175,26 @@
 
     const $ = id => ov.querySelector('#' + id);
     let pay = r.payment_type === 'Cash' || r.payment_type === 'Credit' ? r.payment_type : '';
+    let discMode = 'pct'; // 'pct' or 'aed'
 
-    const read = () => ({
-      listPrice: parseFloat($('mcc-price').value) || 0, discountPct: parseFloat($('mcc-disc').value) || 0,
-      tip: parseFloat($('mcc-tip').value) || 0
-    });
-    const calc = () => { const v = read(); return MC.calcInvoice({ listPrice: v.listPrice, discountPct: v.discountPct, tip: v.tip, taxRate: S.rate, basis: S.basis, taxRegistered: S.taxRegistered, country: S.country }); };
+    const read = () => {
+      const listPrice = parseFloat($('mcc-price').value) || 0;
+      const tip = parseFloat($('mcc-tip').value) || 0;
+      if (discMode === 'aed') {
+        const flat = parseFloat($('mcc-disc-aed-val').value) || 0;
+        return { listPrice, discountPct: 0, discountFlat: flat, tip };
+      }
+      return { listPrice, discountPct: parseFloat($('mcc-disc').value) || 0, discountFlat: 0, tip };
+    };
+    const calc = () => { const v = read(); return MC.calcInvoice({ listPrice: v.listPrice, discountPct: v.discountPct, discountFlat: v.discountFlat, tip: v.tip, taxRate: S.rate, basis: S.basis, taxRegistered: S.taxRegistered, country: S.country }); };
     const line = (a, b, strong, color) => '<div style="display:flex;justify-content:space-between;' + (strong ? 'font-weight:800;font-size:15px;color:var(--bd);border-top:1px solid #DBEAFE;margin-top:6px;padding-top:6px;' : '') + (color ? 'color:' + color + ';' : '') + '"><span>' + a + '</span><span>' + b + '</span></div>';
     const paint = () => {
       const c = calc(), cur = S.currency;
       let h = line('Price', MC.money(c.list, cur));
-      if (c.discountAmount) h += line('Discount (' + c.discountPct + '%)', '− ' + MC.money(c.discountAmount, cur), false, 'var(--err)');
+      if (c.discountAmount) {
+        const discLabel = discMode === 'aed' ? 'Discount (AED ' + MC.money(c.discountAmount, cur) + ' off)' : 'Discount (' + c.discountPct + '%)';
+        h += line(discLabel, '− ' + MC.money(c.discountAmount, cur), false, 'var(--err)');
+      }
       if (S.taxRegistered && c.tax > 0) {
         h += line('Taxable value', MC.money(c.taxable, cur), false, 'var(--muted)');
         if (S.country === 'IN') { h += line('CGST ' + (S.rate / 2) + '%', MC.money(c.cgst, cur), false, 'var(--muted)'); h += line('SGST ' + (S.rate / 2) + '%', MC.money(c.sgst, cur), false, 'var(--muted)'); }
@@ -182,7 +204,7 @@
       if (c.tip) h += line('Tip', MC.money(c.tip, cur), false, 'var(--ok)');
       h += line('Total to collect', MC.money(c.grand, cur), true);
       $('mcc-sum').innerHTML = h;
-      ov.querySelectorAll('.mc-chip').forEach(b => { const on = +b.dataset.p === (parseFloat($('mcc-disc').value) || 0); b.style.background = on ? 'var(--b)' : 'transparent'; b.style.color = on ? '#fff' : 'var(--b)'; });
+      if (discMode === 'pct') ov.querySelectorAll('.mc-chip').forEach(b => { const on = +b.dataset.p === (parseFloat($('mcc-disc').value) || 0); b.style.background = on ? 'var(--b)' : 'transparent'; b.style.color = on ? '#fff' : 'var(--b)'; });
       ov.querySelectorAll('.mc-pay').forEach(b => { const on = b.dataset.v === pay; b.style.background = on ? 'var(--b)' : 'transparent'; b.style.color = on ? '#fff' : 'var(--b)'; });
     };
     /* type-ahead service picker with Boys / Girls / Both filter */
@@ -212,6 +234,24 @@
     $('mcc-tip').addEventListener('input', paint);
     ov.querySelectorAll('.mc-chip').forEach(b => b.addEventListener('click', () => { $('mcc-disc').value = b.dataset.p; paint(); }));
     ov.querySelectorAll('.mc-pay').forEach(b => b.addEventListener('click', () => { pay = b.dataset.v; paint(); }));
+    /* Discount mode toggle */
+    const dmPct = $('mcc-dm-pct'), dmAed = $('mcc-dm-aed');
+    if (dmPct && dmAed) {
+      const switchMode = mode => {
+        discMode = mode;
+        const isPct = mode === 'pct';
+        dmPct.className = 'btn btn-sm ' + (isPct ? 'btn-b' : 'btn-ghost'); dmPct.style.padding = '4px 10px;';
+        dmAed.className = 'btn btn-sm ' + (!isPct ? 'btn-b' : 'btn-ghost'); dmAed.style.padding = '4px 10px;';
+        $('mcc-disc-pct-wrap').style.display = isPct ? 'flex' : 'none';
+        $('mcc-disc-aed-wrap').style.display = isPct ? 'none' : 'block';
+        if (isPct) { $('mcc-disc').value = 0; } else { $('mcc-disc-aed-val').value = ''; }
+        paint();
+      };
+      dmPct.addEventListener('click', () => switchMode('pct'));
+      dmAed.addEventListener('click', () => switchMode('aed'));
+      const aedInput = $('mcc-disc-aed-val');
+      if (aedInput) aedInput.addEventListener('input', paint);
+    }
     $('mcc-cancel').addEventListener('click', () => ov.close());
     $('mcc-issue').addEventListener('click', async () => {
       const msg = $('mcc-msg'); msg.style.display = 'none';
@@ -219,11 +259,12 @@
       const fail = t => { msg.textContent = t; msg.style.display = 'block'; };
       if (!chosen) return fail('Pick the service from the price list.');
       if (!(Number(chosen.price) > 0)) return fail('This service has no price in Salon Setup — add it there first.');
-      if (v.discountPct !== 0 && !S.discounts.includes(v.discountPct)) return fail('Discount not allowed.');
+      if (discMode === 'pct' && v.discountPct !== 0 && !S.discounts.includes(v.discountPct) && v.discountPct !== 100) return fail('Discount not allowed.');
+      if (discMode === 'aed' && (v.discountFlat < 0 || v.discountFlat > (parseFloat($('mcc-price').value) || 0))) return fail('AED discount must be between 0 and the service price.');
       if (!pay) return fail('Choose Cash or Card.');
       const btn = $('mcc-issue'); btn.disabled = true; btn.textContent = 'Issuing…';
       try {
-        const inv = await B.issue(r, { service: chosen.name.trim(), payment: pay, listPrice: Number(chosen.price), discountPct: v.discountPct, tip: v.tip });
+        const inv = await B.issue(r, { service: chosen.name.trim(), payment: pay, listPrice: Number(chosen.price), discountPct: v.discountPct, discountFlat: v.discountFlat, tip: v.tip });
         ov.close();
         B.showInvoice(inv, { fresh: true, onDone: opts.stampAfter });
       } catch (e) {
@@ -237,7 +278,7 @@
   /* ── ISSUE ────────────────────────────────────────────────────────────── */
   B.issue = async function (r, f) {
     const S = B.S;
-    const c = MC.calcInvoice({ listPrice: f.listPrice, discountPct: f.discountPct, tip: f.tip, taxRate: S.rate, basis: S.basis, taxRegistered: S.taxRegistered, country: S.country });
+    const c = MC.calcInvoice({ listPrice: f.listPrice, discountPct: f.discountPct, discountFlat: f.discountFlat, tip: f.tip, taxRate: S.rate, basis: S.basis, taxRegistered: S.taxRegistered, country: S.country });
     const date = r.checkin_date || MC.today();
     const fy = MC.fyFor(MC.today(), S.country);
     const seller = { bname: S.bname, addr: S.addr, phone: S.phone, footer: S.footer, country: S.country, taxLabel: S.taxLabel };

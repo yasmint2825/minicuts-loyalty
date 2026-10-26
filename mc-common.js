@@ -172,8 +172,15 @@
    * identical meaning to what staff typed before, so cash-drawer reconciliation and existing dashboards keep working. */
   MC.calcInvoice = function (o) {
     const list = MC.r2(o.listPrice);
-    const pct = Math.min(100, Math.max(0, Number(o.discountPct) || 0));
-    const discAmt = MC.r2(list * pct / 100);
+    let discAmt, pct;
+    if (o.discountFlat != null && Number(o.discountFlat) > 0) {
+      /* Flat AED discount — clamp to [0, list] */
+      discAmt = MC.r2(Math.min(Number(o.discountFlat), list));
+      pct = list > 0 ? MC.r2(discAmt / list * 100) : 100;
+    } else {
+      pct = Math.min(100, Math.max(0, Number(o.discountPct) || 0));
+      discAmt = MC.r2(list * pct / 100);
+    }
     const net = MC.r2(list - discAmt);
     const rate = o.taxRegistered === false ? 0 : (Number(o.taxRate) || 0);
     let taxable = net, tax = 0, payable = net;

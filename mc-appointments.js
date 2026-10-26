@@ -445,9 +445,8 @@
             if (!kid.location && sibL) quiet.location = sibL; if (!kid.heard_via && sibH) quiet.heard_via = sibH;
             if (kid.tc_accepted !== true && fam.some(c => c.tc_accepted === true)) { quiet.tc_accepted = true; quiet.tc_accepted_at = new Date().toISOString(); }
             if (Object.keys(quiet).length) { await MC.sb('customers', 'PATCH', quiet, 'id=eq.' + kid.id, 'return=minimal'); Object.assign(kid, quiet); }
-            if (MC.allGaps(kid).length) {
-              const how = await MC.profileDialog([kid], { allowSkip: true, tc: true });
-              if (how === 'skipped') toast('Profile left incomplete', 'err');
+            if (MC.profileGaps(kid).length) {
+              await MC.profileDialog([kid], { allowSkip: false, tc: true, sub: 'Please complete these fields before checking in.' });
             }
           }
         }

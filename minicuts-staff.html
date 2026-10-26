@@ -1589,9 +1589,9 @@ async function markDone(qid,cid,name,mob){
   const remarkInput=row?.querySelector('input[type="text"]');
   const remark=(remarkInput?.value||'').trim()||null;
   const tip=tipInput?.value?Number(tipInput.value):null;
-  const service_value=svcValInput?.value?Number(svcValInput.value):null;
+  const service_value=svcValInput?.value!=null&&svcValInput.value!==''?Number(svcValInput.value):null;
   const payment_type=pmtSelect?.value||null;
-  if(!service_value){
+  if(service_value==null||service_value===''){
     if(svcValInput){svcValInput.style.borderColor='var(--err)';svcValInput.focus();}
     toast('Enter AED value before stamping ❌','err');return;
   }
@@ -1709,8 +1709,9 @@ function showWAPrompt(name,stamps,mobile,parent,gender,stylist,stylist2,remark,t
       sendBtn.href='https://wa.me/'+toWANum(mobile)+'?text='+encodeURIComponent(this.value);
     });
   }
-  ov.querySelector('button').addEventListener('click',()=>ov.remove());
-  ov.addEventListener('click',e=>{if(e.target===ov)ov.remove();});
+  const closeWA=()=>{ov.remove();setTimeout(()=>{try{if(typeof loadQ==='function')loadQ();}catch(_){}},400);};
+  ov.querySelector('button').addEventListener('click',closeWA);
+  ov.addEventListener('click',e=>{if(e.target===ov)closeWA();});
   document.body.appendChild(ov);
 }
 
