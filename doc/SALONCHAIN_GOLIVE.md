@@ -1,6 +1,8 @@
 # SalonChain — getting real logins and admin access (go-live checklist)
 
-**Nothing below has been done.** Every step that touches a Supabase project needs Munir's explicit approval. Do it first on a **sandbox** Supabase project, never on production or DEV first.
+**Status on the live project (checked 25 Oct 2026):** the SalonChain tables exist, `memberships` has 3 rows, there are 5 logins, and the `mc-admin-users` logins service is deployed. Not checked from here: the Authentication settings in steps 3–4 (sign-ups off, password length, Site URL and redirect URLs) — confirm them in the Supabase dashboard.
+
+Every further step that touches a Supabase project needs Munir's explicit approval.
 
 ## Why you cannot "register" into the admin pages
 The admin screens (Users & access, Group overview) exist only in chain mode and only for people who have (1) a login and (2) a row in `memberships`. Nobody can create the very first one from inside the app — that would let a stranger make themselves owner. So the **first owner is created once, by hand** in Supabase. After that, the owner adds everyone else inside the app.
