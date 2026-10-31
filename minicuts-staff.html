@@ -1000,6 +1000,7 @@ async function loadVoidedSet(from,to){
   try{const v=await sb('invoices','GET',null,'select=queue_id&status=eq.void&checkin_date=gte.'+from+'&checkin_date=lte.'+to+'&limit=1000');(v||[]).forEach(x=>{if(x.queue_id)_voidedQ.add(x.queue_id);});}catch(e){console.warn('voided list:',e.message);}
 }
 window.mcMarkVoided=function(qid){if(qid){_voidedQ.add(qid);try{updateStats();}catch(e){}}};
+function fmtAED(n){return String(Math.round(((Number(n)||0)+Number.EPSILON)*100)/100);}
 function updateStats(){
   try{refreshRewardBadges();}catch(e){}
   const w=_qdata.filter(r=>r.status==='waiting').length;
@@ -1012,7 +1013,7 @@ function updateStats(){
   // Revenue
   const done=_qdata.filter(r=>r.status==='done'&&!isVoidedVisit(r));
   const totalRev=done.reduce((s,r)=>s+(Number(r.service_value)||0),0);
-  if(e('st-rev'))e('st-rev').textContent=totalRev?'AED '+totalRev:'—';
+  if(e('st-rev'))e('st-rev').textContent=totalRev?'AED '+fmtAED(totalRev):'—';
   // Tip split by staff
   const tipMap={};
   done.forEach(r=>{
@@ -1029,7 +1030,7 @@ function updateStats(){
   if(tipEl){
     const entries=Object.entries(tipMap);
     if(!entries.length){tipEl.textContent='—';}
-    else{tipEl.innerHTML=entries.map(([s,v])=>'<span style="margin-right:10px;">✂️ <strong>'+s+'</strong> AED '+v+'</span>').join('');}
+    else{tipEl.innerHTML=entries.map(([s,v])=>'<span style="margin-right:10px;">✂️ <strong>'+s+'</strong> AED '+fmtAED(v)+'</span>').join('');}
   }
 }
 
@@ -1948,7 +1949,7 @@ function loadCfgScreen(){cfgSafe('vouchers',()=>loadGvSetup());cfgSafe('invoice'
       if(!byS[pri])byS[pri]={count:0,tips:0,rev:0};
       byS[pri].rev+=Number(r.service_value)||0;
     });
-    sumEl.innerHTML='<div style="font-size:13px;font-weight:700;margin-bottom:10px;color:var(--bd);">Served: <strong>'+done.length+'</strong> · Revenue: <span style="color:var(--b);">AED '+totalRev+'</span> · Tips: <span style="color:var(--ok);">AED '+totalTips+'</span></div>'
+    sumEl.innerHTML='<div style="font-size:13px;font-weight:700;margin-bottom:10px;color:var(--bd);">Served: <strong>'+done.length+'</strong> · Revenue: <span style="color:var(--b);">AED '+fmtAED(totalRev)+'</span> · Tips: <span style="color:var(--ok);">AED '+fmtAED(totalTips)+'</span></div>'
       +Object.entries(byS).map(([s,v])=>'<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;"><span>✂️ <strong>'+s+'</strong></span><span style="display:flex;gap:12px;"><span>'+v.count+' served</span>'+(v.rev?'<span style="color:var(--b);">AED '+v.rev+'</span>':'')+(v.tips?'<span style="color:var(--ok);">Tip '+v.tips+'</span>':'')+'</span></div>').join('');
   } else if(sumEl){sumEl.innerHTML='<div style="color:var(--muted);font-size:13px;">Load the queue first to see today\'s summary.</div>';}
 }
