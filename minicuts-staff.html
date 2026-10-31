@@ -1343,9 +1343,9 @@ function renderHist(){
       +'<span style="font-size:13px;">📊 <strong>'+date+(isToday?' (Today)':'')+'</strong> · '+data.length+' check-ins · '+done+' served'+(hst.voided?' · '+hst.voided+' voided':'')+(hst.cancelled?' · '+hst.cancelled+' cancelled':'')+'</span>'
       +'</div>'
       +'<div style="display:flex;flex-wrap:wrap;gap:8px;">'
-      +'<span style="background:#E0F2FE;color:#0369A1;padding:5px 13px;border-radius:8px;font-size:12.5px;font-weight:700;">💰 Total: AED '+(totalRev+totalTips)+'</span>'
-      +(cashRev+cashTip>0?'<span style="background:#EFF6FF;color:#1D4ED8;padding:5px 13px;border-radius:8px;font-size:12.5px;font-weight:700;">💵 Cash: AED '+(cashRev+cashTip)+'<span style="font-weight:400;font-size:11px;"> (rev '+cashRev+' · tip '+cashTip+')</span></span>':'')
-      +(creditRev+creditTip>0?'<span style="background:#F0FDF4;color:#15803D;padding:5px 13px;border-radius:8px;font-size:12.5px;font-weight:700;">💳 Credit: AED '+(creditRev+creditTip)+'<span style="font-weight:400;font-size:11px;"> (rev '+creditRev+' · tip '+creditTip+')</span></span>':'')
+      +'<span style="background:#E0F2FE;color:#0369A1;padding:5px 13px;border-radius:8px;font-size:12.5px;font-weight:700;">💰 Total: AED '+fmtAED(totalRev+totalTips)+'</span>'
+      +(cashRev+cashTip>0?'<span style="background:#EFF6FF;color:#1D4ED8;padding:5px 13px;border-radius:8px;font-size:12.5px;font-weight:700;">💵 Cash: AED '+fmtAED(cashRev+cashTip)+'<span style="font-weight:400;font-size:11px;"> (rev '+fmtAED(cashRev)+' · tip '+fmtAED(cashTip)+')</span></span>':'')
+      +(creditRev+creditTip>0?'<span style="background:#F0FDF4;color:#15803D;padding:5px 13px;border-radius:8px;font-size:12.5px;font-weight:700;">💳 Credit: AED '+fmtAED(creditRev+creditTip)+'<span style="font-weight:400;font-size:11px;"> (rev '+fmtAED(creditRev)+' · tip '+fmtAED(creditTip)+')</span></span>':'')
       +'</div>';}
   body.innerHTML=data.slice().reverse().map(r=>{
     const done=r.status==='done';const called=r.status==='called';const cancelled=r.status==='cancelled';const guest=r.is_guest;
@@ -1369,8 +1369,8 @@ function renderHist(){
       +'</td>'
       +'<td>'+(r.service||'—')+'</td>'
       +'<td>'+(styStr||'<span style="color:var(--muted);">—</span>')+'</td>'
-      +'<td style="font-weight:800;color:var(--b);">'+(r.service_value?'AED '+r.service_value:'—')+(window.MC&&MC.billing&&MC.billing.cellNote?MC.billing.cellNote(r):'')+'</td>'
-      +'<td style="font-weight:800;color:var(--ok);">'+(r.tip?'AED '+r.tip:'—')+'</td>'
+      +'<td style="font-weight:800;color:var(--b);">'+(r.service_value?'AED '+fmtAED(r.service_value):'—')+(window.MC&&MC.billing&&MC.billing.cellNote?MC.billing.cellNote(r):'')+'</td>'
+      +'<td style="font-weight:800;color:var(--ok);">'+(r.tip?'AED '+fmtAED(r.tip):'—')+'</td>'
       +'<td>'+payBadge+'</td>'
       +'<td style="font-size:12px;color:var(--muted);max-width:150px;">'+(r.remark||'—')+'</td>'
       +'<td>'+sp+'</td>'
@@ -1383,13 +1383,13 @@ function renderHist(){
   }).join('')
   +'<tr style="background:#F0FDF4;font-weight:900;border-top:2px solid #86EFAC;">'
     +'<td colspan="4" style="padding:10px 14px;color:var(--ok);font-size:13px;">💰 Totals</td>'
-    +'<td style="padding:10px 14px;color:var(--b);font-size:14px;">AED '+totalRev+'</td>'
-    +'<td style="padding:10px 14px;color:var(--ok);font-size:14px;">AED '+totalTips+'</td>'
+    +'<td style="padding:10px 14px;color:var(--b);font-size:14px;">AED '+fmtAED(totalRev)+'</td>'
+    +'<td style="padding:10px 14px;color:var(--ok);font-size:14px;">AED '+fmtAED(totalTips)+'</td>'
     +'<td style="padding:8px 10px;font-size:12px;">'
-      +(cashRev+cashTip>0?'<div style="color:#1D4ED8;font-weight:700;">💵 AED '+(cashRev+cashTip)+'</div>':'')
-      +(creditRev+creditTip>0?'<div style="color:#15803D;font-weight:700;">💳 AED '+(creditRev+creditTip)+'</div>':'')
+      +(cashRev+cashTip>0?'<div style="color:#1D4ED8;font-weight:700;">💵 AED '+fmtAED(cashRev+cashTip)+'</div>':'')
+      +(creditRev+creditTip>0?'<div style="color:#15803D;font-weight:700;">💳 AED '+fmtAED(creditRev+creditTip)+'</div>':'')
     +'</td>'
-    +'<td colspan="3" style="padding:10px 14px;color:var(--muted);font-size:12px;">Combined: AED '+(totalRev+totalTips)+'</td>'
+    +'<td colspan="3" style="padding:10px 14px;color:var(--muted);font-size:12px;">Combined: AED '+fmtAED(totalRev+totalTips)+'</td>'
   +'</tr>';
   mcLabelCells(body);
 }
@@ -1950,7 +1950,7 @@ function loadCfgScreen(){cfgSafe('vouchers',()=>loadGvSetup());cfgSafe('invoice'
       byS[pri].rev+=Number(r.service_value)||0;
     });
     sumEl.innerHTML='<div style="font-size:13px;font-weight:700;margin-bottom:10px;color:var(--bd);">Served: <strong>'+done.length+'</strong> · Revenue: <span style="color:var(--b);">AED '+fmtAED(totalRev)+'</span> · Tips: <span style="color:var(--ok);">AED '+fmtAED(totalTips)+'</span></div>'
-      +Object.entries(byS).map(([s,v])=>'<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;"><span>✂️ <strong>'+s+'</strong></span><span style="display:flex;gap:12px;"><span>'+v.count+' served</span>'+(v.rev?'<span style="color:var(--b);">AED '+v.rev+'</span>':'')+(v.tips?'<span style="color:var(--ok);">Tip '+v.tips+'</span>':'')+'</span></div>').join('');
+      +Object.entries(byS).map(([s,v])=>'<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;"><span>✂️ <strong>'+s+'</strong></span><span style="display:flex;gap:12px;"><span>'+v.count+' served</span>'+(v.rev?'<span style="color:var(--b);">AED '+fmtAED(v.rev)+'</span>':'')+(v.tips?'<span style="color:var(--ok);">Tip '+fmtAED(v.tips)+'</span>':'')+'</span></div>').join('');
   } else if(sumEl){sumEl.innerHTML='<div style="color:var(--muted);font-size:13px;">Load the queue first to see today\'s summary.</div>';}
 }
 
