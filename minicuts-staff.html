@@ -1821,7 +1821,7 @@ function _svEdit(id){
     +'<div id="sv-ferr" style="font-size:12px;color:var(--err,#dc2626);min-height:16px;margin-top:2px;"></div>'
     +'<div style="display:flex;gap:8px;margin-top:18px;justify-content:flex-end;">'
     +'<button class="btn btn-sm btn-ghost" onclick="document.getElementById(\'sv-overlay\').remove()">Cancel</button>'
-    +'<button class="btn btn-sm btn-b" id="sv-fsave" onclick="_svSave('+id+')">Save</button>'
+    +'<button class="btn btn-sm btn-b" id="sv-fsave" onclick="_svSave('+(id?'\''+id+'\'':'null')+')">Save</button>'
     +'</div></div>';
   document.body.appendChild(overlay);
   overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove();});
