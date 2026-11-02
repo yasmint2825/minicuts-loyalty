@@ -1757,9 +1757,9 @@ function _svDraw(el){
         +'<div style="font-size:11px;color:var(--muted);margin-top:1px;">'+gLabel+(s.duration?' · '+s.duration+' min':'')+'</div>'
         +'</div>'
         +'<div style="font-size:13px;font-weight:700;white-space:nowrap;">AED '+(+(s.price||0)).toFixed(0)+'</div>'
-        +'<button class="btn btn-sm btn-ghost" onclick="_svEdit('+JSON.stringify(s.id)+')" title="Edit" style="padding:4px 8px;">✏️</button>'
-        +'<button class="btn btn-sm btn-ghost" onclick="_svToggle('+JSON.stringify(s.id)+')" title="'+(active?'Deactivate':'Activate')+'" style="padding:4px 8px;color:'+(active?'var(--ok2,#16a34a)':'var(--muted)')+';">'+(active?'✅':'⭕')+'</button>'
-        +'<button class="btn btn-sm btn-ghost" onclick="_svDel('+JSON.stringify(s.id)+',this)" title="Delete" style="padding:4px 8px;color:var(--err,#dc2626);">🗑</button>'
+        +'<button class="btn btn-sm btn-ghost" onclick="_svEdit(\''+s.id+'\')" title="Edit" style="padding:4px 8px;">✏️</button>'
+        +'<button class="btn btn-sm btn-ghost" onclick="_svToggle(\''+s.id+'\')" title="'+(active?'Deactivate':'Activate')+'" style="padding:4px 8px;color:'+(active?'var(--ok2,#16a34a)':'var(--muted)')+';">'+(active?'✅':'⭕')+'</button>'
+        +'<button class="btn btn-sm btn-ghost" onclick="_svDel(\''+s.id+'\',this)" title="Delete" style="padding:4px 8px;color:var(--err,#dc2626);">🗑</button>'
         +'</div>';
     }
     rows+='</div>';
@@ -1779,7 +1779,7 @@ function _svDraw(el){
 function svEsc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
 function _svEdit(id){
-  const s=id?_svAll.find(x=>x.id===id):null;
+  const s=id?_svAll.find(x=>String(x.id)===String(id)):null;
   const v=s||{name:'',code:'',cat:'',gender:'',price:'',duration:30,status:'active'};
   const existingCats=[...new Set(_svAll.map(x=>x.cat||'').filter(Boolean))];
   const overlay=document.createElement('div');
@@ -1867,7 +1867,7 @@ async function _svSave(id){
 }
 
 async function _svToggle(id){
-  const s=_svAll.find(x=>x.id===id);
+  const s=_svAll.find(x=>String(x.id)===String(id));
   if(!s)return;
   const next=String(s.status||'active').toLowerCase()==='inactive'?'active':'inactive';
   try{
@@ -1879,13 +1879,13 @@ async function _svToggle(id){
 }
 
 async function _svDel(id,btn){
-  const s=_svAll.find(x=>x.id===id);
+  const s=_svAll.find(x=>String(x.id)===String(id));
   if(!s)return;
   if(!confirm('Delete "'+s.name+'"?\n\nThis cannot be undone.'))return;
   if(btn){btn.disabled=true;btn.textContent='…';}
   try{
     await MC.sb('salon_services','DELETE',null,'id=eq.'+id);
-    _svAll=_svAll.filter(x=>x.id!==id);
+    _svAll=_svAll.filter(x=>String(x.id)!==String(id));
     if(window.MC&&MC.billing)MC.billing.loaded=false;
     _svDraw();
   }catch(e){
